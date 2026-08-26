@@ -1,7 +1,11 @@
-import type { Player } from "@/lib/types";
-import { tierFor } from "@/lib/mock-data";
+import type { Player, RoleKey } from "@/lib/types";
+import { currentStreak, ROLES, tierFor } from "@/lib/mock-data";
 import { RoleIcon } from "./RoleIcon";
 import { SparkChart } from "./SparkChart";
+
+export type SortKey = "ladder" | "winrate" | "wins" | "streak" | "recent";
+
+const ROLE_FILTERS: (RoleKey | "all")[] = ["all", "top", "jungle", "mid", "adc", "support"];
 
 interface LadderTableProps {
   players: Player[];
@@ -13,10 +17,40 @@ interface LadderTableProps {
   onRefresh: () => void;
   refreshing: boolean;
   refreshError?: string | null;
+  roleFilter: RoleKey | "all";
+  onRoleFilterChange: (role: RoleKey | "all") => void;
+  sortKey: SortKey;
+  onSortKeyChange: (key: SortKey) => void;
 }
 
 export function playerKey(p: Player): string {
   return `${p.name}#${p.tag}`;
+}
+
+function recentDelta(p: Player): number {
+  return p.spark20.length >= 2 ? p.spark20[p.spark20.length - 1] - p.spark20[0] : 0;
+}
+
+function streakMagnitude(p: Player): number {
+  const s = currentStreak(p.matches);
+  if (!s) return 0;
+  return s.result === "W" ? s.count : -s.count;
+}
+
+function sortValue(p: Player, key: SortKey): number {
+  switch (key) {
+    case "winrate":
+      return p.winrate;
+    case "wins":
+      return p.wins;
+    case "streak":
+      return streakMagnitude(p);
+    case "recent":
+      return recentDelta(p);
+    case "ladder":
+    default:
+      return 0;
+  }
 }
 
 export function LadderTable({
@@ -29,9 +63,17 @@ export function LadderTable({
   onRefresh,
   refreshing,
   refreshError,
+  roleFilter,
+  onRoleFilterChange,
+  sortKey,
+  onSortKeyChange,
 }: LadderTableProps) {
   const q = filterText.trim().toLowerCase();
-  const rows = players.filter((p) => !q || playerKey(p).toLowerCase().includes(q));
+  const filtered = players
+    .filter((p) => roleFilter === "all" || p.role === roleFilter)
+    .filter((p) => !q || playerKey(p).toLowerCase().includes(q));
+  const rows =
+    sortKey === "ladder" ? filtered : [...filtered].sort((a, b) => sortValue(b, sortKey) - sortValue(a, sortKey));
 
   return (
     <section>
@@ -43,11 +85,39 @@ export function LadderTable({
         </h2>
         <div className="ladder-actions">
           {refreshError && <span className="meta refresh-error">{refreshError}</span>}
-          <span className="meta">Ordenado por LP</span>
           <button type="button" className="refresh-btn" onClick={onRefresh} disabled={refreshing || loading}>
             {refreshing ? "Actualizando…" : "Actualizar ahora"}
           </button>
         </div>
+      </div>
+
+      <div className="ladder-controls">
+        <div className="role-filters" role="group" aria-label="Filtrar por rol">
+          {ROLE_FILTERS.map((r) => (
+            <button
+              key={r}
+              type="button"
+              className={`role-filter-btn${roleFilter === r ? " is-active" : ""}`}
+              onClick={() => onRoleFilterChange(r)}
+            >
+              {r === "all" ? "Todos" : ROLES[r].label}
+            </button>
+          ))}
+        </div>
+        <label className="sort-select-wrap">
+          <span className="meta">Ordenar por</span>
+          <select
+            className="sort-select"
+            value={sortKey}
+            onChange={(e) => onSortKeyChange(e.target.value as SortKey)}
+          >
+            <option value="ladder">LP (ranking)</option>
+            <option value="winrate">Winrate</option>
+            <option value="wins">Victorias</option>
+            <option value="streak">Racha</option>
+            <option value="recent">Progreso reciente</option>
+          </select>
+        </label>
       </div>
 
       <div className="ladder">
@@ -78,8 +148,14 @@ export function LadderTable({
           ) : rows.length === 0 ? (
             <div className="empty-state">
               <strong>Sin resultados</strong>
-              No hay ningún Riot ID en el grupo que matchee &ldquo;{q}&rdquo;. Apretá Enter para buscarlo en la Riot
-              API y sumarlo.
+              {q ? (
+                <>
+                  No hay ningún Riot ID en el grupo que matchee &ldquo;{q}&rdquo;. Apretá Enter para buscarlo en la
+                  Riot API y sumarlo.
+                </>
+              ) : (
+                "Ningún invocador del grupo juega ese rol."
+              )}
             </div>
           ) : (
             rows.map((p) => {
@@ -87,6 +163,7 @@ export function LadderTable({
               const t = tierFor(p.tierKey);
               const key = playerKey(p);
               const isActive = key === activeKey;
+              const streak = currentStreak(p.matches);
               return (
                 <button
                   key={key}
@@ -133,6 +210,12 @@ export function LadderTable({
                       <span className="wr-seg win" style={{ flex: p.wins }} />
                       <span className="wr-seg loss" style={{ flex: p.losses }} />
                     </span>
+                    {streak && (
+                      <span className={`wr-streak ${streak.result === "W" ? "w" : "l"}`}>
+                        {streak.result === "W" ? "🔥" : "🔻"} {streak.count}
+                        {streak.capped ? "+" : ""} {streak.result === "W" ? "V" : "D"}
+                      </span>
+                    )}
                   </span>
                   <span className="col-spark">
                     <SparkChart values={p.spark20} width={150} height={28} color={t.fg} />

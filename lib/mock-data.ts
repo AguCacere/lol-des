@@ -67,6 +67,30 @@ export function champTag(name: string): string {
   return name.split(/[\s']/)[0].slice(0, 2).toUpperCase();
 }
 
+export interface Streak {
+  result: "W" | "L";
+  count: number;
+  /** true when every match we have on hand shares `result` — the real streak could be longer than `count`. */
+  capped: boolean;
+}
+
+/**
+ * Current win/loss streak from real match results (matches[0] = most recent).
+ * `matches` here is whatever the API returned (today: last 5 stored) — if
+ * every one of them matches, the streak is at least `count` but we can't see
+ * further back, so callers should render it as "count+" (see Streak.capped).
+ */
+export function currentStreak(matches: Match[]): Streak | null {
+  if (matches.length === 0) return null;
+  const result: "W" | "L" = matches[0].win ? "W" : "L";
+  let count = 0;
+  for (const m of matches) {
+    if ((m.win ? "W" : "L") !== result) break;
+    count++;
+  }
+  return { result, count, capped: count === matches.length };
+}
+
 function genMatches(seed: number): Match[] {
   let s = seed;
   const rand = () => {

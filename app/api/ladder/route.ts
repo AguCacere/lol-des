@@ -84,7 +84,14 @@ export async function GET() {
   }
 
   const matchesByPuuid = new Map<string, Match[]>();
+  // Champion frequency across ALL stored matches (not just the last 5 shown) —
+  // used as the "most played champion" fallback when main_champ isn't set manually.
+  const champFreqByPuuid = new Map<string, Map<string, number>>();
   for (const row of matchRows ?? []) {
+    const freq = champFreqByPuuid.get(row.puuid) ?? new Map<string, number>();
+    freq.set(row.champion, (freq.get(row.champion) ?? 0) + 1);
+    champFreqByPuuid.set(row.puuid, freq);
+
     const arr = matchesByPuuid.get(row.puuid) ?? [];
     if (arr.length >= 5) continue;
     const durationMin = row.game_duration_s / 60;
@@ -101,6 +108,20 @@ export async function GET() {
       gold: Math.round(row.gold_earned / durationMin),
     });
     matchesByPuuid.set(row.puuid, arr);
+  }
+
+  function mostPlayedChamp(puuid: string): string | null {
+    const freq = champFreqByPuuid.get(puuid);
+    if (!freq) return null;
+    let best: string | null = null;
+    let bestCount = 0;
+    for (const [champ, count] of freq) {
+      if (count > bestCount) {
+        best = champ;
+        bestCount = count;
+      }
+    }
+    return best;
   }
 
   const players: Player[] = (ladderRows ?? []).map((row): Player => {
@@ -124,7 +145,7 @@ export async function GET() {
       losses,
       seed,
       drift: 0,
-      mainChamp: row.main_champ ?? matches[0]?.champ ?? "—",
+      mainChamp: row.main_champ ?? mostPlayedChamp(row.puuid) ?? "—",
       spark20,
       matches,
       winrate: wins + losses > 0 ? Math.round((100 * wins) / (wins + losses)) : 0,

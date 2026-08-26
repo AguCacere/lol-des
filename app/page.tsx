@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { Player } from "@/lib/types";
+import type { Player, RoleKey } from "@/lib/types";
 import { TopBar, type AddStatus } from "@/components/TopBar";
 import { TabNav, type TabKey } from "@/components/TabNav";
-import { LadderTable, playerKey } from "@/components/LadderTable";
+import { LadderTable, playerKey, type SortKey } from "@/components/LadderTable";
 import { PlayerProfile } from "@/components/PlayerProfile";
 
 function parseRiotId(raw: string): { gameName: string; tagLine: string } | null {
@@ -24,6 +24,8 @@ export default function Home() {
   const [addStatus, setAddStatus] = useState<AddStatus>({ kind: "idle" });
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [roleFilter, setRoleFilter] = useState<RoleKey | "all">("all");
+  const [sortKey, setSortKey] = useState<SortKey>("ladder");
 
   const loadLadder = useCallback(async () => {
     try {
@@ -120,6 +122,10 @@ export default function Home() {
             onRefresh={handleRefresh}
             refreshing={refreshing}
             refreshError={refreshError}
+            roleFilter={roleFilter}
+            onRoleFilterChange={setRoleFilter}
+            sortKey={sortKey}
+            onSortKeyChange={setSortKey}
           />
           <PlayerProfile player={activePlayer} />
         </div>
