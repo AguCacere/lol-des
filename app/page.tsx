@@ -22,6 +22,8 @@ export default function Home() {
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [tab, setTab] = useState<TabKey>("ranking");
   const [addStatus, setAddStatus] = useState<AddStatus>({ kind: "idle" });
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
 
   const loadLadder = useCallback(async () => {
     try {
@@ -77,6 +79,21 @@ export default function Home() {
     }
   }, [filterText, loadLadder]);
 
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setRefreshError(null);
+    try {
+      const res = await fetch("/api/refresh", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "No se pudo actualizar.");
+      await loadLadder();
+    } catch (err) {
+      setRefreshError(err instanceof Error ? err.message : "No se pudo actualizar.");
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadLadder]);
+
   return (
     <div className="app">
       <TopBar
@@ -100,6 +117,9 @@ export default function Home() {
             onSelect={(key) => setActiveKey((cur) => (cur === key ? null : key))}
             loading={loading}
             error={loadError}
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
+            refreshError={refreshError}
           />
           <PlayerProfile player={activePlayer} />
         </div>

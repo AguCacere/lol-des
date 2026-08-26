@@ -10,13 +10,26 @@ interface LadderTableProps {
   onSelect: (key: string) => void;
   loading?: boolean;
   error?: string | null;
+  onRefresh: () => void;
+  refreshing: boolean;
+  refreshError?: string | null;
 }
 
 export function playerKey(p: Player): string {
   return `${p.name}#${p.tag}`;
 }
 
-export function LadderTable({ players, filterText, activeKey, onSelect, loading, error }: LadderTableProps) {
+export function LadderTable({
+  players,
+  filterText,
+  activeKey,
+  onSelect,
+  loading,
+  error,
+  onRefresh,
+  refreshing,
+  refreshError,
+}: LadderTableProps) {
   const q = filterText.trim().toLowerCase();
   const rows = players.filter((p) => !q || playerKey(p).toLowerCase().includes(q));
 
@@ -28,7 +41,13 @@ export function LadderTable({ players, filterText, activeKey, onSelect, loading,
           Ladder del grupo{" "}
           <span className="meta">· {rows.length}{rows.length === 1 ? " invocador" : " invocadores"}</span>
         </h2>
-        <span className="meta">Ordenado por LP · actualizado hace 6 min</span>
+        <div className="ladder-actions">
+          {refreshError && <span className="meta refresh-error">{refreshError}</span>}
+          <span className="meta">Ordenado por LP</span>
+          <button type="button" className="refresh-btn" onClick={onRefresh} disabled={refreshing || loading}>
+            {refreshing ? "Actualizando…" : "Actualizar ahora"}
+          </button>
+        </div>
       </div>
 
       <div className="ladder">
