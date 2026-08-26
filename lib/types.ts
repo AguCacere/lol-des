@@ -92,6 +92,23 @@ export interface ChampionPoolEntry {
   avgCsPerMin: number;
 }
 
+/**
+ * Two tracked players who showed up as TEAMMATES (same match_id, same win
+ * result — Riot doesn't need to tell us teamId for this: within one match
+ * a shared win/loss result only happens for players on the same team) in
+ * at least one stored match. Computed entirely from data already in
+ * `matches`, no extra Riot calls.
+ */
+export interface DuoPair {
+  aName: string;
+  aTag: string;
+  bName: string;
+  bTag: string;
+  games: number;
+  wins: number;
+  winrate: number;
+}
+
 export interface Player {
   name: string;
   tag: string;

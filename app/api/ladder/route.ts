@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { peakFromHistory, tierScore } from "@/lib/mock-data";
 import { divisionFromRiot, normalizeRole, roleFromTeamPosition, seedFromPuuid, tierKeyFromRiot } from "@/lib/mapping";
-import type { ChampionPoolEntry, LpHistoryPoint, Match, Player, RoleKey } from "@/lib/types";
+import type { ChampionPoolEntry, DuoPair, LpHistoryPoint, Match, Player, RoleKey } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +21,7 @@ interface LadderRow {
 }
 
 interface MatchRow {
+  match_id: string;
   puuid: string;
   champion: string;
   win: boolean;
@@ -88,7 +89,7 @@ export async function GET() {
 
   const puuids = (ladderRows ?? []).map((r) => r.puuid);
   if (puuids.length === 0) {
-    return NextResponse.json({ players: [] });
+    return NextResponse.json({ players: [], duoSynergy: [] });
   }
 
   const [{ data: snapshots }, { data: matchRows }] = await Promise.all([
@@ -100,7 +101,7 @@ export async function GET() {
     supabase
       .from("matches")
       .select(
-        "puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, gold_earned, vision_score, kill_participation, obj_share, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, champ_level, damage_taken, damage_mitigated, wards_placed, wards_killed, control_wards, turret_kills, dragon_kills, baron_kills, inhibitor_kills, first_blood, first_tower, summoner1, summoner2, solo_kills, skillshots_hit, damage_per_min, team_position, game_duration_s, played_at"
+        "match_id, puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, gold_earned, vision_score, kill_participation, obj_share, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, champ_level, damage_taken, damage_mitigated, wards_placed, wards_killed, control_wards, turret_kills, dragon_kills, baron_kills, inhibitor_kills, first_blood, first_tower, summoner1, summoner2, solo_kills, skillshots_hit, damage_per_min, team_position, game_duration_s, played_at"
       )
       .in("puuid", puuids)
       .order("played_at", { ascending: false })
@@ -145,7 +146,16 @@ export async function GET() {
     csMinSum: number;
   }
   const champStatsByPuuid = new Map<string, Map<string, ChampAgg>>();
+  // Which tracked players showed up in each match_id, with their own win
+  // result — feeds "Sinergia de dúo" below. No teamId needed: two tracked
+  // players sharing a match_id are teammates iff their win result matches
+  // (a match has exactly one winning side), opponents otherwise.
+  const trackedByMatchId = new Map<string, { puuid: string; win: boolean }[]>();
   for (const row of matchRows ?? []) {
+    const tracked = trackedByMatchId.get(row.match_id) ?? [];
+    tracked.push({ puuid: row.puuid, win: row.win });
+    trackedByMatchId.set(row.match_id, tracked);
+
     const freq = champFreqByPuuid.get(row.puuid) ?? new Map<string, number>();
     freq.set(row.champion, (freq.get(row.champion) ?? 0) + 1);
     champFreqByPuuid.set(row.puuid, freq);
@@ -247,6 +257,42 @@ export async function GET() {
       .slice(0, 5);
   }
 
+  /** Pairs of tracked players who were teammates in at least one stored match, ranked by games together. */
+  function computeDuoSynergy(): DuoPair[] {
+    const nameByPuuid = new Map((ladderRows ?? []).map((r) => [r.puuid, { name: r.game_name, tag: r.tag_line }]));
+    const pairStats = new Map<string, { aPuuid: string; bPuuid: string; games: number; wins: number }>();
+    for (const entries of trackedByMatchId.values()) {
+      if (entries.length < 2) continue;
+      for (let i = 0; i < entries.length; i++) {
+        for (let j = i + 1; j < entries.length; j++) {
+          if (entries[i].win !== entries[j].win) continue; // opposite results = opposite teams, not a duo
+          const [aPuuid, bPuuid] = [entries[i].puuid, entries[j].puuid].sort();
+          const key = `${aPuuid}|${bPuuid}`;
+          const cur = pairStats.get(key) ?? { aPuuid, bPuuid, games: 0, wins: 0 };
+          cur.games += 1;
+          cur.wins += entries[i].win ? 1 : 0;
+          pairStats.set(key, cur);
+        }
+      }
+    }
+    const pairs: DuoPair[] = [];
+    for (const p of pairStats.values()) {
+      const a = nameByPuuid.get(p.aPuuid);
+      const b = nameByPuuid.get(p.bPuuid);
+      if (!a || !b) continue;
+      pairs.push({
+        aName: a.name,
+        aTag: a.tag,
+        bName: b.name,
+        bTag: b.tag,
+        games: p.games,
+        wins: p.wins,
+        winrate: Math.round((100 * p.wins) / p.games),
+      });
+    }
+    return pairs.sort((x, y) => y.games - x.games);
+  }
+
   function mostPlayedRole(puuid: string): RoleKey | null {
     const freq = roleFreqByPuuid.get(puuid);
     if (!freq) return null;
@@ -309,5 +355,5 @@ export async function GET() {
 
   players.sort((a, b) => tierScore(b) - tierScore(a));
 
-  return NextResponse.json({ players });
+  return NextResponse.json({ players, duoSynergy: computeDuoSynergy() });
 }

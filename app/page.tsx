@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { Player, RoleKey } from "@/lib/types";
+import type { DuoPair, Player, RoleKey } from "@/lib/types";
 import { TopBar, type AddStatus } from "@/components/TopBar";
 import { TabNav, type TabKey } from "@/components/TabNav";
 import { LadderTable, playerKey, type SortKey } from "@/components/LadderTable";
 import { PlayerProfile } from "@/components/PlayerProfile";
+import { DuoSynergy } from "@/components/DuoSynergy";
 
 function parseRiotId(raw: string): { gameName: string; tagLine: string } | null {
   const i = raw.indexOf("#");
@@ -15,6 +16,7 @@ function parseRiotId(raw: string): { gameName: string; tagLine: string } | null 
 
 export default function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
+  const [duoSynergy, setDuoSynergy] = useState<DuoPair[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -33,6 +35,7 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "No se pudo cargar el ladder.");
       setPlayers(data.players as Player[]);
+      setDuoSynergy((data.duoSynergy as DuoPair[]) ?? []);
       setLoadError(null);
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : "No se pudo cargar el ladder.");
@@ -131,13 +134,8 @@ export default function Home() {
         </div>
       ) : (
         <div id="view-stats">
-          <div className="placeholder-card">
-            <h3>Estadísticas del grupo — próximamente</h3>
-            <p>
-              Acá van a vivir los números agregados: campeón más jugado, KDA promedio del grupo, duración típica de
-              partida. Se arma en cuanto tengamos más historial guardado en la base.
-            </p>
-          </div>
+          <DuoSynergy pairs={duoSynergy} loading={loading} />
+          <p className="stats-more-note">Más analíticas de grupo (campeón más jugado, KDA promedio) van a sumarse acá.</p>
         </div>
       )}
 
