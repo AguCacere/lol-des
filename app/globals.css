@@ -248,9 +248,13 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .role-chip{
   width:26px;height:26px;border-radius:7px; background:var(--gold-wash);
   box-shadow:var(--shadow-sm); display:flex; align-items:center; justify-content:center;
-  flex:none; color:var(--gold);
+  flex:none; color:var(--gold); overflow:hidden;
 }
 .role-chip svg{width:14px;height:14px;}
+/* Real role badges are self-contained square art (their own dark backdrop baked
+   in, no transparency) — fill the whole chip instead of floating inside the
+   wash background like the hand-drawn fallback glyph does. */
+.role-chip img{width:100%;height:100%;object-fit:cover;display:block;}
 .player-id{min-width:0;}
 .player-name{
   font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
