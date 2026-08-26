@@ -63,7 +63,14 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string) {
   const flex = entries.find((e) => e.queueType === "RANKED_FLEX_SR");
   if (flex) await upsertRankSnapshot(supabase, puuid, flex, "RANKED_FLEX_SR");
 
-  const { data: existing } = await supabase.from("matches").select("match_id").eq("puuid", puuid);
+  const { data: existing, error: existingError } = await supabase
+    .from("matches")
+    .select("match_id")
+    .eq("puuid", puuid);
+  // Don't silently treat a failed read as "no matches known yet" — that would
+  // make refreshOne try to re-insert matches we already have, which fails on
+  // the match_id primary key and masks the real problem.
+  if (existingError) throw new Error(`No se pudo leer matches existentes: ${existingError.message}`);
   const known = new Set((existing ?? []).map((m) => m.match_id));
 
   const matchIds = await getMatchIdsByPuuid(puuid, 20);
@@ -147,7 +154,7 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string) {
       // ignore — match still gets saved, just without timeline-derived stats
     }
 
-    await supabase.from("matches").insert({
+    const { error: insertError } = await supabase.from("matches").insert({
       match_id: matchId,
       puuid,
       champion: me.championName,
@@ -197,6 +204,11 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string) {
       game_duration_s: match.info.gameDuration,
       played_at: new Date(match.info.gameCreation).toISOString(),
     });
+    // Fail loud instead of silently dropping the match — if this is a schema
+    // mismatch (e.g. a migration that hasn't run yet), every remaining
+    // matchId in this loop would fail identically anyway, so stop here
+    // rather than silently losing all of them one by one.
+    if (insertError) throw new Error(`No se pudo guardar match_id=${matchId}: ${insertError.message}`);
   }
 
   // Champion Mastery reflects Riot's whole-career view, not just what we've

@@ -135,10 +135,25 @@ export async function GET() {
     })
   );
 
-  const [[{ data: snapshots }, { data: matchRows }, { data: masteryRows }], activeGameResults] = await Promise.all([
-    dbQueries,
-    activeGames,
-  ]);
+  const [
+    [
+      { data: snapshots, error: snapshotsError },
+      { data: matchRows, error: matchesError },
+      { data: masteryRows, error: masteryError },
+    ],
+    activeGameResults,
+  ] = await Promise.all([dbQueries, activeGames]);
+
+  // A query error here (e.g. a migration that hasn't run yet — missing
+  // column/table) must NOT be treated the same as "no rows" — silently
+  // falling back to an empty array made a broken query look identical to an
+  // empty ladder, which is exactly what happened: matches "disappearing"
+  // was actually the `matches` select failing because gold_diff_* columns
+  // didn't exist yet, and nobody surfaced the error.
+  const dbError = snapshotsError ?? matchesError ?? masteryError;
+  if (dbError) {
+    return NextResponse.json({ error: `Error leyendo datos de Supabase: ${dbError.message}` }, { status: 500 });
+  }
 
   const liveGameByPuuid = new Map<string, LiveGame>();
   for (const { puuid, game } of activeGameResults) {
