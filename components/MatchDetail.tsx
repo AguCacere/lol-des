@@ -38,14 +38,24 @@ function Stat({
   );
 }
 
+/** Real Riot monsterSubType (Match-V5 timeline) → the icon set uploaded for the 4 classic elemental drakes. Hextech/Chemtech/Elder have no matching art, so those kills just don't get an icon. */
+const DRAGON_ICON_BY_SUBTYPE: Record<string, string> = {
+  FIRE_DRAGON: "/icons/dragons/infernal-48.png",
+  WATER_DRAGON: "/icons/dragons/ocean-48.png",
+  EARTH_DRAGON: "/icons/dragons/mountain-48.png",
+  AIR_DRAGON: "/icons/dragons/cloud-48.png",
+};
+
 /** Compact "12 puestas · 3 sacadas" style breakdown — replaces a run-on sentence with scannable chips. */
-function MiniBreakdown({ items }: { items: { value: number; label: string; icon?: string }[] }) {
+function MiniBreakdown({ items }: { items: { value: number; label: string; icons?: string[] }[] }) {
   return (
     <span className="v mini-breakdown">
       {items.map((it) => (
         <span className="mini-breakdown-item" key={it.label}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- fixed tiny inline glyph, not a page asset */}
-          {it.icon && <img className="mini-breakdown-icon" src={it.icon} alt="" />}
+          {it.icons?.map((src, i) => (
+            // eslint-disable-next-line @next/next/no-img-element -- fixed tiny inline glyphs, not a page asset
+            <img className="mini-breakdown-icon" src={src} alt="" key={i} />
+          ))}
           <strong>{it.value}</strong>
           {it.label}
         </span>
@@ -131,11 +141,21 @@ export function MatchDetail({ match }: { match: Match }) {
           <MiniBreakdown
             items={[
               { value: m.turretKills, label: "torres" },
-              // Genérico a propósito: guardamos cuántos dragones se llevó el
-              // equipo, no cuáles (eso vive en el timeline de Match-V5 y no
-              // lo persistimos todavía), así que no hay forma honesta de
-              // elegir el ícono elemental correcto por partida.
-              { value: m.dragonKills, label: "dragones", icon: "/icons/dragons/infernal-48.png" },
+              {
+                value: m.dragonKills,
+                label: "dragones",
+                // Un ícono real por dragón que efectivamente mató este jugador
+                // (Match-V5 timeline, monsterSubType) — Hextech/Chemtech/Elder
+                // no tienen arte propio así que esos kills quedan sin ícono,
+                // pero siguen contando en el número. Partidas viejas (sin
+                // timeline guardado) caen al infernal genérico, mejor que nada.
+                icons:
+                  m.dragonTypes.length > 0
+                    ? m.dragonTypes.map((t) => DRAGON_ICON_BY_SUBTYPE[t]).filter((src): src is string => !!src)
+                    : m.dragonKills > 0
+                      ? ["/icons/dragons/infernal-48.png"]
+                      : [],
+              },
               { value: m.baronKills, label: "barones" },
               { value: m.inhibitorKills, label: "inhib." },
             ]}

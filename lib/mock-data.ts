@@ -159,6 +159,8 @@ const RUNE_PAIRS: [string, string][] = [
   ["First Strike", "Inspiration"],
 ];
 const RUNE_STYLES = ["Precision", "Domination", "Sorcery", "Resolve", "Inspiration"];
+/** Riot's monsterSubType values for the 4 classic elemental drakes — matches the icon set in public/icons/dragons/. */
+const DRAGON_SUBTYPES = ["FIRE_DRAGON", "WATER_DRAGON", "EARTH_DRAGON", "AIR_DRAGON"];
 
 function genMatches(seed: number): Match[] {
   let s = seed;
@@ -177,6 +179,7 @@ function genMatches(seed: number): Match[] {
     const dur = Math.round(22 + rand() * 16);
     const dmgShare = Math.round(14 + rand() * 22);
     const goldTotal = Math.round((8 + rand() * 6) * dur);
+    const dragonKills = Math.round(rand() * 2);
     out.push({
       win, champ, k, d, a, cs,
       csmin: (cs / dur).toFixed(1),
@@ -201,7 +204,8 @@ function genMatches(seed: number): Match[] {
       wardsKilled: Math.round(rand() * 6),
       controlWards: Math.round(rand() * 4),
       turretKills: Math.round(rand() * 3),
-      dragonKills: Math.round(rand() * 2),
+      dragonKills: dragonKills,
+      dragonTypes: Array.from({ length: dragonKills }, () => DRAGON_SUBTYPES[Math.floor(rand() * DRAGON_SUBTYPES.length)]),
       baronKills: rand() > 0.8 ? 1 : 0,
       inhibitorKills: rand() > 0.9 ? 1 : 0,
       firstBlood: rand() > 0.85,

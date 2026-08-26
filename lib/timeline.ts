@@ -10,6 +10,14 @@ export interface TimelineStats {
   goldDiff20: number | null;
   firstBloodTimeS: number | null;
   firstTowerTimeS: number | null;
+  /**
+   * Riot's `monsterSubType` for each dragon THIS player personally landed the
+   * killing blow on (e.g. ["FIRE_DRAGON", "WATER_DRAGON"]) — same source data
+   * as `dragonKills` on the match participant, just with which element each
+   * one was, which that stat doesn't carry. Empty array, not null, when this
+   * player took zero dragons or none matched their participant id.
+   */
+  dragonTypes: string[];
 }
 
 /** Gold diff vs. the enemy in the same lane (teamPosition) at a fixed minute mark — team totals would hide who's actually winning a lane. */
@@ -41,9 +49,13 @@ export function extractTimelineStats(
   }
 
   // First blood / first tower are game-wide facts, independent of who's viewing.
+  // Can't early-exit once both are found anymore — dragons keep spawning all
+  // game, well past the point first blood/tower are usually decided, so a
+  // scan that stopped there silently dropped every later dragon kill.
   let firstBloodTimeS: number | null = null;
   let firstTowerTimeS: number | null = null;
-  outer: for (const frame of timeline.info.frames) {
+  const dragonTypes: string[] = [];
+  for (const frame of timeline.info.frames) {
     for (const event of frame.events) {
       if (event.type === "CHAMPION_KILL" && firstBloodTimeS === null) {
         firstBloodTimeS = Math.round(event.timestamp / 1000);
@@ -51,7 +63,9 @@ export function extractTimelineStats(
       if (event.type === "BUILDING_KILL" && firstTowerTimeS === null) {
         firstTowerTimeS = Math.round(event.timestamp / 1000);
       }
-      if (firstBloodTimeS !== null && firstTowerTimeS !== null) break outer;
+      if (event.type === "ELITE_MONSTER_KILL" && event.monsterType === "DRAGON" && event.killerId === myParticipantId) {
+        dragonTypes.push(event.monsterSubType ?? "UNKNOWN_DRAGON");
+      }
     }
   }
 
@@ -61,5 +75,6 @@ export function extractTimelineStats(
     goldDiff20: atMinute(20),
     firstBloodTimeS,
     firstTowerTimeS,
+    dragonTypes,
   };
 }

@@ -49,6 +49,8 @@ export interface Match {
   controlWards: number;
   turretKills: number;
   dragonKills: number;
+  /** monsterSubType per dragon this player personally killed (e.g. ["FIRE_DRAGON"]) — from the match timeline, may be shorter than dragonKills on older/unparsed matches. */
+  dragonTypes: string[];
   baronKills: number;
   inhibitorKills: number;
   firstBlood: boolean;

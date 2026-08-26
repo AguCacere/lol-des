@@ -200,6 +200,7 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string) {
       gold_diff_20: timelineStats?.goldDiff20 ?? null,
       first_blood_time_s: timelineStats?.firstBloodTimeS ?? null,
       first_tower_time_s: timelineStats?.firstTowerTimeS ?? null,
+      dragon_types: timelineStats?.dragonTypes ?? [],
       team_position: me.teamPosition,
       game_duration_s: match.info.gameDuration,
       played_at: new Date(match.info.gameCreation).toISOString(),
