@@ -35,11 +35,13 @@ export interface LineAreaGeometry {
 
 /**
  * Same math as the mockup's lineAreaSVG(), split from the markup so React owns
- * the SVG tags. `minRange` floors the auto-scaled Y axis (default: 20 LP) so a
- * tiny real fluctuation (1-2 LP across a handful of snapshots) doesn't get
- * stretched to fill the whole chart height and look like a huge swing.
+ * the SVG tags. `minRange` floors the auto-scaled Y axis (default: 10 LP) so a
+ * trivial 1-2 LP fluctuation across a handful of snapshots doesn't get
+ * stretched to fill the whole chart height and look like a huge swing. Kept
+ * low on purpose: with few real snapshots collected so far, actual LP ranges
+ * are often modest (10-20) — a higher floor flattens those real trends too.
  */
-export function lineAreaGeometry(values: number[], w: number, h: number, pad = 6, minRange = 20): LineAreaGeometry {
+export function lineAreaGeometry(values: number[], w: number, h: number, pad = 6, minRange = 10): LineAreaGeometry {
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = Math.max(max - min, minRange);

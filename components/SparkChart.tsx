@@ -27,23 +27,24 @@ export function SparkChart({
   const detailed = variant === "detailed";
   const dotRadius = detailed ? 4.5 : 3;
   const innerH = height - pad * 2;
+  // Compact still gets a glow, just a tighter/cheaper one than the big profile chart —
+  // a bare 2px line in a 150x28 cell read as flat/lifeless next to the detailed variant.
+  const blurRadius = detailed ? 3.2 : 1.4;
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" role="img" aria-label="Tendencia">
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+          <stop offset="0%" stopColor={color} stopOpacity={detailed ? "0.35" : "0.45"} />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
-        {detailed && (
-          <filter id={`${gid}-glow`} x="-40%" y="-100%" width="180%" height="300%">
-            <feGaussianBlur stdDeviation="3.2" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        )}
+        <filter id={`${gid}-glow`} x="-40%" y="-100%" width="180%" height="300%">
+          <feGaussianBlur stdDeviation={blurRadius} result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
       {detailed && (
         <g stroke="rgba(255,255,255,0.07)" strokeWidth={1}>
@@ -56,10 +57,10 @@ export function SparkChart({
         d={line}
         fill="none"
         stroke={color}
-        strokeWidth={detailed ? 2.5 : 2}
+        strokeWidth={detailed ? 2.5 : 2.25}
         strokeLinecap="round"
         strokeLinejoin="round"
-        filter={detailed ? `url(#${gid}-glow)` : undefined}
+        filter={`url(#${gid}-glow)`}
       />
       <circle cx={last[0].toFixed(1)} cy={last[1].toFixed(1)} r={dotRadius + 3} fill={color} fillOpacity="0.2" />
       <circle cx={last[0].toFixed(1)} cy={last[1].toFixed(1)} r={dotRadius} fill={color} />

@@ -218,7 +218,7 @@ export function LadderTable({
                     )}
                   </span>
                   <span className="col-spark">
-                    <SparkChart values={p.spark20} width={150} height={28} color={t.fg} />
+                    <SparkChart values={p.spark20} width={150} height={28} pad={4} color={t.fg} />
                   </span>
                   <span className="col-chevron">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
