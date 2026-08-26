@@ -59,6 +59,11 @@ interface MatchRow {
   solo_kills: number | null;
   skillshots_hit: number | null;
   damage_per_min: number | null;
+  gold_diff_10: number | null;
+  gold_diff_15: number | null;
+  gold_diff_20: number | null;
+  first_blood_time_s: number | null;
+  first_tower_time_s: number | null;
   team_position: string | null;
   game_duration_s: number;
   played_at: string;
@@ -101,7 +106,7 @@ export async function GET() {
     supabase
       .from("matches")
       .select(
-        "match_id, puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, gold_earned, vision_score, kill_participation, obj_share, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, champ_level, damage_taken, damage_mitigated, wards_placed, wards_killed, control_wards, turret_kills, dragon_kills, baron_kills, inhibitor_kills, first_blood, first_tower, summoner1, summoner2, solo_kills, skillshots_hit, damage_per_min, team_position, game_duration_s, played_at"
+        "match_id, puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, gold_earned, vision_score, kill_participation, obj_share, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, champ_level, damage_taken, damage_mitigated, wards_placed, wards_killed, control_wards, turret_kills, dragon_kills, baron_kills, inhibitor_kills, first_blood, first_tower, summoner1, summoner2, solo_kills, skillshots_hit, damage_per_min, gold_diff_10, gold_diff_15, gold_diff_20, first_blood_time_s, first_tower_time_s, team_position, game_duration_s, played_at"
       )
       .in("puuid", puuids)
       .order("played_at", { ascending: false })
@@ -247,6 +252,11 @@ export async function GET() {
       soloKills: row.solo_kills,
       skillshotsHit: row.skillshots_hit,
       damagePerMin: row.damage_per_min,
+      goldDiff10: row.gold_diff_10,
+      goldDiff15: row.gold_diff_15,
+      goldDiff20: row.gold_diff_20,
+      firstBloodTimeS: row.first_blood_time_s,
+      firstTowerTimeS: row.first_tower_time_s,
     });
     matchesByPuuid.set(row.puuid, arr);
   }

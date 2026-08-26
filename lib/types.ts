@@ -58,6 +58,11 @@ export interface Match {
   soloKills: number | null;
   skillshotsHit: number | null;
   damagePerMin: number | null;
+  goldDiff10: number | null;
+  goldDiff15: number | null;
+  goldDiff20: number | null;
+  firstBloodTimeS: number | null;
+  firstTowerTimeS: number | null;
 }
 
 export interface LpHistoryPoint {

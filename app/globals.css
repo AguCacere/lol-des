@@ -528,6 +528,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-family:var(--font-stat); color:var(--text-primary); font-weight:700; font-size:13px;
   font-variant-numeric:tabular-nums; margin-right:3px;
 }
+.gd-pos{color:var(--good);}
+.gd-neg{color:var(--critical);}
 .match-multikill{
   font-family:var(--font-display); font-weight:700; font-size:13px; letter-spacing:0.03em;
   color:var(--gold); background:var(--gold-wash); border:1px solid rgba(245,185,66,0.3);

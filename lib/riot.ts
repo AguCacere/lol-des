@@ -90,6 +90,7 @@ export interface RiotMatch {
 
 export interface RiotParticipant {
   puuid: string;
+  participantId: number; // 1-10, matches the keys in timeline participantFrames
   teamId: number;
   championName: string;
   win: boolean;
@@ -153,6 +154,32 @@ export interface RiotPerks {
 export function getMatchById(matchId: string) {
   const url = `https://${REGION}.api.riotgames.com/lol/match/v5/matches/${matchId}`;
   return riotFetch<RiotMatch>(url);
+}
+
+export interface RiotTimelineEvent {
+  type: string; // "CHAMPION_KILL" | "BUILDING_KILL" | ...
+  timestamp: number; // ms since game start
+}
+
+export interface RiotTimelineFrame {
+  timestamp: number; // ms since game start
+  participantFrames: Record<string, { participantId: number; totalGold: number }>;
+  events: RiotTimelineEvent[];
+}
+
+export interface RiotTimeline {
+  info: { frameInterval: number; frames: RiotTimelineFrame[] };
+}
+
+/**
+ * Match-V5 timeline — per-minute frames (gold, etc. per participant) plus a
+ * chronological event log (kills, building kills, ...) for one match.
+ * Separate call from getMatchById, same match_id — used for gold diff at
+ * fixed minute marks and first blood/tower timing. Region-routed.
+ */
+export function getMatchTimeline(matchId: string) {
+  const url = `https://${REGION}.api.riotgames.com/lol/match/v5/timelines/by-match/${matchId}`;
+  return riotFetch<RiotTimeline>(url);
 }
 
 export interface RiotChampionMastery {

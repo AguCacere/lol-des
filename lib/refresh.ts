@@ -1,6 +1,14 @@
 import type { getSupabaseServerClient } from "./supabase";
-import { getLeagueEntriesByPuuid, getMatchById, getMatchIdsByPuuid, getTopChampionMasteries, type RiotLeagueEntry } from "./riot";
+import {
+  getLeagueEntriesByPuuid,
+  getMatchById,
+  getMatchIdsByPuuid,
+  getMatchTimeline,
+  getTopChampionMasteries,
+  type RiotLeagueEntry,
+} from "./riot";
 import { championNameById, runeNameById, summonerSpellNameById } from "./ddragon";
+import { extractTimelineStats } from "./timeline";
 
 type SupabaseClient = ReturnType<typeof getSupabaseServerClient>;
 
@@ -119,6 +127,26 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string) {
       // ignore — match still gets saved, just without spell names
     }
 
+    // Timeline is a separate, second Match-V5 call per match — gold diff vs.
+    // the enemy in the same lane (teamPosition) at 10/15/20 min, plus first
+    // blood/tower timing. Non-fatal: an older match or a transient failure
+    // here shouldn't lose the rest of the match's real-time stats above.
+    let timelineStats: Awaited<ReturnType<typeof extractTimelineStats>> | null = null;
+    try {
+      const enemy = match.info.participants.find(
+        (p) => p.teamId !== me.teamId && p.teamPosition === me.teamPosition && me.teamPosition !== ""
+      );
+      const timeline = await getMatchTimeline(matchId);
+      timelineStats = extractTimelineStats(
+        timeline,
+        me.participantId,
+        enemy?.participantId ?? null,
+        match.info.gameDuration
+      );
+    } catch {
+      // ignore — match still gets saved, just without timeline-derived stats
+    }
+
     await supabase.from("matches").insert({
       match_id: matchId,
       puuid,
@@ -160,6 +188,11 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string) {
       solo_kills: me.challenges?.soloKills ?? null,
       skillshots_hit: me.challenges?.skillshotsHit ?? null,
       damage_per_min: me.challenges?.damagePerMinute != null ? Number(me.challenges.damagePerMinute.toFixed(1)) : null,
+      gold_diff_10: timelineStats?.goldDiff10 ?? null,
+      gold_diff_15: timelineStats?.goldDiff15 ?? null,
+      gold_diff_20: timelineStats?.goldDiff20 ?? null,
+      first_blood_time_s: timelineStats?.firstBloodTimeS ?? null,
+      first_tower_time_s: timelineStats?.firstTowerTimeS ?? null,
       team_position: me.teamPosition,
       game_duration_s: match.info.gameDuration,
       played_at: new Date(match.info.gameCreation).toISOString(),

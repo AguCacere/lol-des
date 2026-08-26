@@ -212,6 +212,11 @@ function genMatches(seed: number): Match[] {
       soloKills: Math.floor(rand() * 3),
       skillshotsHit: Math.round(rand() * 20),
       damagePerMin: Math.round(300 + rand() * 500),
+      goldDiff10: dur >= 10 ? Math.round((rand() - 0.5) * 2000) : null,
+      goldDiff15: dur >= 15 ? Math.round((rand() - 0.5) * 3000) : null,
+      goldDiff20: dur >= 20 ? Math.round((rand() - 0.5) * 4000) : null,
+      firstBloodTimeS: rand() > 0.1 ? Math.round(90 + rand() * 300) : null,
+      firstTowerTimeS: rand() > 0.1 ? Math.round(400 + rand() * 500) : null,
     });
   }
   return out;

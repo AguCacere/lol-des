@@ -8,6 +8,16 @@ function multikillLabel(m: Match): string | null {
   return m.pentaKills > 0 ? "¡PENTAKILL!" : null;
 }
 
+function GoldDiff({ diff }: { diff: number }) {
+  return <span className={diff >= 0 ? "gd-pos" : "gd-neg"}>{diff >= 0 ? "+" : ""}{diff.toLocaleString("es-AR")}</span>;
+}
+
+function formatMmSs(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 function Stat({
   label,
   tooltip,
@@ -63,6 +73,8 @@ function Group({ label, children }: { label: string; children: React.ReactNode }
 export function MatchDetail({ match }: { match: Match }) {
   const m = match;
   const multikill = multikillLabel(m);
+  const hasTimeline =
+    m.goldDiff10 != null || m.goldDiff15 != null || m.goldDiff20 != null || m.firstBloodTimeS != null || m.firstTowerTimeS != null;
   return (
     <div className="match-detail">
       {multikill && <div className="match-multikill">{multikill}</div>}
@@ -140,10 +152,32 @@ export function MatchDetail({ match }: { match: Match }) {
         </Stat>
       </Group>
 
+      {hasTimeline && (
+        <Group label="Timeline">
+          {m.goldDiff10 != null && (
+            <Stat label="Gold diff @10'" tooltip={METRIC_INFO.goldDiffLane}>
+              <GoldDiff diff={m.goldDiff10} />
+            </Stat>
+          )}
+          {m.goldDiff15 != null && (
+            <Stat label="Gold diff @15'" tooltip={METRIC_INFO.goldDiffLane}>
+              <GoldDiff diff={m.goldDiff15} />
+            </Stat>
+          )}
+          {m.goldDiff20 != null && (
+            <Stat label="Gold diff @20'" tooltip={METRIC_INFO.goldDiffLane}>
+              <GoldDiff diff={m.goldDiff20} />
+            </Stat>
+          )}
+          {m.firstBloodTimeS != null && <Stat label="Primera sangre (partida)">{formatMmSs(m.firstBloodTimeS)}</Stat>}
+          {m.firstTowerTimeS != null && <Stat label="Primera torre (partida)">{formatMmSs(m.firstTowerTimeS)}</Stat>}
+        </Group>
+      )}
+
       <div className="match-detail-missing">
         <p>
-          <strong>Build y estadísticas al minuto 15:</strong> <span className="pending-inline">Próximamente</span> —
-          Riot los expone, todavía no los pedimos ni guardamos.
+          <strong>Build (orden de ítems):</strong> <span className="pending-inline">Próximamente</span> — está en el
+          mismo timeline que ya pedimos, todavía no lo parseamos.
         </p>
       </div>
     </div>
