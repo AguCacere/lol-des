@@ -14,6 +14,7 @@ import {
   rankScore,
 } from "@/lib/mock-data";
 import { SparkChart } from "./SparkChart";
+import { StreakIcon } from "./StreakIcon";
 import { MatchDetail } from "./MatchDetail";
 import { ChampionPool } from "./ChampionPool";
 import { MasteryPool } from "./MasteryPool";
@@ -288,7 +289,7 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
               </span>
               {streak && (
                 <span className={`streak-chip ${streak.result === "W" ? "w" : "l"}`}>
-                  {streak.result === "W" ? "🔥" : "🔻"} {streak.count}
+                  <StreakIcon result={streak.result} /> {streak.count}
                   {streak.capped ? "+" : ""} {streak.result === "W" ? "WIN STREAK" : "LOSS STREAK"}
                 </span>
               )}

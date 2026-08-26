@@ -1,6 +1,7 @@
 import type { Player, RoleKey } from "@/lib/types";
 import { currentStreak, rankScore, ROLES, tierFor, trendColor } from "@/lib/mock-data";
 import { RoleIcon } from "./RoleIcon";
+import { StreakIcon } from "./StreakIcon";
 import { SparkChart } from "./SparkChart";
 
 export type SortKey = "ladder" | "winrate" | "wins" | "streak" | "recent";
@@ -236,7 +237,7 @@ export function LadderTable({
                       </span>
                       {streak && (
                         <span className={`wr-streak ${streak.result === "W" ? "w" : "l"}`}>
-                          {streak.result === "W" ? "🔥" : "🔻"} {streak.count}
+                          <StreakIcon result={streak.result} /> {streak.count}
                           {streak.capped ? "+" : ""} {streak.result === "W" ? "V" : "D"}
                         </span>
                       )}

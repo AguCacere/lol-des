@@ -297,9 +297,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .wr-seg{height:100%;}
 .wr-seg.win{background:var(--good);}
 .wr-seg.loss{background:var(--critical);}
-.wr-streak{flex:none; font-size:10.5px; font-weight:700; white-space:nowrap;}
+.wr-streak{flex:none; font-size:10.5px; font-weight:700; white-space:nowrap; display:inline-flex; align-items:center; gap:2px;}
 .wr-streak.w{color:var(--good);}
 .wr-streak.l{color:var(--critical);}
+.wr-streak svg{width:9px; height:9px; flex:none;}
 .col-spark{display:flex; flex-direction:column; gap:2px;}
 .col-spark svg{display:block; width:100%; height:28px;}
 .col-chevron{color:var(--text-muted); display:flex; justify-content:flex-end;}
@@ -337,8 +338,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .profile-tier-meta{display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:wrap;}
 .streak-chip{
   font-size:10.5px; font-weight:700; letter-spacing:0.02em; padding:3px 9px; border-radius:999px;
-  white-space:nowrap;
+  white-space:nowrap; display:inline-flex; align-items:center; gap:3px;
 }
+.streak-chip svg{width:9px; height:9px; flex:none;}
 .streak-chip.w{background:var(--good-wash); color:var(--good);}
 .streak-chip.l{background:var(--critical-wash); color:var(--critical);}
 .delta-chip{
