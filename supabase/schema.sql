@@ -116,13 +116,16 @@ select
   s.role,
   s.main_champ,
   s.is_you,
-  s.profile_icon_id,
   ls.tier,
   ls.division,
   ls.lp,
   ls.wins,
   ls.losses,
-  ls.captured_at as lp_captured_at
+  ls.captured_at as lp_captured_at,
+  -- al final a propósito: `create or replace view` en Postgres solo permite
+  -- agregar columnas al final del select, insertarla en el medio cuenta
+  -- como "renombrar" la columna que quedaba en esa posición y tira 42P16.
+  s.profile_icon_id
 from summoners s
 left join lateral (
   select * from lp_snapshots
