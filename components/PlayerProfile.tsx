@@ -11,6 +11,7 @@ import {
   formatRelativeDate,
   trendColor,
   nextDivisionInfo,
+  rankScore,
 } from "@/lib/mock-data";
 import { SparkChart } from "./SparkChart";
 import { MatchDetail } from "./MatchDetail";
@@ -184,10 +185,19 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
     ? Math.round(p.matches.reduce((s, m) => s + m.killParticipation, 0) / p.matches.length)
     : 0;
   const objPart = hasMatches ? Math.round(p.matches.reduce((s, m) => s + m.objShare, 0) / p.matches.length) : 0;
-  const lpValues = p.lpHistory.map((h) => h.lp);
-  const lpStart = lpValues[0];
-  const lpDelta = lpValues[lpValues.length - 1] - lpStart;
-  const lpChartColor = trendColor(lpValues);
+  // Charted on rankScore (tier+división+LP combinado), no en el LP crudo: al
+  // subir de división el número de LP se resetea (ej. Platino 3 a 80 LP →
+  // Platino 2 a 0 LP), y graficar solo "lp" hacía ver esa subida como una
+  // caída. rankScore trata cada división como +100 puntos, así que una
+  // promoción sigue mostrándose como una subida real.
+  const lpScores = p.lpHistory.map((h) => rankScore(h.tier, h.division, h.lp));
+  const lpStartPoint = p.lpHistory[0];
+  const lpCurrentPoint = { tier: p.tierKey, division: p.division, lp: p.lp };
+  const lpCrossedBoundary = lpStartPoint.tier !== lpCurrentPoint.tier || lpStartPoint.division !== lpCurrentPoint.division;
+  const lpDelta = lpScores[lpScores.length - 1] - lpScores[0];
+  const lpChartColor = trendColor(lpScores);
+  const lpEndpointLabel = (point: { tier: Player["tierKey"]; division: number; lp: number }) =>
+    lpCrossedBoundary ? `${tierFor(point.tier).name} ${point.division} · ${point.lp} LP` : `${point.lp} LP`;
   const lpPointLabels = p.lpHistory.map((h) => {
     const ht = tierFor(h.tier);
     const hWinrate = h.wins + h.losses > 0 ? Math.round((100 * h.wins) / (h.wins + h.losses)) : 0;
@@ -285,7 +295,7 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
                   <span className="label">LP · progresión reciente</span>
                   <br />
                   <span className="big">
-                    {lpStart} LP → {p.lp} LP
+                    {lpEndpointLabel(lpStartPoint)} → {lpEndpointLabel(lpCurrentPoint)}
                   </span>
                   <span className={`delta ${lpDelta >= 0 ? "up" : "down"}`}>
                     {lpDelta >= 0 ? "▲" : "▼"} {Math.abs(lpDelta)}
@@ -294,7 +304,7 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
               </div>
               <div className="lp-svg">
                 <SparkChart
-                  values={lpValues}
+                  values={lpScores}
                   width={520}
                   height={118}
                   pad={8}
@@ -303,7 +313,7 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
                   pointLabels={lpPointLabels}
                 />
               </div>
-              {lpValues.length < 3 && (
+              {p.lpHistory.length < 3 && (
                 <p className="chart-note">
                   Todavía hay poco historial guardado — la curva real va a aparecer a medida que se acumulen más
                   actualizaciones de LP.

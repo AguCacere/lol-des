@@ -36,6 +36,7 @@ export function SparkChart({
 
   const svgRef = useRef<SVGSVGElement>(null);
   const [hover, setHover] = useState<number | null>(null);
+  const [containerWidth, setContainerWidth] = useState(width);
   const canHover = detailed && !!pointLabels;
   const stepX = points.length > 1 ? (width - pad * 2) / (points.length - 1) : 0;
 
@@ -45,7 +46,20 @@ export function SparkChart({
     const relX = ((e.clientX - rect.left) / rect.width) * width;
     const idx = Math.round((relX - pad) / stepX);
     setHover(Math.min(Math.max(idx, 0), points.length - 1));
+    setContainerWidth(rect.width);
   }
+
+  // Fixed width matching .spark-tooltip's CSS — lets us clamp its pixel
+  // position so it never spills past the chart's edges (it used to overflow
+  // the card near the first/last points, since a centered tooltip doesn't
+  // know how close it is to the boundary).
+  const TOOLTIP_WIDTH = 176;
+  const pointPx = hover !== null ? (points[hover][0] / width) * containerWidth : 0;
+  const tooltipLeft =
+    hover !== null ? Math.min(Math.max(pointPx, TOOLTIP_WIDTH / 2), containerWidth - TOOLTIP_WIDTH / 2) : 0;
+  // The little arrow needs to keep pointing at the actual hovered point even
+  // when the box itself got clamped away from being centered on it.
+  const arrowLeft = hover !== null ? Math.min(Math.max(pointPx - (tooltipLeft - TOOLTIP_WIDTH / 2), 14), TOOLTIP_WIDTH - 14) : TOOLTIP_WIDTH / 2;
 
   return (
     <div style={canHover ? { position: "relative" } : undefined}>
@@ -121,7 +135,7 @@ export function SparkChart({
       {canHover && hover !== null && pointLabels && (
         <div
           className="spark-tooltip"
-          style={{ left: `${(points[hover][0] / width) * 100}%` }}
+          style={{ left: tooltipLeft, ["--arrow-left" as string]: `${arrowLeft}px` }}
         >
           {pointLabels[hover]}
         </div>
