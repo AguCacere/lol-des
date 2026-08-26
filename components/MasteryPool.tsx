@@ -2,6 +2,18 @@ import type { MasteryEntry } from "@/lib/types";
 import { champTag } from "@/lib/mock-data";
 
 /**
+ * Riot's mastery system has no level cap anymore (used to top out at M7) —
+ * veteran players routinely sit at M15-M30+ on their mains. Bucket by
+ * threshold instead of an exact match so those don't fall through to the
+ * default gray meant for low levels.
+ */
+function masteryTier(level: number): "low" | "mid" | "high" {
+  if (level >= 7) return "high";
+  if (level >= 5) return "mid";
+  return "low";
+}
+
+/**
  * "Maestría de campeón" — top 5 de Champion Mastery V4, el career-wide de
  * Riot (incluye normales/ARAM/todo lo que jugó alguna vez, no solo ranked
  * solo/duo). Deliberadamente separado de "Campeones más jugados" (que sí es
@@ -25,7 +37,7 @@ export function MasteryPool({ pool }: { pool: MasteryEntry[] }) {
             <span className="champ-pool-name">{m.champ}</span>
             <span className="champ-pool-games">{m.points.toLocaleString("es-AR")} pts</span>
           </div>
-          <span className={`mastery-badge m${m.level}`}>M{m.level}</span>
+          <span className={`mastery-badge ${masteryTier(m.level)}`}>M{m.level}</span>
         </div>
       ))}
     </div>

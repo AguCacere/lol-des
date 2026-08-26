@@ -7,21 +7,13 @@ import type { ChampionPoolEntry, LpHistoryPoint, MasteryEntry, Match, PeakLp, Pl
  * supabase/schema.sql and lib/riot.ts).
  */
 
-export const ROLES: Record<RoleKey, { label: string; icon: string }> = {
-  top: { label: "Top", icon: "M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z" },
-  jungle: {
-    label: "Jungla",
-    icon: "M12 2l3 6 6 1-4.5 4.5L18 20l-6-3-6 3 1.5-6.5L2 9l6-1 4-6z",
-  },
-  mid: { label: "Mid", icon: "M4 20L20 4M4 4h6M4 4v6M20 20h-6M20 20v-6" },
-  adc: {
-    label: "ADC",
-    icon: "M3 21l7-7m0 0l8-8-3-3-8 8m3 3l-3-3m0 0L4 13l3 3",
-  },
-  support: {
-    label: "Support",
-    icon: "M12 21s-7-4.35-9.5-9C1 8.6 2.6 5 6 5c2 0 3.5 1.2 4 2 .5-.8 2-2 4-2 3.4 0 5 3.6 3.5 7-2.5 4.65-9.5 9-9.5 9z",
-  },
+/** Icon shapes for each role live in components/RoleIcon.tsx — this is just the label. */
+export const ROLES: Record<RoleKey, { label: string }> = {
+  top: { label: "Top" },
+  jungle: { label: "Jungla" },
+  mid: { label: "Mid" },
+  adc: { label: "ADC" },
+  support: { label: "Support" },
 };
 
 export const TIERS: Tier[] = [

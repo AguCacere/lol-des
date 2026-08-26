@@ -29,7 +29,6 @@ export function TopBar({ filterText, onFilterChange, onSubmit, canAdd, addStatus
   return (
     <header className="topbar">
       <div className="brand">
-        <div className="brand-mark">GC</div>
         <div className="brand-text">
           <h1>Grieta Central</h1>
           <p>Ranked tracker del grupo · LAS</p>
