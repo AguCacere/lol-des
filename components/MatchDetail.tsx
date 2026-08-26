@@ -8,6 +8,49 @@ function multikillLabel(m: Match): string | null {
   return m.pentaKills > 0 ? "¡PENTAKILL!" : null;
 }
 
+function Stat({
+  label,
+  tooltip,
+  children,
+}: {
+  label: string;
+  tooltip?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="match-detail-stat">
+      <span className="k">
+        {label}
+        {tooltip && <InfoTip text={tooltip} />}
+      </span>
+      <span className="v">{children}</span>
+    </div>
+  );
+}
+
+/** Compact "12 puestas · 3 sacadas" style breakdown — replaces a run-on sentence with scannable chips. */
+function MiniBreakdown({ items }: { items: { value: number; label: string }[] }) {
+  return (
+    <span className="v mini-breakdown">
+      {items.map((it) => (
+        <span className="mini-breakdown-item" key={it.label}>
+          <strong>{it.value}</strong>
+          {it.label}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function Group({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="match-detail-group">
+      <h4 className="match-detail-group-label">{label}</h4>
+      <div className="match-detail-grid">{children}</div>
+    </div>
+  );
+}
+
 /**
  * Expanded view for one match, shown inline below its row in PlayerProfile.
  * Only renders real data we actually have. Sections we can't back with real
@@ -23,125 +66,79 @@ export function MatchDetail({ match }: { match: Match }) {
   return (
     <div className="match-detail">
       {multikill && <div className="match-multikill">{multikill}</div>}
-      <div className="match-detail-grid">
-        <div className="match-detail-stat">
-          <span className="k">Duración</span>
-          <span className="v">{m.dur} min</span>
-        </div>
-        <div className="match-detail-stat">
-          <span className="k">
-            CS <InfoTip text={METRIC_INFO.csPerMin} />
-          </span>
-          <span className="v">
-            {m.cs} <span className="unit">({m.csmin}/min)</span>
-          </span>
-        </div>
-        <div className="match-detail-stat">
-          <span className="k">
-            Oro total <InfoTip text={METRIC_INFO.goldPerMin} />
-          </span>
-          <span className="v">
-            {m.goldTotal.toLocaleString("es-AR")} <span className="unit">({m.gold}/min)</span>
-          </span>
-        </div>
-        <div className="match-detail-stat">
-          <span className="k">
-            Visión <InfoTip text={METRIC_INFO.visionScore} />
-          </span>
-          <span className="v">{m.visionScore}</span>
-        </div>
-        <div className="match-detail-stat">
-          <span className="k">
-            % daño del equipo <InfoTip text={METRIC_INFO.dmgShare} />
-          </span>
-          <span className="v">{m.dmgShare}%</span>
-        </div>
-        <div className="match-detail-stat">
-          <span className="k">
-            Kill participation <InfoTip text={METRIC_INFO.killParticipation} />
-          </span>
-          <span className="v">{m.killParticipation}%</span>
-        </div>
-        <div className="match-detail-stat">
-          <span className="k">
-            Participación objetivos <InfoTip text={METRIC_INFO.objShare} />
-          </span>
-          <span className="v">{m.objShare}%</span>
-        </div>
-        <div className="match-detail-stat">
-          <span className="k">Jugada</span>
-          <span className="v">{formatRelativeDate(m.playedAt)}</span>
-        </div>
-        <div className="match-detail-stat">
-          <span className="k">Runas</span>
-          <span className="v">
-            {m.primaryRune ?? "—"}
-            {m.primaryStyle && m.secondaryStyle && (
-              <span className="unit">
-                {" "}
-                ({m.primaryStyle}/{m.secondaryStyle})
-              </span>
-            )}
-          </span>
-        </div>
-        <div className="match-detail-stat">
-          <span className="k">Hechizos</span>
-          <span className="v">
-            {m.summoner1 ?? "—"} / {m.summoner2 ?? "—"}
-          </span>
-        </div>
-        <div className="match-detail-stat">
-          <span className="k">Nivel final</span>
-          <span className="v">{m.champLevel || "—"}</span>
-        </div>
-        <div className="match-detail-stat">
-          <span className="k">Daño recibido</span>
-          <span className="v">
-            {m.damageTaken.toLocaleString("es-AR")}{" "}
-            <span className="unit">({m.damageMitigated.toLocaleString("es-AR")} mitigado)</span>
-          </span>
-        </div>
-        <div className="match-detail-stat">
-          <span className="k">Wards</span>
-          <span className="v">
-            {m.wardsPlaced} puestas <span className="unit">· {m.wardsKilled} sacadas · {m.controlWards} control</span>
-          </span>
-        </div>
-        <div className="match-detail-stat">
-          <span className="k">Objetivos personales</span>
-          <span className="v">
-            {m.turretKills} torres <span className="unit">· {m.dragonKills} dragones · {m.baronKills} barones · {m.inhibitorKills} inhibidores</span>
-          </span>
-        </div>
-        <div className="match-detail-stat">
-          <span className="k">Primera sangre</span>
-          <span className="v">{m.firstBlood ? "Sí 🩸" : "No"}</span>
-        </div>
-        {m.pentaKills > 0 && (
-          <div className="match-detail-stat">
-            <span className="k">Pentakills</span>
-            <span className="v">{m.pentaKills}</span>
-          </div>
-        )}
-        {m.damagePerMin != null && (
-          <div className="match-detail-stat">
-            <span className="k">Daño / min</span>
-            <span className="v">{Math.round(m.damagePerMin).toLocaleString("es-AR")}</span>
-          </div>
-        )}
-        {m.soloKills != null && (
-          <div className="match-detail-stat">
-            <span className="k">Solo kills</span>
-            <span className="v">{m.soloKills}</span>
-          </div>
-        )}
-        {m.skillshotsHit != null && (
-          <div className="match-detail-stat">
-            <span className="k">Skillshots acertados</span>
-            <span className="v">{m.skillshotsHit}</span>
-          </div>
-        )}
-      </div>
+
+      <Group label="Partida">
+        <Stat label="Duración">{m.dur} min</Stat>
+        <Stat label="CS" tooltip={METRIC_INFO.csPerMin}>
+          {m.cs} <span className="unit">({m.csmin}/min)</span>
+        </Stat>
+        <Stat label="Oro total" tooltip={METRIC_INFO.goldPerMin}>
+          {m.goldTotal.toLocaleString("es-AR")} <span className="unit">({m.gold}/min)</span>
+        </Stat>
+        <Stat label="Nivel final">{m.champLevel || "—"}</Stat>
+        <Stat label="Jugada">{formatRelativeDate(m.playedAt)}</Stat>
+      </Group>
+
+      <Group label="Combate">
+        <Stat label="% daño del equipo" tooltip={METRIC_INFO.dmgShare}>
+          {m.dmgShare}%
+        </Stat>
+        <Stat label="Kill participation" tooltip={METRIC_INFO.killParticipation}>
+          {m.killParticipation}%
+        </Stat>
+        <Stat label="Daño recibido">
+          {m.damageTaken.toLocaleString("es-AR")}{" "}
+          <span className="unit">({m.damageMitigated.toLocaleString("es-AR")} mitigado)</span>
+        </Stat>
+        {m.damagePerMin != null && <Stat label="Daño / min">{Math.round(m.damagePerMin).toLocaleString("es-AR")}</Stat>}
+        {m.soloKills != null && <Stat label="Solo kills">{m.soloKills}</Stat>}
+        {m.skillshotsHit != null && <Stat label="Skillshots acertados">{m.skillshotsHit}</Stat>}
+        <Stat label="Primera sangre">{m.firstBlood ? "Sí 🩸" : "No"}</Stat>
+        {m.pentaKills > 0 && <Stat label="Pentakills">{m.pentaKills}</Stat>}
+      </Group>
+
+      <Group label="Visión y objetivos">
+        <Stat label="Visión" tooltip={METRIC_INFO.visionScore}>
+          {m.visionScore}
+        </Stat>
+        <Stat label="Participación objetivos" tooltip={METRIC_INFO.objShare}>
+          {m.objShare}%
+        </Stat>
+        <Stat label="Wards">
+          <MiniBreakdown
+            items={[
+              { value: m.wardsPlaced, label: "puestas" },
+              { value: m.wardsKilled, label: "sacadas" },
+              { value: m.controlWards, label: "control" },
+            ]}
+          />
+        </Stat>
+        <Stat label="Objetivos personales">
+          <MiniBreakdown
+            items={[
+              { value: m.turretKills, label: "torres" },
+              { value: m.dragonKills, label: "dragones" },
+              { value: m.baronKills, label: "barones" },
+              { value: m.inhibitorKills, label: "inhib." },
+            ]}
+          />
+        </Stat>
+      </Group>
+
+      <Group label="Build">
+        <Stat label="Runas">
+          {m.primaryRune ?? "—"}
+          {m.primaryStyle && m.secondaryStyle && (
+            <span className="unit">
+              {" "}
+              ({m.primaryStyle}/{m.secondaryStyle})
+            </span>
+          )}
+        </Stat>
+        <Stat label="Hechizos">
+          {m.summoner1 ?? "—"} / {m.summoner2 ?? "—"}
+        </Stat>
+      </Group>
 
       <div className="match-detail-missing">
         <p>
