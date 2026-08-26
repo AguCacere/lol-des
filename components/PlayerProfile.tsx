@@ -257,8 +257,9 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
             </div>
             <div className="profile-tier-peak">
               <span className="peak-label">
-                Elo máximo: <span style={{ color: peakTier.fg }}>{peakTier.name} {p.peakLp.division}</span> ·{" "}
-                {p.peakLp.lp} LP{isAtPeak && " (actual)"}
+                Máximo registrado <InfoTip text={METRIC_INFO.peakLp} />:{" "}
+                <span style={{ color: peakTier.fg }}>{peakTier.name} {p.peakLp.division}</span> · {p.peakLp.lp} LP
+                {isAtPeak && " (actual)"}
               </span>
               {next ? (
                 <span className="next-div-label">

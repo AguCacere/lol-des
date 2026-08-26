@@ -17,4 +17,6 @@ export const METRIC_INFO = {
     "Minions y monstruos de jungla eliminados por minuto de partida. Es el proxy estándar de qué tan bien farmeás — más CS/min generalmente significa más oro y experiencia.",
   goldPerMin:
     "Oro total ganado dividido por la duración de la partida en minutos. Refleja tu economía general: farmeo, kills, asistencias y objetivos, todo junto.",
+  peakLp:
+    "El rango más alto que vimos en el historial que guardamos nosotros, no el pico histórico real de la cuenta — la API de Riot no expone rango histórico, solo el actual. Si la cuenta llegó más alto antes de que la agreguemos al grupo, no hay forma de recuperar ese dato.",
 } as const;
