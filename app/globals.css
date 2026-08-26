@@ -4,23 +4,35 @@
   --surface-raised:#1C1C19;
   --surface-hover:#242420;
   --border:transparent;
-  --border-soft:transparent;
+  /* Was transparent — rows/headers/panels had zero visible separation between
+     each other beyond shadow. A whisper-thin, always-on line reads as
+     "refined structure" instead of "generic table with no borders at all". */
+  --border-soft:rgba(255,255,255,0.05);
   --track:#201f1a;
-  --shadow:0 1px 3px rgba(0,0,0,0.45), 0 4px 14px rgba(0,0,0,0.28);
-  --shadow-sm:0 1px 2px rgba(0,0,0,0.4);
+  /* Softer and tighter than before — the old shadow was doing a lot of the
+     "this is a card" work by itself; now depth comes more from the
+     surface/border tone steps, with the shadow just adding a light lift. */
+  --shadow:0 1px 2px rgba(0,0,0,0.35), 0 3px 10px rgba(0,0,0,0.22);
+  --shadow-sm:0 1px 2px rgba(0,0,0,0.32);
   --text-primary:#F0F0EC;
   --text-secondary:#9A9A94;
   --text-muted:#6C6C67;
   --accent:#22D3EE;
   --accent-dim:#0891B2;
   --accent-wash:rgba(34,211,238,0.12);
+  /* Selected-row background specifically — accent-wash at full strength across
+     an entire row read as louder than "clearly active, but subtle". */
+  --accent-wash-soft:rgba(34,211,238,0.07);
   --accent-ink:#062024;
   --gold:#F5B942;
   --gold-wash:rgba(245,185,66,0.12);
-  --good:#3DDC84;
-  --good-wash:rgba(61,220,132,0.12);
-  --critical:#FF5B67;
-  --critical-wash:rgba(255,91,103,0.12);
+  /* Same hue as before, pulled back from neon-mint/neon-pink to something a
+     shade more grounded — still unmistakably "win green"/"loss red", less
+     like an RGB gaming peripheral. */
+  --good:#34C97C;
+  --good-wash:rgba(52,201,124,0.12);
+  --critical:#F0555F;
+  --critical-wash:rgba(240,85,95,0.12);
   --warn:#FF9F45;
   --radius-sm:6px;
   --radius-md:10px;
@@ -140,7 +152,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* ---------- section headers ---------- */
 .section-head{
   display:flex; align-items:baseline; justify-content:space-between;
-  margin:38px 0 14px; gap:12px; flex-wrap:wrap;
+  margin:32px 0 14px; gap:12px; flex-wrap:wrap;
 }
 .section-head h2{
   font-family:var(--font-display); font-weight:700; font-size:19px;
@@ -207,27 +219,27 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .ladder-row{
   display:grid;
   grid-template-columns:34px 1.9fr 0.95fr 1.15fr 1.3fr 28px;
-  align-items:center; gap:16px;
-  padding:13px 18px;
+  align-items:center; gap:14px;
+  padding:12px 18px;
   appearance:none; -webkit-appearance:none;
   border:none; border-bottom:1px solid var(--border-soft);
   cursor:pointer;
   background:transparent;
   outline:none;
-  transition:background .12s ease;
+  transition:background .15s ease, box-shadow .15s ease;
   text-align:left;
   width:100%;
 }
 .ladder-row:last-child{border-bottom:none;}
 .ladder-row:hover{background:var(--surface-hover);}
 .ladder-row:focus-visible{background:var(--surface-hover); box-shadow:inset 0 0 0 2px var(--accent);}
-.ladder-row.is-active{background:var(--accent-wash); box-shadow:inset 3px 0 0 var(--accent);}
-.ladder-row.is-you{box-shadow:inset 3px 0 0 var(--gold);}
-.ladder-row.is-you.is-active{box-shadow:inset 3px 0 0 var(--accent);}
+.ladder-row.is-active{background:var(--accent-wash-soft); box-shadow:inset 2px 0 0 var(--accent);}
+.ladder-row.is-you{box-shadow:inset 2px 0 0 var(--gold);}
+.ladder-row.is-you.is-active{box-shadow:inset 2px 0 0 var(--accent);}
 .ladder-row.is-you:focus-visible{box-shadow:inset 0 0 0 2px var(--accent);}
 .ladder-head{
-  display:grid; grid-template-columns:34px 1.9fr 0.95fr 1.15fr 1.3fr 28px; gap:16px;
-  padding:11px 18px; border-bottom:1px solid var(--border-soft);
+  display:grid; grid-template-columns:34px 1.9fr 0.95fr 1.15fr 1.3fr 28px; gap:14px;
+  padding:10px 18px; border-bottom:1px solid var(--border-soft);
   font-size:10.5px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase;
   color:var(--text-muted);
 }
@@ -257,18 +269,24 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-family:var(--font-display); font-weight:700; font-size:12px;
 }
 .tier-text{line-height:1.25;}
-.tier-name{display:block; font-size:12.5px; font-weight:600;}
+.tier-name{display:block; font-size:12.5px; font-weight:700;}
 .tier-lp{display:block; font-family:var(--font-mono); font-size:11px; color:var(--text-muted);}
 .tier-flex{display:block; font-family:var(--font-mono); font-size:10px; color:var(--text-muted); margin-top:1px;}
 .col-winrate{min-width:0;}
-.wr-top{display:flex; align-items:baseline; gap:7px; margin-bottom:6px; white-space:nowrap;}
-.wr-pct{font-family:var(--font-stat); font-weight:800; font-size:16.5px; font-variant-numeric:tabular-nums;}
-.wr-count{font-family:var(--font-stat); font-weight:700; font-size:11px; font-variant-numeric:tabular-nums;}
+.wr-top{display:flex; align-items:baseline; gap:7px; margin-bottom:5px; white-space:nowrap;}
+/* wr-pct is the hero number (font-stat, heavy weight); wr-count is supporting
+   detail — dropped to font-mono/600 so the two don't compete at nearly the
+   same visual weight the way they did before (800 vs 700, same typeface). */
+.wr-pct{font-family:var(--font-stat); font-weight:800; font-size:17px; letter-spacing:-0.01em; font-variant-numeric:tabular-nums;}
+.wr-count{font-family:var(--font-mono); font-weight:600; font-size:11px; font-variant-numeric:tabular-nums;}
 .wr-count .wc-v{color:var(--good);}
 .wr-count .wc-sep{color:var(--text-muted); font-weight:500;}
 .wr-count .wc-d{color:var(--critical);}
 .wr-bottom{display:flex; align-items:center; gap:8px;}
-.wr-bar{flex:1; display:flex; gap:2px; height:5px; border-radius:99px; overflow:hidden; background:var(--surface); min-width:0;}
+.wr-bar{
+  flex:1; display:flex; gap:1.5px; height:6px; border-radius:99px; overflow:hidden;
+  background:var(--surface); min-width:0; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04);
+}
 .wr-seg{height:100%;}
 .wr-seg.win{background:var(--good);}
 .wr-seg.loss{background:var(--critical);}
@@ -326,7 +344,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .profile-tier-peak strong{color:var(--text-primary); font-family:var(--font-mono);}
 
-.stack-cols{display:grid; grid-template-columns:1.3fr 1fr; gap:26px;}
+.stack-cols{display:grid; grid-template-columns:1.3fr 1fr; gap:24px;}
 @media (max-width:760px){.stack-cols{grid-template-columns:1fr;}}
 
 .subhead{

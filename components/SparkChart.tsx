@@ -28,13 +28,13 @@ export function SparkChart({
   const { line, area, last, points } = lineAreaGeometry(values, width, height, pad);
   const gid = "spark-" + useId().replace(/[:]/g, "");
   const detailed = variant === "detailed";
-  const dotRadius = detailed ? 4.5 : 3.5;
+  const dotRadius = detailed ? 4 : 3.2;
   const innerH = height - pad * 2;
-  // Same stroke weight as the big profile chart, and a glow proportionally
-  // stronger than the detailed variant's — a 28px-tall cell needs a bigger
-  // relative blur than a 118px one just to read as "glowing" at all instead
-  // of vanishing into a hairline.
-  const blurRadius = detailed ? 3.2 : 2.4;
+  // Restrained glow — enough to keep the line from reading as a flat hairline,
+  // without the neon-gaming look a heavier blur gave it. Compact still gets
+  // proportionally more than detailed for the same reason as before: a 28px
+  // cell needs more relative blur than a 118px one just to register at all.
+  const blurRadius = detailed ? 2.2 : 1.6;
 
   const svgRef = useRef<SVGSVGElement>(null);
   const [hover, setHover] = useState<number | null>(null);
@@ -103,7 +103,7 @@ export function SparkChart({
           </filter>
         </defs>
         {detailed && (
-          <g stroke="rgba(255,255,255,0.07)" strokeWidth={1}>
+          <g stroke="rgba(255,255,255,0.045)" strokeWidth={1}>
             <line x1={pad} y1={pad + innerH / 3} x2={width - pad} y2={pad + innerH / 3} />
             <line x1={pad} y1={pad + (innerH * 2) / 3} x2={width - pad} y2={pad + (innerH * 2) / 3} />
           </g>
@@ -128,7 +128,15 @@ export function SparkChart({
             strokeWidth={1}
           />
         )}
-        <circle cx={last[0].toFixed(1)} cy={last[1].toFixed(1)} r={dotRadius + 3} fill={color} fillOpacity="0.2" />
+        <circle
+          cx={last[0].toFixed(1)}
+          cy={last[1].toFixed(1)}
+          r={dotRadius + 3}
+          fill="none"
+          stroke={color}
+          strokeOpacity="0.35"
+          strokeWidth={1.5}
+        />
         <circle cx={last[0].toFixed(1)} cy={last[1].toFixed(1)} r={dotRadius} fill={color} />
         {hover !== null && hover !== points.length - 1 && (
           <circle cx={points[hover][0]} cy={points[hover][1]} r={dotRadius} fill={color} stroke="var(--bg)" strokeWidth={2} />
