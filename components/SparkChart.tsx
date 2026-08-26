@@ -38,7 +38,21 @@ export function SparkChart({
           <stop offset="0%" stopColor={color} stopOpacity={detailed ? "0.35" : "0.45"} />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
-        <filter id={`${gid}-glow`} x="-40%" y="-100%" width="180%" height="300%">
+        {/*
+          filterUnits="userSpaceOnUse" with absolute coordinates on purpose: the default
+          objectBoundingBox sizes this region as a % of the filtered element's own bbox,
+          and a perfectly flat line (all values equal — common with few real snapshots)
+          has a ZERO-height bbox, so any percentage of it is also zero. That collapsed the
+          filter region and hid the whole line, leaving only the endpoint dot visible.
+        */}
+        <filter
+          id={`${gid}-glow`}
+          filterUnits="userSpaceOnUse"
+          x={-blurRadius * 4}
+          y={-blurRadius * 4}
+          width={width + blurRadius * 8}
+          height={height + blurRadius * 8}
+        >
           <feGaussianBlur stdDeviation={blurRadius} result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
