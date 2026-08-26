@@ -29,8 +29,8 @@ export const TIERS: Tier[] = [
   { name: "Bronce", key: "bronze", fg: "#c98a5c", bg: "rgba(201,138,92,0.14)", rank: 1 },
   { name: "Plata", key: "silver", fg: "#c3ccd6", bg: "rgba(195,204,214,0.14)", rank: 2 },
   { name: "Oro", key: "gold", fg: "#F5B942", bg: "rgba(245,185,66,0.14)", rank: 3 },
-  { name: "Platino", key: "platinum", fg: "#2FE6C9", bg: "rgba(47,230,201,0.14)", rank: 4 },
-  { name: "Esmeralda", key: "emerald", fg: "#3ddc84", bg: "rgba(61,220,132,0.14)", rank: 5 },
+  { name: "Platino", key: "platinum", fg: "#14B8A6", bg: "rgba(20,184,166,0.14)", rank: 4 },
+  { name: "Esmeralda", key: "emerald", fg: "#10B981", bg: "rgba(16,185,129,0.14)", rank: 5 },
   { name: "Diamante", key: "diamond", fg: "#7aa8ff", bg: "rgba(122,168,255,0.14)", rank: 6 },
   { name: "Maestro", key: "master", fg: "#c98aff", bg: "rgba(201,138,255,0.14)", rank: 7 },
 ];
@@ -65,28 +65,6 @@ const CHAMPS = [
 
 export function champTag(name: string): string {
   return name.split(/[\s']/)[0].slice(0, 2).toUpperCase();
-}
-
-/** Small curated palette so champion chips in the match list are distinguishable at a glance. */
-const CHAMP_PALETTE: { fg: string; bg: string }[] = [
-  { fg: "#F5B942", bg: "rgba(245,185,66,0.14)" },
-  { fg: "#7aa8ff", bg: "rgba(122,168,255,0.14)" },
-  { fg: "#3ddc84", bg: "rgba(61,220,132,0.14)" },
-  { fg: "#ff8a65", bg: "rgba(255,138,101,0.14)" },
-  { fg: "#c98aff", bg: "rgba(201,138,255,0.14)" },
-  { fg: "#2FE6C9", bg: "rgba(47,230,201,0.14)" },
-  { fg: "#ff5c93", bg: "rgba(255,92,147,0.14)" },
-];
-
-function hashString(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return h;
-}
-
-/** Deterministic color per champion name — same champ always gets the same chip color. */
-export function champColor(name: string): { fg: string; bg: string } {
-  return CHAMP_PALETTE[hashString(name) % CHAMP_PALETTE.length];
 }
 
 function genMatches(seed: number): Match[] {

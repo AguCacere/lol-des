@@ -1,5 +1,5 @@
 import type { Player } from "@/lib/types";
-import { tierFor, champTag, champColor, ROLES } from "@/lib/mock-data";
+import { tierFor, champTag, ROLES } from "@/lib/mock-data";
 import { SparkChart } from "./SparkChart";
 
 function TrophyIcon() {
@@ -202,14 +202,10 @@ export function PlayerProfile({ player }: { player: Player | null }) {
               <CmpBar label="% daño del equipo" value={Math.round(avgDmg)} avg={24} max={45} suffix="%" />
             </div>
             <div className="matches">
-              {p.matches.map((m, i) => {
-                const c = champColor(m.champ);
-                return (
+              {p.matches.map((m, i) => (
                 <div className="match-row" key={i}>
                   <div className={`match-stripe ${m.win ? "w" : "l"}`} />
-                  <div className="match-champ" style={{ background: c.bg, color: c.fg }}>
-                    {champTag(m.champ)}
-                  </div>
+                  <div className="match-champ">{champTag(m.champ)}</div>
                   <div className="match-mid">
                     <div className="match-top-line">
                       <span className="match-champ-name">{m.champ}</span>
@@ -230,8 +226,7 @@ export function PlayerProfile({ player }: { player: Player | null }) {
                     <span className="extra">{m.gold} oro/min</span>
                   </div>
                 </div>
-                );
-              })}
+              ))}
             </div>
           </div>
         </div>
