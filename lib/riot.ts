@@ -182,6 +182,33 @@ export function getMatchTimeline(matchId: string) {
   return riotFetch<RiotTimeline>(url);
 }
 
+export interface RiotActiveGame {
+  gameQueueConfigId: number;
+  gameLength: number; // seconds elapsed as of this response — a snapshot, not a live clock
+  participants: { puuid: string; championId: number }[];
+}
+
+/**
+ * Spectator V5 — null if the summoner isn't in a game right now, which is the
+ * ordinary, common case (a 404 here isn't an error, unlike everywhere else we
+ * use riotFetch). Platform-routed. Unlike every other Riot call in this app,
+ * this one is meant to be called live on every ladder read, not batched into
+ * the refresh cron — "in game right now" would be stale garbage by the next
+ * scheduled refresh.
+ */
+export async function getActiveGame(puuid: string): Promise<RiotActiveGame | null> {
+  assertKey();
+  const url = `https://${PLATFORM}.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/${puuid}`;
+  const res = await fetch(url, { headers: { "X-Riot-Token": API_KEY! }, cache: "no-store" });
+  if (res.status === 404) return null;
+  if (res.status === 429) {
+    const retryAfter = res.headers.get("Retry-After");
+    throw new Error(`Riot API rate limited — retry after ${retryAfter ?? "?"}s`);
+  }
+  if (!res.ok) throw new Error(`Riot API error ${res.status}: ${await res.text()}`);
+  return res.json() as Promise<RiotActiveGame>;
+}
+
 export interface RiotChampionMastery {
   championId: number;
   championLevel: number;

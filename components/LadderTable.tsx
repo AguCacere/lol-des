@@ -181,6 +181,15 @@ export function LadderTable({
                         {p.name}
                         <span className="player-tag">#{p.tag}</span>
                         {p.you && <span className="you-badge">VOS</span>}
+                        {p.liveGame && (
+                          <span
+                            className="live-badge"
+                            title={`${p.liveGame.queueLabel} · hace ${p.liveGame.startedMinutesAgo} min`}
+                          >
+                            <span className="live-dot" />
+                            En vivo · {p.liveGame.champion}
+                          </span>
+                        )}
                       </span>
                       <span className="player-champ">Main: {p.mainChamp}</span>
                     </span>

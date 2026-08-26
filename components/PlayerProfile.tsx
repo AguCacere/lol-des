@@ -259,6 +259,12 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
               <p className="profile-sub">
                 {ROLES[p.role].label} · main {p.mainChamp} · {p.wins + p.losses} partidas esta season
               </p>
+              {p.liveGame && (
+                <div className="profile-live-banner">
+                  <span className="live-dot" />
+                  En vivo ahora · {p.liveGame.champion} · {p.liveGame.queueLabel} · hace {p.liveGame.startedMinutesAgo} min
+                </div>
+              )}
             </div>
           </div>
           <div className="profile-tier">

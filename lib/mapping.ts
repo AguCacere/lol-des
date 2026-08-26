@@ -44,6 +44,21 @@ export function normalizeRole(role: string | null | undefined): RoleKey {
   return ROLE_KEYS.includes(role as RoleKey) ? (role as RoleKey) : "mid";
 }
 
+/** Riot's queue config IDs (documented, static — https://static.developer.riotgames.com/docs/lol/queues.json), just the ones worth a friendly label. */
+const QUEUE_LABELS: Record<number, string> = {
+  420: "SoloQ",
+  440: "Flex",
+  400: "Normal (Draft)",
+  430: "Normal (Blind)",
+  450: "ARAM",
+  900: "URF",
+  1700: "Arena",
+};
+
+export function queueLabelFromId(queueId: number): string {
+  return QUEUE_LABELS[queueId] ?? "Partida";
+}
+
 /** Deterministic small int from a puuid — feeds the profile's cosmetic "seed" stats (see PlayerProfile.tsx). */
 export function seedFromPuuid(puuid: string): number {
   let h = 0;

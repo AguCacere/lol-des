@@ -249,7 +249,7 @@ function championPoolFromMatches(matches: Match[]): ChampionPoolEntry[] {
     .slice(0, 5);
 }
 
-type SeedPlayer = Omit<Player, "spark20" | "lpHistory" | "peakLp" | "flexRank" | "championPool" | "masteryPool" | "matches" | "winrate">;
+type SeedPlayer = Omit<Player, "spark20" | "lpHistory" | "peakLp" | "flexRank" | "championPool" | "masteryPool" | "liveGame" | "matches" | "winrate">;
 
 const SEED_PLAYERS: SeedPlayer[] = [
   { name: "Agus", tag: "LAS", you: true, role: "support", tierKey: "platinum", division: 2, lp: 57, wins: 64, losses: 58, seed: 11, drift: 0.6, mainChamp: "Senna" },
@@ -295,6 +295,7 @@ function buildPlayer(p: SeedPlayer): Player {
     flexRank: null, // el mock no simula una segunda cola — el diseño real muestra "sin datos de Flex" en este caso
     championPool: championPoolFromMatches(matches),
     masteryPool: mockMasteryPool(p.seed, p.mainChamp),
+    liveGame: null, // el mock no simula partidas en curso — es un chequeo en vivo a Spectator V5, no hay nada que fabricar acá
     matches,
     winrate: Math.round((100 * p.wins) / (p.wins + p.losses)),
   };

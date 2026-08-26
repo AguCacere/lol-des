@@ -106,6 +106,13 @@ export interface ChampionPoolEntry {
   avgCsPerMin: number;
 }
 
+/** Spectator V5 snapshot — checked live on every ladder read, never persisted (would be stale instantly). */
+export interface LiveGame {
+  champion: string;
+  queueLabel: string;
+  startedMinutesAgo: number;
+}
+
 /** One entry in the Champion Mastery V4 top-5 — Riot's career-wide signal, not derived from our own stored matches. */
 export interface MasteryEntry {
   champ: string;
@@ -150,6 +157,7 @@ export interface Player {
   flexRank: FlexRank | null;
   championPool: ChampionPoolEntry[];
   masteryPool: MasteryEntry[];
+  liveGame: LiveGame | null;
   matches: Match[];
   winrate: number;
 }

@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { peakFromHistory, tierScore } from "@/lib/mock-data";
-import { divisionFromRiot, normalizeRole, roleFromTeamPosition, seedFromPuuid, tierKeyFromRiot } from "@/lib/mapping";
-import type { ChampionPoolEntry, DuoPair, FlexRank, LpHistoryPoint, MasteryEntry, Match, Player, RoleKey } from "@/lib/types";
+import { divisionFromRiot, normalizeRole, queueLabelFromId, roleFromTeamPosition, seedFromPuuid, tierKeyFromRiot } from "@/lib/mapping";
+import { getActiveGame } from "@/lib/riot";
+import { championNameById } from "@/lib/ddragon";
+import type { ChampionPoolEntry, DuoPair, FlexRank, LiveGame, LpHistoryPoint, MasteryEntry, Match, Player, RoleKey } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -97,7 +99,7 @@ export async function GET() {
     return NextResponse.json({ players: [], duoSynergy: [] });
   }
 
-  const [{ data: snapshots }, { data: matchRows }, { data: masteryRows }] = await Promise.all([
+  const dbQueries = Promise.all([
     supabase
       .from("lp_snapshots")
       .select("puuid, lp, captured_at, tier, division, wins, losses, queue_type")
@@ -117,6 +119,40 @@ export async function GET() {
       .in("puuid", puuids)
       .order("points", { ascending: false }),
   ]);
+
+  // Spectator V5 — checked live, right now, not read from the DB (a cron-batched
+  // "in game" status would be stale garbage by the next scheduled refresh). Runs
+  // concurrently with the DB queries above so it doesn't add its own latency on
+  // top. Isolated catch per summoner: one Riot hiccup here can't take down the
+  // rest of the ladder load.
+  const activeGames = Promise.all(
+    puuids.map(async (puuid) => {
+      try {
+        return { puuid, game: await getActiveGame(puuid) };
+      } catch {
+        return { puuid, game: null };
+      }
+    })
+  );
+
+  const [[{ data: snapshots }, { data: matchRows }, { data: masteryRows }], activeGameResults] = await Promise.all([
+    dbQueries,
+    activeGames,
+  ]);
+
+  const liveGameByPuuid = new Map<string, LiveGame>();
+  for (const { puuid, game } of activeGameResults) {
+    if (!game) continue;
+    const me = game.participants.find((p) => p.puuid === puuid);
+    if (!me) continue;
+    const champ = await championNameById(me.championId);
+    if (!champ) continue;
+    liveGameByPuuid.set(puuid, {
+      champion: champ,
+      queueLabel: queueLabelFromId(game.gameQueueConfigId),
+      startedMinutesAgo: Math.floor(game.gameLength / 60),
+    });
+  }
 
   const masteryPoolByPuuid = new Map<string, MasteryEntry[]>();
   for (const row of masteryRows ?? []) {
@@ -386,6 +422,7 @@ export async function GET() {
       flexRank: flexByPuuid.get(row.puuid) ?? null,
       championPool: championPool(row.puuid),
       masteryPool: masteryPoolByPuuid.get(row.puuid) ?? [],
+      liveGame: liveGameByPuuid.get(row.puuid) ?? null,
       matches,
       winrate: wins + losses > 0 ? Math.round((100 * wins) / (wins + losses)) : 0,
     };
