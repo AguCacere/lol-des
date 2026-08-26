@@ -199,6 +199,11 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
   const lpCurrentPoint = { tier: p.tierKey, division: p.division, lp: p.lp };
   const lpCrossedBoundary = lpStartPoint.tier !== lpCurrentPoint.tier || lpStartPoint.division !== lpCurrentPoint.division;
   const lpDelta = lpScores[lpScores.length - 1] - lpScores[0];
+  // lpDelta is a rankScore delta, not a raw LP delta — the two only match when
+  // no division changed hands. Labeling it "LP" unconditionally used to show
+  // e.g. "Platino 3 · 64 LP → Platino 2 · 36 LP  ▲72 LP", which reads as a
+  // fabricated 72-LP gain when the real LP number visibly dropped 64→36.
+  const lpDeltaUnit = lpCrossedBoundary ? "pts" : "LP";
   const lpChartColor = trendColor(lpScores);
   const lpEndpointLabel = (point: { tier: Player["tierKey"]; division: number; lp: number }) =>
     lpCrossedBoundary ? `${tierFor(point.tier).name} ${point.division} · ${point.lp} LP` : `${point.lp} LP`;
@@ -274,7 +279,7 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
             <div className="tl">{p.lp} LP</div>
             <div className="profile-tier-meta">
               <span className={`delta-chip ${lpDelta >= 0 ? "up" : "down"}`}>
-                {lpDelta >= 0 ? "▲" : "▼"} {Math.abs(lpDelta)} LP
+                {lpDelta >= 0 ? "▲" : "▼"} {Math.abs(lpDelta)} {lpDeltaUnit}
               </span>
               {streak && (
                 <span className={`streak-chip ${streak.result === "W" ? "w" : "l"}`}>
@@ -319,13 +324,15 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
             <div className="lp-chart-card">
               <div className="lp-chart-top">
                 <div>
-                  <span className="label">LP · progresión reciente</span>
+                  <span className="label">
+                    LP · progresión reciente <InfoTip text={METRIC_INFO.lpProgression} />
+                  </span>
                   <br />
                   <span className="big">
                     {lpEndpointLabel(lpStartPoint)} → {lpEndpointLabel(lpCurrentPoint)}
                   </span>
                   <span className={`delta ${lpDelta >= 0 ? "up" : "down"}`}>
-                    {lpDelta >= 0 ? "▲" : "▼"} {Math.abs(lpDelta)}
+                    {lpDelta >= 0 ? "▲" : "▼"} {Math.abs(lpDelta)} {lpDeltaUnit}
                   </span>
                 </div>
               </div>

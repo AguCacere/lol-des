@@ -102,10 +102,17 @@ export function champTag(name: string): string {
   return name.split(/[\s']/)[0].slice(0, 2).toUpperCase();
 }
 
-/** Green if the series net-rose, red if it net-fell — matches the app's own verde=positivo/rojo=negativo rule. */
+/**
+ * Green if the series net-rose, red if it net-fell — matches the app's own
+ * verde=positivo/rojo=negativo rule. Same hex as --good/--critical in
+ * globals.css (not the CSS var itself, since this feeds an inline SVG stroke
+ * color computed in JS) — they used to drift from the token values after the
+ * palette got refined, so a chart's line and its own delta-chip badge could
+ * show two visibly different shades of "green" side by side.
+ */
 export function trendColor(values: number[]): string {
   const delta = values[values.length - 1] - values[0];
-  return delta >= 0 ? "#3DDC84" : "#FF5B67";
+  return delta >= 0 ? "#34C97C" : "#F0555F";
 }
 
 export interface Streak {

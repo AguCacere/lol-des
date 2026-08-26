@@ -1,5 +1,5 @@
 import type { Player, RoleKey } from "@/lib/types";
-import { currentStreak, ROLES, tierFor, trendColor } from "@/lib/mock-data";
+import { currentStreak, rankScore, ROLES, tierFor, trendColor } from "@/lib/mock-data";
 import { RoleIcon } from "./RoleIcon";
 import { SparkChart } from "./SparkChart";
 
@@ -27,8 +27,21 @@ export function playerKey(p: Player): string {
   return `${p.name}#${p.tag}`;
 }
 
+/**
+ * Rank score (tier+división+LP combinado) per stored snapshot, not raw LP —
+ * p.spark20 alone reset to a low number on every division promotion, which
+ * made the "últimos 20" sparkline show a climb as a plunge right at the
+ * moment it should have looked best. This is the same series the profile's
+ * big LP chart already charts on, so a promoted player's trend line and
+ * color agree everywhere in the app instead of contradicting each other.
+ */
+function trendSeries(p: Player): number[] {
+  return p.lpHistory.map((h) => rankScore(h.tier, h.division, h.lp));
+}
+
 function recentDelta(p: Player): number {
-  return p.spark20.length >= 2 ? p.spark20[p.spark20.length - 1] - p.spark20[0] : 0;
+  const series = trendSeries(p);
+  return series.length >= 2 ? series[series.length - 1] - series[0] : 0;
 }
 
 function streakMagnitude(p: Player): number {
@@ -164,6 +177,7 @@ export function LadderTable({
               const key = playerKey(p);
               const isActive = key === activeKey;
               const streak = currentStreak(p.matches);
+              const spark = trendSeries(p);
               return (
                 <button
                   key={key}
@@ -235,7 +249,7 @@ export function LadderTable({
                     </span>
                   </span>
                   <span className="col-spark">
-                    <SparkChart values={p.spark20} width={150} height={28} pad={6} color={trendColor(p.spark20)} />
+                    <SparkChart values={spark} width={150} height={28} pad={6} color={trendColor(spark)} />
                   </span>
                   <span className="col-chevron">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">

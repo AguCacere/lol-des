@@ -21,4 +21,6 @@ export const METRIC_INFO = {
     "El rango más alto que vimos en el historial que guardamos nosotros, no el pico histórico real de la cuenta — la API de Riot no expone rango histórico, solo el actual. Si la cuenta llegó más alto antes de que la agreguemos al grupo, no hay forma de recuperar ese dato.",
   goldDiffLane:
     "Tu oro total menos el del rival con tu mismo carril (mismo teamPosition) a ese minuto exacto, según el timeline de la partida — no es contra todo el equipo rival. En un lane swap puede identificar mal al rival; si no hay nadie con tu misma posición del otro equipo, no se muestra.",
+  lpProgression:
+    "El gráfico y el delta combinan LP y división en un solo puntaje: subir de división suma 100 puntos, así que ascender sigue contando como progreso aunque el número de LP en la nueva división sea más bajo que en la anterior. Por eso, cuando cambiaste de división en este rango, el delta se muestra en \"pts\" y no en \"LP\".",
 } as const;

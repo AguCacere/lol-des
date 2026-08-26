@@ -29,7 +29,6 @@ export function SparkChart({
   const gid = "spark-" + useId().replace(/[:]/g, "");
   const detailed = variant === "detailed";
   const dotRadius = detailed ? 4 : 3.2;
-  const innerH = height - pad * 2;
   // Restrained glow — enough to keep the line from reading as a flat hairline,
   // without the neon-gaming look a heavier blur gave it. Compact still gets
   // proportionally more than detailed for the same reason as before: a 28px
@@ -103,10 +102,19 @@ export function SparkChart({
           </filter>
         </defs>
         {detailed && (
-          <g stroke="rgba(255,255,255,0.045)" strokeWidth={1}>
-            <line x1={pad} y1={pad + innerH / 3} x2={width - pad} y2={pad + innerH / 3} />
-            <line x1={pad} y1={pad + (innerH * 2) / 3} x2={width - pad} y2={pad + (innerH * 2) / 3} />
-          </g>
+          // Baseline at the FIRST point's own height, not arbitrary thirds of the
+          // box — those two evenly-spaced lines carried no information (they
+          // weren't at any real value), while "where you started" is the one
+          // reference a trend line actually needs to read as up or down.
+          <line
+            x1={pad}
+            y1={points[0][1]}
+            x2={width - pad}
+            y2={points[0][1]}
+            stroke="rgba(255,255,255,0.08)"
+            strokeWidth={1}
+            strokeDasharray="3 3"
+          />
         )}
         <path d={area} fill={`url(#${gid})`} stroke="none" />
         <path
@@ -118,6 +126,17 @@ export function SparkChart({
           strokeLinejoin="miter"
           filter={`url(#${gid}-glow)`}
         />
+        {/*
+          Every real snapshot gets its own dot in the detailed variant — with
+          sparse real data (often just 2-6 points) an unmarked line reads as a
+          placeholder graphic rather than an actual chart of measurements.
+          Compact stays a bare sparkline (the standard convention for a dense
+          20-point trend) and only marks its endpoint.
+        */}
+        {detailed &&
+          points.slice(0, -1).map(([x, y], i) => (
+            <circle key={i} cx={x} cy={y} r={2.5} fill="var(--bg)" stroke={color} strokeWidth={1.5} />
+          ))}
         {hover !== null && (
           <line
             x1={points[hover][0]}
@@ -139,7 +158,7 @@ export function SparkChart({
         />
         <circle cx={last[0].toFixed(1)} cy={last[1].toFixed(1)} r={dotRadius} fill={color} />
         {hover !== null && hover !== points.length - 1 && (
-          <circle cx={points[hover][0]} cy={points[hover][1]} r={dotRadius} fill={color} stroke="var(--bg)" strokeWidth={2} />
+          <circle cx={points[hover][0]} cy={points[hover][1]} r={dotRadius + 1.5} fill={color} stroke="var(--bg)" strokeWidth={2} />
         )}
       </svg>
       {canHover && hover !== null && pointLabels && (
