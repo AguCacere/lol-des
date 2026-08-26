@@ -206,7 +206,7 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
             </div>
             <div className="tl">{p.lp} LP</div>
             <div className="profile-tier-meta">
-              <span className={`delta ${lpDelta >= 0 ? "up" : "down"}`}>
+              <span className={`delta-chip ${lpDelta >= 0 ? "up" : "down"}`}>
                 {lpDelta >= 0 ? "▲" : "▼"} {Math.abs(lpDelta)} LP
               </span>
               {streak && (

@@ -5,9 +5,10 @@ import { formatRelativeDate } from "@/lib/mock-data";
  * Expanded view for one match, shown inline below its row in PlayerProfile.
  * Only renders real data we actually have. Sections we can't back with real
  * data yet (build, runas, nivel, stats al minuto 15) are explicitly marked
- * "Próximamente" rather than guessed — LP ganado/perdido gets its own note
- * since that one isn't a "not built yet", it's a real architecture gap (we
- * track LP via periodic snapshots, not per match) explained inline.
+ * "Próximamente" rather than guessed. LP ganado/perdido por partida no está
+ * acá a propósito: no es un "todavía no lo hicimos", es un gap real de
+ * arquitectura (LP se trackea por snapshot periódico, no por partida) que
+ * necesita un trigger o mecanismo nuevo — se vuelve a agregar cuando exista.
  */
 export function MatchDetail({ match }: { match: Match }) {
   const m = match;
@@ -53,10 +54,6 @@ export function MatchDetail({ match }: { match: Match }) {
       </div>
 
       <div className="match-detail-missing">
-        <p>
-          <strong>LP ganado/perdido:</strong> no disponible por partida — trackeamos LP por snapshots periódicos
-          (cron/&ldquo;Actualizar ahora&rdquo;), no un registro por partida individual.
-        </p>
         <p>
           <strong>Build, runas, nivel y estadísticas al minuto 15:</strong>{" "}
           <span className="pending-inline">Próximamente</span> — Riot los expone, todavía no los pedimos ni

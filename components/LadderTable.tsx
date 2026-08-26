@@ -206,16 +206,18 @@ export function LadderTable({
                         <span className="wc-d">{p.losses}D</span>
                       </span>
                     </span>
-                    <span className="wr-bar">
-                      <span className="wr-seg win" style={{ flex: p.wins }} />
-                      <span className="wr-seg loss" style={{ flex: p.losses }} />
-                    </span>
-                    {streak && (
-                      <span className={`wr-streak ${streak.result === "W" ? "w" : "l"}`}>
-                        {streak.result === "W" ? "🔥" : "🔻"} {streak.count}
-                        {streak.capped ? "+" : ""} {streak.result === "W" ? "V" : "D"}
+                    <span className="wr-bottom">
+                      <span className="wr-bar">
+                        <span className="wr-seg win" style={{ flex: p.wins }} />
+                        <span className="wr-seg loss" style={{ flex: p.losses }} />
                       </span>
-                    )}
+                      {streak && (
+                        <span className={`wr-streak ${streak.result === "W" ? "w" : "l"}`}>
+                          {streak.result === "W" ? "🔥" : "🔻"} {streak.count}
+                          {streak.capped ? "+" : ""} {streak.result === "W" ? "V" : "D"}
+                        </span>
+                      )}
+                    </span>
                   </span>
                   <span className="col-spark">
                     <SparkChart values={p.spark20} width={150} height={28} pad={4} color={t.fg} />
