@@ -378,6 +378,37 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-size:8.5px; color:var(--text-muted); margin-top:3px; text-transform:uppercase; letter-spacing:0.05em;
 }
 
+.champ-pool-label{
+  font-family:var(--font-display); font-weight:700; font-size:10px; letter-spacing:0.09em;
+  text-transform:uppercase; color:var(--accent); opacity:0.85; margin:16px 0 8px;
+  display:flex; align-items:center; gap:10px;
+}
+.champ-pool-label::after{content:""; flex:1; height:1px; background:rgba(255,255,255,0.08);}
+.champ-pool{display:flex; flex-direction:column; gap:6px;}
+.champ-pool-row{
+  display:flex; align-items:center; gap:10px;
+  background:var(--surface-raised); border-radius:var(--radius-sm); box-shadow:var(--shadow-sm);
+  padding:8px 12px;
+}
+.champ-pool-avatar{
+  width:30px; height:30px; border-radius:8px; flex:none;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:700; font-size:11px;
+  background:var(--surface-hover); color:var(--text-secondary);
+}
+.champ-pool-mid{display:flex; flex-direction:column; min-width:0; flex:1;}
+.champ-pool-name{font-weight:600; font-size:12.5px; color:var(--text-primary);}
+.champ-pool-games{font-size:10.5px; color:var(--text-muted); font-family:var(--font-mono);}
+.champ-pool-stats{display:flex; align-items:baseline; gap:10px; flex:none;}
+.champ-pool-wr{font-family:var(--font-stat); font-weight:800; font-size:14px; font-variant-numeric:tabular-nums;}
+.champ-pool-wr.good{color:var(--good);}
+.champ-pool-wr.bad{color:var(--critical);}
+.champ-pool-kda{font-family:var(--font-mono); font-size:11px; color:var(--text-muted); white-space:nowrap;}
+.champ-pool-empty{
+  font-size:11.5px; color:var(--text-muted); line-height:1.5;
+  background:var(--surface-raised); border-radius:var(--radius-sm); padding:12px 14px;
+}
+
 .cmp-card{
   background:var(--surface-raised); border-radius:var(--radius-md); box-shadow:var(--shadow-sm);
   padding:14px 16px; margin-bottom:16px;

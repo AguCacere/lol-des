@@ -1,4 +1,4 @@
-import type { LpHistoryPoint, Match, PeakLp, Player, RoleKey, Tier, TierKey } from "./types";
+import type { ChampionPoolEntry, LpHistoryPoint, Match, PeakLp, Player, RoleKey, Tier, TierKey } from "./types";
 
 /**
  * Deterministic placeholder data — the exact same generator that shipped in the
@@ -217,7 +217,34 @@ function genMatches(seed: number): Match[] {
   return out;
 }
 
-type SeedPlayer = Omit<Player, "spark20" | "lpHistory" | "peakLp" | "matches" | "winrate">;
+/** Top 5 champions by games played, from ALL of a player's stored matches — mirrors app/api/ladder/route.ts's real-data version. */
+function championPoolFromMatches(matches: Match[]): ChampionPoolEntry[] {
+  const stats = new Map<string, { games: number; wins: number; kSum: number; dSum: number; aSum: number; csMinSum: number }>();
+  for (const m of matches) {
+    const agg = stats.get(m.champ) ?? { games: 0, wins: 0, kSum: 0, dSum: 0, aSum: 0, csMinSum: 0 };
+    agg.games += 1;
+    agg.wins += m.win ? 1 : 0;
+    agg.kSum += m.k;
+    agg.dSum += m.d;
+    agg.aSum += m.a;
+    agg.csMinSum += parseFloat(m.csmin);
+    stats.set(m.champ, agg);
+  }
+  return [...stats.entries()]
+    .map(([champ, s]): ChampionPoolEntry => ({
+      champ,
+      games: s.games,
+      wins: s.wins,
+      losses: s.games - s.wins,
+      winrate: Math.round((100 * s.wins) / s.games),
+      avgKda: Number(((s.kSum + s.aSum) / Math.max(1, s.dSum)).toFixed(2)),
+      avgCsPerMin: Number((s.csMinSum / s.games).toFixed(1)),
+    }))
+    .sort((a, b) => b.games - a.games)
+    .slice(0, 5);
+}
+
+type SeedPlayer = Omit<Player, "spark20" | "lpHistory" | "peakLp" | "championPool" | "matches" | "winrate">;
 
 const SEED_PLAYERS: SeedPlayer[] = [
   { name: "Agus", tag: "LAS", you: true, role: "support", tierKey: "platinum", division: 2, lp: 57, wins: 64, losses: 58, seed: 11, drift: 0.6, mainChamp: "Senna" },
@@ -247,6 +274,7 @@ function buildPlayer(p: SeedPlayer): Player {
     spark20,
     lpHistory,
     peakLp: peakFromHistory(lpHistory),
+    championPool: championPoolFromMatches(matches),
     matches,
     winrate: Math.round((100 * p.wins) / (p.wins + p.losses)),
   };

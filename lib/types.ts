@@ -76,6 +76,22 @@ export interface PeakLp {
   lp: number;
 }
 
+/**
+ * Aggregated over ALL matches stored for this player (not just the last 5
+ * shown in the match history) — real data, no estimation. Riot's own
+ * Champion Mastery isn't in here: it only gives points/level, not
+ * win/loss/KDA, and mixes in normals/ARAM we don't track.
+ */
+export interface ChampionPoolEntry {
+  champ: string;
+  games: number;
+  wins: number;
+  losses: number;
+  winrate: number;
+  avgKda: number;
+  avgCsPerMin: number;
+}
+
 export interface Player {
   name: string;
   tag: string;
@@ -93,6 +109,7 @@ export interface Player {
   spark20: number[];
   lpHistory: LpHistoryPoint[];
   peakLp: PeakLp;
+  championPool: ChampionPoolEntry[];
   matches: Match[];
   winrate: number;
 }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { peakFromHistory, tierScore } from "@/lib/mock-data";
 import { divisionFromRiot, normalizeRole, roleFromTeamPosition, seedFromPuuid, tierKeyFromRiot } from "@/lib/mapping";
-import type { LpHistoryPoint, Match, Player, RoleKey } from "@/lib/types";
+import type { ChampionPoolEntry, LpHistoryPoint, Match, Player, RoleKey } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -133,6 +133,18 @@ export async function GET() {
   // this IS the role source — team_position comes straight from Riot.
   const champFreqByPuuid = new Map<string, Map<string, number>>();
   const roleFreqByPuuid = new Map<string, Map<RoleKey, number>>();
+  // Per-champion win/loss + KDA totals across ALL stored matches — feeds the
+  // "Campeones más jugados" card. Kept separate from champFreqByPuuid (which
+  // only needs a count) since this also needs sums to average later.
+  interface ChampAgg {
+    games: number;
+    wins: number;
+    kSum: number;
+    dSum: number;
+    aSum: number;
+    csMinSum: number;
+  }
+  const champStatsByPuuid = new Map<string, Map<string, ChampAgg>>();
   for (const row of matchRows ?? []) {
     const freq = champFreqByPuuid.get(row.puuid) ?? new Map<string, number>();
     freq.set(row.champion, (freq.get(row.champion) ?? 0) + 1);
@@ -144,6 +156,17 @@ export async function GET() {
       roleFreq.set(role, (roleFreq.get(role) ?? 0) + 1);
       roleFreqByPuuid.set(row.puuid, roleFreq);
     }
+
+    const champStats = champStatsByPuuid.get(row.puuid) ?? new Map<string, ChampAgg>();
+    const agg = champStats.get(row.champion) ?? { games: 0, wins: 0, kSum: 0, dSum: 0, aSum: 0, csMinSum: 0 };
+    agg.games += 1;
+    agg.wins += row.win ? 1 : 0;
+    agg.kSum += row.kills;
+    agg.dSum += row.deaths;
+    agg.aSum += row.assists;
+    agg.csMinSum += Number(row.cs_per_min);
+    champStats.set(row.champion, agg);
+    champStatsByPuuid.set(row.puuid, champStats);
 
     const arr = matchesByPuuid.get(row.puuid) ?? [];
     if (arr.length >= 5) continue;
@@ -206,6 +229,24 @@ export async function GET() {
     return best;
   }
 
+  /** Top 5 champions by games played, from ALL stored matches — real stats, not fabricated. */
+  function championPool(puuid: string): ChampionPoolEntry[] {
+    const stats = champStatsByPuuid.get(puuid);
+    if (!stats) return [];
+    return [...stats.entries()]
+      .map(([champ, s]): ChampionPoolEntry => ({
+        champ,
+        games: s.games,
+        wins: s.wins,
+        losses: s.games - s.wins,
+        winrate: Math.round((100 * s.wins) / s.games),
+        avgKda: Number(((s.kSum + s.aSum) / Math.max(1, s.dSum)).toFixed(2)),
+        avgCsPerMin: Number((s.csMinSum / s.games).toFixed(1)),
+      }))
+      .sort((a, b) => b.games - a.games)
+      .slice(0, 5);
+  }
+
   function mostPlayedRole(puuid: string): RoleKey | null {
     const freq = roleFreqByPuuid.get(puuid);
     if (!freq) return null;
@@ -260,6 +301,7 @@ export async function GET() {
       spark20,
       lpHistory,
       peakLp,
+      championPool: championPool(row.puuid),
       matches,
       winrate: wins + losses > 0 ? Math.round((100 * wins) / (wins + losses)) : 0,
     };
