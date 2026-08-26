@@ -28,11 +28,13 @@ export function SparkChart({
   const { line, area, last, points } = lineAreaGeometry(values, width, height, pad);
   const gid = "spark-" + useId().replace(/[:]/g, "");
   const detailed = variant === "detailed";
-  const dotRadius = detailed ? 4.5 : 3;
+  const dotRadius = detailed ? 4.5 : 3.5;
   const innerH = height - pad * 2;
-  // Compact still gets a glow, just a tighter/cheaper one than the big profile chart —
-  // a bare 2px line in a 150x28 cell read as flat/lifeless next to the detailed variant.
-  const blurRadius = detailed ? 3.2 : 1.4;
+  // Same stroke weight as the big profile chart, and a glow proportionally
+  // stronger than the detailed variant's — a 28px-tall cell needs a bigger
+  // relative blur than a 118px one just to read as "glowing" at all instead
+  // of vanishing into a hairline.
+  const blurRadius = detailed ? 3.2 : 2.4;
 
   const svgRef = useRef<SVGSVGElement>(null);
   const [hover, setHover] = useState<number | null>(null);
@@ -111,7 +113,7 @@ export function SparkChart({
           d={line}
           fill="none"
           stroke={color}
-          strokeWidth={detailed ? 2.5 : 2.25}
+          strokeWidth={2.5}
           strokeLinecap="round"
           strokeLinejoin="miter"
           filter={`url(#${gid}-glow)`}

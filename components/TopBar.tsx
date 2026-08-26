@@ -60,11 +60,6 @@ export function TopBar({ filterText, onFilterChange, onSubmit, canAdd, addStatus
         {addStatus.kind === "adding" && <span className="search-status">Buscando en la Riot API…</span>}
         {addStatus.kind === "error" && <span className="search-status is-error">{addStatus.message}</span>}
       </form>
-
-      <span className="preview-flag is-live">
-        <span className="dot" />
-        En vivo · Riot API
-      </span>
     </header>
   );
 }
