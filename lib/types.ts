@@ -30,6 +30,8 @@ export interface Match {
   dmgShare: number;
   gold: number;
   visionScore: number;
+  killParticipation: number;
+  objShare: number;
 }
 
 export interface Player {

@@ -101,6 +101,7 @@ export interface RiotParticipant {
   visionScore: number;
   goldEarned: number;
   totalDamageDealtToChampions: number;
+  damageDealtToObjectives: number;
   teamPosition: string; // TOP/JUNGLE/MIDDLE/BOTTOM/UTILITY
 }
 
@@ -112,4 +113,16 @@ export interface RiotParticipant {
 export function getMatchById(matchId: string) {
   const url = `https://${REGION}.api.riotgames.com/lol/match/v5/matches/${matchId}`;
   return riotFetch<RiotMatch>(url);
+}
+
+export interface RiotChampionMastery {
+  championId: number;
+  championLevel: number;
+  championPoints: number;
+}
+
+/** Champion Mastery V4 — top N champions by mastery points for a puuid. Platform-routed. */
+export function getTopChampionMasteries(puuid: string, count = 1) {
+  const url = `https://${PLATFORM}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=${count}`;
+  return riotFetch<RiotChampionMastery[]>(url);
 }

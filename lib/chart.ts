@@ -1,6 +1,12 @@
-/** Catmull-Rom → cubic Bezier smoothing, ported 1:1 from the approved mockup. */
+/**
+ * Catmull-Rom → cubic Bezier smoothing. With few points the spline overshoots
+ * between them — a real 1 LP wobble across 3-4 snapshots would render as a
+ * dramatic hill that never happened. Below 6 points, connect them with plain
+ * straight segments instead: still reads as a trend, doesn't fabricate curve
+ * shape the data doesn't support.
+ */
 export function smoothPath(pts: [number, number][]): string {
-  if (pts.length < 3) {
+  if (pts.length < 6) {
     return pts.map((p, i) => (i === 0 ? "M" : "L") + p[0].toFixed(2) + "," + p[1].toFixed(2)).join(" ");
   }
   let d = `M${pts[0][0].toFixed(2)},${pts[0][1].toFixed(2)}`;
@@ -24,11 +30,16 @@ export interface LineAreaGeometry {
   last: [number, number];
 }
 
-/** Same math as the mockup's lineAreaSVG(), split from the markup so React owns the SVG tags. */
-export function lineAreaGeometry(values: number[], w: number, h: number, pad = 6): LineAreaGeometry {
+/**
+ * Same math as the mockup's lineAreaSVG(), split from the markup so React owns
+ * the SVG tags. `minRange` floors the auto-scaled Y axis (default: 20 LP) so a
+ * tiny real fluctuation (1-2 LP across a handful of snapshots) doesn't get
+ * stretched to fill the whole chart height and look like a huge swing.
+ */
+export function lineAreaGeometry(values: number[], w: number, h: number, pad = 6, minRange = 20): LineAreaGeometry {
   const min = Math.min(...values);
   const max = Math.max(...values);
-  const range = max - min || 1;
+  const range = Math.max(max - min, minRange);
   const stepX = (w - pad * 2) / (values.length - 1);
   const pts: [number, number][] = values.map((v, i) => {
     const x = pad + i * stepX;

@@ -113,6 +113,8 @@ function genMatches(seed: number): Match[] {
       dur, dmgShare,
       gold: Math.round(8 + rand() * 6),
       visionScore: Math.round(10 + rand() * 40),
+      killParticipation: Math.round(35 + rand() * 40),
+      objShare: Math.round(10 + rand() * 30),
     });
   }
   return out;
@@ -155,6 +157,8 @@ export interface RoleAverages {
   kda: number | null;
   csPerMin: number | null;
   dmgShare: number | null;
+  killParticipation: number | null;
+  objShare: number | null;
   /** how many other tracked players in this role fed the average — 0 means no peers to compare against. */
   sampleSize: number;
 }
@@ -170,11 +174,13 @@ export interface RoleAverages {
 export function computeRoleAverages(allPlayers: Player[], player: Player): RoleAverages {
   const peers = allPlayers.filter((p) => p !== player && p.role === player.role && p.matches.length > 0);
   if (peers.length === 0) {
-    return { kda: null, csPerMin: null, dmgShare: null, sampleSize: 0 };
+    return { kda: null, csPerMin: null, dmgShare: null, killParticipation: null, objShare: null, sampleSize: 0 };
   }
   const peerMatches = peers.flatMap((p) => p.matches);
   const kda = peerMatches.reduce((s, m) => s + (m.k + m.a) / Math.max(1, m.d), 0) / peerMatches.length;
   const csPerMin = peerMatches.reduce((s, m) => s + parseFloat(m.csmin), 0) / peerMatches.length;
   const dmgShare = peerMatches.reduce((s, m) => s + m.dmgShare, 0) / peerMatches.length;
-  return { kda, csPerMin, dmgShare, sampleSize: peers.length };
+  const killParticipation = peerMatches.reduce((s, m) => s + m.killParticipation, 0) / peerMatches.length;
+  const objShare = peerMatches.reduce((s, m) => s + m.objShare, 0) / peerMatches.length;
+  return { kda, csPerMin, dmgShare, killParticipation, objShare, sampleSize: peers.length };
 }

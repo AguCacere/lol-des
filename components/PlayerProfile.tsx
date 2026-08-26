@@ -143,6 +143,10 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
     ? Number((p.matches.reduce((s, m) => s + m.visionScore / Math.max(1, m.dur), 0) / p.matches.length).toFixed(1))
     : 0;
   const avgDur = hasMatches ? Math.round(p.matches.reduce((s, m) => s + m.dur, 0) / p.matches.length) : 0;
+  const killPart = hasMatches
+    ? Math.round(p.matches.reduce((s, m) => s + m.killParticipation, 0) / p.matches.length)
+    : 0;
+  const objPart = hasMatches ? Math.round(p.matches.reduce((s, m) => s + m.objShare, 0) / p.matches.length) : 0;
   const lpStart = p.spark20[0];
   const lpDelta = p.spark20[p.spark20.length - 1] - lpStart;
   const streak = currentStreak(p.matches);
@@ -224,18 +228,8 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
             </div>
             <div className="stat-grid">
               <div className="stat-tile"><TrophyIcon /><div className="v">{p.winrate}%</div><div className="k">Winrate season</div></div>
-              <div className="stat-tile is-pending">
-                <TargetIcon />
-                <div className="v">—</div>
-                <div className="k">Participación objetivos</div>
-                <div className="pending-note">Próximamente</div>
-              </div>
-              <div className="stat-tile is-pending">
-                <ZapIcon />
-                <div className="v">—</div>
-                <div className="k">Kill participation</div>
-                <div className="pending-note">Próximamente</div>
-              </div>
+              <div className="stat-tile"><TargetIcon /><div className="v">{objPart}%</div><div className="k">Participación objetivos</div></div>
+              <div className="stat-tile"><ZapIcon /><div className="v">{killPart}%</div><div className="k">Kill participation</div></div>
               <div className="stat-tile"><EyeIcon /><div className="v">{avgVision}</div><div className="k">Visión / min</div></div>
               <div className="stat-tile"><ClockIcon /><div className="v">{avgDur} min</div><div className="k">Duración prom.</div></div>
               <div className="stat-tile"><TrendUpIcon /><div className="v">{wins}/{p.matches.length}</div><div className="k">Forma reciente</div></div>

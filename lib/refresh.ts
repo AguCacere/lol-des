@@ -1,5 +1,6 @@
 import type { getSupabaseServerClient } from "./supabase";
-import { getLeagueEntriesByPuuid, getMatchById, getMatchIdsByPuuid } from "./riot";
+import { getLeagueEntriesByPuuid, getMatchById, getMatchIdsByPuuid, getTopChampionMasteries } from "./riot";
+import { championNameById } from "./ddragon";
 
 type SupabaseClient = ReturnType<typeof getSupabaseServerClient>;
 
@@ -32,9 +33,10 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string) {
     const me = match.info.participants.find((p) => p.puuid === puuid);
     if (!me) continue;
 
-    const teamDamage = match.info.participants
-      .filter((p) => p.teamId === me.teamId)
-      .reduce((sum, p) => sum + p.totalDamageDealtToChampions, 0);
+    const teammates = match.info.participants.filter((p) => p.teamId === me.teamId);
+    const teamDamage = teammates.reduce((sum, p) => sum + p.totalDamageDealtToChampions, 0);
+    const teamKills = teammates.reduce((sum, p) => sum + p.kills, 0);
+    const teamObjDamage = teammates.reduce((sum, p) => sum + p.damageDealtToObjectives, 0);
     const cs = me.totalMinionsKilled + me.neutralMinionsKilled;
     const durationMin = match.info.gameDuration / 60;
 
@@ -53,10 +55,30 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string) {
       damage_to_champs: me.totalDamageDealtToChampions,
       dmg_share:
         teamDamage > 0 ? Number(((100 * me.totalDamageDealtToChampions) / teamDamage).toFixed(1)) : 0,
+      kill_participation:
+        teamKills > 0 ? Number(((100 * (me.kills + me.assists)) / teamKills).toFixed(1)) : 0,
+      obj_share:
+        teamObjDamage > 0 ? Number(((100 * me.damageDealtToObjectives) / teamObjDamage).toFixed(1)) : 0,
       team_position: me.teamPosition,
       game_duration_s: match.info.gameDuration,
       played_at: new Date(match.info.gameCreation).toISOString(),
     });
+  }
+
+  // Champion Mastery reflects Riot's whole-career view, not just what we've
+  // stored — better "main champion" signal than counting our own match cache.
+  // Non-fatal: if this or the Data Dragon name lookup fails, we keep whatever
+  // main_champ was already there instead of failing the whole refresh.
+  try {
+    const [top] = await getTopChampionMasteries(puuid, 1);
+    if (top) {
+      const champName = await championNameById(top.championId);
+      if (champName) {
+        await supabase.from("summoners").update({ main_champ: champName }).eq("puuid", puuid);
+      }
+    }
+  } catch {
+    // ignore — main_champ falls back to lib/mock-data.ts's most-played-in-stored-matches logic
   }
 
   await supabase.from("summoners").update({ last_refreshed_at: new Date().toISOString() }).eq("puuid", puuid);

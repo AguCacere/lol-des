@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { tierScore } from "@/lib/mock-data";
-import { divisionFromRiot, normalizeRole, seedFromPuuid, tierKeyFromRiot } from "@/lib/mapping";
+import { divisionFromRiot, normalizeRole, roleFromTeamPosition, seedFromPuuid, tierKeyFromRiot } from "@/lib/mapping";
+import type { RoleKey } from "@/lib/types";
 import type { Match, Player } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +33,9 @@ interface MatchRow {
   dmg_share: number | null;
   gold_earned: number;
   vision_score: number;
+  kill_participation: number | null;
+  obj_share: number | null;
+  team_position: string | null;
   game_duration_s: number;
 }
 
@@ -72,7 +76,7 @@ export async function GET() {
     supabase
       .from("matches")
       .select(
-        "puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, gold_earned, vision_score, game_duration_s"
+        "puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, gold_earned, vision_score, kill_participation, obj_share, team_position, game_duration_s"
       )
       .in("puuid", puuids)
       .order("played_at", { ascending: false })
@@ -87,13 +91,23 @@ export async function GET() {
   }
 
   const matchesByPuuid = new Map<string, Match[]>();
-  // Champion frequency across ALL stored matches (not just the last 5 shown) —
-  // used as the "most played champion" fallback when main_champ isn't set manually.
+  // Champion / role frequency across ALL stored matches (not just the last 5
+  // shown) — used as the "most played" fallback when main_champ/role aren't
+  // set manually. `summoners.role` has no UI to set it yet, so in practice
+  // this IS the role source — team_position comes straight from Riot.
   const champFreqByPuuid = new Map<string, Map<string, number>>();
+  const roleFreqByPuuid = new Map<string, Map<RoleKey, number>>();
   for (const row of matchRows ?? []) {
     const freq = champFreqByPuuid.get(row.puuid) ?? new Map<string, number>();
     freq.set(row.champion, (freq.get(row.champion) ?? 0) + 1);
     champFreqByPuuid.set(row.puuid, freq);
+
+    const role = roleFromTeamPosition(row.team_position);
+    if (role) {
+      const roleFreq = roleFreqByPuuid.get(row.puuid) ?? new Map<RoleKey, number>();
+      roleFreq.set(role, (roleFreq.get(role) ?? 0) + 1);
+      roleFreqByPuuid.set(row.puuid, roleFreq);
+    }
 
     const arr = matchesByPuuid.get(row.puuid) ?? [];
     if (arr.length >= 5) continue;
@@ -110,6 +124,8 @@ export async function GET() {
       dmgShare: Math.round(Number(row.dmg_share ?? 0)),
       gold: Math.round(row.gold_earned / durationMin),
       visionScore: row.vision_score,
+      killParticipation: Math.round(Number(row.kill_participation ?? 0)),
+      objShare: Math.round(Number(row.obj_share ?? 0)),
     });
     matchesByPuuid.set(row.puuid, arr);
   }
@@ -122,6 +138,20 @@ export async function GET() {
     for (const [champ, count] of freq) {
       if (count > bestCount) {
         best = champ;
+        bestCount = count;
+      }
+    }
+    return best;
+  }
+
+  function mostPlayedRole(puuid: string): RoleKey | null {
+    const freq = roleFreqByPuuid.get(puuid);
+    if (!freq) return null;
+    let best: RoleKey | null = null;
+    let bestCount = 0;
+    for (const [role, count] of freq) {
+      if (count > bestCount) {
+        best = role;
         bestCount = count;
       }
     }
@@ -141,7 +171,7 @@ export async function GET() {
       name: row.game_name,
       tag: row.tag_line,
       you: row.is_you,
-      role: normalizeRole(row.role),
+      role: row.role ? normalizeRole(row.role) : mostPlayedRole(row.puuid) ?? "mid",
       tierKey: tierKeyFromRiot(row.tier),
       division: divisionFromRiot(row.division),
       lp,
