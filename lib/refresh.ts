@@ -12,14 +12,36 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string) {
   const entries = await getLeagueEntriesByPuuid(puuid);
   const solo = entries.find((e) => e.queueType === "RANKED_SOLO_5x5");
   if (solo) {
-    await supabase.from("lp_snapshots").insert({
-      puuid,
-      tier: solo.tier,
-      division: solo.rank,
-      lp: solo.leaguePoints,
-      wins: solo.wins,
-      losses: solo.losses,
-    });
+    // Only insert when something actually changed since the last snapshot — otherwise
+    // repeated refreshes (cron + manual clicks) with no new games pile up identical
+    // rows, and since the chart plots the last N snapshots, those duplicates crowd
+    // out real history and flatten the whole trend into a long plateau.
+    const { data: lastSnapshot } = await supabase
+      .from("lp_snapshots")
+      .select("tier, division, lp, wins, losses")
+      .eq("puuid", puuid)
+      .order("captured_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const unchanged =
+      lastSnapshot &&
+      lastSnapshot.tier === solo.tier &&
+      lastSnapshot.division === solo.rank &&
+      lastSnapshot.lp === solo.leaguePoints &&
+      lastSnapshot.wins === solo.wins &&
+      lastSnapshot.losses === solo.losses;
+
+    if (!unchanged) {
+      await supabase.from("lp_snapshots").insert({
+        puuid,
+        tier: solo.tier,
+        division: solo.rank,
+        lp: solo.leaguePoints,
+        wins: solo.wins,
+        losses: solo.losses,
+      });
+    }
   }
 
   const { data: existing } = await supabase.from("matches").select("match_id").eq("puuid", puuid);
