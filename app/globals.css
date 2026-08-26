@@ -218,8 +218,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-family:var(--font-display); font-weight:700; font-size:12px;
 }
 .tier-text{line-height:1.25;}
-.tier-name{font-size:12.5px; font-weight:600;}
-.tier-lp{font-family:var(--font-mono); font-size:11px; color:var(--text-muted);}
+.tier-name{display:block; font-size:12.5px; font-weight:600;}
+.tier-lp{display:block; font-family:var(--font-mono); font-size:11px; color:var(--text-muted);}
 .col-winrate{min-width:0;}
 .wr-top{display:flex; align-items:baseline; gap:7px; margin-bottom:6px; white-space:nowrap;}
 .wr-pct{font-family:var(--font-stat); font-weight:800; font-size:16.5px; font-variant-numeric:tabular-nums;}
