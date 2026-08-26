@@ -40,7 +40,8 @@ export function tierFor(key: TierKey): Tier {
 }
 
 export function tierScore(p: Player): number {
-  return tierFor(p.tierKey).rank * 400 + p.division * 100 + p.lp;
+  // division 1 (Riot's "I") outranks division 4 ("IV") within the same tier.
+  return tierFor(p.tierKey).rank * 400 + (5 - p.division) * 100 + p.lp;
 }
 
 /** Deterministic pseudo-random walk so the same seed always renders the same chart. */

@@ -50,6 +50,7 @@ create table if not exists matches (
   vision_score  int not null,
   gold_earned   int not null,
   damage_to_champs int not null,
+  dmg_share     numeric(4,1) not null default 0, -- % del daño del equipo hecho por este jugador
   team_position text,          -- TOP/JUNGLE/MIDDLE/BOTTOM/UTILITY
   game_duration_s int not null,
   played_at     timestamptz not null,

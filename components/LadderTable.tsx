@@ -8,13 +8,15 @@ interface LadderTableProps {
   filterText: string;
   activeKey: string | null;
   onSelect: (key: string) => void;
+  loading?: boolean;
+  error?: string | null;
 }
 
 export function playerKey(p: Player): string {
   return `${p.name}#${p.tag}`;
 }
 
-export function LadderTable({ players, filterText, activeKey, onSelect }: LadderTableProps) {
+export function LadderTable({ players, filterText, activeKey, onSelect, loading, error }: LadderTableProps) {
   const q = filterText.trim().toLowerCase();
   const rows = players.filter((p) => !q || playerKey(p).toLowerCase().includes(q));
 
@@ -39,11 +41,26 @@ export function LadderTable({ players, filterText, activeKey, onSelect }: Ladder
           <span></span>
         </div>
         <div>
-          {rows.length === 0 ? (
+          {loading ? (
+            <div className="empty-state">
+              <strong>Cargando…</strong>
+              Consultando el ladder.
+            </div>
+          ) : error ? (
+            <div className="empty-state">
+              <strong>No se pudo cargar el ladder</strong>
+              {error}
+            </div>
+          ) : rows.length === 0 && players.length === 0 ? (
+            <div className="empty-state">
+              <strong>Todavía no hay nadie en el grupo</strong>
+              Buscá un Riot ID arriba (Nombre#TAG) y apretá Enter para sumarlo.
+            </div>
+          ) : rows.length === 0 ? (
             <div className="empty-state">
               <strong>Sin resultados</strong>
-              No hay ningún Riot ID en el grupo que matchee &ldquo;{q}&rdquo;. Con el buscador real, esto dispararía
-              una búsqueda contra la Riot API para sumarlo.
+              No hay ningún Riot ID en el grupo que matchee &ldquo;{q}&rdquo;. Apretá Enter para buscarlo en la Riot
+              API y sumarlo.
             </div>
           ) : (
             rows.map((p) => {

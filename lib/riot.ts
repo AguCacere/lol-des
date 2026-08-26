@@ -90,6 +90,7 @@ export interface RiotMatch {
 
 export interface RiotParticipant {
   puuid: string;
+  teamId: number;
   championName: string;
   win: boolean;
   kills: number;
