@@ -213,7 +213,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 
 /* ---------- ladder table ---------- */
 .ladder{
-  background:var(--surface); border-radius:var(--radius-lg);
+  /* --bg, not --surface — the role badges are opaque art with their own near-
+     black backdrop baked in (not a transparent glyph we tint), so on the
+     lighter --surface panel every chip read as a visible gray square stamped
+     onto the row instead of blending in. */
+  background:var(--bg); border-radius:var(--radius-lg);
   box-shadow:var(--shadow); overflow:hidden;
 }
 .ladder-row{
