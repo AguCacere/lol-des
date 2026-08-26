@@ -35,6 +35,13 @@ interface MatchRow {
   vision_score: number;
   kill_participation: number | null;
   obj_share: number | null;
+  primary_rune: string | null;
+  primary_style: string | null;
+  secondary_style: string | null;
+  double_kills: number | null;
+  triple_kills: number | null;
+  quadra_kills: number | null;
+  penta_kills: number | null;
   team_position: string | null;
   game_duration_s: number;
   played_at: string;
@@ -77,7 +84,7 @@ export async function GET() {
     supabase
       .from("matches")
       .select(
-        "puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, gold_earned, vision_score, kill_participation, obj_share, team_position, game_duration_s, played_at"
+        "puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, gold_earned, vision_score, kill_participation, obj_share, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, team_position, game_duration_s, played_at"
       )
       .in("puuid", puuids)
       .order("played_at", { ascending: false })
@@ -129,6 +136,13 @@ export async function GET() {
       killParticipation: Math.round(Number(row.kill_participation ?? 0)),
       objShare: Math.round(Number(row.obj_share ?? 0)),
       playedAt: row.played_at,
+      primaryRune: row.primary_rune,
+      primaryStyle: row.primary_style,
+      secondaryStyle: row.secondary_style,
+      doubleKills: row.double_kills ?? 0,
+      tripleKills: row.triple_kills ?? 0,
+      quadraKills: row.quadra_kills ?? 0,
+      pentaKills: row.penta_kills ?? 0,
     });
     matchesByPuuid.set(row.puuid, arr);
   }

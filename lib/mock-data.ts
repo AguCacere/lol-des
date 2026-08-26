@@ -103,6 +103,15 @@ export function formatRelativeDate(iso: string): string {
   return new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
 }
 
+const RUNE_PAIRS: [string, string][] = [
+  ["Conqueror", "Precision"],
+  ["Electrocute", "Domination"],
+  ["Arcane Comet", "Sorcery"],
+  ["Grasp of the Undying", "Resolve"],
+  ["First Strike", "Inspiration"],
+];
+const RUNE_STYLES = ["Precision", "Domination", "Sorcery", "Resolve", "Inspiration"];
+
 function genMatches(seed: number): Match[] {
   let s = seed;
   const rand = () => {
@@ -130,6 +139,13 @@ function genMatches(seed: number): Match[] {
       killParticipation: Math.round(35 + rand() * 40),
       objShare: Math.round(10 + rand() * 30),
       playedAt: new Date(Date.now() - i * 1000 * 60 * 60 * 30).toISOString(),
+      primaryRune: RUNE_PAIRS[Math.floor(rand() * RUNE_PAIRS.length)][0],
+      primaryStyle: RUNE_PAIRS[Math.floor(rand() * RUNE_PAIRS.length)][1],
+      secondaryStyle: RUNE_STYLES[Math.floor(rand() * RUNE_STYLES.length)],
+      doubleKills: rand() > 0.5 ? Math.floor(rand() * 3) : 0,
+      tripleKills: rand() > 0.85 ? 1 : 0,
+      quadraKills: rand() > 0.96 ? 1 : 0,
+      pentaKills: rand() > 0.99 ? 1 : 0,
     });
   }
   return out;

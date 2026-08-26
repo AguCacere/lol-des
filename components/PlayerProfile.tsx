@@ -5,6 +5,8 @@ import type { Player } from "@/lib/types";
 import { tierFor, champTag, ROLES, currentStreak, computeRoleAverages, formatRelativeDate } from "@/lib/mock-data";
 import { SparkChart } from "./SparkChart";
 import { MatchDetail } from "./MatchDetail";
+import { InfoTip } from "./InfoTip";
+import { METRIC_INFO } from "@/lib/metric-info";
 
 function TrophyIcon() {
   return (
@@ -73,18 +75,23 @@ function CmpBar({
   avg,
   max,
   suffix = "",
+  tooltip,
 }: {
   label: string;
   value: number;
   avg: number | null;
   max: number;
   suffix?: string;
+  tooltip?: string;
 }) {
   const pct = Math.max(2, Math.min(100, (value / max) * 100));
   return (
     <div className="cmp-row">
       <div className="cmp-row-top">
-        <span className="k">{label}</span>
+        <span className="k">
+          {label}
+          {tooltip && <InfoTip text={tooltip} />}
+        </span>
         <span className="v">
           {value}
           {suffix}{" "}
@@ -249,9 +256,27 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
             </div>
             <div className="stat-grid">
               <div className="stat-tile"><TrophyIcon /><div className="v">{p.winrate}%</div><div className="k">Winrate season</div></div>
-              <div className="stat-tile"><TargetIcon /><div className="v">{objPart}%</div><div className="k">Participación objetivos</div></div>
-              <div className="stat-tile"><ZapIcon /><div className="v">{killPart}%</div><div className="k">Kill participation</div></div>
-              <div className="stat-tile"><EyeIcon /><div className="v">{avgVision}</div><div className="k">Visión / min</div></div>
+              <div className="stat-tile">
+                <TargetIcon />
+                <div className="v">{objPart}%</div>
+                <div className="k">
+                  Participación objetivos <InfoTip text={METRIC_INFO.objShare} />
+                </div>
+              </div>
+              <div className="stat-tile">
+                <ZapIcon />
+                <div className="v">{killPart}%</div>
+                <div className="k">
+                  Kill participation <InfoTip text={METRIC_INFO.killParticipation} />
+                </div>
+              </div>
+              <div className="stat-tile">
+                <EyeIcon />
+                <div className="v">{avgVision}</div>
+                <div className="k">
+                  Visión / min <InfoTip text={METRIC_INFO.visionScore} />
+                </div>
+              </div>
               <div className="stat-tile"><ClockIcon /><div className="v">{avgDur} min</div><div className="k">Duración prom.</div></div>
               <div className="stat-tile"><TrendUpIcon /><div className="v">{wins}/{p.matches.length}</div><div className="k">Forma reciente</div></div>
             </div>
@@ -273,6 +298,7 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
                 value={Number(avgCS.toFixed(1))}
                 avg={roleAvg.csPerMin !== null ? Number(roleAvg.csPerMin.toFixed(1)) : null}
                 max={10}
+                tooltip={METRIC_INFO.csPerMin}
               />
               <CmpBar
                 label="% daño del equipo"
@@ -280,6 +306,7 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
                 avg={roleAvg.dmgShare !== null ? Math.round(roleAvg.dmgShare) : null}
                 max={45}
                 suffix="%"
+                tooltip={METRIC_INFO.dmgShare}
               />
             </div>
             <div className="matches">

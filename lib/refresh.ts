@@ -1,6 +1,6 @@
 import type { getSupabaseServerClient } from "./supabase";
 import { getLeagueEntriesByPuuid, getMatchById, getMatchIdsByPuuid, getTopChampionMasteries } from "./riot";
-import { championNameById } from "./ddragon";
+import { championNameById, runeNameById } from "./ddragon";
 
 type SupabaseClient = ReturnType<typeof getSupabaseServerClient>;
 
@@ -62,6 +62,25 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string) {
     const cs = me.totalMinionsKilled + me.neutralMinionsKilled;
     const durationMin = match.info.gameDuration / 60;
 
+    // Runes travel in the same Match-V5 payload we already fetch — no extra Riot
+    // call. Name lookup is Data Dragon (keyless); non-fatal if it fails, we just
+    // store the match without rune names rather than losing the whole match.
+    let primaryRune: string | null = null;
+    let primaryStyle: string | null = null;
+    let secondaryStyle: string | null = null;
+    try {
+      const primaryStyleEntry = me.perks.styles.find((s) => s.description === "primaryStyle");
+      const subStyleEntry = me.perks.styles.find((s) => s.description === "subStyle");
+      const keystoneId = primaryStyleEntry?.selections[0]?.perk;
+      [primaryRune, primaryStyle, secondaryStyle] = await Promise.all([
+        keystoneId != null ? runeNameById(keystoneId) : Promise.resolve(null),
+        primaryStyleEntry ? runeNameById(primaryStyleEntry.style) : Promise.resolve(null),
+        subStyleEntry ? runeNameById(subStyleEntry.style) : Promise.resolve(null),
+      ]);
+    } catch {
+      // ignore — match still gets saved, just without rune names
+    }
+
     await supabase.from("matches").insert({
       match_id: matchId,
       puuid,
@@ -81,6 +100,13 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string) {
         teamKills > 0 ? Number(((100 * (me.kills + me.assists)) / teamKills).toFixed(1)) : 0,
       obj_share:
         teamObjDamage > 0 ? Number(((100 * me.damageDealtToObjectives) / teamObjDamage).toFixed(1)) : 0,
+      primary_rune: primaryRune,
+      primary_style: primaryStyle,
+      secondary_style: secondaryStyle,
+      double_kills: me.doubleKills,
+      triple_kills: me.tripleKills,
+      quadra_kills: me.quadraKills,
+      penta_kills: me.pentaKills,
       team_position: me.teamPosition,
       game_duration_s: match.info.gameDuration,
       played_at: new Date(match.info.gameCreation).toISOString(),

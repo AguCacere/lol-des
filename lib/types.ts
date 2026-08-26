@@ -34,6 +34,13 @@ export interface Match {
   objShare: number;
   goldTotal: number;
   playedAt: string; // ISO timestamp
+  primaryRune: string | null; // keystone, e.g. "Conqueror"
+  primaryStyle: string | null; // rune tree, e.g. "Precision"
+  secondaryStyle: string | null; // e.g. "Domination"
+  doubleKills: number;
+  tripleKills: number;
+  quadraKills: number;
+  pentaKills: number;
 }
 
 export interface Player {

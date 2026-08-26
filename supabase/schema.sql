@@ -53,6 +53,13 @@ create table if not exists matches (
   dmg_share     numeric(4,1) not null default 0, -- % del daño del equipo hecho por este jugador
   kill_participation numeric(4,1) not null default 0, -- (kills+asistencias propias) / kills del equipo
   obj_share     numeric(4,1) not null default 0, -- % del daño a objetivos del equipo hecho por este jugador
+  primary_rune  text,          -- keystone, ej. "Conqueror" (Data Dragon, ver lib/ddragon.ts)
+  primary_style text,          -- árbol de runas primario, ej. "Precision"
+  secondary_style text,        -- árbol de runas secundario, ej. "Domination"
+  double_kills  int not null default 0,
+  triple_kills  int not null default 0,
+  quadra_kills  int not null default 0,
+  penta_kills   int not null default 0,
   team_position text,          -- TOP/JUNGLE/MIDDLE/BOTTOM/UTILITY
   game_duration_s int not null,
   played_at     timestamptz not null,

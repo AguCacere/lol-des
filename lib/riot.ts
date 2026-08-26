@@ -103,6 +103,19 @@ export interface RiotParticipant {
   totalDamageDealtToChampions: number;
   damageDealtToObjectives: number;
   teamPosition: string; // TOP/JUNGLE/MIDDLE/BOTTOM/UTILITY
+  perks: RiotPerks;
+  doubleKills: number;
+  tripleKills: number;
+  quadraKills: number;
+  pentaKills: number;
+}
+
+export interface RiotPerks {
+  styles: {
+    description: string; // "primaryStyle" | "subStyle"
+    style: number; // rune tree id, e.g. 8000 = Precision
+    selections: { perk: number }[];
+  }[];
 }
 
 /**
