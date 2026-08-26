@@ -39,11 +39,13 @@ function Stat({
 }
 
 /** Compact "12 puestas · 3 sacadas" style breakdown — replaces a run-on sentence with scannable chips. */
-function MiniBreakdown({ items }: { items: { value: number; label: string }[] }) {
+function MiniBreakdown({ items }: { items: { value: number; label: string; icon?: string }[] }) {
   return (
     <span className="v mini-breakdown">
       {items.map((it) => (
         <span className="mini-breakdown-item" key={it.label}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- fixed tiny inline glyph, not a page asset */}
+          {it.icon && <img className="mini-breakdown-icon" src={it.icon} alt="" />}
           <strong>{it.value}</strong>
           {it.label}
         </span>
@@ -129,7 +131,11 @@ export function MatchDetail({ match }: { match: Match }) {
           <MiniBreakdown
             items={[
               { value: m.turretKills, label: "torres" },
-              { value: m.dragonKills, label: "dragones" },
+              // Genérico a propósito: guardamos cuántos dragones se llevó el
+              // equipo, no cuáles (eso vive en el timeline de Match-V5 y no
+              // lo persistimos todavía), así que no hay forma honesta de
+              // elegir el ícono elemental correcto por partida.
+              { value: m.dragonKills, label: "dragones", icon: "/icons/dragons/infernal-48.png" },
               { value: m.baronKills, label: "barones" },
               { value: m.inhibitorKills, label: "inhib." },
             ]}
