@@ -304,12 +304,15 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
                 <span className="next-div-label">Tope de división del sistema alcanzado</span>
               )}
               {p.flexRank && (
-                <span className="next-div-label">
-                  Flex:{" "}
-                  <span style={{ color: tierFor(p.flexRank.tier).fg }}>
-                    {tierFor(p.flexRank.tier).name} {p.flexRank.division}
-                  </span>{" "}
-                  · {p.flexRank.lp} LP
+                <span className="flex-chip" title={`Flex: ${tierFor(p.flexRank.tier).name} ${p.flexRank.division} · ${p.flexRank.lp} LP`}>
+                  <span
+                    className="flex-chip-badge"
+                    style={{ background: tierFor(p.flexRank.tier).bg, color: tierFor(p.flexRank.tier).fg }}
+                  >
+                    {tierFor(p.flexRank.tier).name[0]}
+                    {p.flexRank.division}
+                  </span>
+                  Flex · {p.flexRank.lp} LP
                 </span>
               )}
             </div>
