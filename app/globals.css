@@ -280,7 +280,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .profile{
   background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow);
   padding:24px; margin-top:16px;
+  opacity:1; transition:opacity .16s ease;
 }
+.profile.is-fading{opacity:0;}
 .profile-header{
   display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap;
   margin-bottom:22px; padding-bottom:20px; border-bottom:1px solid var(--border-soft);

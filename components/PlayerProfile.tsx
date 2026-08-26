@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import type { Player } from "@/lib/types";
 import { tierFor, champTag, ROLES, currentStreak, computeRoleAverages } from "@/lib/mock-data";
 import { SparkChart } from "./SparkChart";
@@ -105,7 +108,22 @@ function CmpBar({
 }
 
 export function PlayerProfile({ player, allPlayers }: { player: Player | null; allPlayers: Player[] }) {
-  if (!player) {
+  const [displayed, setDisplayed] = useState(player);
+  const [fading, setFading] = useState(false);
+
+  useEffect(() => {
+    if (player === displayed) return;
+    // Crossfade on selection change, not a fetch — nothing to await before this.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFading(true);
+    const t = setTimeout(() => {
+      setDisplayed(player);
+      setFading(false);
+    }, 160);
+    return () => clearTimeout(t);
+  }, [player, displayed]);
+
+  if (!displayed) {
     return (
       <section id="profileSection">
         <div className="section-head">
@@ -115,7 +133,7 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
           </h2>
           <span className="meta">Click en una fila del ladder para inspeccionar</span>
         </div>
-        <div className="profile">
+        <div className={`profile${fading ? " is-fading" : ""}`}>
           <div className="profile-empty">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 21l7-7m0 0l8-8-3-3-8 8m3 3l-3-3m0 0L4 13l3 3" />
@@ -130,7 +148,7 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
     );
   }
 
-  const p = player;
+  const p = displayed;
   const t = tierFor(p.tierKey);
   const hasMatches = p.matches.length > 0;
   const wins = p.matches.filter((m) => m.win).length;
@@ -162,7 +180,7 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
         <span className="meta">Click en una fila del ladder para inspeccionar</span>
       </div>
 
-      <div className="profile">
+      <div className={`profile${fading ? " is-fading" : ""}`}>
         <div className="profile-header">
           <div className="profile-id">
             <div className="profile-avatar" style={{ background: t.bg, color: t.fg, borderColor: `${t.fg}44` }}>
