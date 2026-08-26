@@ -25,10 +25,20 @@
   --radius-sm:6px;
   --radius-md:10px;
   --radius-lg:16px;
-  --font-display:var(--font-rajdhani),ui-sans-serif,system-ui,sans-serif;
-  --font-body:var(--font-sora),ui-sans-serif,system-ui,sans-serif;
-  --font-stat:var(--font-manrope),ui-sans-serif,system-ui,sans-serif;
-  --font-mono:var(--font-plex-mono),ui-monospace,'SF Mono',monospace;
+  /*
+    -apple-system/BlinkMacSystemFont first: on Mac/iPhone/iPad this resolves
+    to the real San Francisco already installed on the device — we can't
+    ship SF itself (Apple's license restricts it to Apple-platform apps),
+    so everywhere else falls through to Geist, an open-source sans built in
+    the same spirit (Vercel, SIL license, self-hosted below via next/font).
+    One family for the whole app on purpose — hierarchy comes from weight
+    and size, not from mixing typefaces, closer to how Apple's own system
+    typography actually works.
+  */
+  --font-display:-apple-system,BlinkMacSystemFont,var(--font-geist-sans),"Segoe UI",Roboto,ui-sans-serif,system-ui,sans-serif;
+  --font-body:-apple-system,BlinkMacSystemFont,var(--font-geist-sans),"Segoe UI",Roboto,ui-sans-serif,system-ui,sans-serif;
+  --font-stat:-apple-system,BlinkMacSystemFont,var(--font-geist-sans),"Segoe UI",Roboto,ui-sans-serif,system-ui,sans-serif;
+  --font-mono:ui-monospace,-apple-system,BlinkMacSystemFont,var(--font-geist-mono),"SF Mono",monospace;
 }
 
 *{box-sizing:border-box;}
