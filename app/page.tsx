@@ -51,6 +51,20 @@ export default function Home() {
     loadLadder();
   }, [loadLadder]);
 
+  useEffect(() => {
+    // The "en vivo ahora" banner comes from Spectator V5, checked fresh on every
+    // /api/ladder read (see app/api/ladder/route.ts) — but without this, a
+    // friend who starts a game 2 minutes into someone's browsing session never
+    // shows as live until they click "Actualizar ahora" or reload the page.
+    // Paused while the tab is hidden so a forgotten background tab doesn't
+    // quietly poll Spectator V5 for everyone once a minute forever.
+    const POLL_MS = 60_000;
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") loadLadder();
+    }, POLL_MS);
+    return () => clearInterval(interval);
+  }, [loadLadder]);
+
   const activePlayer = players.find((p) => playerKey(p) === activeKey) ?? null;
 
   const q = filterText.trim().toLowerCase();
