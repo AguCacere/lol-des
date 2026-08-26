@@ -56,8 +56,9 @@ async function upsertRankSnapshot(supabase: SupabaseClient, puuid: string, entry
   }
 }
 
-/** Pulls fresh LP + new ranked matches for one summoner and appends them to Supabase. */
-export async function refreshOne(supabase: SupabaseClient, puuid: string) {
+/** Pulls fresh LP + new ranked matches for one summoner and appends them to Supabase. Returns non-fatal warnings from steps that failed without aborting the refresh (so callers/logs can see WHY, instead of a silent no-op). */
+export async function refreshOne(supabase: SupabaseClient, puuid: string): Promise<string[]> {
+  const warnings: string[] = [];
   const entries = await getLeagueEntriesByPuuid(puuid);
   const solo = entries.find((e) => e.queueType === "RANKED_SOLO_5x5");
   if (solo) await upsertRankSnapshot(supabase, puuid, solo, "RANKED_SOLO_5x5");
@@ -250,15 +251,21 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string) {
 
   // Real Riot profile icon for the profile header avatar, instead of the
   // champion-initials placeholder. Non-fatal: keep whatever icon was already
-  // stored (or none) if Summoner-V4 has a hiccup.
+  // stored (or none) if Summoner-V4 has a hiccup — but surface WHY instead of
+  // swallowing it silently, since a silent failure here looked from the
+  // outside like "the feature just doesn't work for this player" with no way
+  // to tell a real error (rate limit, bad puuid) from "not refreshed yet".
   try {
     const summoner = await getSummonerByPuuid(puuid);
     await supabase.from("summoners").update({ profile_icon_id: summoner.profileIconId }).eq("puuid", puuid);
-  } catch {
-    // ignore — profile-avatar falls back to champion-initials
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    warnings.push(`profile icon: ${message}`);
+    console.error(`refreshOne(${puuid}): profile icon fetch failed —`, message);
   }
 
   await supabase.from("summoners").update({ last_refreshed_at: new Date().toISOString() }).eq("puuid", puuid);
+  return warnings;
 }
 
 /**
@@ -286,8 +293,8 @@ export async function refreshAllSummoners(
       }
     }
     try {
-      await refreshOne(supabase, summoner.puuid);
-      results[summoner.puuid] = "ok";
+      const warnings = await refreshOne(supabase, summoner.puuid);
+      results[summoner.puuid] = warnings.length > 0 ? `ok (${warnings.join("; ")})` : "ok";
     } catch (err) {
       results[summoner.puuid] = err instanceof Error ? err.message : "error";
     }
