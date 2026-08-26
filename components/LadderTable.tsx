@@ -1,5 +1,5 @@
 import type { Player, RoleKey } from "@/lib/types";
-import { currentStreak, ROLES, tierFor } from "@/lib/mock-data";
+import { currentStreak, ROLES, tierFor, trendColor } from "@/lib/mock-data";
 import { RoleIcon } from "./RoleIcon";
 import { SparkChart } from "./SparkChart";
 
@@ -220,7 +220,7 @@ export function LadderTable({
                     </span>
                   </span>
                   <span className="col-spark">
-                    <SparkChart values={p.spark20} width={150} height={28} pad={4} color={t.fg} />
+                    <SparkChart values={p.spark20} width={150} height={28} pad={4} color={trendColor(p.spark20)} />
                   </span>
                   <span className="col-chevron">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">

@@ -3,12 +3,9 @@ import { formatRelativeDate } from "@/lib/mock-data";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
 
-/** Highest multikill worth calling out — double kills are common enough to skip. */
+/** Only pentakills get the celebratory banner — doubles/triples/quadras are common enough to skip. */
 function multikillLabel(m: Match): string | null {
-  if (m.pentaKills > 0) return "¡PENTAKILL!";
-  if (m.quadraKills > 0) return "¡QUADRA KILL!";
-  if (m.tripleKills > 0) return "¡TRIPLE KILL!";
-  return null;
+  return m.pentaKills > 0 ? "¡PENTAKILL!" : null;
 }
 
 /**
@@ -87,15 +84,14 @@ export function MatchDetail({ match }: { match: Match }) {
             )}
           </span>
         </div>
-        {(m.doubleKills > 0 || m.tripleKills > 0 || m.quadraKills > 0 || m.pentaKills > 0) && (
+        <div className="match-detail-stat">
+          <span className="k">Primera sangre</span>
+          <span className="v">{m.firstBlood ? "Sí 🩸" : "No"}</span>
+        </div>
+        {m.pentaKills > 0 && (
           <div className="match-detail-stat">
-            <span className="k">Multikills</span>
-            <span className="v">
-              {m.doubleKills > 0 && `${m.doubleKills}x Doble `}
-              {m.tripleKills > 0 && `${m.tripleKills}x Triple `}
-              {m.quadraKills > 0 && `${m.quadraKills}x Quadra `}
-              {m.pentaKills > 0 && `${m.pentaKills}x Penta`}
-            </span>
+            <span className="k">Pentakills</span>
+            <span className="v">{m.pentaKills}</span>
           </div>
         )}
       </div>

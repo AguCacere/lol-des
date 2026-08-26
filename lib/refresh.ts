@@ -1,6 +1,6 @@
 import type { getSupabaseServerClient } from "./supabase";
 import { getLeagueEntriesByPuuid, getMatchById, getMatchIdsByPuuid, getTopChampionMasteries } from "./riot";
-import { championNameById, runeNameById } from "./ddragon";
+import { championNameById, runeNameById, summonerSpellNameById } from "./ddragon";
 
 type SupabaseClient = ReturnType<typeof getSupabaseServerClient>;
 
@@ -81,6 +81,33 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string) {
       // ignore — match still gets saved, just without rune names
     }
 
+    // Riot computes these itself (challenges.*) — prefer them over our own
+    // team-pool math when present, per your ask to replace duplicated logic.
+    // Not guaranteed on every match (older games, edge cases), so fall back.
+    const dmgShare =
+      me.challenges?.teamDamagePercentage != null
+        ? Number((me.challenges.teamDamagePercentage * 100).toFixed(1))
+        : teamDamage > 0
+          ? Number(((100 * me.totalDamageDealtToChampions) / teamDamage).toFixed(1))
+          : 0;
+    const killParticipation =
+      me.challenges?.killParticipation != null
+        ? Number((me.challenges.killParticipation * 100).toFixed(1))
+        : teamKills > 0
+          ? Number(((100 * (me.kills + me.assists)) / teamKills).toFixed(1))
+          : 0;
+
+    let summoner1: string | null = null;
+    let summoner2: string | null = null;
+    try {
+      [summoner1, summoner2] = await Promise.all([
+        summonerSpellNameById(me.summoner1Id),
+        summonerSpellNameById(me.summoner2Id),
+      ]);
+    } catch {
+      // ignore — match still gets saved, just without spell names
+    }
+
     await supabase.from("matches").insert({
       match_id: matchId,
       puuid,
@@ -94,10 +121,8 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string) {
       vision_score: me.visionScore,
       gold_earned: me.goldEarned,
       damage_to_champs: me.totalDamageDealtToChampions,
-      dmg_share:
-        teamDamage > 0 ? Number(((100 * me.totalDamageDealtToChampions) / teamDamage).toFixed(1)) : 0,
-      kill_participation:
-        teamKills > 0 ? Number(((100 * (me.kills + me.assists)) / teamKills).toFixed(1)) : 0,
+      dmg_share: dmgShare,
+      kill_participation: killParticipation,
       obj_share:
         teamObjDamage > 0 ? Number(((100 * me.damageDealtToObjectives) / teamObjDamage).toFixed(1)) : 0,
       primary_rune: primaryRune,
@@ -107,6 +132,23 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string) {
       triple_kills: me.tripleKills,
       quadra_kills: me.quadraKills,
       penta_kills: me.pentaKills,
+      champ_level: me.champLevel,
+      damage_taken: me.totalDamageTaken,
+      damage_mitigated: me.damageSelfMitigated,
+      wards_placed: me.wardsPlaced,
+      wards_killed: me.wardsKilled,
+      control_wards: me.visionWardsBoughtInGame,
+      turret_kills: me.turretKills,
+      dragon_kills: me.dragonKills,
+      baron_kills: me.baronKills,
+      inhibitor_kills: me.inhibitorKills,
+      first_blood: me.firstBloodKill || me.firstBloodAssist,
+      first_tower: me.firstTowerKill || me.firstTowerAssist,
+      summoner1,
+      summoner2,
+      solo_kills: me.challenges?.soloKills ?? null,
+      skillshots_hit: me.challenges?.skillshotsHit ?? null,
+      damage_per_min: me.challenges?.damagePerMinute != null ? Number(me.challenges.damagePerMinute.toFixed(1)) : null,
       team_position: me.teamPosition,
       game_duration_s: match.info.gameDuration,
       played_at: new Date(match.info.gameCreation).toISOString(),

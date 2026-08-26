@@ -1,4 +1,4 @@
-import type { Match, Player, RoleKey, Tier, TierKey } from "./types";
+import type { LpHistoryPoint, Match, PeakLp, Player, RoleKey, Tier, TierKey } from "./types";
 
 /**
  * Deterministic placeholder data — the exact same generator that shipped in the
@@ -39,9 +39,52 @@ export function tierFor(key: TierKey): Tier {
   return TIERS.find((t) => t.key === key)!;
 }
 
+/** division 1 (Riot's "I") outranks division 4 ("IV") within the same tier. */
+export function rankScore(tierKey: TierKey, division: number, lp: number): number {
+  return tierFor(tierKey).rank * 400 + (5 - division) * 100 + lp;
+}
+
 export function tierScore(p: Player): number {
-  // division 1 (Riot's "I") outranks division 4 ("IV") within the same tier.
-  return tierFor(p.tierKey).rank * 400 + (5 - p.division) * 100 + p.lp;
+  return rankScore(p.tierKey, p.division, p.lp);
+}
+
+/** Highest tier/division/LP point in a history series — used for "elo máximo alcanzado". */
+export function peakFromHistory(history: LpHistoryPoint[]): PeakLp {
+  let best = history[0];
+  let bestScore = rankScore(best.tier, best.division, best.lp);
+  for (const h of history) {
+    const score = rankScore(h.tier, h.division, h.lp);
+    if (score > bestScore) {
+      best = h;
+      bestScore = score;
+    }
+  }
+  return { tier: best.tier, division: best.division, lp: best.lp };
+}
+
+export interface NextDivisionInfo {
+  tier: TierKey;
+  /** null when the target has no sub-divisions (Maestro+). */
+  division: number | null;
+  lpNeeded: number;
+}
+
+/**
+ * Divisions below Maestro promote automatically at 100 LP (current ranked
+ * system, no promo series) — this is a real threshold, not a guess. Returns
+ * null once already in Maestro: there's no further "next division" to track
+ * in this app (Grandmaster/Challenger fold into the same "master" TierKey).
+ */
+export function nextDivisionInfo(tierKey: TierKey, division: number, lp: number): NextDivisionInfo | null {
+  if (tierKey === "master") return null;
+  const lpNeeded = Math.max(0, 100 - lp);
+  if (division > 1) {
+    return { tier: tierKey, division: division - 1, lpNeeded };
+  }
+  const idx = TIERS.findIndex((t) => t.key === tierKey);
+  const next = TIERS[idx + 1];
+  if (!next) return null;
+  return { tier: next.key, division: next.key === "master" ? null : 4, lpNeeded };
 }
 
 /** Deterministic pseudo-random walk so the same seed always renders the same chart. */
@@ -65,6 +108,12 @@ const CHAMPS = [
 
 export function champTag(name: string): string {
   return name.split(/[\s']/)[0].slice(0, 2).toUpperCase();
+}
+
+/** Green if the series net-rose, red if it net-fell — matches the app's own verde=positivo/rojo=negativo rule. */
+export function trendColor(values: number[]): string {
+  const delta = values[values.length - 1] - values[0];
+  return delta >= 0 ? "#3DDC84" : "#FF5B67";
 }
 
 export interface Streak {
@@ -146,12 +195,29 @@ function genMatches(seed: number): Match[] {
       tripleKills: rand() > 0.85 ? 1 : 0,
       quadraKills: rand() > 0.96 ? 1 : 0,
       pentaKills: rand() > 0.99 ? 1 : 0,
+      champLevel: Math.round(11 + rand() * 7),
+      damageTaken: Math.round((14 + rand() * 16) * 1000),
+      damageMitigated: Math.round((10 + rand() * 20) * 1000),
+      wardsPlaced: Math.round(4 + rand() * 16),
+      wardsKilled: Math.round(rand() * 6),
+      controlWards: Math.round(rand() * 4),
+      turretKills: Math.round(rand() * 3),
+      dragonKills: Math.round(rand() * 2),
+      baronKills: rand() > 0.8 ? 1 : 0,
+      inhibitorKills: rand() > 0.9 ? 1 : 0,
+      firstBlood: rand() > 0.85,
+      firstTower: rand() > 0.85,
+      summoner1: rand() > 0.5 ? "Flash" : "Ignite",
+      summoner2: "Flash",
+      soloKills: Math.floor(rand() * 3),
+      skillshotsHit: Math.round(rand() * 20),
+      damagePerMin: Math.round(300 + rand() * 500),
     });
   }
   return out;
 }
 
-type SeedPlayer = Omit<Player, "spark20" | "matches" | "winrate">;
+type SeedPlayer = Omit<Player, "spark20" | "lpHistory" | "peakLp" | "matches" | "winrate">;
 
 const SEED_PLAYERS: SeedPlayer[] = [
   { name: "Agus", tag: "LAS", you: true, role: "support", tierKey: "platinum", division: 2, lp: 57, wins: 64, losses: 58, seed: 11, drift: 0.6, mainChamp: "Senna" },
@@ -167,9 +233,20 @@ const SEED_PLAYERS: SeedPlayer[] = [
 
 function buildPlayer(p: SeedPlayer): Player {
   const matches = genMatches(p.seed * 3 + 1);
+  const spark20 = spark(p.seed, 20, p.drift);
+  const lpHistory: LpHistoryPoint[] = spark20.map((lp, i) => ({
+    lp,
+    capturedAt: new Date(Date.now() - (spark20.length - 1 - i) * 1000 * 60 * 60 * 20).toISOString(),
+    tier: p.tierKey,
+    division: p.division,
+    wins: p.wins,
+    losses: p.losses,
+  }));
   return {
     ...p,
-    spark20: spark(p.seed, 20, p.drift),
+    spark20,
+    lpHistory,
+    peakLp: peakFromHistory(lpHistory),
     matches,
     winrate: Math.round((100 * p.wins) / (p.wins + p.losses)),
   };

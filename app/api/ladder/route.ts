@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
-import { tierScore } from "@/lib/mock-data";
+import { peakFromHistory, tierScore } from "@/lib/mock-data";
 import { divisionFromRiot, normalizeRole, roleFromTeamPosition, seedFromPuuid, tierKeyFromRiot } from "@/lib/mapping";
-import type { RoleKey } from "@/lib/types";
-import type { Match, Player } from "@/lib/types";
+import type { LpHistoryPoint, Match, Player, RoleKey } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +41,23 @@ interface MatchRow {
   triple_kills: number | null;
   quadra_kills: number | null;
   penta_kills: number | null;
+  champ_level: number | null;
+  damage_taken: number | null;
+  damage_mitigated: number | null;
+  wards_placed: number | null;
+  wards_killed: number | null;
+  control_wards: number | null;
+  turret_kills: number | null;
+  dragon_kills: number | null;
+  baron_kills: number | null;
+  inhibitor_kills: number | null;
+  first_blood: boolean | null;
+  first_tower: boolean | null;
+  summoner1: string | null;
+  summoner2: string | null;
+  solo_kills: number | null;
+  skillshots_hit: number | null;
+  damage_per_min: number | null;
   team_position: string | null;
   game_duration_s: number;
   played_at: string;
@@ -78,13 +94,13 @@ export async function GET() {
   const [{ data: snapshots }, { data: matchRows }] = await Promise.all([
     supabase
       .from("lp_snapshots")
-      .select("puuid, lp, captured_at")
+      .select("puuid, lp, captured_at, tier, division, wins, losses")
       .in("puuid", puuids)
       .order("captured_at", { ascending: true }),
     supabase
       .from("matches")
       .select(
-        "puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, gold_earned, vision_score, kill_participation, obj_share, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, team_position, game_duration_s, played_at"
+        "puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, gold_earned, vision_score, kill_participation, obj_share, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, champ_level, damage_taken, damage_mitigated, wards_placed, wards_killed, control_wards, turret_kills, dragon_kills, baron_kills, inhibitor_kills, first_blood, first_tower, summoner1, summoner2, solo_kills, skillshots_hit, damage_per_min, team_position, game_duration_s, played_at"
       )
       .in("puuid", puuids)
       .order("played_at", { ascending: false })
@@ -92,10 +108,22 @@ export async function GET() {
   ]);
 
   const sparkByPuuid = new Map<string, number[]>();
+  const lpHistoryByPuuid = new Map<string, LpHistoryPoint[]>();
   for (const row of snapshots ?? []) {
     const arr = sparkByPuuid.get(row.puuid) ?? [];
     arr.push(row.lp);
     sparkByPuuid.set(row.puuid, arr);
+
+    const history = lpHistoryByPuuid.get(row.puuid) ?? [];
+    history.push({
+      lp: row.lp,
+      capturedAt: row.captured_at,
+      tier: tierKeyFromRiot(row.tier),
+      division: divisionFromRiot(row.division),
+      wins: row.wins,
+      losses: row.losses,
+    });
+    lpHistoryByPuuid.set(row.puuid, history);
   }
 
   const matchesByPuuid = new Map<string, Match[]>();
@@ -143,6 +171,23 @@ export async function GET() {
       tripleKills: row.triple_kills ?? 0,
       quadraKills: row.quadra_kills ?? 0,
       pentaKills: row.penta_kills ?? 0,
+      champLevel: row.champ_level ?? 0,
+      damageTaken: row.damage_taken ?? 0,
+      damageMitigated: row.damage_mitigated ?? 0,
+      wardsPlaced: row.wards_placed ?? 0,
+      wardsKilled: row.wards_killed ?? 0,
+      controlWards: row.control_wards ?? 0,
+      turretKills: row.turret_kills ?? 0,
+      dragonKills: row.dragon_kills ?? 0,
+      baronKills: row.baron_kills ?? 0,
+      inhibitorKills: row.inhibitor_kills ?? 0,
+      firstBlood: row.first_blood ?? false,
+      firstTower: row.first_tower ?? false,
+      summoner1: row.summoner1,
+      summoner2: row.summoner2,
+      soloKills: row.solo_kills,
+      skillshotsHit: row.skillshots_hit,
+      damagePerMin: row.damage_per_min,
     });
     matchesByPuuid.set(row.puuid, arr);
   }
@@ -179,9 +224,24 @@ export async function GET() {
     const lp = row.lp ?? 0;
     const spark = sparkByPuuid.get(row.puuid) ?? [];
     const spark20 = spark.length >= 2 ? spark.slice(-20) : [lp, lp];
-    const matches = matchesByPuuid.get(row.puuid) ?? [];
+    const history = lpHistoryByPuuid.get(row.puuid) ?? [];
     const wins = row.wins ?? 0;
     const losses = row.losses ?? 0;
+    const fallbackPoint: LpHistoryPoint = {
+      lp,
+      capturedAt: new Date().toISOString(),
+      tier: tierKeyFromRiot(row.tier),
+      division: divisionFromRiot(row.division),
+      wins,
+      losses,
+    };
+    // Needs >=2 points same as spark20 — a single point can't compute a step
+    // between x-coordinates (division by zero) in lineAreaGeometry().
+    const lpHistory: LpHistoryPoint[] = history.length >= 2 ? history.slice(-20) : [fallbackPoint, fallbackPoint];
+    // Peak looks at the FULL stored history, not just the last-20 window shown
+    // in the chart — otherwise an old high climbed months ago would drop out.
+    const peakLp = peakFromHistory(history.length > 0 ? history : [fallbackPoint]);
+    const matches = matchesByPuuid.get(row.puuid) ?? [];
     const seed = seedFromPuuid(row.puuid);
 
     return {
@@ -198,6 +258,8 @@ export async function GET() {
       drift: 0,
       mainChamp: row.main_champ ?? mostPlayedChamp(row.puuid) ?? "—",
       spark20,
+      lpHistory,
+      peakLp,
       matches,
       winrate: wins + losses > 0 ? Math.round((100 * wins) / (wins + losses)) : 0,
     };

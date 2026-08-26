@@ -13,6 +13,7 @@ export interface LineAreaGeometry {
   line: string;
   area: string;
   last: [number, number];
+  points: [number, number][];
 }
 
 /**
@@ -35,5 +36,5 @@ export function lineAreaGeometry(values: number[], w: number, h: number, pad = 6
   });
   const line = linePath(pts);
   const area = `${line} L${pts[pts.length - 1][0].toFixed(1)},${h - pad} L${pts[0][0].toFixed(1)},${h - pad} Z`;
-  return { line, area, last: pts[pts.length - 1] };
+  return { line, area, last: pts[pts.length - 1], points: pts };
 }

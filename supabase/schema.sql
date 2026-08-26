@@ -60,6 +60,23 @@ create table if not exists matches (
   triple_kills  int not null default 0,
   quadra_kills  int not null default 0,
   penta_kills   int not null default 0,
+  champ_level   int,
+  damage_taken  int,
+  damage_mitigated int,
+  wards_placed  int,
+  wards_killed  int,
+  control_wards int,           -- visionWardsBoughtInGame
+  turret_kills  int,
+  dragon_kills  int,
+  baron_kills   int,
+  inhibitor_kills int,
+  first_blood   boolean not null default false, -- kill o asistencia de first blood
+  first_tower   boolean not null default false, -- kill o asistencia de la primera torre
+  summoner1     text,          -- hechizo de invocador, ej. "Flash"
+  summoner2     text,
+  solo_kills    int,           -- de challenges (Riot) — puede faltar en partidas viejas
+  skillshots_hit int,
+  damage_per_min numeric(6,1),
   team_position text,          -- TOP/JUNGLE/MIDDLE/BOTTOM/UTILITY
   game_duration_s int not null,
   played_at     timestamptz not null,

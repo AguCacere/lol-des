@@ -41,6 +41,39 @@ export interface Match {
   tripleKills: number;
   quadraKills: number;
   pentaKills: number;
+  champLevel: number;
+  damageTaken: number;
+  damageMitigated: number;
+  wardsPlaced: number;
+  wardsKilled: number;
+  controlWards: number;
+  turretKills: number;
+  dragonKills: number;
+  baronKills: number;
+  inhibitorKills: number;
+  firstBlood: boolean;
+  firstTower: boolean;
+  summoner1: string | null;
+  summoner2: string | null;
+  soloKills: number | null;
+  skillshotsHit: number | null;
+  damagePerMin: number | null;
+}
+
+export interface LpHistoryPoint {
+  lp: number;
+  capturedAt: string; // ISO timestamp
+  tier: TierKey;
+  division: number;
+  wins: number;
+  losses: number;
+}
+
+/** Highest tier/division/LP combination ever seen in stored history — not necessarily the current one. */
+export interface PeakLp {
+  tier: TierKey;
+  division: number;
+  lp: number;
 }
 
 export interface Player {
@@ -58,6 +91,8 @@ export interface Player {
   mainChamp: string;
   // derived, filled in by buildPlayer()
   spark20: number[];
+  lpHistory: LpHistoryPoint[];
+  peakLp: PeakLp;
   matches: Match[];
   winrate: number;
 }

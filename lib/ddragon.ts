@@ -11,6 +11,7 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 let versionCache: { version: string; fetchedAt: number } | null = null;
 let championCache: { byId: Map<number, string>; fetchedAt: number } | null = null;
 let runeCache: { byId: Map<number, string>; fetchedAt: number } | null = null;
+let summonerSpellCache: { byId: Map<number, string>; fetchedAt: number } | null = null;
 
 async function latestVersion(): Promise<string> {
   const now = Date.now();
@@ -99,4 +100,37 @@ export async function runeNameById(id: number): Promise<string | null> {
     runeCache = { byId: await fetchRuneMap(), fetchedAt: now };
   }
   return runeCache.byId.get(id) ?? null;
+}
+
+interface DDragonSummonerEntry {
+  key: string; // numeric spell id, as a string
+  name: string;
+}
+
+interface DDragonSummonerResponse {
+  data: Record<string, DDragonSummonerEntry>;
+}
+
+async function fetchSummonerSpellMap(): Promise<Map<number, string>> {
+  const version = await latestVersion();
+  const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/summoner.json`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Data Dragon summoner spell fetch failed: ${res.status}`);
+  const data: DDragonSummonerResponse = await res.json();
+
+  const byId = new Map<number, string>();
+  for (const entry of Object.values(data.data)) {
+    byId.set(Number(entry.key), entry.name);
+  }
+  return byId;
+}
+
+/** Resolves a `summoner1Id`/`summoner2Id` (from Match-V5) to its display name, e.g. "Flash". */
+export async function summonerSpellNameById(id: number): Promise<string | null> {
+  const now = Date.now();
+  if (!summonerSpellCache || now - summonerSpellCache.fetchedAt > CACHE_TTL_MS) {
+    summonerSpellCache = { byId: await fetchSummonerSpellMap(), fetchedAt: now };
+  }
+  return summonerSpellCache.byId.get(id) ?? null;
 }

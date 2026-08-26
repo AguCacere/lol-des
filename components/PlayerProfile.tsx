@@ -2,7 +2,16 @@
 
 import { useEffect, useState } from "react";
 import type { Player } from "@/lib/types";
-import { tierFor, champTag, ROLES, currentStreak, computeRoleAverages, formatRelativeDate } from "@/lib/mock-data";
+import {
+  tierFor,
+  champTag,
+  ROLES,
+  currentStreak,
+  computeRoleAverages,
+  formatRelativeDate,
+  trendColor,
+  nextDivisionInfo,
+} from "@/lib/mock-data";
 import { SparkChart } from "./SparkChart";
 import { MatchDetail } from "./MatchDetail";
 import { InfoTip } from "./InfoTip";
@@ -175,10 +184,33 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
     ? Math.round(p.matches.reduce((s, m) => s + m.killParticipation, 0) / p.matches.length)
     : 0;
   const objPart = hasMatches ? Math.round(p.matches.reduce((s, m) => s + m.objShare, 0) / p.matches.length) : 0;
-  const lpStart = p.spark20[0];
-  const lpDelta = p.spark20[p.spark20.length - 1] - lpStart;
+  const lpValues = p.lpHistory.map((h) => h.lp);
+  const lpStart = lpValues[0];
+  const lpDelta = lpValues[lpValues.length - 1] - lpStart;
+  const lpChartColor = trendColor(lpValues);
+  const lpPointLabels = p.lpHistory.map((h) => {
+    const ht = tierFor(h.tier);
+    const hWinrate = h.wins + h.losses > 0 ? Math.round((100 * h.wins) / (h.wins + h.losses)) : 0;
+    return (
+      <>
+        <div className="date">
+          {new Date(h.capturedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+        </div>
+        <div className="rank" style={{ color: ht.fg }}>
+          {ht.name} {h.division} · {h.lp} LP
+        </div>
+        <div className="record">
+          {h.wins}V {h.losses}D · {hWinrate}%
+        </div>
+      </>
+    );
+  });
   const streak = currentStreak(p.matches);
   const roleAvg = computeRoleAverages(allPlayers, p);
+  const peakTier = tierFor(p.peakLp.tier);
+  const isAtPeak = p.peakLp.tier === p.tierKey && p.peakLp.division === p.division && p.peakLp.lp === p.lp;
+  const next = nextDivisionInfo(p.tierKey, p.division, p.lp);
+  const nextTier = next ? tierFor(next.tier) : null;
 
   return (
     <section id="profileSection">
@@ -223,6 +255,21 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
                 </span>
               )}
             </div>
+            <div className="profile-tier-peak">
+              <span className="peak-label">
+                Elo máximo: <span style={{ color: peakTier.fg }}>{peakTier.name} {p.peakLp.division}</span> ·{" "}
+                {p.peakLp.lp} LP{isAtPeak && " (actual)"}
+              </span>
+              {next ? (
+                <span className="next-div-label">
+                  Faltan <strong>{next.lpNeeded} LP</strong> para{" "}
+                  {nextTier!.name}
+                  {next.division ? ` ${next.division}` : ""}
+                </span>
+              ) : (
+                <span className="next-div-label">Tope de división del sistema alcanzado</span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -245,9 +292,17 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
                 </div>
               </div>
               <div className="lp-svg">
-                <SparkChart values={p.spark20} width={520} height={118} pad={8} color={t.fg} variant="detailed" />
+                <SparkChart
+                  values={lpValues}
+                  width={520}
+                  height={118}
+                  pad={8}
+                  color={lpChartColor}
+                  variant="detailed"
+                  pointLabels={lpPointLabels}
+                />
               </div>
-              {p.spark20.length < 3 && (
+              {lpValues.length < 3 && (
                 <p className="chart-note">
                   Todavía hay poco historial guardado — la curva real va a aparecer a medida que se acumulen más
                   actualizaciones de LP.

@@ -108,6 +108,33 @@ export interface RiotParticipant {
   tripleKills: number;
   quadraKills: number;
   pentaKills: number;
+  champLevel: number;
+  totalDamageTaken: number;
+  damageSelfMitigated: number;
+  wardsPlaced: number;
+  wardsKilled: number;
+  visionWardsBoughtInGame: number;
+  turretKills: number;
+  dragonKills: number;
+  baronKills: number;
+  inhibitorKills: number;
+  firstBloodKill: boolean;
+  firstBloodAssist: boolean;
+  firstTowerKill: boolean;
+  firstTowerAssist: boolean;
+  summoner1Id: number;
+  summoner2Id: number;
+  /**
+   * Riot-computed derived stats. Present on most modern ranked matches but not
+   * guaranteed (older matches, edge cases) — always optional-chain into this.
+   */
+  challenges?: {
+    killParticipation?: number; // 0-1 fraction
+    teamDamagePercentage?: number; // 0-1 fraction
+    soloKills?: number;
+    skillshotsHit?: number;
+    damagePerMinute?: number;
+  };
 }
 
 export interface RiotPerks {
