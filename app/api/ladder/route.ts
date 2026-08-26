@@ -3,7 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabase";
 import { peakFromHistory, tierScore } from "@/lib/mock-data";
 import { divisionFromRiot, normalizeRole, queueLabelFromId, roleFromTeamPosition, seedFromPuuid, tierKeyFromRiot } from "@/lib/mapping";
 import { getActiveGame } from "@/lib/riot";
-import { championNameById } from "@/lib/ddragon";
+import { championNameById, getLatestVersion, profileIconUrl } from "@/lib/ddragon";
 import type { ChampionPoolEntry, DuoPair, FlexRank, LiveGame, LpHistoryPoint, MasteryEntry, Match, Player, RoleKey } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +15,7 @@ interface LadderRow {
   role: string | null;
   main_champ: string | null;
   is_you: boolean;
+  profile_icon_id: number | null;
   tier: string | null;
   division: string | null;
   lp: number | null;
@@ -396,6 +397,11 @@ export async function GET() {
     return best;
   }
 
+  // Resolved once and reused for every player below — same Data Dragon
+  // version for all of them, no reason to hit the (already-cached) version
+  // lookup once per row.
+  const ddragonVersion = await getLatestVersion();
+
   const players: Player[] = (ladderRows ?? []).map((row): Player => {
     const lp = row.lp ?? 0;
     const spark = sparkByPuuid.get(row.puuid) ?? [];
@@ -433,6 +439,7 @@ export async function GET() {
       seed,
       drift: 0,
       mainChamp: row.main_champ ?? mostPlayedChamp(row.puuid) ?? "—",
+      profileIconUrl: row.profile_icon_id != null ? profileIconUrl(ddragonVersion, row.profile_icon_id) : null,
       spark20,
       lpHistory,
       peakLp,

@@ -253,7 +253,12 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
         <div className="profile-header">
           <div className="profile-id">
             <div className="profile-avatar" style={{ background: t.bg, color: t.fg, borderColor: `${t.fg}44` }}>
-              {champTag(p.mainChamp)}
+              {p.profileIconUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- one small fixed-size avatar, not worth next/image's config for an external CDN
+                <img src={p.profileIconUrl} alt="" className="profile-avatar-img" />
+              ) : (
+                champTag(p.mainChamp)
+              )}
             </div>
             <div>
               <p className="profile-name">

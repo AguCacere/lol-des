@@ -212,6 +212,18 @@ export async function getActiveGame(puuid: string): Promise<RiotActiveGame | nul
   return res.json() as Promise<RiotActiveGame>;
 }
 
+export interface RiotSummoner {
+  puuid: string;
+  profileIconId: number;
+  summonerLevel: number;
+}
+
+/** Summoner-V4 — profile icon + level for a puuid. Platform-routed. */
+export function getSummonerByPuuid(puuid: string) {
+  const url = `https://${PLATFORM}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${puuid}`;
+  return riotFetch<RiotSummoner>(url);
+}
+
 export interface RiotChampionMastery {
   championId: number;
   championLevel: number;

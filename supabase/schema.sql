@@ -14,6 +14,7 @@ create table if not exists summoners (
   role           text,                        -- top/jungle/mid/adc/support — lo elige el jugador, Riot no lo expone
   main_champ     text,                        -- idem, cosmético
   is_you         boolean not null default false,
+  profile_icon_id int,                        -- Summoner-V4 — para el avatar real del perfil (Data Dragon, ver lib/ddragon.ts)
   added_at       timestamptz not null default now(),
   last_refreshed_at timestamptz
 );
@@ -115,6 +116,7 @@ select
   s.role,
   s.main_champ,
   s.is_you,
+  s.profile_icon_id,
   ls.tier,
   ls.division,
   ls.lp,

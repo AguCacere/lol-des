@@ -152,6 +152,8 @@ export interface Player {
   seed: number;
   drift: number;
   mainChamp: string;
+  /** Real Riot profile icon (Summoner-V4 + Data Dragon), for the profile header avatar — null falls back to champion-initials. */
+  profileIconUrl: string | null;
   // derived, filled in by buildPlayer()
   spark20: number[];
   lpHistory: LpHistoryPoint[];

@@ -252,7 +252,7 @@ function championPoolFromMatches(matches: Match[]): ChampionPoolEntry[] {
     .slice(0, 5);
 }
 
-type SeedPlayer = Omit<Player, "spark20" | "lpHistory" | "peakLp" | "flexRank" | "championPool" | "masteryPool" | "liveGame" | "matches" | "winrate">;
+type SeedPlayer = Omit<Player, "spark20" | "lpHistory" | "peakLp" | "flexRank" | "championPool" | "masteryPool" | "liveGame" | "matches" | "winrate" | "profileIconUrl">;
 
 const SEED_PLAYERS: SeedPlayer[] = [
   { name: "Agus", tag: "LAS", you: true, role: "support", tierKey: "platinum", division: 2, lp: 57, wins: 64, losses: 58, seed: 11, drift: 0.6, mainChamp: "Senna" },
@@ -292,6 +292,7 @@ function buildPlayer(p: SeedPlayer): Player {
   }));
   return {
     ...p,
+    profileIconUrl: null, // el mock no tiene un puuid real que resolver contra Summoner-V4 — cae al avatar de iniciales
     spark20,
     lpHistory,
     peakLp: peakFromHistory(lpHistory),

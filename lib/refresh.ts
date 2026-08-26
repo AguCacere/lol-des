@@ -4,6 +4,7 @@ import {
   getMatchById,
   getMatchIdsByPuuid,
   getMatchTimeline,
+  getSummonerByPuuid,
   getTopChampionMasteries,
   type RiotLeagueEntry,
 } from "./riot";
@@ -245,6 +246,16 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string) {
   } catch {
     // ignore — main_champ falls back to lib/mock-data.ts's most-played-in-stored-matches logic,
     // masteryPool just stays whatever it already was (or empty)
+  }
+
+  // Real Riot profile icon for the profile header avatar, instead of the
+  // champion-initials placeholder. Non-fatal: keep whatever icon was already
+  // stored (or none) if Summoner-V4 has a hiccup.
+  try {
+    const summoner = await getSummonerByPuuid(puuid);
+    await supabase.from("summoners").update({ profile_icon_id: summoner.profileIconId }).eq("puuid", puuid);
+  } catch {
+    // ignore — profile-avatar falls back to champion-initials
   }
 
   await supabase.from("summoners").update({ last_refreshed_at: new Date().toISOString() }).eq("puuid", puuid);

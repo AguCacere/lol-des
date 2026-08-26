@@ -134,3 +134,22 @@ export async function summonerSpellNameById(id: number): Promise<string | null> 
   }
   return summonerSpellCache.byId.get(id) ?? null;
 }
+
+/**
+ * Exposed so a caller building URLs for many players in one request (see
+ * app/api/ladder/route.ts) can resolve the version once and reuse it,
+ * instead of going through the full async profileIconUrl per player.
+ */
+export function getLatestVersion(): Promise<string> {
+  return latestVersion();
+}
+
+/**
+ * Builds the CDN URL for a `profileIconId` (Summoner-V4), given an
+ * already-resolved Data Dragon version (see getLatestVersion). Pure and
+ * synchronous on purpose — profile icon art doesn't change per patch, so
+ * there's no freshness reason this needs to hit the version cache itself.
+ */
+export function profileIconUrl(version: string, iconId: number): string {
+  return `https://ddragon.leagueoflegends.com/cdn/${version}/img/profileicon/${iconId}.png`;
+}
