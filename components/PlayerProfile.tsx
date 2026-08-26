@@ -16,8 +16,10 @@ import {
 import { SparkChart } from "./SparkChart";
 import { MatchDetail } from "./MatchDetail";
 import { ChampionPool } from "./ChampionPool";
+import { InsightsCard } from "./InsightsCard";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
+import { buildMetricInsights, splitStrengthsWeaknesses } from "@/lib/insights";
 
 function TrophyIcon() {
   return (
@@ -218,6 +220,14 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
   });
   const streak = currentStreak(p.matches);
   const roleAvg = computeRoleAverages(allPlayers, p);
+  const metricInsights = buildMetricInsights([
+    { key: "kda", label: "KDA", value: Number(avgKDA.toFixed(2)), avg: roleAvg.kda, unit: "" },
+    { key: "csPerMin", label: "CS / min", value: Number(avgCS.toFixed(1)), avg: roleAvg.csPerMin, unit: "", tooltip: METRIC_INFO.csPerMin },
+    { key: "dmgShare", label: "% daño del equipo", value: Math.round(avgDmg), avg: roleAvg.dmgShare, unit: "%", tooltip: METRIC_INFO.dmgShare },
+    { key: "killParticipation", label: "Kill participation", value: killPart, avg: roleAvg.killParticipation, unit: "%", tooltip: METRIC_INFO.killParticipation },
+    { key: "objShare", label: "Participación objetivos", value: objPart, avg: roleAvg.objShare, unit: "%", tooltip: METRIC_INFO.objShare },
+  ]);
+  const { strengths, weaknesses } = splitStrengthsWeaknesses(metricInsights);
   const peakTier = tierFor(p.peakLp.tier);
   const isAtPeak = p.peakLp.tier === p.tierKey && p.peakLp.division === p.division && p.peakLp.lp === p.lp;
   const next = nextDivisionInfo(p.tierKey, p.division, p.lp);
@@ -348,7 +358,7 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
               <div className="stat-tile"><TrendUpIcon /><div className="v">{wins}/{p.matches.length}</div><div className="k">Forma reciente</div></div>
             </div>
 
-            <h4 className="champ-pool-label">Campeones más jugados</h4>
+            <h4 className="subsection-label">Campeones más jugados</h4>
             <ChampionPool pool={p.championPool} />
           </div>
 
@@ -379,6 +389,10 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
                 tooltip={METRIC_INFO.dmgShare}
               />
             </div>
+
+            <h4 className="subsection-label">Fortalezas y debilidades</h4>
+            <InsightsCard strengths={strengths} weaknesses={weaknesses} sampleSize={roleAvg.sampleSize} />
+
             <div className="matches">
               {!hasMatches && (
                 <div className="empty-state">
