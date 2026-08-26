@@ -104,6 +104,7 @@ from summoners s
 left join lateral (
   select * from lp_snapshots
   where lp_snapshots.puuid = s.puuid
+    and lp_snapshots.queue_type = 'RANKED_SOLO_5x5'
   order by captured_at desc
   limit 1
 ) ls on true;

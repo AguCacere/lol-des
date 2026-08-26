@@ -76,6 +76,15 @@ export interface PeakLp {
   lp: number;
 }
 
+/** Latest Flex (RANKED_FLEX_SR) snapshot — null until we've captured at least one, since most players may not queue Flex at all. */
+export interface FlexRank {
+  tier: TierKey;
+  division: number;
+  lp: number;
+  wins: number;
+  losses: number;
+}
+
 /**
  * Aggregated over ALL matches stored for this player (not just the last 5
  * shown in the match history) — real data, no estimation. Riot's own
@@ -126,6 +135,7 @@ export interface Player {
   spark20: number[];
   lpHistory: LpHistoryPoint[];
   peakLp: PeakLp;
+  flexRank: FlexRank | null;
   championPool: ChampionPoolEntry[];
   matches: Match[];
   winrate: number;

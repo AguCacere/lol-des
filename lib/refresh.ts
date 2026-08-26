@@ -1,5 +1,5 @@
 import type { getSupabaseServerClient } from "./supabase";
-import { getLeagueEntriesByPuuid, getMatchById, getMatchIdsByPuuid, getTopChampionMasteries } from "./riot";
+import { getLeagueEntriesByPuuid, getMatchById, getMatchIdsByPuuid, getTopChampionMasteries, type RiotLeagueEntry } from "./riot";
 import { championNameById, runeNameById, summonerSpellNameById } from "./ddragon";
 
 type SupabaseClient = ReturnType<typeof getSupabaseServerClient>;
@@ -7,42 +7,53 @@ type SupabaseClient = ReturnType<typeof getSupabaseServerClient>;
 /** Minimum time between Riot API pulls for the same summoner via the manual "Actualizar ahora" button. */
 export const MANUAL_REFRESH_COOLDOWN_MS = 2 * 60 * 1000;
 
+/**
+ * Inserts a new lp_snapshots row for one queue (SoloQ or Flex) — but only
+ * when something actually changed since that queue's last snapshot.
+ * Otherwise repeated refreshes (cron + manual clicks) with no new games pile
+ * up identical rows, and since the chart plots the last N snapshots, those
+ * duplicates crowd out real history and flatten the whole trend into a long
+ * plateau. Scoped to `queueType` on both the dedup check and the insert —
+ * mixing SoloQ and Flex rows together here would corrupt both queues' history.
+ */
+async function upsertRankSnapshot(supabase: SupabaseClient, puuid: string, entry: RiotLeagueEntry, queueType: string) {
+  const { data: lastSnapshot } = await supabase
+    .from("lp_snapshots")
+    .select("tier, division, lp, wins, losses")
+    .eq("puuid", puuid)
+    .eq("queue_type", queueType)
+    .order("captured_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const unchanged =
+    lastSnapshot &&
+    lastSnapshot.tier === entry.tier &&
+    lastSnapshot.division === entry.rank &&
+    lastSnapshot.lp === entry.leaguePoints &&
+    lastSnapshot.wins === entry.wins &&
+    lastSnapshot.losses === entry.losses;
+
+  if (!unchanged) {
+    await supabase.from("lp_snapshots").insert({
+      puuid,
+      queue_type: queueType,
+      tier: entry.tier,
+      division: entry.rank,
+      lp: entry.leaguePoints,
+      wins: entry.wins,
+      losses: entry.losses,
+    });
+  }
+}
+
 /** Pulls fresh LP + new ranked matches for one summoner and appends them to Supabase. */
 export async function refreshOne(supabase: SupabaseClient, puuid: string) {
   const entries = await getLeagueEntriesByPuuid(puuid);
   const solo = entries.find((e) => e.queueType === "RANKED_SOLO_5x5");
-  if (solo) {
-    // Only insert when something actually changed since the last snapshot — otherwise
-    // repeated refreshes (cron + manual clicks) with no new games pile up identical
-    // rows, and since the chart plots the last N snapshots, those duplicates crowd
-    // out real history and flatten the whole trend into a long plateau.
-    const { data: lastSnapshot } = await supabase
-      .from("lp_snapshots")
-      .select("tier, division, lp, wins, losses")
-      .eq("puuid", puuid)
-      .order("captured_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const unchanged =
-      lastSnapshot &&
-      lastSnapshot.tier === solo.tier &&
-      lastSnapshot.division === solo.rank &&
-      lastSnapshot.lp === solo.leaguePoints &&
-      lastSnapshot.wins === solo.wins &&
-      lastSnapshot.losses === solo.losses;
-
-    if (!unchanged) {
-      await supabase.from("lp_snapshots").insert({
-        puuid,
-        tier: solo.tier,
-        division: solo.rank,
-        lp: solo.leaguePoints,
-        wins: solo.wins,
-        losses: solo.losses,
-      });
-    }
-  }
+  if (solo) await upsertRankSnapshot(supabase, puuid, solo, "RANKED_SOLO_5x5");
+  const flex = entries.find((e) => e.queueType === "RANKED_FLEX_SR");
+  if (flex) await upsertRankSnapshot(supabase, puuid, flex, "RANKED_FLEX_SR");
 
   const { data: existing } = await supabase.from("matches").select("match_id").eq("puuid", puuid);
   const known = new Set((existing ?? []).map((m) => m.match_id));

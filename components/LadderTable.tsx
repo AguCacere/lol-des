@@ -195,6 +195,12 @@ export function LadderTable({
                         {t.name} {p.division}
                       </span>
                       <span className="tier-lp">{p.lp} LP</span>
+                      {p.flexRank && (
+                        <span className="tier-flex">
+                          Flex: {tierFor(p.flexRank.tier).name[0]}
+                          {p.flexRank.division} · {p.flexRank.lp} LP
+                        </span>
+                      )}
                     </span>
                   </span>
                   <span className="col-winrate">

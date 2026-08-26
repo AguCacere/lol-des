@@ -291,6 +291,15 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
               ) : (
                 <span className="next-div-label">Tope de división del sistema alcanzado</span>
               )}
+              {p.flexRank && (
+                <span className="next-div-label">
+                  Flex:{" "}
+                  <span style={{ color: tierFor(p.flexRank.tier).fg }}>
+                    {tierFor(p.flexRank.tier).name} {p.flexRank.division}
+                  </span>{" "}
+                  · {p.flexRank.lp} LP
+                </span>
+              )}
             </div>
           </div>
         </div>

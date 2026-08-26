@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { peakFromHistory, tierScore } from "@/lib/mock-data";
 import { divisionFromRiot, normalizeRole, roleFromTeamPosition, seedFromPuuid, tierKeyFromRiot } from "@/lib/mapping";
-import type { ChampionPoolEntry, DuoPair, LpHistoryPoint, Match, Player, RoleKey } from "@/lib/types";
+import type { ChampionPoolEntry, DuoPair, FlexRank, LpHistoryPoint, Match, Player, RoleKey } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -95,7 +95,7 @@ export async function GET() {
   const [{ data: snapshots }, { data: matchRows }] = await Promise.all([
     supabase
       .from("lp_snapshots")
-      .select("puuid, lp, captured_at, tier, division, wins, losses")
+      .select("puuid, lp, captured_at, tier, division, wins, losses, queue_type")
       .in("puuid", puuids)
       .order("captured_at", { ascending: true }),
     supabase
@@ -110,7 +110,21 @@ export async function GET() {
 
   const sparkByPuuid = new Map<string, number[]>();
   const lpHistoryByPuuid = new Map<string, LpHistoryPoint[]>();
+  // Snapshots come ordered captured_at ascending, so the last .set() for a
+  // puuid here is always its most recent Flex snapshot — no separate query.
+  const flexByPuuid = new Map<string, FlexRank>();
   for (const row of snapshots ?? []) {
+    if (row.queue_type === "RANKED_FLEX_SR") {
+      flexByPuuid.set(row.puuid, {
+        tier: tierKeyFromRiot(row.tier),
+        division: divisionFromRiot(row.division),
+        lp: row.lp,
+        wins: row.wins,
+        losses: row.losses,
+      });
+      continue;
+    }
+
     const arr = sparkByPuuid.get(row.puuid) ?? [];
     arr.push(row.lp);
     sparkByPuuid.set(row.puuid, arr);
@@ -347,6 +361,7 @@ export async function GET() {
       spark20,
       lpHistory,
       peakLp,
+      flexRank: flexByPuuid.get(row.puuid) ?? null,
       championPool: championPool(row.puuid),
       matches,
       winrate: wins + losses > 0 ? Math.round((100 * wins) / (wins + losses)) : 0,

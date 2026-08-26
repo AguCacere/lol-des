@@ -244,7 +244,7 @@ function championPoolFromMatches(matches: Match[]): ChampionPoolEntry[] {
     .slice(0, 5);
 }
 
-type SeedPlayer = Omit<Player, "spark20" | "lpHistory" | "peakLp" | "championPool" | "matches" | "winrate">;
+type SeedPlayer = Omit<Player, "spark20" | "lpHistory" | "peakLp" | "flexRank" | "championPool" | "matches" | "winrate">;
 
 const SEED_PLAYERS: SeedPlayer[] = [
   { name: "Agus", tag: "LAS", you: true, role: "support", tierKey: "platinum", division: 2, lp: 57, wins: 64, losses: 58, seed: 11, drift: 0.6, mainChamp: "Senna" },
@@ -274,6 +274,7 @@ function buildPlayer(p: SeedPlayer): Player {
     spark20,
     lpHistory,
     peakLp: peakFromHistory(lpHistory),
+    flexRank: null, // el mock no simula una segunda cola — el diseño real muestra "sin datos de Flex" en este caso
     championPool: championPoolFromMatches(matches),
     matches,
     winrate: Math.round((100 * p.wins) / (p.wins + p.losses)),
