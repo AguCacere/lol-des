@@ -99,7 +99,7 @@ export function SparkChart({
           stroke={color}
           strokeWidth={detailed ? 2.5 : 2.25}
           strokeLinecap="round"
-          strokeLinejoin="round"
+          strokeLinejoin="miter"
           filter={`url(#${gid}-glow)`}
         />
         {hover !== null && (
