@@ -112,6 +112,7 @@ function genMatches(seed: number): Match[] {
       csmin: (cs / dur).toFixed(1),
       dur, dmgShare,
       gold: Math.round(8 + rand() * 6),
+      visionScore: Math.round(10 + rand() * 40),
     });
   }
   return out;
@@ -148,4 +149,32 @@ function buildPlayer(p: SeedPlayer): Player {
  */
 export function getLadder(): Player[] {
   return SEED_PLAYERS.map(buildPlayer).sort((a, b) => tierScore(b) - tierScore(a));
+}
+
+export interface RoleAverages {
+  kda: number | null;
+  csPerMin: number | null;
+  dmgShare: number | null;
+  /** how many other tracked players in this role fed the average — 0 means no peers to compare against. */
+  sampleSize: number;
+}
+
+/**
+ * Averages KDA/CS-per-min/damage-share across every OTHER tracked player who
+ * shares `player`'s role, pooling their real stored matches. Never compares
+ * across roles — a support's CS is naturally far lower than a mid's by game
+ * design, so a cross-role average would misrepresent "good"/"bad" rather than
+ * clarify it. Returns nulls (sampleSize 0) when there's nobody else in that
+ * role yet — callers must show "sin datos" rather than fabricate a number.
+ */
+export function computeRoleAverages(allPlayers: Player[], player: Player): RoleAverages {
+  const peers = allPlayers.filter((p) => p !== player && p.role === player.role && p.matches.length > 0);
+  if (peers.length === 0) {
+    return { kda: null, csPerMin: null, dmgShare: null, sampleSize: 0 };
+  }
+  const peerMatches = peers.flatMap((p) => p.matches);
+  const kda = peerMatches.reduce((s, m) => s + (m.k + m.a) / Math.max(1, m.d), 0) / peerMatches.length;
+  const csPerMin = peerMatches.reduce((s, m) => s + parseFloat(m.csmin), 0) / peerMatches.length;
+  const dmgShare = peerMatches.reduce((s, m) => s + m.dmgShare, 0) / peerMatches.length;
+  return { kda, csPerMin, dmgShare, sampleSize: peers.length };
 }

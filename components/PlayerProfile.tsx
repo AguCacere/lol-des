@@ -1,5 +1,5 @@
 import type { Player } from "@/lib/types";
-import { tierFor, champTag, ROLES } from "@/lib/mock-data";
+import { tierFor, champTag, ROLES, currentStreak, computeRoleAverages } from "@/lib/mock-data";
 import { SparkChart } from "./SparkChart";
 
 function TrophyIcon() {
@@ -63,27 +63,48 @@ function TrendUpIcon() {
   );
 }
 
-function CmpBar({ label, value, avg, max, suffix = "" }: { label: string; value: number; avg: number; max: number; suffix?: string }) {
+function CmpBar({
+  label,
+  value,
+  avg,
+  max,
+  suffix = "",
+}: {
+  label: string;
+  value: number;
+  avg: number | null;
+  max: number;
+  suffix?: string;
+}) {
   const pct = Math.max(2, Math.min(100, (value / max) * 100));
-  const avgPct = Math.max(0, Math.min(100, (avg / max) * 100));
   return (
     <div className="cmp-row">
       <div className="cmp-row-top">
         <span className="k">{label}</span>
         <span className="v">
           {value}
-          {suffix} <span style={{ color: "var(--text-muted)" }}>· prom. rol {avg}{suffix}</span>
+          {suffix}{" "}
+          {avg !== null ? (
+            <span style={{ color: "var(--text-muted)" }}>
+              · prom. rol {avg}
+              {suffix}
+            </span>
+          ) : (
+            <span className="cmp-no-data">· sin datos del rol todavía</span>
+          )}
         </span>
       </div>
       <div className="cmp-bar-track">
         <div className="cmp-bar-fill" style={{ width: `${pct}%` }} />
-        <div className="cmp-bar-avg" style={{ left: `${avgPct}%` }} />
+        {avg !== null && (
+          <div className="cmp-bar-avg" style={{ left: `${Math.max(0, Math.min(100, (avg / max) * 100))}%` }} />
+        )}
       </div>
     </div>
   );
 }
 
-export function PlayerProfile({ player }: { player: Player | null }) {
+export function PlayerProfile({ player, allPlayers }: { player: Player | null; allPlayers: Player[] }) {
   if (!player) {
     return (
       <section id="profileSection">
@@ -111,15 +132,21 @@ export function PlayerProfile({ player }: { player: Player | null }) {
 
   const p = player;
   const t = tierFor(p.tierKey);
+  const hasMatches = p.matches.length > 0;
   const wins = p.matches.filter((m) => m.win).length;
-  const avgKDA = p.matches.reduce((s, m) => s + (m.k + m.a) / Math.max(1, m.d), 0) / p.matches.length;
-  const avgCS = p.matches.reduce((s, m) => s + parseFloat(m.csmin), 0) / p.matches.length;
-  const avgDmg = p.matches.reduce((s, m) => s + m.dmgShare, 0) / p.matches.length;
-  const avgVision = Math.round(18 + (p.role === "support" ? 22 : 6) + (p.seed % 9));
-  const objPart = Math.round(38 + (p.seed % 40));
-  const killPart = Math.round(45 + (p.seed % 30));
-  const avgDur = Math.round(p.matches.reduce((s, m) => s + m.dur, 0) / p.matches.length);
-  const lpDelta = p.spark20[p.spark20.length - 1] - p.spark20[0];
+  const avgKDA = hasMatches
+    ? p.matches.reduce((s, m) => s + (m.k + m.a) / Math.max(1, m.d), 0) / p.matches.length
+    : 0;
+  const avgCS = hasMatches ? p.matches.reduce((s, m) => s + parseFloat(m.csmin), 0) / p.matches.length : 0;
+  const avgDmg = hasMatches ? p.matches.reduce((s, m) => s + m.dmgShare, 0) / p.matches.length : 0;
+  const avgVision = hasMatches
+    ? Number((p.matches.reduce((s, m) => s + m.visionScore / Math.max(1, m.dur), 0) / p.matches.length).toFixed(1))
+    : 0;
+  const avgDur = hasMatches ? Math.round(p.matches.reduce((s, m) => s + m.dur, 0) / p.matches.length) : 0;
+  const lpStart = p.spark20[0];
+  const lpDelta = p.spark20[p.spark20.length - 1] - lpStart;
+  const streak = currentStreak(p.matches);
+  const roleAvg = computeRoleAverages(allPlayers, p);
 
   return (
     <section id="profileSection">
@@ -153,6 +180,17 @@ export function PlayerProfile({ player }: { player: Player | null }) {
               {t.name} {p.division}
             </div>
             <div className="tl">{p.lp} LP</div>
+            <div className="profile-tier-meta">
+              <span className={`delta ${lpDelta >= 0 ? "up" : "down"}`}>
+                {lpDelta >= 0 ? "▲" : "▼"} {Math.abs(lpDelta)} LP
+              </span>
+              {streak && (
+                <span className={`streak-chip ${streak.result === "W" ? "w" : "l"}`}>
+                  {streak.result === "W" ? "🔥" : "🔻"} {streak.count}
+                  {streak.capped ? "+" : ""} {streak.result === "W" ? "WIN STREAK" : "LOSS STREAK"}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -164,9 +202,11 @@ export function PlayerProfile({ player }: { player: Player | null }) {
             <div className="lp-chart-card">
               <div className="lp-chart-top">
                 <div>
-                  <span className="label">LP · últimas 20 partidas</span>
+                  <span className="label">LP · progresión reciente</span>
                   <br />
-                  <span className="big">{p.lp} LP</span>
+                  <span className="big">
+                    {lpStart} LP → {p.lp} LP
+                  </span>
                   <span className={`delta ${lpDelta >= 0 ? "up" : "down"}`}>
                     {lpDelta >= 0 ? "▲" : "▼"} {Math.abs(lpDelta)}
                   </span>
@@ -184,8 +224,18 @@ export function PlayerProfile({ player }: { player: Player | null }) {
             </div>
             <div className="stat-grid">
               <div className="stat-tile"><TrophyIcon /><div className="v">{p.winrate}%</div><div className="k">Winrate season</div></div>
-              <div className="stat-tile"><TargetIcon /><div className="v">{objPart}%</div><div className="k">Participación objetivos</div></div>
-              <div className="stat-tile"><ZapIcon /><div className="v">{killPart}%</div><div className="k">Kill participation</div></div>
+              <div className="stat-tile is-pending">
+                <TargetIcon />
+                <div className="v">—</div>
+                <div className="k">Participación objetivos</div>
+                <div className="pending-note">Próximamente</div>
+              </div>
+              <div className="stat-tile is-pending">
+                <ZapIcon />
+                <div className="v">—</div>
+                <div className="k">Kill participation</div>
+                <div className="pending-note">Próximamente</div>
+              </div>
               <div className="stat-tile"><EyeIcon /><div className="v">{avgVision}</div><div className="k">Visión / min</div></div>
               <div className="stat-tile"><ClockIcon /><div className="v">{avgDur} min</div><div className="k">Duración prom.</div></div>
               <div className="stat-tile"><TrendUpIcon /><div className="v">{wins}/{p.matches.length}</div><div className="k">Forma reciente</div></div>
@@ -197,11 +247,33 @@ export function PlayerProfile({ player }: { player: Player | null }) {
               <span className="tag micro">Micro</span>Últimas partidas
             </h3>
             <div className="cmp-card">
-              <CmpBar label="KDA promedio" value={Number(avgKDA.toFixed(2))} avg={2.6} max={6} />
-              <CmpBar label="CS / min" value={Number(avgCS.toFixed(1))} avg={6.8} max={10} />
-              <CmpBar label="% daño del equipo" value={Math.round(avgDmg)} avg={24} max={45} suffix="%" />
+              <CmpBar
+                label="KDA promedio"
+                value={Number(avgKDA.toFixed(2))}
+                avg={roleAvg.kda !== null ? Number(roleAvg.kda.toFixed(2)) : null}
+                max={6}
+              />
+              <CmpBar
+                label="CS / min"
+                value={Number(avgCS.toFixed(1))}
+                avg={roleAvg.csPerMin !== null ? Number(roleAvg.csPerMin.toFixed(1)) : null}
+                max={10}
+              />
+              <CmpBar
+                label="% daño del equipo"
+                value={Math.round(avgDmg)}
+                avg={roleAvg.dmgShare !== null ? Math.round(roleAvg.dmgShare) : null}
+                max={45}
+                suffix="%"
+              />
             </div>
             <div className="matches">
+              {!hasMatches && (
+                <div className="empty-state">
+                  <strong>Sin partidas guardadas todavía</strong>
+                  Van a aparecer acá después del próximo refresh (cron diario o &ldquo;Actualizar ahora&rdquo;).
+                </div>
+              )}
               {p.matches.map((m, i) => (
                 <div className="match-row" key={i}>
                   <div className={`match-stripe ${m.win ? "w" : "l"}`} />

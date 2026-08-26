@@ -29,6 +29,7 @@ export interface Match {
   dur: number;
   dmgShare: number;
   gold: number;
+  visionScore: number;
 }
 
 export interface Player {

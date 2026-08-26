@@ -127,7 +127,7 @@ export default function Home() {
             sortKey={sortKey}
             onSortKeyChange={setSortKey}
           />
-          <PlayerProfile player={activePlayer} />
+          <PlayerProfile player={activePlayer} allPlayers={players} />
         </div>
       ) : (
         <div id="view-stats">

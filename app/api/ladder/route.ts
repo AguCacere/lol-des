@@ -31,6 +31,7 @@ interface MatchRow {
   cs_per_min: number;
   dmg_share: number | null;
   gold_earned: number;
+  vision_score: number;
   game_duration_s: number;
 }
 
@@ -70,7 +71,9 @@ export async function GET() {
       .order("captured_at", { ascending: true }),
     supabase
       .from("matches")
-      .select("puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, gold_earned, game_duration_s")
+      .select(
+        "puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, gold_earned, vision_score, game_duration_s"
+      )
       .in("puuid", puuids)
       .order("played_at", { ascending: false })
       .returns<MatchRow[]>(),
@@ -106,6 +109,7 @@ export async function GET() {
       dur: Math.round(durationMin),
       dmgShare: Math.round(Number(row.dmg_share ?? 0)),
       gold: Math.round(row.gold_earned / durationMin),
+      visionScore: row.vision_score,
     });
     matchesByPuuid.set(row.puuid, arr);
   }
