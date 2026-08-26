@@ -32,6 +32,8 @@ export interface Match {
   visionScore: number;
   killParticipation: number;
   objShare: number;
+  goldTotal: number;
+  playedAt: string; // ISO timestamp
 }
 
 export interface Player {

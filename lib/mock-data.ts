@@ -91,6 +91,18 @@ export function currentStreak(matches: Match[]): Streak | null {
   return { result, count, capped: count === matches.length };
 }
 
+/** "hoy" / "ayer" / "hace N días" / a short date once it's old enough. */
+export function formatRelativeDate(iso: string): string {
+  const then = new Date(iso).getTime();
+  const days = Math.floor((Date.now() - then) / (1000 * 60 * 60 * 24));
+  if (days <= 0) return "hoy";
+  if (days === 1) return "ayer";
+  if (days < 7) return `hace ${days} días`;
+  if (days < 14) return "hace 1 semana";
+  if (days < 30) return `hace ${Math.floor(days / 7)} semanas`;
+  return new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+}
+
 function genMatches(seed: number): Match[] {
   let s = seed;
   const rand = () => {
@@ -107,14 +119,17 @@ function genMatches(seed: number): Match[] {
     const cs = Math.round(120 + rand() * 140);
     const dur = Math.round(22 + rand() * 16);
     const dmgShare = Math.round(14 + rand() * 22);
+    const goldTotal = Math.round((8 + rand() * 6) * dur);
     out.push({
       win, champ, k, d, a, cs,
       csmin: (cs / dur).toFixed(1),
       dur, dmgShare,
-      gold: Math.round(8 + rand() * 6),
+      gold: Math.round(goldTotal / dur),
+      goldTotal,
       visionScore: Math.round(10 + rand() * 40),
       killParticipation: Math.round(35 + rand() * 40),
       objShare: Math.round(10 + rand() * 30),
+      playedAt: new Date(Date.now() - i * 1000 * 60 * 60 * 30).toISOString(),
     });
   }
   return out;

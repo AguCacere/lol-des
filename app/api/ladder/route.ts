@@ -37,6 +37,7 @@ interface MatchRow {
   obj_share: number | null;
   team_position: string | null;
   game_duration_s: number;
+  played_at: string;
 }
 
 /**
@@ -76,7 +77,7 @@ export async function GET() {
     supabase
       .from("matches")
       .select(
-        "puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, gold_earned, vision_score, kill_participation, obj_share, team_position, game_duration_s"
+        "puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, gold_earned, vision_score, kill_participation, obj_share, team_position, game_duration_s, played_at"
       )
       .in("puuid", puuids)
       .order("played_at", { ascending: false })
@@ -123,9 +124,11 @@ export async function GET() {
       dur: Math.round(durationMin),
       dmgShare: Math.round(Number(row.dmg_share ?? 0)),
       gold: Math.round(row.gold_earned / durationMin),
+      goldTotal: row.gold_earned,
       visionScore: row.vision_score,
       killParticipation: Math.round(Number(row.kill_participation ?? 0)),
       objShare: Math.round(Number(row.obj_share ?? 0)),
+      playedAt: row.played_at,
     });
     matchesByPuuid.set(row.puuid, arr);
   }

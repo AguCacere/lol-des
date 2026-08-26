@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import type { Player } from "@/lib/types";
-import { tierFor, champTag, ROLES, currentStreak, computeRoleAverages } from "@/lib/mock-data";
+import { tierFor, champTag, ROLES, currentStreak, computeRoleAverages, formatRelativeDate } from "@/lib/mock-data";
 import { SparkChart } from "./SparkChart";
+import { MatchDetail } from "./MatchDetail";
 
 function TrophyIcon() {
   return (
@@ -110,6 +111,7 @@ function CmpBar({
 export function PlayerProfile({ player, allPlayers }: { player: Player | null; allPlayers: Player[] }) {
   const [displayed, setDisplayed] = useState(player);
   const [fading, setFading] = useState(false);
+  const [expandedMatch, setExpandedMatch] = useState<number | null>(null);
 
   useEffect(() => {
     if (player === displayed) return;
@@ -119,6 +121,7 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
     const t = setTimeout(() => {
       setDisplayed(player);
       setFading(false);
+      setExpandedMatch(null);
     }, 160);
     return () => clearTimeout(t);
   }, [player, displayed]);
@@ -286,31 +289,56 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
                   Van a aparecer acá después del próximo refresh (cron diario o &ldquo;Actualizar ahora&rdquo;).
                 </div>
               )}
-              {p.matches.map((m, i) => (
-                <div className="match-row" key={i}>
-                  <div className={`match-stripe ${m.win ? "w" : "l"}`} />
-                  <div className="match-champ">{champTag(m.champ)}</div>
-                  <div className="match-mid">
-                    <div className="match-top-line">
-                      <span className="match-champ-name">{m.champ}</span>
-                      <span className={`match-result ${m.win ? "w" : "l"}`}>{m.win ? "VICTORIA" : "DERROTA"}</span>
-                    </div>
-                    <div className="match-sub">
-                      {m.dur} min · {m.csmin} cs/min · daño {m.dmgShare}%
-                    </div>
+              {p.matches.map((m, i) => {
+                const isExpanded = expandedMatch === i;
+                return (
+                  <div className="match-item" key={i}>
+                    <button
+                      type="button"
+                      className={`match-row${isExpanded ? " is-expanded" : ""}`}
+                      onClick={() => setExpandedMatch((cur) => (cur === i ? null : i))}
+                      aria-expanded={isExpanded}
+                    >
+                      <div className={`match-stripe ${m.win ? "w" : "l"}`} />
+                      <div className="match-champ">{champTag(m.champ)}</div>
+                      <div className="match-mid">
+                        <div className="match-top-line">
+                          <span className="match-champ-name">{m.champ}</span>
+                          <span className={`match-result ${m.win ? "w" : "l"}`}>
+                            {m.win ? "VICTORIA" : "DERROTA"}
+                          </span>
+                        </div>
+                        <div className="match-sub">
+                          {m.dur} min · {m.cs} CS · {m.csmin}/min · daño {m.dmgShare}% · KP {m.killParticipation}%
+                        </div>
+                      </div>
+                      <div className="match-stats">
+                        <div className="kda">
+                          {m.k}
+                          <span className="neu">/</span>
+                          {m.d}
+                          <span className="neu">/</span>
+                          {m.a}
+                        </div>
+                        <span className="extra">{m.gold} oro/min</span>
+                        <span className="extra match-date">{formatRelativeDate(m.playedAt)}</span>
+                      </div>
+                      <svg
+                        className="match-chevron"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+                    {isExpanded && <MatchDetail match={m} />}
                   </div>
-                  <div className="match-stats">
-                    <div className="kda">
-                      {m.k}
-                      <span className="neu">/</span>
-                      {m.d}
-                      <span className="neu">/</span>
-                      {m.a}
-                    </div>
-                    <span className="extra">{m.gold} oro/min</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
