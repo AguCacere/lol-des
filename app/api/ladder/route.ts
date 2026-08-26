@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { peakFromHistory, tierScore } from "@/lib/mock-data";
 import { divisionFromRiot, normalizeRole, roleFromTeamPosition, seedFromPuuid, tierKeyFromRiot } from "@/lib/mapping";
-import type { ChampionPoolEntry, DuoPair, FlexRank, LpHistoryPoint, Match, Player, RoleKey } from "@/lib/types";
+import type { ChampionPoolEntry, DuoPair, FlexRank, LpHistoryPoint, MasteryEntry, Match, Player, RoleKey } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -92,7 +92,7 @@ export async function GET() {
     return NextResponse.json({ players: [], duoSynergy: [] });
   }
 
-  const [{ data: snapshots }, { data: matchRows }] = await Promise.all([
+  const [{ data: snapshots }, { data: matchRows }, { data: masteryRows }] = await Promise.all([
     supabase
       .from("lp_snapshots")
       .select("puuid, lp, captured_at, tier, division, wins, losses, queue_type")
@@ -106,7 +106,19 @@ export async function GET() {
       .in("puuid", puuids)
       .order("played_at", { ascending: false })
       .returns<MatchRow[]>(),
+    supabase
+      .from("champion_mastery")
+      .select("puuid, champion, level, points")
+      .in("puuid", puuids)
+      .order("points", { ascending: false }),
   ]);
+
+  const masteryPoolByPuuid = new Map<string, MasteryEntry[]>();
+  for (const row of masteryRows ?? []) {
+    const arr = masteryPoolByPuuid.get(row.puuid) ?? [];
+    arr.push({ champ: row.champion, level: row.level, points: row.points });
+    masteryPoolByPuuid.set(row.puuid, arr);
+  }
 
   const sparkByPuuid = new Map<string, number[]>();
   const lpHistoryByPuuid = new Map<string, LpHistoryPoint[]>();
@@ -363,6 +375,7 @@ export async function GET() {
       peakLp,
       flexRank: flexByPuuid.get(row.puuid) ?? null,
       championPool: championPool(row.puuid),
+      masteryPool: masteryPoolByPuuid.get(row.puuid) ?? [],
       matches,
       winrate: wins + losses > 0 ? Math.round((100 * wins) / (wins + losses)) : 0,
     };

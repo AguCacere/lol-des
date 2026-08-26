@@ -167,19 +167,38 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string) {
   }
 
   // Champion Mastery reflects Riot's whole-career view, not just what we've
-  // stored — better "main champion" signal than counting our own match cache.
-  // Non-fatal: if this or the Data Dragon name lookup fails, we keep whatever
-  // main_champ was already there instead of failing the whole refresh.
+  // stored — better "main champion" signal than counting our own match cache,
+  // and also feeds the "Maestría de campeón" pool (top 5). Non-fatal: if this
+  // or the Data Dragon name lookup fails, we keep whatever main_champ/pool
+  // was already there instead of failing the whole refresh.
   try {
-    const [top] = await getTopChampionMasteries(puuid, 1);
-    if (top) {
-      const champName = await championNameById(top.championId);
-      if (champName) {
-        await supabase.from("summoners").update({ main_champ: champName }).eq("puuid", puuid);
-      }
+    const top5 = await getTopChampionMasteries(puuid, 5);
+    const resolved = await Promise.all(
+      top5.map(async (m) => ({ ...m, name: await championNameById(m.championId) }))
+    );
+
+    if (resolved[0]?.name) {
+      await supabase.from("summoners").update({ main_champ: resolved[0].name }).eq("puuid", puuid);
+    }
+
+    // Replace-not-upsert: a champion that fell out of the top 5 this refresh
+    // (someone else's points overtook it) shouldn't linger as a stale row.
+    await supabase.from("champion_mastery").delete().eq("puuid", puuid);
+    const rows = resolved
+      .filter((m): m is typeof m & { name: string } => m.name != null)
+      .map((m) => ({
+        puuid,
+        champion_id: m.championId,
+        champion: m.name,
+        level: m.championLevel,
+        points: m.championPoints,
+      }));
+    if (rows.length > 0) {
+      await supabase.from("champion_mastery").insert(rows);
     }
   } catch {
-    // ignore — main_champ falls back to lib/mock-data.ts's most-played-in-stored-matches logic
+    // ignore — main_champ falls back to lib/mock-data.ts's most-played-in-stored-matches logic,
+    // masteryPool just stays whatever it already was (or empty)
   }
 
   await supabase.from("summoners").update({ last_refreshed_at: new Date().toISOString() }).eq("puuid", puuid);

@@ -1,4 +1,4 @@
-import type { ChampionPoolEntry, LpHistoryPoint, Match, PeakLp, Player, RoleKey, Tier, TierKey } from "./types";
+import type { ChampionPoolEntry, LpHistoryPoint, MasteryEntry, Match, PeakLp, Player, RoleKey, Tier, TierKey } from "./types";
 
 /**
  * Deterministic placeholder data — the exact same generator that shipped in the
@@ -244,7 +244,7 @@ function championPoolFromMatches(matches: Match[]): ChampionPoolEntry[] {
     .slice(0, 5);
 }
 
-type SeedPlayer = Omit<Player, "spark20" | "lpHistory" | "peakLp" | "flexRank" | "championPool" | "matches" | "winrate">;
+type SeedPlayer = Omit<Player, "spark20" | "lpHistory" | "peakLp" | "flexRank" | "championPool" | "masteryPool" | "matches" | "winrate">;
 
 const SEED_PLAYERS: SeedPlayer[] = [
   { name: "Agus", tag: "LAS", you: true, role: "support", tierKey: "platinum", division: 2, lp: 57, wins: 64, losses: 58, seed: 11, drift: 0.6, mainChamp: "Senna" },
@@ -257,6 +257,19 @@ const SEED_PLAYERS: SeedPlayer[] = [
   { name: "VisionGremlin", tag: "LAS", role: "support", tierKey: "gold", division: 3, lp: 19, wins: 33, losses: 37, seed: 63, drift: -0.1, mainChamp: "Nautilus" },
   { name: "WardsNotIncluded", tag: "LAS", role: "adc", tierKey: "bronze", division: 4, lp: 66, wins: 22, losses: 31, seed: 29, drift: -0.7, mainChamp: "Corki" },
 ];
+
+/** Deterministic mock top-5 mastery — mainChamp always leads, matching how real refreshes set it from mastery #1. */
+function mockMasteryPool(seed: number, mainChamp: string): MasteryEntry[] {
+  const others = CHAMPS.filter((c) => c !== mainChamp);
+  const champs = [mainChamp, ...others.slice(seed % others.length).concat(others).slice(0, 4)];
+  let s = seed * 7 + 3;
+  return champs.slice(0, 5).map((champ, i) => {
+    s = (s * 9301 + 49297) % 233280;
+    const points = Math.round((90000 - i * 18000) * (0.6 + (s / 233280) * 0.6));
+    const level = points > 300000 ? 7 : points > 100000 ? 6 : points > 50000 ? 5 : 4;
+    return { champ, level, points };
+  });
+}
 
 function buildPlayer(p: SeedPlayer): Player {
   const matches = genMatches(p.seed * 3 + 1);
@@ -276,6 +289,7 @@ function buildPlayer(p: SeedPlayer): Player {
     peakLp: peakFromHistory(lpHistory),
     flexRank: null, // el mock no simula una segunda cola — el diseño real muestra "sin datos de Flex" en este caso
     championPool: championPoolFromMatches(matches),
+    masteryPool: mockMasteryPool(p.seed, p.mainChamp),
     matches,
     winrate: Math.round((100 * p.wins) / (p.wins + p.losses)),
   };

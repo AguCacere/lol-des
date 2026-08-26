@@ -16,6 +16,7 @@ import {
 import { SparkChart } from "./SparkChart";
 import { MatchDetail } from "./MatchDetail";
 import { ChampionPool } from "./ChampionPool";
+import { MasteryPool } from "./MasteryPool";
 import { InsightsCard } from "./InsightsCard";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
@@ -366,6 +367,9 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
               <div className="stat-tile"><ClockIcon /><div className="v">{avgDur} min</div><div className="k">Duración prom.</div></div>
               <div className="stat-tile"><TrendUpIcon /><div className="v">{wins}/{p.matches.length}</div><div className="k">Forma reciente</div></div>
             </div>
+
+            <h4 className="subsection-label">Maestría de campeón</h4>
+            <MasteryPool pool={p.masteryPool} />
 
             <h4 className="subsection-label">Campeones más jugados</h4>
             <ChampionPool pool={p.championPool} />

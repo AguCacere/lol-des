@@ -85,6 +85,21 @@ create table if not exists matches (
 create index if not exists matches_puuid_played_idx
   on matches (puuid, played_at desc);
 
+-- Top campeones por maestría (Champion Mastery V4) — refleja el career-wide
+-- de Riot, no nuestro historial de partidas guardadas. Cada refresh borra e
+-- inserta de nuevo el top 5 completo (no se acumula historial, solo importa
+-- el estado actual), así que nunca queda un campeón viejo que ya salió del
+-- top 5.
+create table if not exists champion_mastery (
+  puuid       text not null references summoners(puuid) on delete cascade,
+  champion_id int not null,
+  champion    text not null,
+  level       int not null,
+  points      int not null,
+  updated_at  timestamptz not null default now(),
+  primary key (puuid, champion_id)
+);
+
 -- Sirve rápido para armar el ladder sin tener que hacer el join en cada request.
 create or replace view ladder as
 select
@@ -114,3 +129,4 @@ left join lateral (
 alter table summoners enable row level security;
 alter table lp_snapshots enable row level security;
 alter table matches enable row level security;
+alter table champion_mastery enable row level security;

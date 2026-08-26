@@ -101,6 +101,13 @@ export interface ChampionPoolEntry {
   avgCsPerMin: number;
 }
 
+/** One entry in the Champion Mastery V4 top-5 — Riot's career-wide signal, not derived from our own stored matches. */
+export interface MasteryEntry {
+  champ: string;
+  level: number;
+  points: number;
+}
+
 /**
  * Two tracked players who showed up as TEAMMATES (same match_id, same win
  * result — Riot doesn't need to tell us teamId for this: within one match
@@ -137,6 +144,7 @@ export interface Player {
   peakLp: PeakLp;
   flexRank: FlexRank | null;
   championPool: ChampionPoolEntry[];
+  masteryPool: MasteryEntry[];
   matches: Match[];
   winrate: number;
 }

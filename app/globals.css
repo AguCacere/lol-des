@@ -411,6 +411,13 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   background:var(--surface-raised); border-radius:var(--radius-sm); padding:12px 14px;
 }
 
+.mastery-badge{
+  font-family:var(--font-stat); font-weight:800; font-size:12px; padding:3px 9px;
+  border-radius:999px; flex:none; color:var(--text-muted); background:var(--surface-hover);
+}
+.mastery-badge.m5, .mastery-badge.m6{color:var(--accent); background:var(--accent-wash);}
+.mastery-badge.m7{color:var(--gold); background:var(--gold-wash);}
+
 .insights-card{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:16px;}
 .insights-empty{
   font-size:11.5px; color:var(--text-muted); line-height:1.5;
