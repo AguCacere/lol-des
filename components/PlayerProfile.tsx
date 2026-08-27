@@ -208,19 +208,35 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
   const lpChartColor = trendColor(lpScores);
   const lpEndpointLabel = (point: { tier: Player["tierKey"]; division: number; lp: number }) =>
     lpCrossedBoundary ? `${tierFor(point.tier).name} ${point.division} · ${point.lp} LP` : `${point.lp} LP`;
-  const lpPointLabels = p.lpHistory.map((h) => {
+  const lpPointLabels = p.lpHistory.map((h, i) => {
     const ht = tierFor(h.tier);
     const hWinrate = h.wins + h.losses > 0 ? Math.round((100 * h.wins) / (h.wins + h.losses)) : 0;
+    // Step delta vs. the PREVIOUS snapshot specifically (not vs. the chart's
+    // overall start) — this is the number the hover is actually for: "what
+    // happened right here." Same rankScore-vs-raw-LP unit logic as the
+    // headline delta, but evaluated per adjacent pair so a promotion between
+    // two snapshots still reads as a real gain instead of a fabricated drop.
+    const prev = i > 0 ? p.lpHistory[i - 1] : null;
+    const stepDelta = prev ? lpScores[i] - lpScores[i - 1] : null;
+    const stepUnit = prev && (prev.tier !== h.tier || prev.division !== h.division) ? "pts" : "LP";
     return (
       <>
-        <div className="date">
-          {new Date(h.capturedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+        <div className="spark-tooltip-head">
+          <span className="date">
+            {new Date(h.capturedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+          </span>
+          {stepDelta !== null && stepDelta !== 0 && (
+            <span className={`spark-tooltip-delta ${stepDelta > 0 ? "up" : "down"}`}>
+              {stepDelta > 0 ? "▲" : "▼"} {Math.abs(stepDelta)} {stepUnit}
+            </span>
+          )}
         </div>
         <div className="rank" style={{ color: ht.fg }}>
           {ht.name} {h.division} · {h.lp} LP
         </div>
+        <div className="spark-tooltip-divider" />
         <div className="record">
-          {h.wins}V {h.losses}D · {hWinrate}%
+          {h.wins}V {h.losses}D · <span className={hWinrate >= 50 ? "good" : "bad"}>{hWinrate}%</span>
         </div>
       </>
     );
