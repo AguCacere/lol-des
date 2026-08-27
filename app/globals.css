@@ -642,7 +642,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-family:var(--font-display); font-weight:700; font-size:12px;
   background:var(--surface-hover); color:var(--text-secondary);
   box-shadow:0 0 0 2px var(--surface-raised);
+  overflow:hidden;
 }
+.duo-avatar-img{width:100%; height:100%; object-fit:cover; display:block;}
 .duo-avatar-b{margin-left:-8px;}
 .duo-mid{display:flex; flex-direction:column; min-width:0; flex:1; gap:5px;}
 .duo-names{font-weight:600; font-size:13.5px; color:var(--text-primary);}

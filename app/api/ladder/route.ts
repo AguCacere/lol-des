@@ -350,7 +350,16 @@ export async function GET() {
 
   /** Pairs of tracked players who were teammates in at least one stored match, ranked by games together. */
   function computeDuoSynergy(): DuoPair[] {
-    const nameByPuuid = new Map((ladderRows ?? []).map((r) => [r.puuid, { name: r.game_name, tag: r.tag_line }]));
+    const nameByPuuid = new Map(
+      (ladderRows ?? []).map((r) => [
+        r.puuid,
+        {
+          name: r.game_name,
+          tag: r.tag_line,
+          profileIconUrl: r.profile_icon_id != null ? profileIconUrl(ddragonVersion, r.profile_icon_id) : null,
+        },
+      ])
+    );
     const pairStats = new Map<
       string,
       {
@@ -409,6 +418,8 @@ export async function GET() {
         aTag: a.tag,
         bName: b.name,
         bTag: b.tag,
+        aProfileIconUrl: a.profileIconUrl,
+        bProfileIconUrl: b.profileIconUrl,
         games: p.games,
         wins: p.wins,
         winrate: Math.round((100 * p.wins) / p.games),

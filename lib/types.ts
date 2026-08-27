@@ -134,6 +134,9 @@ export interface DuoPair {
   aTag: string;
   bName: string;
   bTag: string;
+  /** Same Summoner-V4 → Data Dragon icon as the profile header avatar — null falls back to initials. */
+  aProfileIconUrl: string | null;
+  bProfileIconUrl: string | null;
   games: number;
   wins: number;
   winrate: number;

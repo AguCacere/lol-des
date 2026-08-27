@@ -15,13 +15,26 @@ function initials(name: string): string {
  * derrota es siempre por equipo, no hace falta el teamId de Riot para
  * deducirlo).
  */
+function DuoAvatar({ name, iconUrl, className }: { name: string; iconUrl: string | null; className: string }) {
+  return (
+    <span className={className}>
+      {iconUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- one small fixed-size avatar, not worth next/image's config for an external CDN
+        <img src={iconUrl} alt="" className="duo-avatar-img" />
+      ) : (
+        initials(name)
+      )}
+    </span>
+  );
+}
+
 function DuoRow({ p }: { p: DuoPair }) {
   const losses = p.games - p.wins;
   return (
     <div className="duo-row">
       <div className="duo-avatars">
-        <span className="duo-avatar">{initials(p.aName)}</span>
-        <span className="duo-avatar duo-avatar-b">{initials(p.bName)}</span>
+        <DuoAvatar name={p.aName} iconUrl={p.aProfileIconUrl} className="duo-avatar" />
+        <DuoAvatar name={p.bName} iconUrl={p.bProfileIconUrl} className="duo-avatar duo-avatar-b" />
       </div>
       <div className="duo-mid">
         <span className="duo-names">
