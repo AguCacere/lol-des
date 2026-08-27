@@ -644,10 +644,25 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   box-shadow:0 0 0 2px var(--surface-raised);
 }
 .duo-avatar-b{margin-left:-8px;}
-.duo-mid{display:flex; flex-direction:column; min-width:0; flex:1;}
+.duo-mid{display:flex; flex-direction:column; min-width:0; flex:1; gap:5px;}
 .duo-names{font-weight:600; font-size:13.5px; color:var(--text-primary);}
 .duo-amp{color:var(--text-muted); font-weight:400;}
-.duo-games{font-size:11px; color:var(--text-muted); font-family:var(--font-mono); margin-top:1px;}
+.duo-meta{
+  display:flex; align-items:center; gap:6px;
+  font-size:11px; color:var(--text-muted); font-family:var(--font-mono);
+}
+.duo-roles{display:inline-flex; align-items:center; gap:2px; flex:none;}
+.duo-role-icon{width:15px; height:15px; border-radius:4px; overflow:hidden; flex:none;}
+.duo-role-icon img{width:100%; height:100%; object-fit:cover; display:block;}
+.duo-role-icon svg{width:100%; height:100%; display:block;}
+.duo-bar{
+  display:flex; gap:1.5px; height:4px; border-radius:99px; overflow:hidden;
+  background:var(--surface); max-width:220px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04);
+}
+.duo-seg{height:100%;}
+.duo-seg.win{background:var(--good);}
+.duo-seg.loss{background:var(--critical);}
 .duo-stats{display:flex; flex-direction:column; align-items:flex-end; gap:1px; flex:none;}
 .duo-wr{font-family:var(--font-stat); font-weight:800; font-size:16px; font-variant-numeric:tabular-nums;}
 .duo-wr.good{color:var(--good);}

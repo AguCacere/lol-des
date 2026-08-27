@@ -235,10 +235,10 @@ export async function GET() {
   // result — feeds "Sinergia de dúo" below. No teamId needed: two tracked
   // players sharing a match_id are teammates iff their win result matches
   // (a match has exactly one winning side), opponents otherwise.
-  const trackedByMatchId = new Map<string, { puuid: string; win: boolean }[]>();
+  const trackedByMatchId = new Map<string, { puuid: string; win: boolean; playedAt: string; role: RoleKey | null }[]>();
   for (const row of matchRows ?? []) {
     const tracked = trackedByMatchId.get(row.match_id) ?? [];
-    tracked.push({ puuid: row.puuid, win: row.win });
+    tracked.push({ puuid: row.puuid, win: row.win, playedAt: row.played_at, role: roleFromTeamPosition(row.team_position) });
     trackedByMatchId.set(row.match_id, tracked);
 
     const freq = champFreqByPuuid.get(row.puuid) ?? new Map<string, number>();
@@ -351,17 +351,41 @@ export async function GET() {
   /** Pairs of tracked players who were teammates in at least one stored match, ranked by games together. */
   function computeDuoSynergy(): DuoPair[] {
     const nameByPuuid = new Map((ladderRows ?? []).map((r) => [r.puuid, { name: r.game_name, tag: r.tag_line }]));
-    const pairStats = new Map<string, { aPuuid: string; bPuuid: string; games: number; wins: number }>();
+    const pairStats = new Map<
+      string,
+      {
+        aPuuid: string;
+        bPuuid: string;
+        games: number;
+        wins: number;
+        lastPlayedAt: string;
+        // Counts how often each (aRole, bRole) combo showed up together —
+        // someone's role in a shared game with THIS partner can differ from
+        // their overall main role (role swaps for a duo are common), so this
+        // is tracked per-pair rather than reusing mostPlayedRole(puuid).
+        roleCombos: Map<string, number>;
+      }
+    >();
     for (const entries of trackedByMatchId.values()) {
       if (entries.length < 2) continue;
       for (let i = 0; i < entries.length; i++) {
         for (let j = i + 1; j < entries.length; j++) {
           if (entries[i].win !== entries[j].win) continue; // opposite results = opposite teams, not a duo
-          const [aPuuid, bPuuid] = [entries[i].puuid, entries[j].puuid].sort();
-          const key = `${aPuuid}|${bPuuid}`;
-          const cur = pairStats.get(key) ?? { aPuuid, bPuuid, games: 0, wins: 0 };
+          const [first, second] = entries[i].puuid < entries[j].puuid ? [entries[i], entries[j]] : [entries[j], entries[i]];
+          const key = `${first.puuid}|${second.puuid}`;
+          const cur = pairStats.get(key) ?? {
+            aPuuid: first.puuid,
+            bPuuid: second.puuid,
+            games: 0,
+            wins: 0,
+            lastPlayedAt: first.playedAt,
+            roleCombos: new Map<string, number>(),
+          };
           cur.games += 1;
-          cur.wins += entries[i].win ? 1 : 0;
+          cur.wins += first.win ? 1 : 0;
+          if (first.playedAt > cur.lastPlayedAt) cur.lastPlayedAt = first.playedAt;
+          const comboKey = `${first.role ?? ""}|${second.role ?? ""}`;
+          cur.roleCombos.set(comboKey, (cur.roleCombos.get(comboKey) ?? 0) + 1);
           pairStats.set(key, cur);
         }
       }
@@ -371,6 +395,15 @@ export async function GET() {
       const a = nameByPuuid.get(p.aPuuid);
       const b = nameByPuuid.get(p.bPuuid);
       if (!a || !b) continue;
+      let bestCombo = "";
+      let bestCount = 0;
+      for (const [combo, count] of p.roleCombos) {
+        if (count > bestCount) {
+          bestCombo = combo;
+          bestCount = count;
+        }
+      }
+      const [aRole, bRole] = bestCombo.split("|") as [string, string];
       pairs.push({
         aName: a.name,
         aTag: a.tag,
@@ -379,6 +412,9 @@ export async function GET() {
         games: p.games,
         wins: p.wins,
         winrate: Math.round((100 * p.wins) / p.games),
+        lastPlayedAt: p.lastPlayedAt,
+        aRole: (aRole || null) as RoleKey | null,
+        bRole: (bRole || null) as RoleKey | null,
       });
     }
     return pairs.sort((x, y) => y.games - x.games);

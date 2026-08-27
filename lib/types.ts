@@ -137,6 +137,11 @@ export interface DuoPair {
   games: number;
   wins: number;
   winrate: number;
+  /** ISO timestamp of the most recent match they shared. */
+  lastPlayedAt: string;
+  /** Role each one played most often in the matches THEY SHARED specifically — can differ from their overall main role (duo role swaps happen). Null when team_position wasn't available for enough of their shared matches. */
+  aRole: RoleKey | null;
+  bRole: RoleKey | null;
 }
 
 export interface Player {
