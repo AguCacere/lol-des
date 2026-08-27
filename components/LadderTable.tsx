@@ -1,5 +1,5 @@
 import type { Player, RoleKey } from "@/lib/types";
-import { currentStreak, formatRelativeTime, rankScore, ROLES, tierFor, trendColor } from "@/lib/mock-data";
+import { champTag, currentStreak, formatRelativeTime, rankScore, ROLES, tierFor, trendColor } from "@/lib/mock-data";
 import { RoleIcon } from "./RoleIcon";
 import { StreakIcon } from "./StreakIcon";
 import { SparkChart } from "./SparkChart";
@@ -192,7 +192,7 @@ export function LadderTable({
                         {p.liveGame && (
                           <span
                             className="live-badge"
-                            title={`${p.liveGame.queueLabel} · hace ${p.liveGame.startedMinutesAgo} min`}
+                            aria-label={`En vivo: ${p.liveGame.champion}, ${p.liveGame.queueLabel}, hace ${p.liveGame.startedMinutesAgo} min`}
                           >
                             <span className="live-dot" />
                             En vivo · {p.liveGame.champion}
@@ -200,6 +200,39 @@ export function LadderTable({
                         )}
                       </span>
                       <span className="player-champ">Main: {p.mainChamp}</span>
+                      {/*
+                        Rendered as a sibling of player-name (not nested inside
+                        the live-badge) on purpose: player-name has its own
+                        overflow:hidden for the name-ellipsis truncation, which
+                        would silently clip an absolutely-positioned popup
+                        living inside it. player-id has no overflow set, so the
+                        popup escapes cleanly; :has() ties its visibility back
+                        to hovering the badge specifically.
+                      */}
+                      {p.liveGame && (
+                        <span className="live-popup" role="tooltip">
+                          <span className="live-popup-head">
+                            <span className="live-popup-avatar">
+                              {p.profileIconUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element -- one small fixed-size avatar, not worth next/image's config for an external CDN
+                                <img src={p.profileIconUrl} alt="" />
+                              ) : (
+                                champTag(p.mainChamp)
+                              )}
+                            </span>
+                            <span className="live-popup-name">
+                              {p.name} <span className="player-tag">#{p.tag}</span>
+                            </span>
+                          </span>
+                          <span className="live-popup-champ">
+                            <span className="live-popup-champ-avatar">{champTag(p.liveGame.champion)}</span>
+                            {p.liveGame.champion}
+                          </span>
+                          <span className="live-popup-meta">
+                            {p.liveGame.queueLabel} · hace {p.liveGame.startedMinutesAgo} min
+                          </span>
+                        </span>
+                      )}
                     </span>
                   </span>
                   <span className="col-tier">

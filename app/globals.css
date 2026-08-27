@@ -190,13 +190,54 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .live-dot.accent{background:var(--accent); box-shadow:0 0 0 3px var(--accent-wash);}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.45;}}
 
+/* Transparent, no pill fill — the dot + its own soft halo already carry
+   enough "this is live" weight without a colored background block. */
 .live-badge{
   display:inline-flex; align-items:center; gap:5px;
   font-size:9.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase;
-  color:var(--good); background:var(--good-wash); padding:2px 8px 2px 6px; border-radius:999px; flex:none;
-  white-space:nowrap;
+  color:var(--good); background:transparent; flex:none;
+  white-space:nowrap; cursor:default;
 }
 .live-badge .live-dot{width:6px; height:6px; box-shadow:0 0 0 2px var(--good-wash);}
+
+/* Hover card for "En vivo": lives as a SIBLING of .player-name (see the JSX
+   comment) so player-name's own overflow:hidden (name-ellipsis truncation)
+   never clips it. :has() ties visibility to hovering the badge specifically,
+   without needing any JS/state — this card is static per render. */
+.live-popup{
+  position:absolute; left:calc(100% + 10px); top:1px;
+  width:180px; box-sizing:border-box;
+  background:var(--surface-hover); border-radius:9px; box-shadow:var(--shadow);
+  padding:10px 12px; font-size:11px; line-height:1.5; color:var(--text-primary);
+  opacity:0; visibility:hidden; pointer-events:none;
+  transform:translate(-4px, 0) scale(0.97); transform-origin:left center;
+  transition:opacity .15s ease, transform .15s ease, visibility .15s;
+  z-index:30;
+}
+.player-id:has(.live-badge:hover) .live-popup{
+  opacity:1; visibility:visible; transform:translate(0, 0) scale(1);
+}
+.live-popup::after{
+  content:""; position:absolute; right:100%; top:14px;
+  border:5px solid transparent; border-right-color:var(--surface-hover);
+}
+.live-popup-head{display:flex; align-items:center; gap:8px; margin-bottom:7px;}
+.live-popup-avatar{
+  width:24px; height:24px; border-radius:7px; flex:none; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--surface); color:var(--text-secondary);
+  font-family:var(--font-display); font-weight:700; font-size:10px;
+}
+.live-popup-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
+.live-popup-name{font-weight:700; font-size:12px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.live-popup-champ{display:flex; align-items:center; gap:7px; font-weight:600; margin-bottom:5px;}
+.live-popup-champ-avatar{
+  width:22px; height:22px; border-radius:6px; flex:none;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--good-wash); color:var(--good);
+  font-family:var(--font-display); font-weight:700; font-size:9.5px;
+}
+.live-popup-meta{display:block; color:var(--text-muted); font-family:var(--font-mono); font-size:10.5px;}
 .profile-live-banner{
   display:flex; align-items:center; gap:8px; font-size:12px; color:var(--good);
   background:var(--good-wash); border-radius:var(--radius-sm); padding:8px 12px; margin-top:8px;
@@ -209,8 +250,20 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
      lighter --surface panel every chip read as a visible gray square stamped
      onto the row instead of blending in. */
   background:var(--bg); border-radius:var(--radius-lg);
-  box-shadow:var(--shadow); overflow:hidden;
+  box-shadow:var(--shadow);
+  /* No overflow:hidden here anymore — a live player's "en vivo" hover popup
+     can be taller than its own row, and when that row is near the bottom of
+     the list a clipped card cut the popup off instead of showing it in full.
+     overflow-x:hidden + overflow-y:visible doesn't work as a substitute: per
+     the CSS overflow spec, setting one axis to a non-visible value forces
+     the other to compute as "auto" rather than staying "visible", so it
+     still clipped. The rounded corners this used to provide (for row
+     hover/active backgrounds bleeding past the card's own corners) are
+     recreated below directly on the first/last row instead.
+  */
 }
+.ladder-row:first-child{border-top-left-radius:var(--radius-lg); border-top-right-radius:var(--radius-lg);}
+.ladder-row:last-child{border-bottom-left-radius:var(--radius-lg); border-bottom-right-radius:var(--radius-lg);}
 .ladder-row{
   display:grid;
   grid-template-columns:34px 1.9fr 0.95fr 1.15fr 1.3fr 28px;
@@ -250,7 +303,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    in, no transparency) — fill the whole chip instead of floating inside the
    wash background like the hand-drawn fallback glyph does. */
 .role-chip img{width:100%;height:100%;object-fit:cover;display:block;}
-.player-id{min-width:0;}
+.player-id{min-width:0; position:relative; display:block;}
 .player-name{
   font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   display:flex; align-items:center; gap:7px;
