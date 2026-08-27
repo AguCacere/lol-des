@@ -295,22 +295,22 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
               )}
             </div>
             <div className="profile-tier-peak">
-              <span className="peak-label">
-                Máximo registrado <InfoTip text={METRIC_INFO.peakLp} />:{" "}
+              <span className="info-pill">
+                Máximo <InfoTip text={METRIC_INFO.peakLp} />:{" "}
                 <span style={{ color: peakTier.fg }}>{peakTier.name} {p.peakLp.division}</span> · {p.peakLp.lp} LP
                 {isAtPeak && " (actual)"}
               </span>
               {next ? (
-                <span className="next-div-label">
+                <span className="info-pill">
                   Faltan <strong>{next.lpNeeded} LP</strong> para{" "}
                   {nextTier!.name}
                   {next.division ? ` ${next.division}` : ""}
                 </span>
               ) : (
-                <span className="next-div-label">Tope de división del sistema alcanzado</span>
+                <span className="info-pill">Tope de división del sistema alcanzado</span>
               )}
               {p.flexRank && (
-                <span className="flex-chip" title={`Flex: ${tierFor(p.flexRank.tier).name} ${p.flexRank.division} · ${p.flexRank.lp} LP`}>
+                <span className="info-pill flex-chip" title={`Flex: ${tierFor(p.flexRank.tier).name} ${p.flexRank.division} · ${p.flexRank.lp} LP`}>
                   <span
                     className="flex-chip-badge"
                     style={{ background: tierFor(p.flexRank.tier).bg, color: tierFor(p.flexRank.tier).fg }}

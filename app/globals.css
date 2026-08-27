@@ -314,9 +314,12 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .profile-id{display:flex; align-items:center; gap:14px;}
 .profile-avatar{
-  width:52px;height:52px;border-radius:12px;
+  /* Bumped from 52px — this is often a real Riot profile icon now (see
+     PlayerProfile.tsx), not just the champion-initial placeholder, and real
+     art reads better with a bit more room than a small text badge needed. */
+  width:64px;height:64px;border-radius:14px;
   display:flex;align-items:center;justify-content:center;
-  font-family:var(--font-display); font-weight:700; font-size:20px;
+  font-family:var(--font-display); font-weight:700; font-size:22px;
   border:1px solid var(--border); box-shadow:var(--shadow-sm); flex:none;
   overflow:hidden;
 }
@@ -340,11 +343,23 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .delta-chip.up{background:var(--good-wash); color:var(--good);}
 .delta-chip.down{background:var(--critical-wash); color:var(--critical);}
+/*
+  Was a bare vertical stack of plain text lines (peak record, next-division
+  progress) sitting next to the one item that WAS chip-styled (flex) — three
+  facts of the same kind, only one of them looking designed. Now all three
+  share one pill treatment so this reads as a considered row of info, not
+  leftover text lines plus one chip.
+*/
 .profile-tier-peak{
-  margin-top:8px; display:flex; flex-direction:column; align-items:flex-end; gap:2px;
-  font-size:11px; color:var(--text-muted);
+  margin-top:12px; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px;
 }
-.profile-tier-peak strong{color:var(--text-primary); font-family:var(--font-mono);}
+.info-pill{
+  display:inline-flex; align-items:center; gap:5px; white-space:nowrap;
+  font-size:11px; color:var(--text-secondary);
+  background:var(--surface-raised); box-shadow:var(--shadow-sm);
+  padding:4px 10px; border-radius:999px;
+}
+.info-pill strong{color:var(--text-primary); font-family:var(--font-mono); font-weight:700;}
 .flex-chip{display:flex; align-items:center; gap:5px;}
 .flex-chip-badge{
   width:16px; height:16px; border-radius:4px; flex:none;
