@@ -25,27 +25,42 @@ export function SparkChart({
   variant = "compact",
   pointLabels,
 }: SparkChartProps) {
-  const { line, area, last, points } = lineAreaGeometry(values, width, height, pad);
-  const gid = "spark-" + useId().replace(/[:]/g, "");
   const detailed = variant === "detailed";
-  const dotRadius = detailed ? 4 : 3.2;
+  // Compact ("últimos 20" ladder cells) gets its own horizontal margin, wider
+  // than its vertical one — a sparkline reads as more "premium" when it fills
+  // most of its row width but keeps a bit more vertical breathing room, rather
+  // than using the same pad on both axes like the detailed profile chart does.
+  const padX = detailed ? pad : pad + 3;
+  const { line, area, last, points } = lineAreaGeometry(values, width, height, padX, 10, pad);
+  const gid = "spark-" + useId().replace(/[:]/g, "");
+  // Compact's endpoint marker used to feel like a separate button stuck onto
+  // the line (big halo ring) — shrunk so it reads as "last value, subtly
+  // marked" instead of a UI element competing with the row's own chevron.
+  const dotRadius = detailed ? 4 : 2.6;
+  const haloExtra = detailed ? 3 : 2;
+  const haloOpacity = detailed ? 0.35 : 0.3;
+  const haloStrokeWidth = detailed ? 1.5 : 1;
+  const strokeWidth = detailed ? 2.5 : 2;
+  const lineJoin = detailed ? "miter" : "round";
   // Restrained glow — enough to keep the line from reading as a flat hairline,
-  // without the neon-gaming look a heavier blur gave it. Compact still gets
-  // proportionally more than detailed for the same reason as before: a 28px
-  // cell needs more relative blur than a 118px one just to register at all.
-  const blurRadius = detailed ? 2.2 : 1.6;
+  // without the neon-gaming look a heavier blur gave it. Compact's used to be
+  // proportionally bigger than detailed's for the same reason as before: a
+  // 28px cell needs more relative blur than a 118px one just to register at
+  // all — but too much of it pooled into a visible stain under the line, so
+  // it's now the smaller of the two, tight around the stroke.
+  const blurRadius = detailed ? 2.2 : 1;
 
   const svgRef = useRef<SVGSVGElement>(null);
   const [hover, setHover] = useState<number | null>(null);
   const [containerWidth, setContainerWidth] = useState(width);
   const canHover = detailed && !!pointLabels;
-  const stepX = points.length > 1 ? (width - pad * 2) / (points.length - 1) : 0;
+  const stepX = points.length > 1 ? (width - padX * 2) / (points.length - 1) : 0;
 
   function handleMove(e: React.MouseEvent<SVGSVGElement>) {
     if (!canHover || !svgRef.current || stepX === 0) return;
     const rect = svgRef.current.getBoundingClientRect();
     const relX = ((e.clientX - rect.left) / rect.width) * width;
-    const idx = Math.round((relX - pad) / stepX);
+    const idx = Math.round((relX - padX) / stepX);
     setHover(Math.min(Math.max(idx, 0), points.length - 1));
     setContainerWidth(rect.width);
   }
@@ -116,14 +131,21 @@ export function SparkChart({
             strokeDasharray="3 3"
           />
         )}
-        <path d={area} fill={`url(#${gid})`} stroke="none" />
+        {/*
+          The area fill is a detailed-only accent — in the compact 28px cells
+          a translucent fill from line-height down to the baseline read as a
+          colored smudge under the sparkline rather than "subtle depth" (the
+          fill height there is a large fraction of the whole cell, unlike the
+          118px detailed chart where the same treatment stays unobtrusive).
+        */}
+        {detailed && <path d={area} fill={`url(#${gid})`} stroke="none" />}
         <path
           d={line}
           fill="none"
           stroke={color}
-          strokeWidth={2.5}
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
-          strokeLinejoin="miter"
+          strokeLinejoin={lineJoin}
           filter={`url(#${gid}-glow)`}
         />
         {/*
@@ -150,11 +172,11 @@ export function SparkChart({
         <circle
           cx={last[0].toFixed(1)}
           cy={last[1].toFixed(1)}
-          r={dotRadius + 3}
+          r={dotRadius + haloExtra}
           fill="none"
           stroke={color}
-          strokeOpacity="0.35"
-          strokeWidth={1.5}
+          strokeOpacity={haloOpacity}
+          strokeWidth={haloStrokeWidth}
         />
         <circle cx={last[0].toFixed(1)} cy={last[1].toFixed(1)} r={dotRadius} fill={color} />
         {hover !== null && hover !== points.length - 1 && (

@@ -24,17 +24,24 @@ export interface LineAreaGeometry {
  * low on purpose: with few real snapshots collected so far, actual LP ranges
  * are often modest (10-20) — a higher floor flattens those real trends too.
  */
-export function lineAreaGeometry(values: number[], w: number, h: number, pad = 6, minRange = 10): LineAreaGeometry {
+export function lineAreaGeometry(
+  values: number[],
+  w: number,
+  h: number,
+  padX = 6,
+  minRange = 10,
+  padY = padX,
+): LineAreaGeometry {
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = Math.max(max - min, minRange);
-  const stepX = (w - pad * 2) / (values.length - 1);
+  const stepX = (w - padX * 2) / (values.length - 1);
   const pts: [number, number][] = values.map((v, i) => {
-    const x = pad + i * stepX;
-    const y = pad + (1 - (v - min) / range) * (h - pad * 2);
+    const x = padX + i * stepX;
+    const y = padY + (1 - (v - min) / range) * (h - padY * 2);
     return [x, y];
   });
   const line = linePath(pts);
-  const area = `${line} L${pts[pts.length - 1][0].toFixed(1)},${h - pad} L${pts[0][0].toFixed(1)},${h - pad} Z`;
+  const area = `${line} L${pts[pts.length - 1][0].toFixed(1)},${h - padY} L${pts[0][0].toFixed(1)},${h - padY} Z`;
   return { line, area, last: pts[pts.length - 1], points: pts };
 }
