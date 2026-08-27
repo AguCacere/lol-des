@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { refreshAllSummoners } from "@/lib/refresh";
 
-export const maxDuration = 60;
+// Was 60 — see app/api/refresh/route.ts for why.
+export const maxDuration = 300;
 
 /**
  * GET /api/cron/refresh — pulls fresh LP + match data for every tracked

@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { refreshAllSummoners } from "@/lib/refresh";
 
-export const maxDuration = 60;
+// Was 60 — a growing group plus the bounded-concurrency refresh (see
+// lib/refresh.ts) still needs headroom; Vercel clamps this to whatever the
+// plan actually allows, so it's safe to ask for more than we might get.
+export const maxDuration = 300;
 
 /**
  * POST /api/refresh — "Actualizar ahora" en la UI. Mismo refresh que el cron

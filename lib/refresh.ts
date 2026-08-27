@@ -269,6 +269,31 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string): Promi
 }
 
 /**
+ * Runs `fn` over `items` with at most `limit` in flight at once — plain
+ * worker-pool, no external dependency for something this small.
+ */
+async function mapWithConcurrency<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const item = items[next++];
+      await fn(item);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+}
+
+// How many summoners refreshOne() runs for at once. One-at-a-time used to
+// mean a group of even 8-10 people could blow past Vercel's function time
+// limit (each summoner does several sequential Riot calls of its own) and
+// get hard-killed mid-run — the killed function never gets to send its own
+// JSON error, so the client saw Vercel's own "An error occurred..." HTML
+// instead. A personal Riot API key's rate limit (roughly 20 req/s, 100 per
+// 2 min) has plenty of headroom for a handful of summoners' calls
+// overlapping — this is a wall-clock fix, not a rate-limit workaround.
+const REFRESH_CONCURRENCY = 4;
+
+/**
  * Refreshes every tracked summoner. With `onlyStale`, skips anyone refreshed
  * more recently than MANUAL_REFRESH_COOLDOWN_MS — used by the user-triggered
  * "Actualizar ahora" button so repeated clicks (or several friends clicking
@@ -284,21 +309,25 @@ export async function refreshAllSummoners(
   const now = Date.now();
   const results: Record<string, string> = {};
 
-  for (const summoner of summoners ?? []) {
+  const toRefresh = (summoners ?? []).filter((summoner) => {
     if (onlyStale && summoner.last_refreshed_at) {
       const age = now - new Date(summoner.last_refreshed_at).getTime();
       if (age < MANUAL_REFRESH_COOLDOWN_MS) {
         results[summoner.puuid] = "skipped (cooldown)";
-        continue;
+        return false;
       }
     }
+    return true;
+  });
+
+  await mapWithConcurrency(toRefresh, REFRESH_CONCURRENCY, async (summoner) => {
     try {
       const warnings = await refreshOne(supabase, summoner.puuid);
       results[summoner.puuid] = warnings.length > 0 ? `ok (${warnings.join("; ")})` : "ok";
     } catch (err) {
       results[summoner.puuid] = err instanceof Error ? err.message : "error";
     }
-  }
+  });
 
   return results;
 }
