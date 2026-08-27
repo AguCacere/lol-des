@@ -151,6 +151,21 @@ export function formatRelativeDate(iso: string): string {
   return new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
 }
 
+/**
+ * Minute/hour-grained version of formatRelativeDate, for things that refresh
+ * every few minutes (the ladder's "última actualización") instead of daily —
+ * "hace 3 días" doesn't distinguish something 20 minutes old from 20 hours old.
+ */
+export function formatRelativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  const minutes = Math.floor((Date.now() - then) / (1000 * 60));
+  if (minutes < 1) return "recién";
+  if (minutes < 60) return `hace ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `hace ${hours}h`;
+  return formatRelativeDate(iso);
+}
+
 const RUNE_PAIRS: [string, string][] = [
   ["Conqueror", "Precision"],
   ["Electrocute", "Domination"],

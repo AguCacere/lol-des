@@ -1,5 +1,5 @@
 import type { Player, RoleKey } from "@/lib/types";
-import { currentStreak, rankScore, ROLES, tierFor, trendColor } from "@/lib/mock-data";
+import { currentStreak, formatRelativeTime, rankScore, ROLES, tierFor, trendColor } from "@/lib/mock-data";
 import { RoleIcon } from "./RoleIcon";
 import { StreakIcon } from "./StreakIcon";
 import { SparkChart } from "./SparkChart";
@@ -15,9 +15,7 @@ interface LadderTableProps {
   onSelect: (key: string) => void;
   loading?: boolean;
   error?: string | null;
-  onRefresh: () => void;
-  refreshing: boolean;
-  refreshError?: string | null;
+  lastUpdated: string | null;
   roleFilter: RoleKey | "all";
   onRoleFilterChange: (role: RoleKey | "all") => void;
   sortKey: SortKey;
@@ -74,9 +72,7 @@ export function LadderTable({
   onSelect,
   loading,
   error,
-  onRefresh,
-  refreshing,
-  refreshError,
+  lastUpdated,
   roleFilter,
   onRoleFilterChange,
   sortKey,
@@ -97,12 +93,9 @@ export function LadderTable({
           Ladder del grupo{" "}
           <span className="meta">· {rows.length}{rows.length === 1 ? " invocador" : " invocadores"}</span>
         </h2>
-        <div className="ladder-actions">
-          {refreshError && <span className="meta refresh-error">{refreshError}</span>}
-          <button type="button" className="refresh-btn" onClick={onRefresh} disabled={refreshing || loading}>
-            {refreshing ? "Actualizando…" : "Actualizar ahora"}
-          </button>
-        </div>
+        {!loading && lastUpdated && (
+          <span className="meta last-updated">Última actualización: {formatRelativeTime(lastUpdated)}</span>
+        )}
       </div>
 
       <div className="ladder-controls">

@@ -24,8 +24,7 @@ export default function Home() {
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [tab, setTab] = useState<TabKey>("ranking");
   const [addStatus, setAddStatus] = useState<AddStatus>({ kind: "idle" });
-  const [refreshing, setRefreshing] = useState(false);
-  const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [roleFilter, setRoleFilter] = useState<RoleKey | "all">("all");
   const [sortKey, setSortKey] = useState<SortKey>("ladder");
 
@@ -36,6 +35,7 @@ export default function Home() {
       if (!res.ok) throw new Error(data.error ?? "No se pudo cargar el ladder.");
       setPlayers(data.players as Player[]);
       setDuoSynergy((data.duoSynergy as DuoPair[]) ?? []);
+      setLastUpdated((data.lastUpdated as string | null) ?? null);
       setLoadError(null);
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : "No se pudo cargar el ladder.");
@@ -98,21 +98,6 @@ export default function Home() {
     }
   }, [filterText, loadLadder]);
 
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    setRefreshError(null);
-    try {
-      const res = await fetch("/api/refresh", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "No se pudo actualizar.");
-      await loadLadder();
-    } catch (err) {
-      setRefreshError(err instanceof Error ? err.message : "No se pudo actualizar.");
-    } finally {
-      setRefreshing(false);
-    }
-  }, [loadLadder]);
-
   return (
     <div className="app">
       <TopBar
@@ -136,9 +121,7 @@ export default function Home() {
             onSelect={(key) => setActiveKey((cur) => (cur === key ? null : key))}
             loading={loading}
             error={loadError}
-            onRefresh={handleRefresh}
-            refreshing={refreshing}
-            refreshError={refreshError}
+            lastUpdated={lastUpdated}
             roleFilter={roleFilter}
             onRoleFilterChange={setRoleFilter}
             sortKey={sortKey}
@@ -156,8 +139,7 @@ export default function Home() {
       <p className="footnote">
         {loading
           ? "Cargando ladder…"
-          : `${players.length} invocador${players.length === 1 ? "" : "es"} trackeados.`}{" "}
-        Refresh diario vía <code>app/api/cron/refresh</code>.
+          : `${players.length} invocador${players.length === 1 ? "" : "es"} trackeados.`}
       </p>
     </div>
   );

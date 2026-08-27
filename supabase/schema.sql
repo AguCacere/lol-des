@@ -134,7 +134,8 @@ select
   -- al final a propósito: `create or replace view` en Postgres solo permite
   -- agregar columnas al final del select, insertarla en el medio cuenta
   -- como "renombrar" la columna que quedaba en esa posición y tira 42P16.
-  s.profile_icon_id
+  s.profile_icon_id,
+  s.last_refreshed_at
 from summoners s
 left join lateral (
   select * from lp_snapshots

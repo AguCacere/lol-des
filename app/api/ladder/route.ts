@@ -16,6 +16,7 @@ interface LadderRow {
   main_champ: string | null;
   is_you: boolean;
   profile_icon_id: number | null;
+  last_refreshed_at: string | null;
   tier: string | null;
   division: string | null;
   lp: number | null;
@@ -454,5 +455,13 @@ export async function GET() {
 
   players.sort((a, b) => tierScore(b) - tierScore(a));
 
-  return NextResponse.json({ players, duoSynergy: computeDuoSynergy() });
+  // Oldest last-refresh across the group, not newest — "last updated" should
+  // read as "everyone is at least this fresh", not get flattered by
+  // whichever one summoner happened to refresh most recently.
+  const refreshTimes = (ladderRows ?? [])
+    .map((r) => r.last_refreshed_at)
+    .filter((t): t is string => t != null);
+  const lastUpdated = refreshTimes.length > 0 ? refreshTimes.reduce((min, t) => (t < min ? t : min)) : null;
+
+  return NextResponse.json({ players, duoSynergy: computeDuoSynergy(), lastUpdated });
 }
