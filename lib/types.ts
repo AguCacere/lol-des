@@ -145,6 +145,11 @@ export interface DuoPair {
   /** Role each one played most often in the matches THEY SHARED specifically — can differ from their overall main role (duo role swaps happen). Null when team_position wasn't available for enough of their shared matches. */
   aRole: RoleKey | null;
   bRole: RoleKey | null;
+  /** Each one's own KDA/main champion, computed ONLY from the games they played as teammates — not their overall career average. */
+  aAvgKda: number;
+  bAvgKda: number;
+  aMainChamp: string | null;
+  bMainChamp: string | null;
 }
 
 export interface Player {

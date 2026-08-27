@@ -235,10 +235,22 @@ export async function GET() {
   // result — feeds "Sinergia de dúo" below. No teamId needed: two tracked
   // players sharing a match_id are teammates iff their win result matches
   // (a match has exactly one winning side), opponents otherwise.
-  const trackedByMatchId = new Map<string, { puuid: string; win: boolean; playedAt: string; role: RoleKey | null }[]>();
+  const trackedByMatchId = new Map<
+    string,
+    { puuid: string; win: boolean; playedAt: string; role: RoleKey | null; champion: string; kills: number; deaths: number; assists: number }[]
+  >();
   for (const row of matchRows ?? []) {
     const tracked = trackedByMatchId.get(row.match_id) ?? [];
-    tracked.push({ puuid: row.puuid, win: row.win, playedAt: row.played_at, role: roleFromTeamPosition(row.team_position) });
+    tracked.push({
+      puuid: row.puuid,
+      win: row.win,
+      playedAt: row.played_at,
+      role: roleFromTeamPosition(row.team_position),
+      champion: row.champion,
+      kills: row.kills,
+      deaths: row.deaths,
+      assists: row.assists,
+    });
     trackedByMatchId.set(row.match_id, tracked);
 
     const freq = champFreqByPuuid.get(row.puuid) ?? new Map<string, number>();
@@ -360,6 +372,33 @@ export async function GET() {
         },
       ])
     );
+    interface DuoPlayerAgg {
+      kSum: number;
+      dSum: number;
+      aSum: number;
+      champFreq: Map<string, number>;
+    }
+    function emptyAgg(): DuoPlayerAgg {
+      return { kSum: 0, dSum: 0, aSum: 0, champFreq: new Map() };
+    }
+    function addToAgg(agg: DuoPlayerAgg, entry: { champion: string; kills: number; deaths: number; assists: number }) {
+      agg.kSum += entry.kills;
+      agg.dSum += entry.deaths;
+      agg.aSum += entry.assists;
+      agg.champFreq.set(entry.champion, (agg.champFreq.get(entry.champion) ?? 0) + 1);
+    }
+    function bestChamp(agg: DuoPlayerAgg): string | null {
+      let best: string | null = null;
+      let bestCount = 0;
+      for (const [champ, count] of agg.champFreq) {
+        if (count > bestCount) {
+          best = champ;
+          bestCount = count;
+        }
+      }
+      return best;
+    }
+
     const pairStats = new Map<
       string,
       {
@@ -373,6 +412,11 @@ export async function GET() {
         // their overall main role (role swaps for a duo are common), so this
         // is tracked per-pair rather than reusing mostPlayedRole(puuid).
         roleCombos: Map<string, number>;
+        // Each one's own KDA/champion, but only counting the games THEY
+        // SHARED as teammates — a broader "career" average would answer a
+        // different question than "how does this pair do together".
+        aAgg: DuoPlayerAgg;
+        bAgg: DuoPlayerAgg;
       }
     >();
     for (const entries of trackedByMatchId.values()) {
@@ -389,12 +433,16 @@ export async function GET() {
             wins: 0,
             lastPlayedAt: first.playedAt,
             roleCombos: new Map<string, number>(),
+            aAgg: emptyAgg(),
+            bAgg: emptyAgg(),
           };
           cur.games += 1;
           cur.wins += first.win ? 1 : 0;
           if (first.playedAt > cur.lastPlayedAt) cur.lastPlayedAt = first.playedAt;
           const comboKey = `${first.role ?? ""}|${second.role ?? ""}`;
           cur.roleCombos.set(comboKey, (cur.roleCombos.get(comboKey) ?? 0) + 1);
+          addToAgg(cur.aAgg, first);
+          addToAgg(cur.bAgg, second);
           pairStats.set(key, cur);
         }
       }
@@ -417,6 +465,10 @@ export async function GET() {
         aName: a.name,
         aTag: a.tag,
         bName: b.name,
+        aAvgKda: Number(((p.aAgg.kSum + p.aAgg.aSum) / Math.max(1, p.aAgg.dSum)).toFixed(2)),
+        bAvgKda: Number(((p.bAgg.kSum + p.bAgg.aSum) / Math.max(1, p.bAgg.dSum)).toFixed(2)),
+        aMainChamp: bestChamp(p.aAgg),
+        bMainChamp: bestChamp(p.bAgg),
         bTag: b.tag,
         aProfileIconUrl: a.profileIconUrl,
         bProfileIconUrl: b.profileIconUrl,
