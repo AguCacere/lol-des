@@ -162,13 +162,12 @@ export interface Player {
   lp: number;
   wins: number;
   losses: number;
-  seed: number;
-  drift: number;
   mainChamp: string;
   /** Real Riot profile icon (Summoner-V4 + Data Dragon), for the profile header avatar — null falls back to champion-initials. */
   profileIconUrl: string | null;
-  // derived, filled in by buildPlayer()
-  spark20: number[];
+  /** Summoner-V4 account level — same call that already fetches profileIconUrl, no extra Riot cost. Null until the first refresh after this field shipped. */
+  summonerLevel: number | null;
+  // derived, filled in by app/api/ladder/route.ts
   lpHistory: LpHistoryPoint[];
   peakLp: PeakLp;
   flexRank: FlexRank | null;
@@ -177,16 +176,4 @@ export interface Player {
   liveGame: LiveGame | null;
   matches: Match[];
   winrate: number;
-}
-
-/**
- * Shape a real Riot integration will eventually produce (Account-V1 + League-V4).
- * lib/riot.ts already returns data in roughly this shape — once Supabase is wired,
- * a stored row maps onto this instead of the deterministic mock in lib/mock-data.ts.
- */
-export interface TrackedSummoner {
-  puuid: string;
-  gameName: string;
-  tagLine: string;
-  region: string; // platform routing value, e.g. "la2"
 }

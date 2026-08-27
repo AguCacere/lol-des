@@ -58,12 +58,3 @@ const QUEUE_LABELS: Record<number, string> = {
 export function queueLabelFromId(queueId: number): string {
   return QUEUE_LABELS[queueId] ?? "Partida";
 }
-
-/** Deterministic small int from a puuid — feeds the profile's cosmetic "seed" stats (see PlayerProfile.tsx). */
-export function seedFromPuuid(puuid: string): number {
-  let h = 0;
-  for (let i = 0; i < puuid.length; i++) {
-    h = (h * 31 + puuid.charCodeAt(i)) >>> 0;
-  }
-  return h % 100;
-}

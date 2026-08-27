@@ -15,6 +15,7 @@ create table if not exists summoners (
   main_champ     text,                        -- idem, cosmético
   is_you         boolean not null default false,
   profile_icon_id int,                        -- Summoner-V4 — para el avatar real del perfil (Data Dragon, ver lib/ddragon.ts)
+  summoner_level int,                         -- Summoner-V4 — mismo call que profile_icon_id, sin costo extra de la API
   added_at       timestamptz not null default now(),
   last_refreshed_at timestamptz
 );
@@ -135,7 +136,8 @@ select
   -- agregar columnas al final del select, insertarla en el medio cuenta
   -- como "renombrar" la columna que quedaba en esa posición y tira 42P16.
   s.profile_icon_id,
-  s.last_refreshed_at
+  s.last_refreshed_at,
+  s.summoner_level
 from summoners s
 left join lateral (
   select * from lp_snapshots

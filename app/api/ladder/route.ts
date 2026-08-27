@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
-import { peakFromHistory, tierScore } from "@/lib/mock-data";
-import { divisionFromRiot, normalizeRole, queueLabelFromId, roleFromTeamPosition, seedFromPuuid, tierKeyFromRiot } from "@/lib/mapping";
-import { getActiveGame } from "@/lib/riot";
-import { championNameById, getLatestVersion, profileIconUrl } from "@/lib/ddragon";
-import type { ChampionPoolEntry, DuoPair, FlexRank, LiveGame, LpHistoryPoint, MasteryEntry, Match, Player, RoleKey } from "@/lib/types";
+import { peakFromHistory, tierScore } from "@/lib/ladder";
+import { divisionFromRiot, normalizeRole, roleFromTeamPosition, tierKeyFromRiot } from "@/lib/mapping";
+import { getLiveGamesByPuuid } from "@/lib/live";
+import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
+import type { ChampionPoolEntry, DuoPair, FlexRank, LpHistoryPoint, MasteryEntry, Match, Player, RoleKey } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +16,7 @@ interface LadderRow {
   main_champ: string | null;
   is_you: boolean;
   profile_icon_id: number | null;
+  summoner_level: number | null;
   last_refreshed_at: string | null;
   tier: string | null;
   division: string | null;
@@ -126,17 +127,10 @@ export async function GET() {
   // Spectator V5 — checked live, right now, not read from the DB (a cron-batched
   // "in game" status would be stale garbage by the next scheduled refresh). Runs
   // concurrently with the DB queries above so it doesn't add its own latency on
-  // top. Isolated catch per summoner: one Riot hiccup here can't take down the
-  // rest of the ladder load.
-  const activeGames = Promise.all(
-    puuids.map(async (puuid) => {
-      try {
-        return { puuid, game: await getActiveGame(puuid) };
-      } catch {
-        return { puuid, game: null };
-      }
-    })
-  );
+  // top. Same helper backs /api/live, the lighter poll target app/page.tsx uses
+  // every 60s so a full ladder reload isn't needed just to catch someone
+  // starting a game.
+  const activeGames = getLiveGamesByPuuid(puuids);
 
   const [
     [
@@ -144,7 +138,7 @@ export async function GET() {
       { data: matchRows, error: matchesError },
       { data: masteryRows, error: masteryError },
     ],
-    activeGameResults,
+    liveGameByPuuid,
   ] = await Promise.all([dbQueries, activeGames]);
 
   // A query error here (e.g. a migration that hasn't run yet — missing
@@ -158,20 +152,6 @@ export async function GET() {
     return NextResponse.json({ error: `Error leyendo datos de Supabase: ${dbError.message}` }, { status: 500 });
   }
 
-  const liveGameByPuuid = new Map<string, LiveGame>();
-  for (const { puuid, game } of activeGameResults) {
-    if (!game) continue;
-    const me = game.participants.find((p) => p.puuid === puuid);
-    if (!me) continue;
-    const champ = await championNameById(me.championId);
-    if (!champ) continue;
-    liveGameByPuuid.set(puuid, {
-      champion: champ,
-      queueLabel: queueLabelFromId(game.gameQueueConfigId),
-      startedMinutesAgo: Math.floor(game.gameLength / 60),
-    });
-  }
-
   const masteryPoolByPuuid = new Map<string, MasteryEntry[]>();
   for (const row of masteryRows ?? []) {
     const arr = masteryPoolByPuuid.get(row.puuid) ?? [];
@@ -179,7 +159,6 @@ export async function GET() {
     masteryPoolByPuuid.set(row.puuid, arr);
   }
 
-  const sparkByPuuid = new Map<string, number[]>();
   const lpHistoryByPuuid = new Map<string, LpHistoryPoint[]>();
   // Snapshots come ordered captured_at ascending, so the last .set() for a
   // puuid here is always its most recent Flex snapshot — no separate query.
@@ -195,10 +174,6 @@ export async function GET() {
       });
       continue;
     }
-
-    const arr = sparkByPuuid.get(row.puuid) ?? [];
-    arr.push(row.lp);
-    sparkByPuuid.set(row.puuid, arr);
 
     const history = lpHistoryByPuuid.get(row.puuid) ?? [];
     history.push({
@@ -504,8 +479,6 @@ export async function GET() {
 
   const players: Player[] = (ladderRows ?? []).map((row): Player => {
     const lp = row.lp ?? 0;
-    const spark = sparkByPuuid.get(row.puuid) ?? [];
-    const spark20 = spark.length >= 2 ? spark.slice(-20) : [lp, lp];
     const history = lpHistoryByPuuid.get(row.puuid) ?? [];
     const wins = row.wins ?? 0;
     const losses = row.losses ?? 0;
@@ -517,14 +490,13 @@ export async function GET() {
       wins,
       losses,
     };
-    // Needs >=2 points same as spark20 — a single point can't compute a step
-    // between x-coordinates (division by zero) in lineAreaGeometry().
+    // Needs >=2 points — a single point can't compute a step between
+    // x-coordinates (division by zero) in lineAreaGeometry().
     const lpHistory: LpHistoryPoint[] = history.length >= 2 ? history.slice(-20) : [fallbackPoint, fallbackPoint];
     // Peak looks at the FULL stored history, not just the last-20 window shown
     // in the chart — otherwise an old high climbed months ago would drop out.
     const peakLp = peakFromHistory(history.length > 0 ? history : [fallbackPoint]);
     const matches = matchesByPuuid.get(row.puuid) ?? [];
-    const seed = seedFromPuuid(row.puuid);
 
     return {
       name: row.game_name,
@@ -536,11 +508,9 @@ export async function GET() {
       lp,
       wins,
       losses,
-      seed,
-      drift: 0,
       mainChamp: row.main_champ ?? mostPlayedChamp(row.puuid) ?? "—",
       profileIconUrl: row.profile_icon_id != null ? profileIconUrl(ddragonVersion, row.profile_icon_id) : null,
-      spark20,
+      summonerLevel: row.summoner_level,
       lpHistory,
       peakLp,
       flexRank: flexByPuuid.get(row.puuid) ?? null,

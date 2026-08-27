@@ -1,6 +1,6 @@
 /**
  * Fortalezas/debilidades — comparación del jugador contra el promedio real de
- * su rol (computeRoleAverages en mock-data.ts), no una calificación inventada.
+ * su rol (computeRoleAverages en lib/ladder.ts), no una calificación inventada.
  * Marcado explícitamente como "insight calculado" en la UI, separado de los
  * datos crudos, por la regla de no mezclar ambas cosas.
  */

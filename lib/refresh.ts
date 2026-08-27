@@ -13,7 +13,7 @@ import { extractTimelineStats } from "./timeline";
 
 type SupabaseClient = ReturnType<typeof getSupabaseServerClient>;
 
-/** Minimum time between Riot API pulls for the same summoner via the manual "Actualizar ahora" button. */
+/** Minimum time between Riot API pulls for the same summoner via the manual POST /api/refresh (no UI button — the cron every ~15min is what actually keeps the ladder fresh, see app/api/cron/refresh/route.ts). */
 export const MANUAL_REFRESH_COOLDOWN_MS = 2 * 60 * 1000;
 
 /**
@@ -261,19 +261,24 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string): Promi
       await supabase.from("champion_mastery").insert(rows);
     }
   } catch {
-    // ignore — main_champ falls back to lib/mock-data.ts's most-played-in-stored-matches logic,
+    // ignore — main_champ falls back to app/api/ladder/route.ts's most-played-in-stored-matches logic,
     // masteryPool just stays whatever it already was (or empty)
   }
 
   // Real Riot profile icon for the profile header avatar, instead of the
-  // champion-initials placeholder. Non-fatal: keep whatever icon was already
-  // stored (or none) if Summoner-V4 has a hiccup — but surface WHY instead of
-  // swallowing it silently, since a silent failure here looked from the
-  // outside like "the feature just doesn't work for this player" with no way
-  // to tell a real error (rate limit, bad puuid) from "not refreshed yet".
+  // champion-initials placeholder — plus summonerLevel, which rides along in
+  // the exact same Summoner-V4 response at no extra Riot cost. Non-fatal:
+  // keep whatever was already stored (or none) if Summoner-V4 has a hiccup —
+  // but surface WHY instead of swallowing it silently, since a silent failure
+  // here looked from the outside like "the feature just doesn't work for this
+  // player" with no way to tell a real error (rate limit, bad puuid) from
+  // "not refreshed yet".
   try {
     const summoner = await getSummonerByPuuid(puuid);
-    await supabase.from("summoners").update({ profile_icon_id: summoner.profileIconId }).eq("puuid", puuid);
+    await supabase
+      .from("summoners")
+      .update({ profile_icon_id: summoner.profileIconId, summoner_level: summoner.summonerLevel })
+      .eq("puuid", puuid);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     warnings.push(`profile icon: ${message}`);
@@ -311,9 +316,9 @@ const REFRESH_CONCURRENCY = 4;
 
 /**
  * Refreshes every tracked summoner. With `onlyStale`, skips anyone refreshed
- * more recently than MANUAL_REFRESH_COOLDOWN_MS — used by the user-triggered
- * "Actualizar ahora" button so repeated clicks (or several friends clicking
- * at once) can't burn through the personal API key's rate limit.
+ * more recently than MANUAL_REFRESH_COOLDOWN_MS — used by the manual
+ * POST /api/refresh so repeated calls (or several friends triggering it at
+ * once) can't burn through the personal API key's rate limit.
  */
 export async function refreshAllSummoners(
   supabase: SupabaseClient,

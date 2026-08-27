@@ -1,5 +1,5 @@
 import type { MasteryEntry } from "@/lib/types";
-import { champTag } from "@/lib/mock-data";
+import { champTag } from "@/lib/ladder";
 
 /**
  * Riot's mastery system has no level cap anymore (used to top out at M7) —

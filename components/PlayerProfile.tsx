@@ -12,7 +12,7 @@ import {
   trendColor,
   nextDivisionInfo,
   rankScore,
-} from "@/lib/mock-data";
+} from "@/lib/ladder";
 import { SparkChart } from "./SparkChart";
 import { StreakIcon } from "./StreakIcon";
 import { MatchDetail } from "./MatchDetail";
@@ -276,6 +276,7 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
               ) : (
                 champTag(p.mainChamp)
               )}
+              {p.summonerLevel != null && <span className="profile-level-badge">{p.summonerLevel}</span>}
             </div>
             <div>
               <p className="profile-name">
@@ -448,7 +449,7 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
               {!hasMatches && (
                 <div className="empty-state">
                   <strong>Sin partidas guardadas todavía</strong>
-                  Van a aparecer acá después del próximo refresh (cron diario o &ldquo;Actualizar ahora&rdquo;).
+                  Van a aparecer acá solas después del próximo refresh automático (corre cada 15 minutos).
                 </div>
               )}
               {p.matches.map((m, i) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { DuoPair, Player, RoleKey } from "@/lib/types";
+import type { DuoPair, LiveGame, Player, RoleKey } from "@/lib/types";
 import { TopBar, type AddStatus } from "@/components/TopBar";
 import { TabNav, type TabKey } from "@/components/TabNav";
 import { LadderTable, playerKey, type SortKey } from "@/components/LadderTable";
@@ -51,19 +51,35 @@ export default function Home() {
     loadLadder();
   }, [loadLadder]);
 
+  const refreshLiveStatus = useCallback(async () => {
+    // The "en vivo ahora" banner comes from Spectator V5 — without polling it,
+    // a friend who starts a game 2 minutes into someone's browsing session
+    // never shows as live until the page is reloaded. This used to just call
+    // loadLadder() again every 60s, which re-fetched and re-aggregated the
+    // ENTIRE ladder (matches, LP history, mastery, duo synergy) purely to
+    // catch this one small thing changing. /api/live is a lighter sibling
+    // that returns nothing but live-game status, merged into the existing
+    // players in place.
+    try {
+      const res = await fetch("/api/live");
+      const data = await res.json();
+      if (!res.ok) return;
+      const live = (data.live as Record<string, LiveGame>) ?? {};
+      setPlayers((prev) => prev.map((p) => ({ ...p, liveGame: live[playerKey(p)] ?? null })));
+    } catch {
+      // best-effort — a failed poll just means the banner stays as it was until the next tick
+    }
+  }, []);
+
   useEffect(() => {
-    // The "en vivo ahora" banner comes from Spectator V5, checked fresh on every
-    // /api/ladder read (see app/api/ladder/route.ts) — but without this, a
-    // friend who starts a game 2 minutes into someone's browsing session never
-    // shows as live until they click "Actualizar ahora" or reload the page.
     // Paused while the tab is hidden so a forgotten background tab doesn't
     // quietly poll Spectator V5 for everyone once a minute forever.
     const POLL_MS = 60_000;
     const interval = setInterval(() => {
-      if (document.visibilityState === "visible") loadLadder();
+      if (document.visibilityState === "visible") refreshLiveStatus();
     }, POLL_MS);
     return () => clearInterval(interval);
-  }, [loadLadder]);
+  }, [refreshLiveStatus]);
 
   const activePlayer = players.find((p) => playerKey(p) === activeKey) ?? null;
 

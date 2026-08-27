@@ -1,5 +1,5 @@
 import type { ChampionPoolEntry } from "@/lib/types";
-import { champTag } from "@/lib/mock-data";
+import { champTag } from "@/lib/ladder";
 
 /**
  * "Campeones más jugados" — agregado sobre TODAS las partidas guardadas del

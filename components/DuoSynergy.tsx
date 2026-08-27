@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { DuoPair } from "@/lib/types";
-import { ROLES, formatRelativeDate, champTag } from "@/lib/mock-data";
+import { ROLES, formatRelativeDate, champTag } from "@/lib/ladder";
 import { RoleIcon } from "./RoleIcon";
 
 type DuoSortKey = "games" | "winrate";

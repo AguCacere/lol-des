@@ -1,5 +1,5 @@
 import type { Match } from "@/lib/types";
-import { formatRelativeDate } from "@/lib/mock-data";
+import { formatRelativeDate } from "@/lib/ladder";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
 
