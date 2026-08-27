@@ -293,7 +293,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .wr-streak.l{color:var(--critical);}
 .wr-streak svg{width:9px; height:9px; flex:none;}
 .col-spark{display:flex; flex-direction:column; gap:2px;}
-.col-spark svg{display:block; width:100%; height:28px; transition:filter .18s ease;}
+.col-spark svg{display:block; width:100%; height:40px; transition:filter .18s ease;}
 /* Row hover gives the sparkline itself a very slight lift — line, endpoint dot and its halo all brighten together, nothing redraws or resizes. */
 .ladder-row:hover .col-spark svg{filter:brightness(1.12);}
 .col-chevron{color:var(--text-muted); display:flex; justify-content:flex-end;}

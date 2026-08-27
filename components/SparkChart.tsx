@@ -139,6 +139,13 @@ export function SparkChart({
           118px detailed chart where the same treatment stays unobtrusive).
         */}
         {detailed && <path d={area} fill={`url(#${gid})`} stroke="none" />}
+        {/*
+          Compact skips the blur filter on the line itself entirely — a
+          Gaussian blur (even a small one) softens the stroke's own edges,
+          which at this small size read as "blurry/low-res" rather than as a
+          glow. The little halo ring around the endpoint dot below is a plain
+          crisp stroke, no filter, and is enough depth on its own.
+        */}
         <path
           d={line}
           fill="none"
@@ -146,7 +153,7 @@ export function SparkChart({
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeLinejoin={lineJoin}
-          filter={`url(#${gid}-glow)`}
+          filter={detailed ? `url(#${gid}-glow)` : undefined}
         />
         {/*
           Every real snapshot gets its own dot in the detailed variant — with
