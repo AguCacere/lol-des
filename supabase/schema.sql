@@ -37,9 +37,17 @@ create index if not exists lp_snapshots_puuid_captured_idx
   on lp_snapshots (puuid, captured_at desc);
 
 -- Partidas ya procesadas. La clave es evitar pedirle la misma partida a Riot
--- dos veces — antes de llamar a Match-V5 por un matchId, fijarse si ya existe acá.
+-- dos veces — antes de llamar a Match-V5 por un matchId, fijarse si ya existe acá
+-- PARA ESE puuid puntual (ver lib/refresh.ts). match_id solo no alcanza como
+-- primary key: una partida trae hasta 10 jugadores, y si dos amigos
+-- trackeados están en la misma partida, cada uno necesita su propia fila
+-- (kills/deaths/cs/etc. son por jugador). Con match_id como PK única, el
+-- segundo jugador de esa partida compartida chocaba contra la fila que ya
+-- había insertado el primero — el insert tiraba duplicate key, refreshOne
+-- abortaba ahí mismo, y todo lo que venía después en esa misma corrida
+-- (maestría, ícono de perfil) nunca llegaba a correr para ese jugador.
 create table if not exists matches (
-  match_id      text primary key,
+  match_id      text not null,
   puuid         text not null references summoners(puuid) on delete cascade,
   champion      text not null,
   win           boolean not null,
@@ -87,7 +95,8 @@ create table if not exists matches (
   team_position text,          -- TOP/JUNGLE/MIDDLE/BOTTOM/UTILITY
   game_duration_s int not null,
   played_at     timestamptz not null,
-  inserted_at   timestamptz not null default now()
+  inserted_at   timestamptz not null default now(),
+  primary key (match_id, puuid)
 );
 create index if not exists matches_puuid_played_idx
   on matches (puuid, played_at desc);
