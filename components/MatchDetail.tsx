@@ -21,14 +21,17 @@ function formatMmSs(totalSeconds: number): string {
 function Stat({
   label,
   tooltip,
+  wide,
   children,
 }: {
   label: string;
   tooltip?: string;
+  /** Spans the full grid row — for a MiniBreakdown with enough items that it wraps raggedly in a normal single-column cell. */
+  wide?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <div className="match-detail-stat">
+    <div className={`match-detail-stat${wide ? " wide" : ""}`}>
       <span className="k">
         {label}
         {tooltip && <InfoTip text={tooltip} />}
@@ -137,7 +140,7 @@ export function MatchDetail({ match }: { match: Match }) {
             ]}
           />
         </Stat>
-        <Stat label="Objetivos personales">
+        <Stat label="Objetivos personales" wide>
           <MiniBreakdown
             items={[
               { value: m.turretKills, label: "torres" },

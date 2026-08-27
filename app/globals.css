@@ -570,7 +570,13 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   display:block; margin-top:1px;
   font-family:var(--font-mono); font-weight:400; color:var(--text-muted); font-size:10.5px; letter-spacing:0;
 }
-.mini-breakdown{display:flex; flex-wrap:wrap; gap:2px 10px;}
+.match-detail-stat.wide{grid-column:1 / -1;}
+/* grid, not flex-wrap: flex-wrap breaks items onto the next line purely by
+   available width, which produced a ragged, uneven 2-then-2 (or 3-then-1)
+   layout depending on how wide each item's text happened to be. A fixed
+   column count lines every item up cleanly regardless of label length. */
+.mini-breakdown{display:grid; grid-template-columns:repeat(4, auto); gap:4px 16px; justify-content:start;}
+@media (max-width:480px){.mini-breakdown{grid-template-columns:repeat(2, auto);}}
 .mini-breakdown-item{font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted); white-space:nowrap; display:inline-flex; align-items:center;}
 .mini-breakdown-icon{width:12px; height:12px; margin-right:3px; flex:none;}
 .mini-breakdown-item strong{
