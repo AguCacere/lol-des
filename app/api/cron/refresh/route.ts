@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { refreshAllSummoners } from "@/lib/refresh";
 
@@ -7,9 +7,18 @@ export const maxDuration = 300;
 
 /**
  * GET /api/cron/refresh — pulls fresh LP + match data for every tracked
- * summoner and appends it to Supabase. Scheduled via vercel.json's `crons`;
- * Vercel calls this with `Authorization: Bearer $CRON_SECRET`, checked below
- * (see https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs).
+ * summoner and appends it to Supabase. Triggered by an external scheduler
+ * (originally meant for Vercel's own `crons` in vercel.json, but Vercel's
+ * Hobby plan only allows once-a-day cron — a free third-party scheduler
+ * like cron-job.org fills the gap for a shorter interval) with
+ * `Authorization: Bearer $CRON_SECRET`, checked below.
+ *
+ * Responds immediately and does the actual refresh in the background via
+ * `after()` — cheap external schedulers (cron-job.org's free tier, e.g.)
+ * cap how long THEY wait for a response at 30s, well under how long a full
+ * refresh can take. `after()` keeps the underlying Vercel function alive
+ * for up to `maxDuration` regardless of whether the caller is still
+ * listening, so the caller's own timeout no longer matters.
  */
 export async function GET(req: Request) {
   const authHeader = req.headers.get("authorization");
@@ -25,11 +34,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 
-  try {
-    const results = await refreshAllSummoners(supabase);
-    return NextResponse.json({ results });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "No se pudo refrescar.";
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+  after(async () => {
+    try {
+      const results = await refreshAllSummoners(supabase);
+      console.log("cron refresh done:", results);
+    } catch (err) {
+      console.error("cron refresh failed:", err instanceof Error ? err.message : err);
+    }
+  });
+
+  return NextResponse.json({ status: "started" });
 }
