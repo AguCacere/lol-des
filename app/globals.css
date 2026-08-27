@@ -576,13 +576,23 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   display:block; margin-top:1px;
   font-family:var(--font-mono); font-weight:400; color:var(--text-muted); font-size:10.5px; letter-spacing:0;
 }
-.match-detail-stat.wide{grid-column:1 / -1;}
-/* grid, not flex-wrap: flex-wrap breaks items onto the next line purely by
-   available width, which produced a ragged, uneven 2-then-2 (or 3-then-1)
-   layout depending on how wide each item's text happened to be. A fixed
-   column count lines every item up cleanly regardless of label length. */
-.mini-breakdown{display:grid; grid-template-columns:repeat(4, auto); gap:4px 16px; justify-content:start;}
-@media (max-width:480px){.mini-breakdown{grid-template-columns:repeat(2, auto);}}
+/* min-width:0 so this spanning cell's own content (mini-breakdown below)
+   can never force the whole match-detail-grid — and everything nested
+   inside it up to the card and profile panel — wider than the card. A
+   grid item's min-width defaults to auto (= its content's natural size),
+   which silently overflowed the card before this. */
+.match-detail-stat.wide{grid-column:1 / -1; min-width:0;}
+/* Tried a fixed-column grid (repeat(4, auto)) to fix raggedness, then two
+   auto-fit/minmax variants to fix the overflow that caused — all three
+   grid attempts either overflowed the card or rendered items overlapping
+   (CSS Grid track sizing here turned out too fragile for a row of
+   variable-width chips). flex-wrap is simple and structurally can't do
+   either: each item keeps its own natural width, and extra items move to
+   a new line instead of squeezing into or spilling out of a shared track.
+   The tradeoff is back to uneven wrapping (an item with 2-3 dragon icons
+   is wider, so it may break the row sooner) — cosmetic raggedness beats
+   overlapping or clipped text every time. */
+.mini-breakdown{display:flex; flex-wrap:wrap; gap:4px 16px;}
 .mini-breakdown-item{font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted); white-space:nowrap; display:inline-flex; align-items:center;}
 .mini-breakdown-icon{width:12px; height:12px; margin-right:3px; flex:none;}
 .mini-breakdown-item strong{
