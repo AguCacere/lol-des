@@ -135,7 +135,7 @@ export function MatchDetail({ match }: { match: Match }) {
           <MiniBreakdown
             items={[
               { value: m.wardsPlaced, label: "puestas" },
-              { value: m.wardsKilled, label: "sacadas" },
+              { value: m.wardsKilled, label: "limpiados" },
               { value: m.controlWards, label: "control" },
             ]}
           />
