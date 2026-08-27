@@ -79,7 +79,23 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string): Promi
   for (const matchId of matchIds) {
     if (known.has(matchId)) continue;
 
-    const match = await getMatchById(matchId);
+    let match: Awaited<ReturnType<typeof getMatchById>>;
+    try {
+      match = await getMatchById(matchId);
+    } catch (err) {
+      // Riot sometimes lists a match id (via the ids endpoint) slightly before
+      // the full match detail is actually fetchable — a transient 404/5xx here
+      // used to blow up the WHOLE refresh for this player (no try/catch), which
+      // meant every later matchId, champion mastery, and the profile icon never
+      // ran either. Worse: since the match never got marked known, the NEXT
+      // cron cycle hit the exact same not-yet-ready match first and failed
+      // identically — a brand-new match could get stuck failing forever
+      // instead of just needing one more cron tick once Riot caught up.
+      const message = err instanceof Error ? err.message : String(err);
+      warnings.push(`match ${matchId}: ${message}`);
+      console.error(`refreshOne(${puuid}): match ${matchId} fetch failed —`, message);
+      continue;
+    }
     const me = match.info.participants.find((p) => p.puuid === puuid);
     if (!me) continue;
 
