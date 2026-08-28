@@ -4,6 +4,7 @@ import { RoleIcon } from "./RoleIcon";
 import { StreakIcon } from "./StreakIcon";
 import { SparkChart } from "./SparkChart";
 import { ChampIcon } from "./ChampIcon";
+import { TierEmblem } from "./TierEmblem";
 
 export type SortKey = "ladder" | "winrate" | "wins" | "streak" | "recent";
 
@@ -239,10 +240,7 @@ export function LadderTable({
                     </span>
                   </span>
                   <span className="col-tier">
-                    <span className="tier-badge" style={{ background: t.bg, color: t.fg }}>
-                      {t.name[0]}
-                      {p.division}
-                    </span>
+                    <TierEmblem tierKey={p.tierKey} division={p.division} />
                     <span className="tier-text">
                       <span className="tier-name" style={{ color: t.fg }}>
                         {t.name} {p.division}

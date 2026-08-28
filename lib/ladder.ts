@@ -32,6 +32,18 @@ export function tierFor(key: TierKey): Tier {
   return TIERS.find((t) => t.key === key)!;
 }
 
+/**
+ * Real Riot rank emblem art, keyed by TierKey. Not Data Dragon — Riot's
+ * official CDN doesn't publish these under any documented endpoint. Community
+ * Dragon (a long-established, widely-used mirror of Riot's game assets — the
+ * same source most third-party trackers pull rank emblems from) does.
+ * "master" also covers Grandmaster/Challenger here, same fold TierKey
+ * already makes everywhere else in this app.
+ */
+export function rankEmblemUrl(tierKey: TierKey): string {
+  return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblems/emblem-${tierKey}.png`;
+}
+
 /** division 1 (Riot's "I") outranks division 4 ("IV") within the same tier. */
 export function rankScore(tierKey: TierKey, division: number, lp: number): number {
   return tierFor(tierKey).rank * 400 + (5 - division) * 100 + lp;

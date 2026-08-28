@@ -334,6 +334,12 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   display:flex; align-items:center; justify-content:center;
   font-family:var(--font-display); font-weight:700; font-size:12px;
 }
+/* Real emblem crest — a bit bigger than the flat text-badge fallback since
+   the art has fine detail that reads as mud at 30px, and no background/
+   radius/color: the crest is its own irregular shape with its own colors
+   baked in, not a flat tinted square. */
+.tier-badge.tier-badge-real{width:38px; height:38px; border-radius:0; background:none;}
+.tier-badge-real img{width:100%; height:100%; object-fit:contain; display:block;}
 .tier-text{line-height:1.25;}
 .tier-name{display:block; font-size:12.5px; font-weight:700;}
 .tier-lp{display:block; font-family:var(--font-mono); font-size:11px; color:var(--text-muted);}
