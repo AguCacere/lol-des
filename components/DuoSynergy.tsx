@@ -5,25 +5,9 @@ import type { DuoPair } from "@/lib/types";
 import { ROLES, formatRelativeDate } from "@/lib/ladder";
 import { RoleIcon } from "./RoleIcon";
 import { ChampIcon } from "./ChampIcon";
+import { PlayerAvatar } from "./PlayerAvatar";
 
 type DuoSortKey = "games" | "winrate";
-
-function initials(name: string): string {
-  return name.slice(0, 2).toUpperCase();
-}
-
-function DuoAvatar({ name, iconUrl, className }: { name: string; iconUrl: string | null; className: string }) {
-  return (
-    <span className={className}>
-      {iconUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- one small fixed-size avatar, not worth next/image's config for an external CDN
-        <img src={iconUrl} alt="" className="duo-avatar-img" />
-      ) : (
-        initials(name)
-      )}
-    </span>
-  );
-}
 
 /** One side of the expanded "perfil del dúo" — how THIS player specifically did in the games they shared with their partner, not their overall career stats. */
 function DuoPlayerStat({
@@ -43,7 +27,7 @@ function DuoPlayerStat({
 }) {
   return (
     <div className="duo-detail-player">
-      <DuoAvatar name={name} iconUrl={iconUrl} className="duo-avatar" />
+      <PlayerAvatar name={name} iconUrl={iconUrl} className="duo-avatar" />
       <div className="duo-detail-mid">
         <span className="duo-detail-name">
           {name} <span className="player-tag">#{tag}</span>
@@ -67,8 +51,8 @@ function DuoRow({ p, ddragonVersion }: { p: DuoPair; ddragonVersion: string | nu
     <div className="duo-item">
       <button type="button" className={`duo-row${expanded ? " is-expanded" : ""}`} onClick={() => setExpanded((v) => !v)}>
         <div className="duo-avatars">
-          <DuoAvatar name={p.aName} iconUrl={p.aProfileIconUrl} className="duo-avatar" />
-          <DuoAvatar name={p.bName} iconUrl={p.bProfileIconUrl} className="duo-avatar duo-avatar-b" />
+          <PlayerAvatar name={p.aName} iconUrl={p.aProfileIconUrl} className="duo-avatar" />
+          <PlayerAvatar name={p.bName} iconUrl={p.bProfileIconUrl} className="duo-avatar duo-avatar-b" />
         </div>
         <div className="duo-mid">
           <span className="duo-names">

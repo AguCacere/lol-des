@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { DuoPair, LiveGame, Player, RoleKey } from "@/lib/types";
+import type { ChampionLeaderboardEntry, DuoPair, LiveGame, Player, RoleKey } from "@/lib/types";
 import { TopBar, type AddStatus } from "@/components/TopBar";
 import { TabNav, type TabKey } from "@/components/TabNav";
 import { LadderTable, playerKey, type SortKey } from "@/components/LadderTable";
 import { PlayerProfile } from "@/components/PlayerProfile";
 import { DuoSynergy } from "@/components/DuoSynergy";
+import { TopWinrate } from "@/components/TopWinrate";
+import { ChampionWinrateLeaderboard } from "@/components/ChampionWinrateLeaderboard";
 
 function parseRiotId(raw: string): { gameName: string; tagLine: string } | null {
   const i = raw.indexOf("#");
@@ -17,6 +19,7 @@ function parseRiotId(raw: string): { gameName: string; tagLine: string } | null 
 export default function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [duoSynergy, setDuoSynergy] = useState<DuoPair[]>([]);
+  const [championLeaderboard, setChampionLeaderboard] = useState<ChampionLeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [ddragonVersion, setDdragonVersion] = useState<string | null>(null);
@@ -36,6 +39,7 @@ export default function Home() {
       if (!res.ok) throw new Error(data.error ?? "No se pudo cargar el ladder.");
       setPlayers(data.players as Player[]);
       setDuoSynergy((data.duoSynergy as DuoPair[]) ?? []);
+      setChampionLeaderboard((data.championLeaderboard as ChampionLeaderboardEntry[]) ?? []);
       setLastUpdated((data.lastUpdated as string | null) ?? null);
       setDdragonVersion((data.ddragonVersion as string | null) ?? null);
       setLoadError(null);
@@ -165,8 +169,9 @@ export default function Home() {
         </div>
       ) : (
         <div id="view-stats">
+          <TopWinrate players={players} />
+          <ChampionWinrateLeaderboard entries={championLeaderboard} ddragonVersion={ddragonVersion} />
           <DuoSynergy pairs={duoSynergy} loading={loading} ddragonVersion={ddragonVersion} />
-          <p className="stats-more-note">Más analíticas de grupo (campeón más jugado, KDA promedio) van a sumarse acá.</p>
         </div>
       )}
 

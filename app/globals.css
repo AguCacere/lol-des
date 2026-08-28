@@ -574,6 +574,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .champ-pool-wr.good{color:var(--good);}
 .champ-pool-wr.bad{color:var(--critical);}
 .champ-pool-kda{font-family:var(--font-mono); font-size:11px; color:var(--text-muted); white-space:nowrap;}
+/* Leaderboard-style champ-pool-row usages (Mayor winrate, Mayor winrate por
+   campeón) prepend a rank number before the avatar(s) — same treatment as
+   the ladder's own #1/#2/#3 column. */
+.leaderboard-rank{font-family:var(--font-mono); color:var(--text-muted); font-size:12px; width:14px; flex:none; text-align:center;}
+/* A player avatar peeking out from behind the champion icon it's paired
+   with — the champion is the headline of this row, the player is context,
+   so it stays small and overlapping rather than competing for space. */
+.leaderboard-mini-avatar{width:18px; height:18px; border-radius:5px; margin-left:-8px; font-size:8px;}
 .champ-pool-empty{
   font-size:11.5px; color:var(--text-muted); line-height:1.5;
   background:var(--surface-raised); border-radius:var(--radius-sm); padding:12px 14px;
@@ -823,7 +831,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .duo-wr.good{color:var(--good);}
 .duo-wr.bad{color:var(--critical);}
 .duo-record{font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted);}
-.stats-more-note{margin:18px 2px 0; font-size:11.5px; color:var(--text-muted); line-height:1.5;}
 
 .footnote{
   margin-top:34px; padding-top:18px; border-top:1px solid var(--border-soft);

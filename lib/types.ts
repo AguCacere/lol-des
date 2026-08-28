@@ -152,6 +152,28 @@ export interface DuoPair {
   bMainChamp: string | null;
 }
 
+/**
+ * One (player, champion) entry in the "Mayor winrate por campeón" leaderboard
+ * — real winrate on that specific champion across ALL of that player's
+ * stored matches, not just their top-5-by-games champion pool (a champion
+ * can clear the leaderboard's games threshold without being in a player's
+ * own most-played list, in principle, if they have several champs with even
+ * more games each). The same player can appear more than once if they
+ * qualify on multiple champions — this is a champion leaderboard, not a
+ * per-player one.
+ */
+export interface ChampionLeaderboardEntry {
+  playerName: string;
+  playerTag: string;
+  profileIconUrl: string | null;
+  champion: string;
+  games: number;
+  wins: number;
+  losses: number;
+  winrate: number;
+  avgKda: number;
+}
+
 export interface Player {
   name: string;
   tag: string;

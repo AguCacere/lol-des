@@ -4,7 +4,7 @@ import { peakFromHistory, tierScore } from "@/lib/ladder";
 import { divisionFromRiot, normalizeRole, roleFromTeamPosition, tierKeyFromRiot } from "@/lib/mapping";
 import { getLiveGamesByPuuid } from "@/lib/live";
 import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
-import type { ChampionPoolEntry, DuoPair, FlexRank, LpHistoryPoint, MasteryEntry, Match, Player, RoleKey } from "@/lib/types";
+import type { ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, FlexRank, LpHistoryPoint, MasteryEntry, Match, Player, RoleKey } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -100,7 +100,7 @@ export async function GET() {
 
   const puuids = (ladderRows ?? []).map((r) => r.puuid);
   if (puuids.length === 0) {
-    return NextResponse.json({ players: [], duoSynergy: [] });
+    return NextResponse.json({ players: [], duoSynergy: [], championLeaderboard: [] });
   }
 
   const dbQueries = Promise.all([
@@ -335,18 +335,44 @@ export async function GET() {
       .slice(0, 5);
   }
 
+  const CHAMPION_LEADERBOARD_MIN_GAMES = 50;
+  const CHAMPION_LEADERBOARD_SIZE = 7;
+
+  /**
+   * "Mayor winrate por campeón" — top 7 (jugador, campeón) por winrate,
+   * exigiendo al menos CHAMPION_LEADERBOARD_MIN_GAMES partidas CON ESE
+   * CAMPEÓN específico (no partidas totales del jugador). Un mismo jugador
+   * puede aparecer más de una vez si tiene varios campeones que califican —
+   * es un ranking de campeones, no de jugadores. Recorre TODO
+   * champStatsByPuuid, no el top-5-por-partidas de championPool(): un
+   * campeón puede superar el piso de partidas de este ranking sin ser el
+   * más jugado de ese jugador.
+   */
+  function computeChampionLeaderboard(): ChampionLeaderboardEntry[] {
+    const entries: ChampionLeaderboardEntry[] = [];
+    for (const [puuid, champStats] of champStatsByPuuid) {
+      const player = nameByPuuid.get(puuid);
+      if (!player) continue;
+      for (const [champ, s] of champStats) {
+        if (s.games < CHAMPION_LEADERBOARD_MIN_GAMES) continue;
+        entries.push({
+          playerName: player.name,
+          playerTag: player.tag,
+          profileIconUrl: player.profileIconUrl,
+          champion: champ,
+          games: s.games,
+          wins: s.wins,
+          losses: s.games - s.wins,
+          winrate: Math.round((100 * s.wins) / s.games),
+          avgKda: Number(((s.kSum + s.aSum) / Math.max(1, s.dSum)).toFixed(2)),
+        });
+      }
+    }
+    return entries.sort((a, b) => b.winrate - a.winrate).slice(0, CHAMPION_LEADERBOARD_SIZE);
+  }
+
   /** Pairs of tracked players who were teammates in at least one stored match, ranked by games together. */
   function computeDuoSynergy(): DuoPair[] {
-    const nameByPuuid = new Map(
-      (ladderRows ?? []).map((r) => [
-        r.puuid,
-        {
-          name: r.game_name,
-          tag: r.tag_line,
-          profileIconUrl: r.profile_icon_id != null ? profileIconUrl(ddragonVersion, r.profile_icon_id) : null,
-        },
-      ])
-    );
     interface DuoPlayerAgg {
       kSum: number;
       dSum: number;
@@ -477,6 +503,20 @@ export async function GET() {
   // lookup once per row.
   const ddragonVersion = await getLatestVersion();
 
+  // Shared by computeDuoSynergy() and computeChampionLeaderboard() below —
+  // both need "which name/tag/avatar goes with this puuid" and neither
+  // should compute it separately.
+  const nameByPuuid = new Map(
+    (ladderRows ?? []).map((r) => [
+      r.puuid,
+      {
+        name: r.game_name,
+        tag: r.tag_line,
+        profileIconUrl: r.profile_icon_id != null ? profileIconUrl(ddragonVersion, r.profile_icon_id) : null,
+      },
+    ])
+  );
+
   const players: Player[] = (ladderRows ?? []).map((row): Player => {
     const lp = row.lp ?? 0;
     const history = lpHistoryByPuuid.get(row.puuid) ?? [];
@@ -536,5 +576,11 @@ export async function GET() {
   // components/ChampIcon.tsx) instead of every champion chip needing its own
   // resolved icon URL computed server-side — one version string covers all
   // of them, same as profileIconUrl already does per-player above.
-  return NextResponse.json({ players, duoSynergy: computeDuoSynergy(), lastUpdated, ddragonVersion });
+  return NextResponse.json({
+    players,
+    duoSynergy: computeDuoSynergy(),
+    championLeaderboard: computeChampionLeaderboard(),
+    lastUpdated,
+    ddragonVersion,
+  });
 }
