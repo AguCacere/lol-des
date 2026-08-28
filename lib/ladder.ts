@@ -33,15 +33,19 @@ export function tierFor(key: TierKey): Tier {
 }
 
 /**
- * Real Riot rank emblem art, keyed by TierKey. Not Data Dragon — Riot's
- * official CDN doesn't publish these under any documented endpoint. Community
- * Dragon (a long-established, widely-used mirror of Riot's game assets — the
- * same source most third-party trackers pull rank emblems from) does.
- * "master" also covers Grandmaster/Challenger here, same fold TierKey
- * already makes everywhere else in this app.
+ * Real Riot rank emblem art, keyed by TierKey. Local files under
+ * public/icons/ranks/ — same pattern as the role badges (public/icons/roles)
+ * and dragon icons (public/icons/dragons), uploaded straight into the repo
+ * instead of pulled from a CDN. This used to point at Community Dragon (a
+ * community mirror of Riot's game assets); dropped after it turned out
+ * unreliable in practice (worked once, then 404'd) — a third-party CDN this
+ * app doesn't control isn't worth the flakiness when local files work every
+ * time. TierEmblem's existing image/text fallback means nothing breaks while
+ * a given tier's file is missing — it just shows the text badge until the
+ * file shows up here.
  */
 export function rankEmblemUrl(tierKey: TierKey): string {
-  return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblems/emblem-${tierKey}.png`;
+  return `/icons/ranks/${tierKey}.png`;
 }
 
 /** division 1 (Riot's "I") outranks division 4 ("IV") within the same tier. */
