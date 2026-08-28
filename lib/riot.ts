@@ -73,9 +73,9 @@ export function getLeagueEntriesByPuuid(puuid: string) {
   return riotFetch<RiotLeagueEntry[]>(url);
 }
 
-/** Match-V5 — most recent match ids for a puuid. Region-routed. Costs 0 extra calls per id. */
-export function getMatchIdsByPuuid(puuid: string, count = 20) {
-  const url = `https://${REGION}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=${count}&queue=420`; // 420 = ranked solo/duo
+/** Match-V5 — match ids for a puuid, paginated via `start`/`count` (Riot caps `count` at 100 per call). Region-routed. Costs 0 extra calls per id. */
+export function getMatchIdsByPuuid(puuid: string, count = 20, start = 0) {
+  const url = `https://${REGION}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=${start}&count=${count}&queue=420`; // 420 = ranked solo/duo
   return riotFetch<string[]>(url);
 }
 

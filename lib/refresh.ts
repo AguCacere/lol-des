@@ -56,6 +56,167 @@ async function upsertRankSnapshot(supabase: SupabaseClient, puuid: string, entry
   }
 }
 
+/**
+ * Fetches full detail + timeline for one matchId and inserts it into
+ * `matches`. Shared by refreshOne (last 20 ids, every ~15min) and
+ * backfillOne (much deeper one-time history pull) — the actual
+ * fetch/parse/insert logic is identical either way, only how the caller
+ * gets its list of matchIds differs. Returns a warning string if the match
+ * itself couldn't be fetched (transient Riot hiccup — non-fatal, caller just
+ * skips it and tries again next time), or null on success.
+ */
+async function fetchAndStoreMatch(supabase: SupabaseClient, puuid: string, matchId: string): Promise<string | null> {
+  let match: Awaited<ReturnType<typeof getMatchById>>;
+  try {
+    match = await getMatchById(matchId);
+  } catch (err) {
+    // Riot sometimes lists a match id (via the ids endpoint) slightly before
+    // the full match detail is actually fetchable — a transient 404/5xx here
+    // used to blow up the WHOLE refresh for this player (no try/catch), which
+    // meant every later matchId, champion mastery, and the profile icon never
+    // ran either. Worse: since the match never got marked known, the NEXT
+    // cron cycle hit the exact same not-yet-ready match first and failed
+    // identically — a brand-new match could get stuck failing forever
+    // instead of just needing one more cron tick once Riot caught up.
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`fetchAndStoreMatch(${puuid}): match ${matchId} fetch failed —`, message);
+    return `match ${matchId}: ${message}`;
+  }
+  const me = match.info.participants.find((p) => p.puuid === puuid);
+  if (!me) return null;
+
+  const teammates = match.info.participants.filter((p) => p.teamId === me.teamId);
+  const teamDamage = teammates.reduce((sum, p) => sum + p.totalDamageDealtToChampions, 0);
+  const teamKills = teammates.reduce((sum, p) => sum + p.kills, 0);
+  const teamObjDamage = teammates.reduce((sum, p) => sum + p.damageDealtToObjectives, 0);
+  const cs = me.totalMinionsKilled + me.neutralMinionsKilled;
+  const durationMin = match.info.gameDuration / 60;
+
+  // Runes travel in the same Match-V5 payload we already fetch — no extra Riot
+  // call. Name lookup is Data Dragon (keyless); non-fatal if it fails, we just
+  // store the match without rune names rather than losing the whole match.
+  let primaryRune: string | null = null;
+  let primaryStyle: string | null = null;
+  let secondaryStyle: string | null = null;
+  try {
+    const primaryStyleEntry = me.perks.styles.find((s) => s.description === "primaryStyle");
+    const subStyleEntry = me.perks.styles.find((s) => s.description === "subStyle");
+    const keystoneId = primaryStyleEntry?.selections[0]?.perk;
+    [primaryRune, primaryStyle, secondaryStyle] = await Promise.all([
+      keystoneId != null ? runeNameById(keystoneId) : Promise.resolve(null),
+      primaryStyleEntry ? runeNameById(primaryStyleEntry.style) : Promise.resolve(null),
+      subStyleEntry ? runeNameById(subStyleEntry.style) : Promise.resolve(null),
+    ]);
+  } catch {
+    // ignore — match still gets saved, just without rune names
+  }
+
+  // Riot computes these itself (challenges.*) — prefer them over our own
+  // team-pool math when present, per your ask to replace duplicated logic.
+  // Not guaranteed on every match (older games, edge cases), so fall back.
+  const dmgShare =
+    me.challenges?.teamDamagePercentage != null
+      ? Number((me.challenges.teamDamagePercentage * 100).toFixed(1))
+      : teamDamage > 0
+        ? Number(((100 * me.totalDamageDealtToChampions) / teamDamage).toFixed(1))
+        : 0;
+  const killParticipation =
+    me.challenges?.killParticipation != null
+      ? Number((me.challenges.killParticipation * 100).toFixed(1))
+      : teamKills > 0
+        ? Number(((100 * (me.kills + me.assists)) / teamKills).toFixed(1))
+        : 0;
+
+  let summoner1: string | null = null;
+  let summoner2: string | null = null;
+  try {
+    [summoner1, summoner2] = await Promise.all([
+      summonerSpellNameById(me.summoner1Id),
+      summonerSpellNameById(me.summoner2Id),
+    ]);
+  } catch {
+    // ignore — match still gets saved, just without spell names
+  }
+
+  // Timeline is a separate, second Match-V5 call per match — gold diff vs.
+  // the enemy in the same lane (teamPosition) at 10/15/20 min, plus first
+  // blood/tower timing. Non-fatal: an older match or a transient failure
+  // here shouldn't lose the rest of the match's real-time stats above.
+  let timelineStats: Awaited<ReturnType<typeof extractTimelineStats>> | null = null;
+  try {
+    const enemy = match.info.participants.find(
+      (p) => p.teamId !== me.teamId && p.teamPosition === me.teamPosition && me.teamPosition !== ""
+    );
+    const timeline = await getMatchTimeline(matchId);
+    timelineStats = extractTimelineStats(
+      timeline,
+      me.participantId,
+      enemy?.participantId ?? null,
+      match.info.gameDuration
+    );
+  } catch {
+    // ignore — match still gets saved, just without timeline-derived stats
+  }
+
+  const { error: insertError } = await supabase.from("matches").insert({
+    match_id: matchId,
+    puuid,
+    champion: me.championName,
+    win: me.win,
+    kills: me.kills,
+    deaths: me.deaths,
+    assists: me.assists,
+    cs,
+    cs_per_min: Number((cs / durationMin).toFixed(1)),
+    vision_score: me.visionScore,
+    gold_earned: me.goldEarned,
+    damage_to_champs: me.totalDamageDealtToChampions,
+    dmg_share: dmgShare,
+    kill_participation: killParticipation,
+    obj_share:
+      teamObjDamage > 0 ? Number(((100 * me.damageDealtToObjectives) / teamObjDamage).toFixed(1)) : 0,
+    primary_rune: primaryRune,
+    primary_style: primaryStyle,
+    secondary_style: secondaryStyle,
+    double_kills: me.doubleKills,
+    triple_kills: me.tripleKills,
+    quadra_kills: me.quadraKills,
+    penta_kills: me.pentaKills,
+    champ_level: me.champLevel,
+    damage_taken: me.totalDamageTaken,
+    damage_mitigated: me.damageSelfMitigated,
+    wards_placed: me.wardsPlaced,
+    wards_killed: me.wardsKilled,
+    control_wards: me.visionWardsBoughtInGame,
+    turret_kills: me.turretKills,
+    dragon_kills: me.dragonKills,
+    baron_kills: me.baronKills,
+    inhibitor_kills: me.inhibitorKills,
+    first_blood: me.firstBloodKill || me.firstBloodAssist,
+    first_tower: me.firstTowerKill || me.firstTowerAssist,
+    summoner1,
+    summoner2,
+    solo_kills: me.challenges?.soloKills ?? null,
+    skillshots_hit: me.challenges?.skillshotsHit ?? null,
+    damage_per_min: me.challenges?.damagePerMinute != null ? Number(me.challenges.damagePerMinute.toFixed(1)) : null,
+    gold_diff_10: timelineStats?.goldDiff10 ?? null,
+    gold_diff_15: timelineStats?.goldDiff15 ?? null,
+    gold_diff_20: timelineStats?.goldDiff20 ?? null,
+    first_blood_time_s: timelineStats?.firstBloodTimeS ?? null,
+    first_tower_time_s: timelineStats?.firstTowerTimeS ?? null,
+    dragon_types: timelineStats?.dragonTypes ?? [],
+    team_position: me.teamPosition,
+    game_duration_s: match.info.gameDuration,
+    played_at: new Date(match.info.gameCreation).toISOString(),
+  });
+  // Fail loud instead of silently dropping the match — if this is a schema
+  // mismatch (e.g. a migration that hasn't run yet), every remaining
+  // matchId in the caller's loop would fail identically anyway, so stop here
+  // rather than silently losing all of them one by one.
+  if (insertError) throw new Error(`No se pudo guardar match_id=${matchId}: ${insertError.message}`);
+  return null;
+}
+
 /** Pulls fresh LP + new ranked matches for one summoner and appends them to Supabase. Returns non-fatal warnings from steps that failed without aborting the refresh (so callers/logs can see WHY, instead of a silent no-op). */
 export async function refreshOne(supabase: SupabaseClient, puuid: string): Promise<string[]> {
   const warnings: string[] = [];
@@ -78,156 +239,8 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string): Promi
   const matchIds = await getMatchIdsByPuuid(puuid, 20);
   for (const matchId of matchIds) {
     if (known.has(matchId)) continue;
-
-    let match: Awaited<ReturnType<typeof getMatchById>>;
-    try {
-      match = await getMatchById(matchId);
-    } catch (err) {
-      // Riot sometimes lists a match id (via the ids endpoint) slightly before
-      // the full match detail is actually fetchable — a transient 404/5xx here
-      // used to blow up the WHOLE refresh for this player (no try/catch), which
-      // meant every later matchId, champion mastery, and the profile icon never
-      // ran either. Worse: since the match never got marked known, the NEXT
-      // cron cycle hit the exact same not-yet-ready match first and failed
-      // identically — a brand-new match could get stuck failing forever
-      // instead of just needing one more cron tick once Riot caught up.
-      const message = err instanceof Error ? err.message : String(err);
-      warnings.push(`match ${matchId}: ${message}`);
-      console.error(`refreshOne(${puuid}): match ${matchId} fetch failed —`, message);
-      continue;
-    }
-    const me = match.info.participants.find((p) => p.puuid === puuid);
-    if (!me) continue;
-
-    const teammates = match.info.participants.filter((p) => p.teamId === me.teamId);
-    const teamDamage = teammates.reduce((sum, p) => sum + p.totalDamageDealtToChampions, 0);
-    const teamKills = teammates.reduce((sum, p) => sum + p.kills, 0);
-    const teamObjDamage = teammates.reduce((sum, p) => sum + p.damageDealtToObjectives, 0);
-    const cs = me.totalMinionsKilled + me.neutralMinionsKilled;
-    const durationMin = match.info.gameDuration / 60;
-
-    // Runes travel in the same Match-V5 payload we already fetch — no extra Riot
-    // call. Name lookup is Data Dragon (keyless); non-fatal if it fails, we just
-    // store the match without rune names rather than losing the whole match.
-    let primaryRune: string | null = null;
-    let primaryStyle: string | null = null;
-    let secondaryStyle: string | null = null;
-    try {
-      const primaryStyleEntry = me.perks.styles.find((s) => s.description === "primaryStyle");
-      const subStyleEntry = me.perks.styles.find((s) => s.description === "subStyle");
-      const keystoneId = primaryStyleEntry?.selections[0]?.perk;
-      [primaryRune, primaryStyle, secondaryStyle] = await Promise.all([
-        keystoneId != null ? runeNameById(keystoneId) : Promise.resolve(null),
-        primaryStyleEntry ? runeNameById(primaryStyleEntry.style) : Promise.resolve(null),
-        subStyleEntry ? runeNameById(subStyleEntry.style) : Promise.resolve(null),
-      ]);
-    } catch {
-      // ignore — match still gets saved, just without rune names
-    }
-
-    // Riot computes these itself (challenges.*) — prefer them over our own
-    // team-pool math when present, per your ask to replace duplicated logic.
-    // Not guaranteed on every match (older games, edge cases), so fall back.
-    const dmgShare =
-      me.challenges?.teamDamagePercentage != null
-        ? Number((me.challenges.teamDamagePercentage * 100).toFixed(1))
-        : teamDamage > 0
-          ? Number(((100 * me.totalDamageDealtToChampions) / teamDamage).toFixed(1))
-          : 0;
-    const killParticipation =
-      me.challenges?.killParticipation != null
-        ? Number((me.challenges.killParticipation * 100).toFixed(1))
-        : teamKills > 0
-          ? Number(((100 * (me.kills + me.assists)) / teamKills).toFixed(1))
-          : 0;
-
-    let summoner1: string | null = null;
-    let summoner2: string | null = null;
-    try {
-      [summoner1, summoner2] = await Promise.all([
-        summonerSpellNameById(me.summoner1Id),
-        summonerSpellNameById(me.summoner2Id),
-      ]);
-    } catch {
-      // ignore — match still gets saved, just without spell names
-    }
-
-    // Timeline is a separate, second Match-V5 call per match — gold diff vs.
-    // the enemy in the same lane (teamPosition) at 10/15/20 min, plus first
-    // blood/tower timing. Non-fatal: an older match or a transient failure
-    // here shouldn't lose the rest of the match's real-time stats above.
-    let timelineStats: Awaited<ReturnType<typeof extractTimelineStats>> | null = null;
-    try {
-      const enemy = match.info.participants.find(
-        (p) => p.teamId !== me.teamId && p.teamPosition === me.teamPosition && me.teamPosition !== ""
-      );
-      const timeline = await getMatchTimeline(matchId);
-      timelineStats = extractTimelineStats(
-        timeline,
-        me.participantId,
-        enemy?.participantId ?? null,
-        match.info.gameDuration
-      );
-    } catch {
-      // ignore — match still gets saved, just without timeline-derived stats
-    }
-
-    const { error: insertError } = await supabase.from("matches").insert({
-      match_id: matchId,
-      puuid,
-      champion: me.championName,
-      win: me.win,
-      kills: me.kills,
-      deaths: me.deaths,
-      assists: me.assists,
-      cs,
-      cs_per_min: Number((cs / durationMin).toFixed(1)),
-      vision_score: me.visionScore,
-      gold_earned: me.goldEarned,
-      damage_to_champs: me.totalDamageDealtToChampions,
-      dmg_share: dmgShare,
-      kill_participation: killParticipation,
-      obj_share:
-        teamObjDamage > 0 ? Number(((100 * me.damageDealtToObjectives) / teamObjDamage).toFixed(1)) : 0,
-      primary_rune: primaryRune,
-      primary_style: primaryStyle,
-      secondary_style: secondaryStyle,
-      double_kills: me.doubleKills,
-      triple_kills: me.tripleKills,
-      quadra_kills: me.quadraKills,
-      penta_kills: me.pentaKills,
-      champ_level: me.champLevel,
-      damage_taken: me.totalDamageTaken,
-      damage_mitigated: me.damageSelfMitigated,
-      wards_placed: me.wardsPlaced,
-      wards_killed: me.wardsKilled,
-      control_wards: me.visionWardsBoughtInGame,
-      turret_kills: me.turretKills,
-      dragon_kills: me.dragonKills,
-      baron_kills: me.baronKills,
-      inhibitor_kills: me.inhibitorKills,
-      first_blood: me.firstBloodKill || me.firstBloodAssist,
-      first_tower: me.firstTowerKill || me.firstTowerAssist,
-      summoner1,
-      summoner2,
-      solo_kills: me.challenges?.soloKills ?? null,
-      skillshots_hit: me.challenges?.skillshotsHit ?? null,
-      damage_per_min: me.challenges?.damagePerMinute != null ? Number(me.challenges.damagePerMinute.toFixed(1)) : null,
-      gold_diff_10: timelineStats?.goldDiff10 ?? null,
-      gold_diff_15: timelineStats?.goldDiff15 ?? null,
-      gold_diff_20: timelineStats?.goldDiff20 ?? null,
-      first_blood_time_s: timelineStats?.firstBloodTimeS ?? null,
-      first_tower_time_s: timelineStats?.firstTowerTimeS ?? null,
-      dragon_types: timelineStats?.dragonTypes ?? [],
-      team_position: me.teamPosition,
-      game_duration_s: match.info.gameDuration,
-      played_at: new Date(match.info.gameCreation).toISOString(),
-    });
-    // Fail loud instead of silently dropping the match — if this is a schema
-    // mismatch (e.g. a migration that hasn't run yet), every remaining
-    // matchId in this loop would fail identically anyway, so stop here
-    // rather than silently losing all of them one by one.
-    if (insertError) throw new Error(`No se pudo guardar match_id=${matchId}: ${insertError.message}`);
+    const warning = await fetchAndStoreMatch(supabase, puuid, matchId);
+    if (warning) warnings.push(warning);
   }
 
   // Champion Mastery reflects Riot's whole-career view, not just what we've
@@ -302,6 +315,68 @@ async function mapWithConcurrency<T>(items: T[], limit: number, fn: (item: T) =>
     }
   }
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+}
+
+// Riot caps `count` at 100 per Match-V5 ids request, so a deep pull needs
+// several paginated calls (see backfillOne). Default max is 200 matches —
+// comfortably finishes inside Vercel's maxDuration (2 Riot calls/match ×
+// BACKFILL_CONCURRENCY in flight), while already being 10x the normal
+// per-refresh window (20). Callers can ask for more via backfillOne's
+// `maxMatches` param, up to BACKFILL_HARD_CAP, if 200 isn't enough to clear
+// a champion's 50-game leaderboard threshold.
+const BACKFILL_PAGE_SIZE = 100;
+const BACKFILL_DEFAULT_MAX = 200;
+const BACKFILL_HARD_CAP = 1000;
+const BACKFILL_CONCURRENCY = 3;
+
+export interface BackfillResult {
+  fetched: number;
+  alreadyKnown: number;
+  warnings: string[];
+}
+
+/**
+ * One-time deep pull of a summoner's ranked match history, well beyond the
+ * last-20-per-refresh window refreshOne normally keeps up with. Exists
+ * because champion-specific stats (see "Mayor winrate por campeón" in
+ * Estadísticas) depend entirely on matches stored locally — unlike season
+ * winrate, Riot has no endpoint that hands back win/loss by champion, so the
+ * only way to get there faster is to pull more history ourselves.
+ * Idempotent: already-known match_ids are skipped before ever hitting Riot
+ * for them, so calling this again just tops up whatever's newly in range.
+ */
+export async function backfillOne(
+  supabase: SupabaseClient,
+  puuid: string,
+  maxMatches = BACKFILL_DEFAULT_MAX
+): Promise<BackfillResult> {
+  const cappedMax = Math.min(maxMatches, BACKFILL_HARD_CAP);
+
+  const { data: existing, error: existingError } = await supabase
+    .from("matches")
+    .select("match_id")
+    .eq("puuid", puuid);
+  if (existingError) throw new Error(`No se pudo leer matches existentes: ${existingError.message}`);
+  const known = new Set((existing ?? []).map((m) => m.match_id));
+
+  const allIds: string[] = [];
+  let start = 0;
+  while (allIds.length < cappedMax) {
+    const page = await getMatchIdsByPuuid(puuid, BACKFILL_PAGE_SIZE, start);
+    if (page.length === 0) break;
+    allIds.push(...page);
+    if (page.length < BACKFILL_PAGE_SIZE) break; // Riot ran out of ranked solo/duo history to give us
+    start += BACKFILL_PAGE_SIZE;
+  }
+
+  const toFetch = allIds.slice(0, cappedMax).filter((id) => !known.has(id));
+  const warnings: string[] = [];
+  await mapWithConcurrency(toFetch, BACKFILL_CONCURRENCY, async (matchId) => {
+    const warning = await fetchAndStoreMatch(supabase, puuid, matchId);
+    if (warning) warnings.push(warning);
+  });
+
+  return { fetched: toFetch.length - warnings.length, alreadyKnown: allIds.length - toFetch.length, warnings };
 }
 
 // How many summoners refreshOne() runs for at once. One-at-a-time used to
