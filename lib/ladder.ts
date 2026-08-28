@@ -45,7 +45,7 @@ export function tierFor(key: TierKey): Tier {
  * file shows up here.
  */
 export function rankEmblemUrl(tierKey: TierKey): string {
-  return `/icons/ranks/${tierKey}.png`;
+  return `/icons/ranks/${tierKey}.webp`;
 }
 
 /** division 1 (Riot's "I") outranks division 4 ("IV") within the same tier. */
