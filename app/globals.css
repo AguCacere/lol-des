@@ -483,13 +483,22 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .spark-tooltip{
   position:absolute; bottom:calc(100% + 8px); transform:translateX(-50%);
   width:176px; box-sizing:border-box;
-  background:var(--surface-hover); border-radius:8px; box-shadow:var(--shadow);
+  /* Translucent + blurred instead of a flat opaque fill — reads as a light
+     glass card floating over the chart line rather than a solid sticker
+     pasted on top of it. rgba of --surface-hover, not the var itself: the
+     token stays a solid color for every other consumer, this is the one
+     spot that wants it see-through. */
+  background:rgba(29,28,23,0.72);
+  backdrop-filter:blur(14px) saturate(150%);
+  -webkit-backdrop-filter:blur(14px) saturate(150%);
+  border:1px solid rgba(255,255,255,0.09);
+  border-radius:11px; box-shadow:var(--shadow), 0 1px 0 rgba(255,255,255,0.05) inset;
   padding:9px 12px; font-size:11px; line-height:1.5; white-space:nowrap;
   pointer-events:none; z-index:20;
 }
 .spark-tooltip::after{
   content:""; position:absolute; top:100%; left:var(--arrow-left,50%); transform:translateX(-50%);
-  border:5px solid transparent; border-top-color:var(--surface-hover);
+  border:5px solid transparent; border-top-color:rgba(29,28,23,0.86);
 }
 .spark-tooltip-head{display:flex; align-items:center; justify-content:space-between; gap:10px;}
 .spark-tooltip .date{color:var(--text-muted); font-size:10px; text-transform:uppercase; letter-spacing:0.04em;}
