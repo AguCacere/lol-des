@@ -1,5 +1,5 @@
 import type { MasteryEntry } from "@/lib/types";
-import { champTag } from "@/lib/ladder";
+import { ChampIcon } from "./ChampIcon";
 
 /**
  * Riot's mastery system has no level cap anymore (used to top out at M7) —
@@ -20,7 +20,7 @@ function masteryTier(level: number): "low" | "mid" | "high" {
  * ranked solo/duo, de nuestras propias partidas guardadas) — mezclar los dos
  * hubiera implicado una relación entre maestría y winrate que Riot no da.
  */
-export function MasteryPool({ pool }: { pool: MasteryEntry[] }) {
+export function MasteryPool({ pool, ddragonVersion }: { pool: MasteryEntry[]; ddragonVersion: string | null }) {
   if (pool.length === 0) {
     return (
       <div className="champ-pool-empty">
@@ -32,7 +32,7 @@ export function MasteryPool({ pool }: { pool: MasteryEntry[] }) {
     <div className="champ-pool">
       {pool.map((m) => (
         <div className="champ-pool-row" key={m.champ}>
-          <div className="champ-pool-avatar">{champTag(m.champ)}</div>
+          <ChampIcon champ={m.champ} version={ddragonVersion} className="champ-pool-avatar" />
           <div className="champ-pool-mid">
             <span className="champ-pool-name">{m.champ}</span>
             <span className="champ-pool-games">{m.points.toLocaleString("es-AR")} pts</span>

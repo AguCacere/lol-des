@@ -245,11 +245,12 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .live-popup-name{font-weight:700; font-size:12px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .live-popup-champ{display:flex; align-items:center; gap:7px; font-weight:600; margin-bottom:5px;}
 .live-popup-champ-avatar{
-  width:22px; height:22px; border-radius:6px; flex:none;
+  width:22px; height:22px; border-radius:6px; flex:none; overflow:hidden;
   display:flex; align-items:center; justify-content:center;
   background:var(--good-wash); color:var(--good);
   font-family:var(--font-display); font-weight:700; font-size:9.5px;
 }
+.live-popup-champ-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
 .live-popup-meta{display:block; color:var(--text-muted); font-family:var(--font-mono); font-size:10.5px;}
 .profile-live-banner{
   display:flex; align-items:center; gap:8px; font-size:12px; color:var(--good);
@@ -461,7 +462,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 
 .lp-chart-card{
   background:rgba(255,255,255,0.018);
-  border:1px solid rgba(8,145,178,0.2); border-radius:var(--radius-md);
+  border:1px solid rgba(166,134,46,0.2); border-radius:var(--radius-md);
   padding:16px 16px 8px; margin-bottom:16px;
 }
 .lp-chart-top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;}
@@ -495,12 +496,27 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .spark-tooltip .record .good{color:var(--good); font-weight:700;}
 .spark-tooltip .record .bad{color:var(--critical); font-weight:700;}
 
-.stat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:6px;}
-.stat-tile{
+/*
+  One merged panel with thin internal dividers, not six separately-boxed
+  cards each with their own background/radius/shadow/hover-lift — that
+  "grid of identical bordered form fields" look was the single biggest
+  offender in "queda muy IA, cajitas tipo formulario". Same six stats, same
+  data, just read as one coherent strip instead of six little widgets.
+*/
+.stat-grid{
+  display:grid; grid-template-columns:repeat(3,1fr);
   background:var(--surface-raised); border-radius:var(--radius-md); box-shadow:var(--shadow-sm);
-  padding:12px 13px; transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
+  overflow:hidden; margin-bottom:6px;
 }
-.stat-tile:hover{transform:translateY(-2px); box-shadow:var(--shadow); background:var(--surface-hover);}
+.stat-tile{
+  padding:12px 14px;
+  border-right:1px solid var(--border-soft);
+  border-bottom:1px solid var(--border-soft);
+  transition:background .15s ease;
+}
+.stat-tile:nth-child(3n){border-right:none;}
+.stat-tile:nth-last-child(-n+3){border-bottom:none;}
+.stat-tile:hover{background:var(--surface-hover);}
 .stat-tile:hover svg{color:var(--accent); opacity:1;}
 .stat-tile svg{
   display:block; width:15px; height:15px; color:var(--text-muted); margin-bottom:7px; opacity:0.9;
@@ -523,19 +539,27 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   display:flex; align-items:center; gap:10px;
 }
 .subsection-label::after{content:""; flex:1; height:1px; background:rgba(255,255,255,0.08);}
-.champ-pool{display:flex; flex-direction:column; gap:6px;}
+/* Same "one panel, thin dividers" treatment as .stat-grid — five identical
+   rows each in their own separately-shadowed card read as a stack of form
+   fields, not a ranked list. */
+.champ-pool{
+  background:var(--surface-raised); border-radius:var(--radius-sm); box-shadow:var(--shadow-sm);
+  overflow:hidden;
+}
 .champ-pool-row{
   display:flex; align-items:center; gap:10px;
-  background:var(--surface-raised); border-radius:var(--radius-sm); box-shadow:var(--shadow-sm);
-  padding:8px 12px; transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
+  padding:8px 12px; border-bottom:1px solid var(--border-soft);
+  transition:background .15s ease;
 }
-.champ-pool-row:hover{transform:translateY(-1px); box-shadow:var(--shadow); background:var(--surface-hover);}
+.champ-pool-row:last-child{border-bottom:none;}
+.champ-pool-row:hover{background:var(--surface-hover);}
 .champ-pool-avatar{
-  width:30px; height:30px; border-radius:8px; flex:none;
+  width:30px; height:30px; border-radius:8px; flex:none; overflow:hidden;
   display:flex; align-items:center; justify-content:center;
   font-family:var(--font-display); font-weight:700; font-size:11px;
   background:var(--surface-hover); color:var(--text-secondary);
 }
+.champ-pool-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
 .champ-pool-mid{display:flex; flex-direction:column; min-width:0; flex:1;}
 .champ-pool-name{font-weight:600; font-size:12.5px; color:var(--text-primary);}
 .champ-pool-games{font-size:10.5px; color:var(--text-muted); font-family:var(--font-mono);}
@@ -618,8 +642,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .match-champ{
   width:42px;height:42px;border-radius:10px; display:flex; align-items:center; justify-content:center;
   font-family:var(--font-display); font-weight:700; font-size:13px; box-shadow:var(--shadow-sm);
-  background:var(--surface-hover); color:var(--text-secondary); flex:none;
+  background:var(--surface-hover); color:var(--text-secondary); flex:none; overflow:hidden;
 }
+.match-champ img{width:100%; height:100%; object-fit:cover; display:block;}
 .match-mid{min-width:0;}
 .match-top-line{display:flex; align-items:baseline; gap:8px; margin-bottom:2px;}
 .match-champ-name{font-weight:600; font-size:13px;}
@@ -636,7 +661,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 
 .match-detail{
   background:rgba(255,255,255,0.018);
-  border:1px solid rgba(8,145,178,0.2); border-radius:var(--radius-md);
+  border:1px solid rgba(166,134,46,0.2); border-radius:var(--radius-md);
   padding:13px 16px 9px; margin-top:-2px;
 }
 .match-detail-group{margin-bottom:11px;}
@@ -738,7 +763,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .duo-row.is-expanded .duo-chevron{transform:rotate(180deg); color:var(--accent);}
 .duo-detail{
   display:grid; grid-template-columns:1fr 1fr; gap:10px;
-  background:rgba(255,255,255,0.018); border:1px solid rgba(8,145,178,0.2);
+  background:rgba(255,255,255,0.018); border:1px solid rgba(166,134,46,0.2);
   border-radius:var(--radius-md); padding:12px 14px; margin-top:-2px;
 }
 @media (max-width:600px){.duo-detail{grid-template-columns:1fr;}}
@@ -751,11 +776,12 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-size:9.5px; color:var(--text-muted); text-align:center; max-width:52px;
 }
 .duo-detail-champ-avatar{
-  width:26px; height:26px; border-radius:7px;
+  width:26px; height:26px; border-radius:7px; overflow:hidden;
   display:flex; align-items:center; justify-content:center;
   font-family:var(--font-display); font-weight:700; font-size:10px;
   background:var(--surface-hover); color:var(--text-secondary);
 }
+.duo-detail-champ-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
 .duo-avatars{display:flex; align-items:center; flex:none;}
 .duo-avatar{
   width:36px; height:36px; border-radius:10px; flex:none;
@@ -821,6 +847,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .col-winrate{grid-area:winrate;}
   .col-spark{grid-area:spark;}
   .col-chevron{grid-area:chev; align-self:start;}
+  /* 3-col divider math (nth-child(3n)/nth-last-child(-n+3)) doesn't apply at
+     2 columns — without this override the mobile grid grew a stray right
+     border down the middle and a stray bottom border on row 2 of 3. */
   .stat-grid{grid-template-columns:repeat(2,1fr);}
+  .stat-tile{border-right:1px solid var(--border-soft); border-bottom:1px solid var(--border-soft);}
+  .stat-tile:nth-child(3n){border-right:1px solid var(--border-soft);}
+  .stat-tile:nth-last-child(-n+3){border-bottom:1px solid var(--border-soft);}
+  .stat-tile:nth-child(2n){border-right:none;}
+  .stat-tile:nth-last-child(-n+2){border-bottom:none;}
   .empty-state{background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm);}
 }

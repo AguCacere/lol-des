@@ -153,3 +153,15 @@ export function getLatestVersion(): Promise<string> {
 export function profileIconUrl(version: string, iconId: number): string {
   return `https://ddragon.leagueoflegends.com/cdn/${version}/img/profileicon/${iconId}.png`;
 }
+
+/**
+ * Champion square art for a `championName` as stored in `matches`/mastery/etc
+ * — that column is Riot's own Match-V5 `championName` field, which is
+ * already the exact id Data Dragon's champion CDN expects (e.g. "MonkeyKing"
+ * for Wukong, "KSante" for K'Sante), so no id-to-name mapping is needed here
+ * at all. Pure/sync like profileIconUrl, same reason: no freshness concern
+ * worth an async version lookup per call.
+ */
+export function championIconUrl(version: string, championName: string): string {
+  return `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${championName}.png`;
+}

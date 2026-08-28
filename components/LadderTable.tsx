@@ -3,6 +3,7 @@ import { champTag, currentStreak, formatRelativeTime, rankScore, ROLES, tierFor,
 import { RoleIcon } from "./RoleIcon";
 import { StreakIcon } from "./StreakIcon";
 import { SparkChart } from "./SparkChart";
+import { ChampIcon } from "./ChampIcon";
 
 export type SortKey = "ladder" | "winrate" | "wins" | "streak" | "recent";
 
@@ -20,6 +21,7 @@ interface LadderTableProps {
   onRoleFilterChange: (role: RoleKey | "all") => void;
   sortKey: SortKey;
   onSortKeyChange: (key: SortKey) => void;
+  ddragonVersion: string | null;
 }
 
 export function playerKey(p: Player): string {
@@ -77,6 +79,7 @@ export function LadderTable({
   onRoleFilterChange,
   sortKey,
   onSortKeyChange,
+  ddragonVersion,
 }: LadderTableProps) {
   const q = filterText.trim().toLowerCase();
   const filtered = players
@@ -225,7 +228,7 @@ export function LadderTable({
                             </span>
                           </span>
                           <span className="live-popup-champ">
-                            <span className="live-popup-champ-avatar">{champTag(p.liveGame.champion)}</span>
+                            <ChampIcon champ={p.liveGame.champion} version={ddragonVersion} className="live-popup-champ-avatar" />
                             {p.liveGame.champion}
                           </span>
                           <span className="live-popup-meta">

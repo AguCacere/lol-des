@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import type { DuoPair } from "@/lib/types";
-import { ROLES, formatRelativeDate, champTag } from "@/lib/ladder";
+import { ROLES, formatRelativeDate } from "@/lib/ladder";
 import { RoleIcon } from "./RoleIcon";
+import { ChampIcon } from "./ChampIcon";
 
 type DuoSortKey = "games" | "winrate";
 
@@ -31,12 +32,14 @@ function DuoPlayerStat({
   iconUrl,
   avgKda,
   mainChamp,
+  ddragonVersion,
 }: {
   name: string;
   tag: string;
   iconUrl: string | null;
   avgKda: number;
   mainChamp: string | null;
+  ddragonVersion: string | null;
 }) {
   return (
     <div className="duo-detail-player">
@@ -49,7 +52,7 @@ function DuoPlayerStat({
       </div>
       {mainChamp && (
         <div className="duo-detail-champ" title={`Main en el dúo: ${mainChamp}`}>
-          <span className="duo-detail-champ-avatar">{champTag(mainChamp)}</span>
+          <ChampIcon champ={mainChamp} version={ddragonVersion} className="duo-detail-champ-avatar" />
           {mainChamp}
         </div>
       )}
@@ -57,7 +60,7 @@ function DuoPlayerStat({
   );
 }
 
-function DuoRow({ p }: { p: DuoPair }) {
+function DuoRow({ p, ddragonVersion }: { p: DuoPair; ddragonVersion: string | null }) {
   const [expanded, setExpanded] = useState(false);
   const losses = p.games - p.wins;
   return (
@@ -105,8 +108,8 @@ function DuoRow({ p }: { p: DuoPair }) {
       </button>
       {expanded && (
         <div className="duo-detail">
-          <DuoPlayerStat name={p.aName} tag={p.aTag} iconUrl={p.aProfileIconUrl} avgKda={p.aAvgKda} mainChamp={p.aMainChamp} />
-          <DuoPlayerStat name={p.bName} tag={p.bTag} iconUrl={p.bProfileIconUrl} avgKda={p.bAvgKda} mainChamp={p.bMainChamp} />
+          <DuoPlayerStat name={p.aName} tag={p.aTag} iconUrl={p.aProfileIconUrl} avgKda={p.aAvgKda} mainChamp={p.aMainChamp} ddragonVersion={ddragonVersion} />
+          <DuoPlayerStat name={p.bName} tag={p.bTag} iconUrl={p.bProfileIconUrl} avgKda={p.bAvgKda} mainChamp={p.bMainChamp} ddragonVersion={ddragonVersion} />
         </div>
       )}
     </div>
@@ -122,7 +125,15 @@ function DuoRow({ p }: { p: DuoPair }) {
  * (víctoria/derrota es siempre por equipo, no hace falta el teamId de Riot
  * para deducirlo).
  */
-export function DuoSynergy({ pairs, loading }: { pairs: DuoPair[]; loading?: boolean }) {
+export function DuoSynergy({
+  pairs,
+  loading,
+  ddragonVersion,
+}: {
+  pairs: DuoPair[];
+  loading?: boolean;
+  ddragonVersion: string | null;
+}) {
   const [sortKey, setSortKey] = useState<DuoSortKey>("games");
   const sorted = sortKey === "games" ? pairs : [...pairs].sort((a, b) => b.winrate - a.winrate);
 
@@ -159,7 +170,7 @@ export function DuoSynergy({ pairs, loading }: { pairs: DuoPair[]; loading?: boo
             Se arma solo cuando dos invocadores del grupo comparten una partida de ranked como compañeros de equipo.
           </div>
         ) : (
-          sorted.map((p) => <DuoRow p={p} key={`${p.aName}#${p.aTag}-${p.bName}#${p.bTag}`} />)
+          sorted.map((p) => <DuoRow p={p} ddragonVersion={ddragonVersion} key={`${p.aName}#${p.aTag}-${p.bName}#${p.bTag}`} />)
         )}
       </div>
     </section>

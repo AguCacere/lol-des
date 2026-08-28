@@ -19,6 +19,7 @@ export default function Home() {
   const [duoSynergy, setDuoSynergy] = useState<DuoPair[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [ddragonVersion, setDdragonVersion] = useState<string | null>(null);
 
   const [filterText, setFilterText] = useState("");
   const [activeKey, setActiveKey] = useState<string | null>(null);
@@ -36,6 +37,7 @@ export default function Home() {
       setPlayers(data.players as Player[]);
       setDuoSynergy((data.duoSynergy as DuoPair[]) ?? []);
       setLastUpdated((data.lastUpdated as string | null) ?? null);
+      setDdragonVersion((data.ddragonVersion as string | null) ?? null);
       setLoadError(null);
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : "No se pudo cargar el ladder.");
@@ -157,12 +159,13 @@ export default function Home() {
             onRoleFilterChange={setRoleFilter}
             sortKey={sortKey}
             onSortKeyChange={setSortKey}
+            ddragonVersion={ddragonVersion}
           />
-          <PlayerProfile player={activePlayer} allPlayers={players} />
+          <PlayerProfile player={activePlayer} allPlayers={players} ddragonVersion={ddragonVersion} />
         </div>
       ) : (
         <div id="view-stats">
-          <DuoSynergy pairs={duoSynergy} loading={loading} />
+          <DuoSynergy pairs={duoSynergy} loading={loading} ddragonVersion={ddragonVersion} />
           <p className="stats-more-note">Más analíticas de grupo (campeón más jugado, KDA promedio) van a sumarse acá.</p>
         </div>
       )}

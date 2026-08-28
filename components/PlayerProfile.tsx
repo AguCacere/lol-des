@@ -15,6 +15,7 @@ import {
 } from "@/lib/ladder";
 import { SparkChart } from "./SparkChart";
 import { StreakIcon } from "./StreakIcon";
+import { ChampIcon } from "./ChampIcon";
 import { MatchDetail } from "./MatchDetail";
 import { ChampionPool } from "./ChampionPool";
 import { MasteryPool } from "./MasteryPool";
@@ -130,7 +131,15 @@ function CmpBar({
   );
 }
 
-export function PlayerProfile({ player, allPlayers }: { player: Player | null; allPlayers: Player[] }) {
+export function PlayerProfile({
+  player,
+  allPlayers,
+  ddragonVersion,
+}: {
+  player: Player | null;
+  allPlayers: Player[];
+  ddragonVersion: string | null;
+}) {
   const [displayed, setDisplayed] = useState(player);
   const [fading, setFading] = useState(false);
   const [expandedMatch, setExpandedMatch] = useState<number | null>(null);
@@ -408,10 +417,10 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
             </div>
 
             <h4 className="subsection-label">Maestría de campeón</h4>
-            <MasteryPool pool={p.masteryPool} />
+            <MasteryPool pool={p.masteryPool} ddragonVersion={ddragonVersion} />
 
             <h4 className="subsection-label">Campeones más jugados</h4>
-            <ChampionPool pool={p.championPool} />
+            <ChampionPool pool={p.championPool} ddragonVersion={ddragonVersion} />
           </div>
 
           <div>
@@ -463,7 +472,7 @@ export function PlayerProfile({ player, allPlayers }: { player: Player | null; a
                       aria-expanded={isExpanded}
                     >
                       <div className={`match-stripe ${m.win ? "w" : "l"}`} />
-                      <div className="match-champ">{champTag(m.champ)}</div>
+                      <ChampIcon champ={m.champ} version={ddragonVersion} className="match-champ" />
                       <div className="match-mid">
                         <div className="match-top-line">
                           <span className="match-champ-name">{m.champ}</span>

@@ -1,5 +1,5 @@
 import type { ChampionPoolEntry } from "@/lib/types";
-import { champTag } from "@/lib/ladder";
+import { ChampIcon } from "./ChampIcon";
 
 /**
  * "Campeones más jugados" — agregado sobre TODAS las partidas guardadas del
@@ -7,7 +7,7 @@ import { champTag } from "@/lib/ladder";
  * KDA son reales, calculados de esas partidas, no de Champion Mastery (que
  * solo da puntos/nivel, no victorias/derrotas).
  */
-export function ChampionPool({ pool }: { pool: ChampionPoolEntry[] }) {
+export function ChampionPool({ pool, ddragonVersion }: { pool: ChampionPoolEntry[]; ddragonVersion: string | null }) {
   if (pool.length === 0) {
     return (
       <div className="champ-pool-empty">
@@ -19,7 +19,7 @@ export function ChampionPool({ pool }: { pool: ChampionPoolEntry[] }) {
     <div className="champ-pool">
       {pool.map((c) => (
         <div className="champ-pool-row" key={c.champ}>
-          <div className="champ-pool-avatar">{champTag(c.champ)}</div>
+          <ChampIcon champ={c.champ} version={ddragonVersion} className="champ-pool-avatar" />
           <div className="champ-pool-mid">
             <span className="champ-pool-name">{c.champ}</span>
             <span className="champ-pool-games">{c.games} {c.games === 1 ? "partida" : "partidas"}</span>

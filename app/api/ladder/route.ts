@@ -532,5 +532,9 @@ export async function GET() {
     .filter((t): t is string => t != null);
   const lastUpdated = refreshTimes.length > 0 ? refreshTimes.reduce((min, t) => (t < min ? t : min)) : null;
 
-  return NextResponse.json({ players, duoSynergy: computeDuoSynergy(), lastUpdated });
+  // Exposed so the client can build real champion-art URLs itself (see
+  // components/ChampIcon.tsx) instead of every champion chip needing its own
+  // resolved icon URL computed server-side — one version string covers all
+  // of them, same as profileIconUrl already does per-player above.
+  return NextResponse.json({ players, duoSynergy: computeDuoSynergy(), lastUpdated, ddragonVersion });
 }
