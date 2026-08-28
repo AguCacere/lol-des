@@ -1,29 +1,42 @@
 :root{
-  --bg:#0A0A09;
-  --surface:#141412;
-  --surface-raised:#1C1C19;
-  --surface-hover:#242420;
+  /* Deepened across the board (was #0A0A09/#141412/#1C1C19/#242420) — the old
+     steps sat close enough together, and close enough to mid-gray, that in
+     bright ambient light (sunlight on a laptop screen) the whole app read as
+     a flat, washed-out gray instead of an actual dark UI. Same relative
+     spacing between the four steps, just anchored much closer to true black. */
+  --bg:#050504;
+  --surface:#0F0F0D;
+  --surface-raised:#161510;
+  --surface-hover:#1D1C17;
   --border:transparent;
   /* Was transparent — rows/headers/panels had zero visible separation between
      each other beyond shadow. A whisper-thin, always-on line reads as
      "refined structure" instead of "generic table with no borders at all". */
-  --border-soft:rgba(255,255,255,0.05);
-  --track:#201f1a;
+  --border-soft:rgba(255,255,255,0.06);
+  --track:#171610;
   /* Softer and tighter than before — the old shadow was doing a lot of the
      "this is a card" work by itself; now depth comes more from the
      surface/border tone steps, with the shadow just adding a light lift. */
-  --shadow:0 1px 2px rgba(0,0,0,0.35), 0 3px 10px rgba(0,0,0,0.22);
-  --shadow-sm:0 1px 2px rgba(0,0,0,0.32);
+  --shadow:0 1px 2px rgba(0,0,0,0.45), 0 3px 10px rgba(0,0,0,0.3);
+  --shadow-sm:0 1px 2px rgba(0,0,0,0.4);
   --text-primary:#F0F0EC;
-  --text-secondary:#9A9A94;
-  --text-muted:#6C6C67;
-  --accent:#22D3EE;
-  --accent-dim:#0891B2;
-  --accent-wash:rgba(34,211,238,0.12);
+  /* Nudged up a touch from the old #9A9A94/#6C6C67 — against the darker
+     background above, the old values still passed contrast checks on paper
+     but read as low-contrast "gray on gray" in practice, especially exactly
+     the bright-room case that prompted this. */
+  --text-secondary:#A6A6A0;
+  --text-muted:#7C7C76;
+  /* Cyan swapped for an elegant gold — the same family as --gold below but a
+     cooler, more restrained shade so the two stay distinguishable: --gold
+     keeps doing badges/celebratory accents (VOS, streaks, peak LP), --accent
+     is the general "selected/active" UI color everywhere else. */
+  --accent:#D4AF37;
+  --accent-dim:#A6862E;
+  --accent-wash:rgba(212,175,55,0.12);
   /* Selected-row background specifically — accent-wash at full strength across
      an entire row read as louder than "clearly active, but subtle". */
-  --accent-wash-soft:rgba(34,211,238,0.07);
-  --accent-ink:#062024;
+  --accent-wash-soft:rgba(212,175,55,0.07);
+  --accent-ink:#241a05;
   --gold:#F5B942;
   --gold-wash:rgba(245,185,66,0.12);
   /* Same hue as before, pulled back from neon-mint/neon-pink to something a

@@ -81,6 +81,21 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [refreshLiveStatus]);
 
+  useEffect(() => {
+    // Everything /api/live doesn't cover — new matches, LP movement, Sinergia
+    // de dúo — used to only refresh on page load (loadLadder never re-runs on
+    // its own otherwise). Left open for a while, the ladder and duo stats
+    // just froze even though the cron kept saving real matches behind the
+    // scenes. Slower than the live-status poll on purpose: this one re-reads
+    // and re-aggregates the full ladder, so it doesn't need 60s granularity
+    // to feel current.
+    const FULL_REFRESH_MS = 5 * 60 * 1000;
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") loadLadder();
+    }, FULL_REFRESH_MS);
+    return () => clearInterval(interval);
+  }, [loadLadder]);
+
   const activePlayer = players.find((p) => playerKey(p) === activeKey) ?? null;
 
   const q = filterText.trim().toLowerCase();
