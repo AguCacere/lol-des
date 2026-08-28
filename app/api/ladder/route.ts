@@ -3,7 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabase";
 import { peakFromHistory, tierScore } from "@/lib/ladder";
 import { divisionFromRiot, normalizeRole, roleFromTeamPosition, tierKeyFromRiot } from "@/lib/mapping";
 import { getLiveGamesByPuuid } from "@/lib/live";
-import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
+import { getLatestVersion, profileIconUrl, runeIconUrlByName, summonerSpellIconUrlByName } from "@/lib/ddragon";
 import type { ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, FlexRank, LpHistoryPoint, MasteryEntry, Match, Player, RoleKey } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +36,7 @@ interface MatchRow {
   cs: number;
   cs_per_min: number;
   dmg_share: number | null;
+  damage_to_champs: number;
   gold_earned: number;
   vision_score: number;
   kill_participation: number | null;
@@ -112,7 +113,7 @@ export async function GET() {
     supabase
       .from("matches")
       .select(
-        "match_id, puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, gold_earned, vision_score, kill_participation, obj_share, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, champ_level, damage_taken, damage_mitigated, wards_placed, wards_killed, control_wards, turret_kills, dragon_kills, dragon_types, baron_kills, inhibitor_kills, first_blood, first_tower, summoner1, summoner2, solo_kills, skillshots_hit, damage_per_min, gold_diff_10, gold_diff_15, gold_diff_20, first_blood_time_s, first_tower_time_s, team_position, game_duration_s, played_at"
+        "match_id, puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, damage_to_champs, gold_earned, vision_score, kill_participation, obj_share, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, champ_level, damage_taken, damage_mitigated, wards_placed, wards_killed, control_wards, turret_kills, dragon_kills, dragon_types, baron_kills, inhibitor_kills, first_blood, first_tower, summoner1, summoner2, solo_kills, skillshots_hit, damage_per_min, gold_diff_10, gold_diff_15, gold_diff_20, first_blood_time_s, first_tower_time_s, team_position, game_duration_s, played_at"
       )
       .in("puuid", puuids)
       .order("played_at", { ascending: false })
@@ -132,6 +133,12 @@ export async function GET() {
   // starting a game.
   const activeGames = getLiveGamesByPuuid(puuids);
 
+  // Resolved here (in parallel with everything above) instead of right
+  // before it's first used — the matches loop below needs it too now, for
+  // rune/summoner-spell icon URLs, and that runs well before the point this
+  // used to be declared at.
+  const ddragonVersionPromise = getLatestVersion();
+
   const [
     [
       { data: snapshots, error: snapshotsError },
@@ -139,7 +146,8 @@ export async function GET() {
       { data: masteryRows, error: masteryError },
     ],
     liveGameByPuuid,
-  ] = await Promise.all([dbQueries, activeGames]);
+    ddragonVersion,
+  ] = await Promise.all([dbQueries, activeGames, ddragonVersionPromise]);
 
   // A query error here (e.g. a migration that hasn't run yet — missing
   // column/table) must NOT be treated the same as "no rows" — silently
@@ -253,6 +261,15 @@ export async function GET() {
     const arr = matchesByPuuid.get(row.puuid) ?? [];
     if (arr.length >= 5) continue;
     const durationMin = row.game_duration_s / 60;
+    // Real icon art for the "Build" section — resolved here, not for every
+    // stored match, since only these first-5-per-player actually get shown.
+    // Version-agnostic for runes (Data Dragon quirk, see lib/ddragon.ts),
+    // versioned for spells like champion/profile icons.
+    const [primaryRuneIconUrl, summoner1IconUrl, summoner2IconUrl] = await Promise.all([
+      row.primary_rune ? runeIconUrlByName(row.primary_rune) : Promise.resolve(null),
+      row.summoner1 ? summonerSpellIconUrlByName(ddragonVersion, row.summoner1) : Promise.resolve(null),
+      row.summoner2 ? summonerSpellIconUrlByName(ddragonVersion, row.summoner2) : Promise.resolve(null),
+    ]);
     arr.push({
       win: row.win,
       champ: row.champion,
@@ -263,6 +280,7 @@ export async function GET() {
       csmin: Number(row.cs_per_min).toFixed(1),
       dur: Math.round(durationMin),
       dmgShare: Math.round(Number(row.dmg_share ?? 0)),
+      damageToChamps: row.damage_to_champs,
       gold: Math.round(row.gold_earned / durationMin),
       goldTotal: row.gold_earned,
       visionScore: row.vision_score,
@@ -270,6 +288,7 @@ export async function GET() {
       objShare: Math.round(Number(row.obj_share ?? 0)),
       playedAt: row.played_at,
       primaryRune: row.primary_rune,
+      primaryRuneIconUrl,
       primaryStyle: row.primary_style,
       secondaryStyle: row.secondary_style,
       doubleKills: row.double_kills ?? 0,
@@ -291,6 +310,8 @@ export async function GET() {
       firstTower: row.first_tower ?? false,
       summoner1: row.summoner1,
       summoner2: row.summoner2,
+      summoner1IconUrl,
+      summoner2IconUrl,
       soloKills: row.solo_kills,
       skillshotsHit: row.skillshots_hit,
       damagePerMin: row.damage_per_min,
@@ -497,11 +518,6 @@ export async function GET() {
     }
     return best;
   }
-
-  // Resolved once and reused for every player below — same Data Dragon
-  // version for all of them, no reason to hit the (already-cached) version
-  // lookup once per row.
-  const ddragonVersion = await getLatestVersion();
 
   // Shared by computeDuoSynergy() and computeChampionLeaderboard() below —
   // both need "which name/tag/avatar goes with this puuid" and neither

@@ -715,6 +715,13 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    grid item's min-width defaults to auto (= its content's natural size),
    which silently overflowed the card before this. */
 .match-detail-stat.wide{grid-column:1 / -1; min-width:0;}
+/* Real rune/summoner-spell art in the Build section, instead of plain
+   names — same Data Dragon CDN as champion/profile icons, just resolved by
+   name instead of id (see lib/ddragon.ts). */
+.build-line{display:flex; align-items:center; gap:7px; flex-wrap:wrap;}
+.build-item{display:inline-flex; align-items:center; gap:6px;}
+.build-sep{color:var(--text-muted); font-weight:400;}
+.build-icon{width:20px; height:20px; border-radius:5px; flex:none; display:block; box-shadow:var(--shadow-sm);}
 /* Tried a fixed-column grid (repeat(4, auto)) to fix raggedness, then two
    auto-fit/minmax variants to fix the overflow that caused — all three
    grid attempts either overflowed the card or rendered items overlapping

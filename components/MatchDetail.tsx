@@ -110,6 +110,7 @@ export function MatchDetail({ match }: { match: Match }) {
         <Stat label="% daño del equipo" tooltip={METRIC_INFO.dmgShare}>
           {m.dmgShare}%
         </Stat>
+        <Stat label="Daño a campeones">{m.damageToChamps.toLocaleString("es-AR")}</Stat>
         <Stat label="Kill participation" tooltip={METRIC_INFO.killParticipation}>
           {m.killParticipation}%
         </Stat>
@@ -167,17 +168,38 @@ export function MatchDetail({ match }: { match: Match }) {
       </Group>
 
       <Group label="Build">
-        <Stat label="Runas">
-          {m.primaryRune ?? "—"}
-          {m.primaryStyle && m.secondaryStyle && (
-            <span className="unit">
-              {" "}
-              ({m.primaryStyle}/{m.secondaryStyle})
-            </span>
-          )}
+        <Stat label="Runas" wide>
+          <span className="build-line">
+            {m.primaryRuneIconUrl && (
+              // eslint-disable-next-line @next/next/no-img-element -- tiny fixed-size icon, not a page asset
+              <img className="build-icon" src={m.primaryRuneIconUrl} alt="" />
+            )}
+            {m.primaryRune ?? "—"}
+            {m.primaryStyle && m.secondaryStyle && (
+              <span className="unit">
+                ({m.primaryStyle}/{m.secondaryStyle})
+              </span>
+            )}
+          </span>
         </Stat>
-        <Stat label="Hechizos">
-          {m.summoner1 ?? "—"} / {m.summoner2 ?? "—"}
+        <Stat label="Hechizos" wide>
+          <span className="build-line">
+            <span className="build-item">
+              {m.summoner1IconUrl && (
+                // eslint-disable-next-line @next/next/no-img-element -- tiny fixed-size icon, not a page asset
+                <img className="build-icon" src={m.summoner1IconUrl} alt="" />
+              )}
+              {m.summoner1 ?? "—"}
+            </span>
+            <span className="build-sep">/</span>
+            <span className="build-item">
+              {m.summoner2IconUrl && (
+                // eslint-disable-next-line @next/next/no-img-element -- tiny fixed-size icon, not a page asset
+                <img className="build-icon" src={m.summoner2IconUrl} alt="" />
+              )}
+              {m.summoner2 ?? "—"}
+            </span>
+          </span>
         </Stat>
       </Group>
 

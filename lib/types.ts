@@ -28,6 +28,8 @@ export interface Match {
   csmin: string;
   dur: number;
   dmgShare: number;
+  /** Raw damage dealt to champions this game — dmgShare is the % of the team's total, this is the actual number behind it. */
+  damageToChamps: number;
   gold: number;
   visionScore: number;
   killParticipation: number;
@@ -35,6 +37,8 @@ export interface Match {
   goldTotal: number;
   playedAt: string; // ISO timestamp
   primaryRune: string | null; // keystone, e.g. "Conqueror"
+  /** Real Data Dragon icon for `primaryRune` — null if the name lookup failed or the match predates rune tracking. */
+  primaryRuneIconUrl: string | null;
   primaryStyle: string | null; // rune tree, e.g. "Precision"
   secondaryStyle: string | null; // e.g. "Domination"
   doubleKills: number;
@@ -57,6 +61,9 @@ export interface Match {
   firstTower: boolean;
   summoner1: string | null;
   summoner2: string | null;
+  /** Real Data Dragon icons for summoner1/summoner2 — null if the name lookup failed or the match predates spell-name tracking. */
+  summoner1IconUrl: string | null;
+  summoner2IconUrl: string | null;
   soloKills: number | null;
   skillshotsHit: number | null;
   damagePerMin: number | null;
