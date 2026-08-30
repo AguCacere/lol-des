@@ -954,6 +954,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-size:11px; font-weight:600; color:var(--text-primary); text-align:center;
   white-space:nowrap; max-width:100%; overflow:hidden; text-overflow:ellipsis;
 }
+/* Crossfades the detail panel when the selected invocador/compañero changes
+   — same opacity transition as .profile.is-fading in PlayerProfile, so
+   switching here reads as a change too instead of an instant content swap. */
+.duo-panel{opacity:1; transition:opacity .16s ease;}
+.duo-panel.is-fading{opacity:0;}
 .duo-cols-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;}
 .duo-filter-row{display:flex; gap:6px; flex:none;}
 .duo-filter-btn{

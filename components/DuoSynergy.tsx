@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { DuoPair, DuoSharedMatch } from "@/lib/types";
 import { formatRelativeDate } from "@/lib/ladder";
 import { ChampIcon } from "./ChampIcon";
@@ -123,12 +123,36 @@ export function DuoSynergy({
   const [selectedPartner, setSelectedPartner] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("games");
 
+  // The detail panel (compañeros + últimas partidas) crossfades to whatever
+  // was just picked instead of swapping content instantly — same 160ms
+  // pattern PlayerProfile uses when you click a different row in el
+  // ranking, so switching invocador/compañero here reads as a change too,
+  // not a jump-cut. Chip/row highlighting still tracks the selection
+  // immediately (selectedPlayer/selectedPartner below) — only the panel
+  // CONTENT lags behind the fade.
+  const [displayedPlayer, setDisplayedPlayer] = useState<string | null>(null);
+  const [displayedPartner, setDisplayedPartner] = useState<string | null>(null);
+  const [fading, setFading] = useState(false);
+
+  useEffect(() => {
+    if (selectedPlayer === displayedPlayer && selectedPartner === displayedPartner) return;
+    // Crossfade on selection change, not a fetch — nothing to await before this.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFading(true);
+    const t = setTimeout(() => {
+      setDisplayedPlayer(selectedPlayer);
+      setDisplayedPartner(selectedPartner);
+      setFading(false);
+    }, 160);
+    return () => clearTimeout(t);
+  }, [selectedPlayer, selectedPartner, displayedPlayer, displayedPartner]);
+
   const players = distinctPlayers(pairs);
-  const partners = selectedPlayer ? partnersOf(pairs, selectedPlayer) : [];
+  const partners = displayedPlayer ? partnersOf(pairs, displayedPlayer) : [];
   const sortedPartners =
     sortKey === "games" ? [...partners].sort((a, b) => b.games - a.games) : [...partners].sort((a, b) => b.winrate - a.winrate);
-  const activePair = selectedPlayer && selectedPartner ? findPair(pairs, selectedPlayer, selectedPartner) : null;
-  const selectedName = selectedPlayer?.split("#")[0] ?? "";
+  const activePair = displayedPlayer && displayedPartner ? findPair(pairs, displayedPlayer, displayedPartner) : null;
+  const displayedName = displayedPlayer?.split("#")[0] ?? "";
 
   function selectPlayer(key: string) {
     setSelectedPlayer((cur) => (cur === key ? null : key));
@@ -175,10 +199,10 @@ export function DuoSynergy({
           </div>
 
           {selectedPlayer && (
-            <div className="stack-cols">
+            <div className={`stack-cols duo-panel${fading ? " is-fading" : ""}`}>
               <div>
                 <div className="duo-cols-head">
-                  <span className="meta">Compañeros de {selectedName}</span>
+                  <span className="meta">Compañeros de {displayedName}</span>
                   <div className="duo-filter-row">
                     <button
                       type="button"
