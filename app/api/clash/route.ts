@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
-import { computeClashTournaments, type ClashMatchRow, type ClashPlayerInfo } from "@/lib/clash";
+import { computeClashPlayerStats, computeClashTournaments, type ClashMatchRow, type ClashPlayerInfo } from "@/lib/clash";
 import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
 
 /**
@@ -46,6 +46,8 @@ export async function GET() {
     ])
   );
 
-  const tournaments = computeClashTournaments((rows ?? []) as ClashMatchRow[], playerByPuuid);
-  return NextResponse.json({ tournaments, ddragonVersion });
+  const typedRows = (rows ?? []) as ClashMatchRow[];
+  const tournaments = computeClashTournaments(typedRows, playerByPuuid);
+  const playerStats = computeClashPlayerStats(typedRows, playerByPuuid);
+  return NextResponse.json({ tournaments, playerStats, ddragonVersion });
 }

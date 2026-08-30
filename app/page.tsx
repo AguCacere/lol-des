@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { ChampionLeaderboardEntry, ClashTournament, DuoPair, LiveGame, Player, RoleKey } from "@/lib/types";
+import type { ChampionLeaderboardEntry, ClashPlayerStats, ClashTournament, DuoPair, LiveGame, Player, RoleKey } from "@/lib/types";
 import { TopBar, type AddStatus } from "@/components/TopBar";
 import { TabNav, type TabKey } from "@/components/TabNav";
 import { LadderTable, playerKey, type SortKey } from "@/components/LadderTable";
@@ -22,6 +22,7 @@ export default function Home() {
   const [duoSynergy, setDuoSynergy] = useState<DuoPair[]>([]);
   const [championLeaderboard, setChampionLeaderboard] = useState<ChampionLeaderboardEntry[]>([]);
   const [clashTournaments, setClashTournaments] = useState<ClashTournament[]>([]);
+  const [clashPlayerStats, setClashPlayerStats] = useState<ClashPlayerStats[]>([]);
   const [clashLoading, setClashLoading] = useState(false);
   const [clashLoaded, setClashLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -111,7 +112,10 @@ export default function Home() {
     try {
       const res = await fetch("/api/clash");
       const data = await res.json();
-      if (res.ok) setClashTournaments((data.tournaments as ClashTournament[]) ?? []);
+      if (res.ok) {
+        setClashTournaments((data.tournaments as ClashTournament[]) ?? []);
+        setClashPlayerStats((data.playerStats as ClashPlayerStats[]) ?? []);
+      }
     } catch {
       // best-effort — the tab just stays empty/stale until the user reopens it
     } finally {
@@ -203,7 +207,12 @@ export default function Home() {
         </div>
       ) : (
         <div id="view-clash">
-          <ClashHistory tournaments={clashTournaments} loading={clashLoading} ddragonVersion={ddragonVersion} />
+          <ClashHistory
+            tournaments={clashTournaments}
+            playerStats={clashPlayerStats}
+            loading={clashLoading}
+            ddragonVersion={ddragonVersion}
+          />
         </div>
       )}
 

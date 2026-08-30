@@ -1,4 +1,4 @@
-import type { ClashMatch, ClashMatchPlayer, ClashTournament } from "./types";
+import type { ClashMatch, ClashMatchPlayer, ClashPlayerStats, ClashTournament } from "./types";
 
 /**
  * Groups a group's stored Clash-queue matches (matches.queue_id = 700, see
@@ -144,4 +144,42 @@ export function computeClashTournaments(
 
   tournaments.sort((a, b) => new Date(b.matches[0].playedAt).getTime() - new Date(a.matches[0].playedAt).getTime());
   return tournaments;
+}
+
+/**
+ * Each tracked player's own lifetime Clash record — across every stored
+ * Clash game, not just one tournament day. Straight aggregate over the raw
+ * rows (not the grouped-by-day tournaments), so a player's record here is
+ * the same regardless of how the day-clustering in computeClashTournaments
+ * happens to fall.
+ */
+export function computeClashPlayerStats(
+  rows: ClashMatchRow[],
+  playerByPuuid: Map<string, ClashPlayerInfo>
+): ClashPlayerStats[] {
+  const byPuuid = new Map<string, { wins: number; losses: number }>();
+  for (const row of rows) {
+    if (!playerByPuuid.has(row.puuid)) continue;
+    const e = byPuuid.get(row.puuid) ?? { wins: 0, losses: 0 };
+    if (row.win) e.wins++;
+    else e.losses++;
+    byPuuid.set(row.puuid, e);
+  }
+
+  const stats: ClashPlayerStats[] = [...byPuuid.entries()].map(([puuid, e]) => {
+    const info = playerByPuuid.get(puuid)!;
+    const games = e.wins + e.losses;
+    return {
+      playerName: info.name,
+      playerTag: info.tag,
+      profileIconUrl: info.profileIconUrl,
+      games,
+      wins: e.wins,
+      losses: e.losses,
+      winrate: games > 0 ? Math.round((100 * e.wins) / games) : 0,
+    };
+  });
+
+  stats.sort((a, b) => b.winrate - a.winrate || b.games - a.games);
+  return stats;
 }

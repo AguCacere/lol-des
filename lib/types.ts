@@ -213,6 +213,17 @@ export interface ClashMatch {
   players: ClashMatchPlayer[];
 }
 
+/** One tracked player's lifetime Clash record — across ALL reconstructed tournaments, not just one day. */
+export interface ClashPlayerStats {
+  playerName: string;
+  playerTag: string;
+  profileIconUrl: string | null;
+  games: number;
+  wins: number;
+  losses: number;
+  winrate: number;
+}
+
 /**
  * One reconstructed "Clash day" for the group — see lib/clash.ts for why
  * this is grouped by calendar date rather than a real Riot tournament id
