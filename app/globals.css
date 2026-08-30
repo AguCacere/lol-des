@@ -869,39 +869,62 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-size:12px; color:var(--text-secondary); line-height:1.5;
 }
 
-/* Sinergia de dúo's per-player expanded panel: "Compañeros de dúo" reuses
-   .champ-pool as-is (identical shape to the winrate leaderboards), these two
-   are just for "Últimas partidas" — a read-only echo of the match-row look
-   from PlayerProfile, minus the click/hover affordance since it doesn't
-   expand into anything here. */
+/* Sinergia de dúo's collapsed row: an "enfrentado" (VS) card instead of a
+   label/value form row — avatar+nombre on each side, winrate/récord large
+   and centered between them, like a versus poster. .panel-row already gives
+   the merged-panel/hover/divider treatment; this just overrides its flex
+   layout with the three-block grid. */
+.panel-row.duovs-row{
+  display:grid; grid-template-columns:1fr auto 1fr 16px; align-items:center; gap:14px;
+}
+.duovs-side{display:flex; align-items:center; gap:9px; min-width:0;}
+.duovs-side.right{flex-direction:row-reverse; text-align:right;}
+.duovs-side-info{display:flex; flex-direction:column; min-width:0; gap:1px;}
+.duovs-side.right .duovs-side-info{align-items:flex-end;}
+.duovs-name{
+  font-weight:600; font-size:12.5px; color:var(--text-primary);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.duovs-role{font-size:10px; color:var(--text-muted); font-family:var(--font-mono);}
+.duovs-center{display:flex; flex-direction:column; align-items:center; gap:1px; flex:none; min-width:60px;}
+.duovs-wr{font-family:var(--font-stat); font-weight:800; font-size:17px; font-variant-numeric:tabular-nums;}
+.duovs-wr.good{color:var(--good);}
+.duovs-wr.bad{color:var(--critical);}
+.duovs-record{font-family:var(--font-mono); font-size:10px; color:var(--text-muted); white-space:nowrap;}
+
+/* Expanded detail: the last 5 games THIS DUO shared — both sides' own
+   champ+KDA from the SAME game, not one player's generic recent matches. */
 .duosum-section-title{
   font-family:var(--font-display); font-weight:700; font-size:10px; letter-spacing:0.09em;
   text-transform:uppercase; color:var(--text-muted); margin:0 0 6px;
 }
 .duosum-matches{display:flex; flex-direction:column; gap:5px;}
-.duosum-match-row{
-  display:grid; grid-template-columns:4px 30px 1fr auto; align-items:center; gap:10px;
-  background:var(--surface-hover); border-radius:var(--radius-sm); padding:7px 10px 7px 8px;
+.duovs-match-row{
+  display:flex; align-items:center; gap:8px;
+  background:var(--surface-hover); border-radius:var(--radius-sm); padding:7px 10px;
 }
-.duosum-match-stripe{align-self:stretch; border-radius:2px;}
-.duosum-match-stripe.w{background:var(--good);}
-.duosum-match-stripe.l{background:var(--critical);}
-.duosum-match-champ{
-  width:30px; height:30px; border-radius:8px; flex:none; overflow:hidden;
+.duovs-match-stripe{width:3px; align-self:stretch; border-radius:2px; flex:none;}
+.duovs-match-stripe.w{background:var(--good);}
+.duovs-match-stripe.l{background:var(--critical);}
+.duovs-match-side{display:flex; align-items:center; gap:6px; flex:none;}
+.duovs-match-champ{
+  width:26px; height:26px; border-radius:7px; flex:none; overflow:hidden;
   display:flex; align-items:center; justify-content:center;
-  font-family:var(--font-display); font-weight:700; font-size:10.5px;
+  font-family:var(--font-display); font-weight:700; font-size:10px;
   background:var(--surface); color:var(--text-secondary);
 }
-.duosum-match-champ img{width:100%; height:100%; object-fit:cover; display:block;}
-.duosum-match-mid{display:flex; flex-direction:column; min-width:0; gap:1px;}
-.duosum-match-champ-name{font-size:11.5px; font-weight:600; color:var(--text-primary);}
-.duosum-match-sub{font-size:10px; color:var(--text-muted); font-family:var(--font-mono);}
-.duosum-match-right{text-align:right; font-family:var(--font-mono); font-size:11px; white-space:nowrap;}
-.duosum-match-right .kda{font-family:var(--font-stat); font-weight:800; font-size:12.5px; font-variant-numeric:tabular-nums;}
-.duosum-match-right .neu{color:var(--text-muted); font-weight:400;}
-.duosum-match-result{display:block; font-size:9px; font-weight:700; letter-spacing:0.04em; margin-top:1px;}
-.duosum-match-result.w{color:var(--good);}
-.duosum-match-result.l{color:var(--critical);}
+.duovs-match-champ img{width:100%; height:100%; object-fit:cover; display:block;}
+.duovs-match-kda{font-family:var(--font-stat); font-weight:700; font-size:11.5px; color:var(--text-primary); white-space:nowrap;}
+.duovs-match-sep{color:var(--text-muted); font-size:11px; flex:none;}
+.duovs-match-meta{margin-left:auto; text-align:right; flex:none;}
+.duovs-match-result{display:block; font-size:9.5px; font-weight:700; letter-spacing:0.04em;}
+.duovs-match-result.w{color:var(--good);}
+.duovs-match-result.l{color:var(--critical);}
+.duovs-match-date{display:block; font-size:9.5px; color:var(--text-muted); font-family:var(--font-mono); margin-top:1px;}
+@media (max-width:560px){
+  .panel-row.duovs-row{grid-template-columns:1fr auto 1fr 16px; gap:8px;}
+  .duovs-role{display:none;}
+}
 
 .footnote{
   margin-top:34px; padding-top:18px; border-top:1px solid var(--border-soft);

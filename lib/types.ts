@@ -136,6 +136,23 @@ export interface MasteryEntry {
  * at least one stored match. Computed entirely from data already in
  * `matches`, no extra Riot calls.
  */
+/** One game this specific duo shared, with BOTH sides' own champ/KDA — not one player's generic recent match, the actual game they played together. */
+export interface DuoSharedMatch {
+  matchId: string;
+  playedAt: string; // ISO timestamp
+  durationS: number;
+  /** Shared by construction — a and b are only ever paired as DuoPair when their win result matched (see lib teammate rule below). */
+  win: boolean;
+  aChamp: string;
+  aK: number;
+  aD: number;
+  aA: number;
+  bChamp: string;
+  bK: number;
+  bD: number;
+  bA: number;
+}
+
 export interface DuoPair {
   aName: string;
   aTag: string;
@@ -157,6 +174,8 @@ export interface DuoPair {
   bAvgKda: number;
   aMainChamp: string | null;
   bMainChamp: string | null;
+  /** Last 5 games this pair actually shared, most recent first. */
+  recentMatches: DuoSharedMatch[];
 }
 
 /**

@@ -4,7 +4,7 @@ import { peakFromHistory, tierScore } from "@/lib/ladder";
 import { divisionFromRiot, normalizeRole, roleFromTeamPosition, tierKeyFromRiot } from "@/lib/mapping";
 import { getLiveGamesByPuuid } from "@/lib/live";
 import { getLatestVersion, profileIconUrl, runeIconUrlByName, summonerSpellIconUrlByName } from "@/lib/ddragon";
-import type { ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, FlexRank, LpHistoryPoint, MasteryEntry, Match, Player, RoleKey } from "@/lib/types";
+import type { ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, DuoSharedMatch, FlexRank, LpHistoryPoint, MasteryEntry, Match, Player, RoleKey } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -220,11 +220,23 @@ export async function GET() {
   // (a match has exactly one winning side), opponents otherwise.
   const trackedByMatchId = new Map<
     string,
-    { puuid: string; win: boolean; playedAt: string; role: RoleKey | null; champion: string; kills: number; deaths: number; assists: number }[]
+    {
+      matchId: string;
+      puuid: string;
+      win: boolean;
+      playedAt: string;
+      role: RoleKey | null;
+      champion: string;
+      kills: number;
+      deaths: number;
+      assists: number;
+      durationS: number;
+    }[]
   >();
   for (const row of matchRows ?? []) {
     const tracked = trackedByMatchId.get(row.match_id) ?? [];
     tracked.push({
+      matchId: row.match_id,
       puuid: row.puuid,
       win: row.win,
       playedAt: row.played_at,
@@ -233,6 +245,7 @@ export async function GET() {
       kills: row.kills,
       deaths: row.deaths,
       assists: row.assists,
+      durationS: row.game_duration_s,
     });
     trackedByMatchId.set(row.match_id, tracked);
 
@@ -439,6 +452,10 @@ export async function GET() {
         // different question than "how does this pair do together".
         aAgg: DuoPlayerAgg;
         bAgg: DuoPlayerAgg;
+        // Every shared game, trimmed to the last 5 (most recent) once the
+        // pair is finalized below — kept unsorted here since matches arrive
+        // grouped by match_id, not in playedAt order across the whole map.
+        recentMatches: DuoSharedMatch[];
       }
     >();
     for (const entries of trackedByMatchId.values()) {
@@ -457,6 +474,7 @@ export async function GET() {
             roleCombos: new Map<string, number>(),
             aAgg: emptyAgg(),
             bAgg: emptyAgg(),
+            recentMatches: [],
           };
           cur.games += 1;
           cur.wins += first.win ? 1 : 0;
@@ -465,6 +483,20 @@ export async function GET() {
           cur.roleCombos.set(comboKey, (cur.roleCombos.get(comboKey) ?? 0) + 1);
           addToAgg(cur.aAgg, first);
           addToAgg(cur.bAgg, second);
+          cur.recentMatches.push({
+            matchId: first.matchId,
+            playedAt: first.playedAt,
+            durationS: first.durationS,
+            win: first.win,
+            aChamp: first.champion,
+            aK: first.kills,
+            aD: first.deaths,
+            aA: first.assists,
+            bChamp: second.champion,
+            bK: second.kills,
+            bD: second.deaths,
+            bA: second.assists,
+          });
           pairStats.set(key, cur);
         }
       }
@@ -500,6 +532,7 @@ export async function GET() {
         lastPlayedAt: p.lastPlayedAt,
         aRole: (aRole || null) as RoleKey | null,
         bRole: (bRole || null) as RoleKey | null,
+        recentMatches: [...p.recentMatches].sort((x, y) => (x.playedAt < y.playedAt ? 1 : -1)).slice(0, 5),
       });
     }
     return pairs.sort((x, y) => y.games - x.games);

@@ -203,7 +203,7 @@ export default function Home() {
         <div id="view-stats">
           <TopWinrate players={players} />
           <ChampionWinrateLeaderboard entries={championLeaderboard} ddragonVersion={ddragonVersion} />
-          <DuoSynergy players={players} pairs={duoSynergy} loading={loading} ddragonVersion={ddragonVersion} />
+          <DuoSynergy pairs={duoSynergy} loading={loading} ddragonVersion={ddragonVersion} />
         </div>
       ) : (
         <div id="view-clash">
