@@ -869,28 +869,34 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-size:12px; color:var(--text-secondary); line-height:1.5;
 }
 
-/* Sinergia de dúo's collapsed row: an "enfrentado" (VS) card instead of a
-   label/value form row — avatar+nombre on each side, winrate/récord large
-   and centered between them, like a versus poster. .panel-row already gives
-   the merged-panel/hover/divider treatment; this just overrides its flex
-   layout with the three-block grid. */
-.panel-row.duovs-row{
-  display:grid; grid-template-columns:1fr auto 1fr 16px; align-items:center; gap:14px;
+/* Sinergia de dúo: a horizontal selector strip of invocadores, not a
+   vertical list — picking one opens the two-column detail below (partners
+   left, shared-match detail right) instead of stretching the page downward. */
+.duo-chip-row{display:flex; gap:10px; overflow-x:auto; padding:2px 2px 8px; margin-bottom:16px;}
+.duo-chip{
+  display:flex; flex-direction:column; align-items:center; gap:6px; flex:none;
+  width:76px; padding:10px 8px; border-radius:var(--radius-md);
+  background:var(--surface-raised); box-shadow:var(--shadow-sm);
+  border:1px solid transparent; cursor:pointer;
+  transition:background .15s ease, border-color .15s ease, transform .15s ease;
 }
-.duovs-side{display:flex; align-items:center; gap:9px; min-width:0;}
-.duovs-side.right{flex-direction:row-reverse; text-align:right;}
-.duovs-side-info{display:flex; flex-direction:column; min-width:0; gap:1px;}
-.duovs-side.right .duovs-side-info{align-items:flex-end;}
-.duovs-name{
-  font-weight:600; font-size:12.5px; color:var(--text-primary);
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+.duo-chip:hover{background:var(--surface-hover); transform:translateY(-1px);}
+.duo-chip.is-active{border-color:var(--accent-dim); background:var(--accent-wash-soft);}
+.duo-chip-name{
+  font-size:11px; font-weight:600; color:var(--text-primary); text-align:center;
+  white-space:nowrap; max-width:100%; overflow:hidden; text-overflow:ellipsis;
 }
-.duovs-role{font-size:10px; color:var(--text-muted); font-family:var(--font-mono);}
-.duovs-center{display:flex; flex-direction:column; align-items:center; gap:1px; flex:none; min-width:60px;}
-.duovs-wr{font-family:var(--font-stat); font-weight:800; font-size:17px; font-variant-numeric:tabular-nums;}
-.duovs-wr.good{color:var(--good);}
-.duovs-wr.bad{color:var(--critical);}
-.duovs-record{font-family:var(--font-mono); font-size:10px; color:var(--text-muted); white-space:nowrap;}
+.duo-cols-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;}
+.duo-filter-row{display:flex; gap:6px; flex:none;}
+.duo-filter-btn{
+  padding:6px 12px; border-radius:999px; font-size:11px; font-weight:600;
+  background:var(--surface); color:var(--text-secondary); border:1px solid var(--border-soft);
+  cursor:pointer; transition:background .15s ease, color .15s ease, border-color .15s ease;
+}
+.duo-filter-btn:hover{color:var(--text-primary);}
+.duo-filter-btn.is-active{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
+.duo-partner-row{width:100%; text-align:left; cursor:pointer;}
+.duo-partner-row.is-active{background:var(--accent-wash-soft);}
 
 /* Expanded detail: the last 5 games THIS DUO shared — both sides' own
    champ+KDA from the SAME game, not one player's generic recent matches. */
@@ -921,10 +927,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .duovs-match-result.w{color:var(--good);}
 .duovs-match-result.l{color:var(--critical);}
 .duovs-match-date{display:block; font-size:9.5px; color:var(--text-muted); font-family:var(--font-mono); margin-top:1px;}
-@media (max-width:560px){
-  .panel-row.duovs-row{grid-template-columns:1fr auto 1fr 16px; gap:8px;}
-  .duovs-role{display:none;}
-}
 
 .footnote{
   margin-top:34px; padding-top:18px; border-top:1px solid var(--border-soft);
