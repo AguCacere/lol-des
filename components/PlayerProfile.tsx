@@ -101,6 +101,11 @@ function CmpBar({
   tooltip?: string;
 }) {
   const pct = Math.max(2, Math.min(100, (value / max) * 100));
+  // Colors the fill by whether this beats the role average, same
+  // good/bad language as everywhere else in the app — a flat accent-gold
+  // bar regardless of performance read as a generic progress/slider
+  // control, not a comparison.
+  const aboveAvg = avg === null ? null : value >= avg;
   return (
     <div className="cmp-row">
       <div className="cmp-row-top">
@@ -122,7 +127,7 @@ function CmpBar({
         </span>
       </div>
       <div className="cmp-bar-track">
-        <div className="cmp-bar-fill" style={{ width: `${pct}%` }} />
+        <div className={`cmp-bar-fill${aboveAvg === null ? "" : aboveAvg ? " good" : " bad"}`} style={{ width: `${pct}%` }} />
         {avg !== null && (
           <div className="cmp-bar-avg" style={{ left: `${Math.max(0, Math.min(100, (avg / max) * 100))}%` }} />
         )}
