@@ -101,15 +101,18 @@ export function computeClashTournaments(
   const tournaments: ClashTournament[] = [...matchesByDate.entries()].map(([key, dayMatches]) => {
     dayMatches.sort((a, b) => new Date(a.playedAt).getTime() - new Date(b.playedAt).getTime());
 
-    // Per-player-per-game results, not per-match — if two tracked friends won
-    // together in one Clash game, that's two "wins" from the group's own
-    // perspective, same convention as the rest of the app's per-player stats
-    // (e.g. the "Mayor winrate" leaderboard).
-    const results = dayMatches.flatMap((m) => m.players);
-    const wins = results.filter((p) => p.win).length;
-    const losses = results.length - wins;
-    const winrate = results.length > 0 ? Math.round((100 * wins) / results.length) : 0;
+    // Per MATCH, not per player-appearance — a shared game where 2-3 tracked
+    // friends were all on the same team is still ONE game the team played,
+    // not two or three. Every tracked player in a Clash match shares the same
+    // win result (that's the whole premise of a fixed 5-player roster), so
+    // the first player's `win` stands in for the match's own result.
+    const wins = dayMatches.filter((m) => m.players[0]?.win).length;
+    const losses = dayMatches.length - wins;
+    const winrate = dayMatches.length > 0 ? Math.round((100 * wins) / dayMatches.length) : 0;
 
+    // MVP/KDA stays per-player-appearance on purpose — "who played best" is a
+    // question about individuals, not about how many team games happened.
+    const results = dayMatches.flatMap((m) => m.players);
     const kdaByPlayer = new Map<string, { name: string; champs: string[]; kdaSum: number; games: number }>();
     for (const p of results) {
       const pk = `${p.playerName}#${p.playerTag}`;
@@ -136,10 +139,10 @@ export function computeClashTournaments(
       dayMatches.length === 1 ? "" : "s"
     } · ${wins}V ${losses}D (${winrate}%).`;
     if (mvp) conclusion += ` Mejor rendimiento: ${mvp.name} con ${mvp.champ} (${mvp.avgKda.toFixed(2)} KDA promedio).`;
-    if (results.length >= 3 && winrate >= 75) conclusion += " Gran día de Clash para el grupo.";
-    else if (results.length >= 3 && winrate <= 25) conclusion += " Día flojo — a buscar revancha en el próximo Clash.";
+    if (dayMatches.length >= 3 && winrate >= 75) conclusion += " Gran día de Clash para el grupo.";
+    else if (dayMatches.length >= 3 && winrate <= 25) conclusion += " Día flojo — a buscar revancha en el próximo Clash.";
 
-    return { key, label, matches: dayMatches, gamesPlayed: results.length, wins, losses, winrate, conclusion };
+    return { key, label, matches: dayMatches, gamesPlayed: dayMatches.length, wins, losses, winrate, conclusion };
   });
 
   tournaments.sort((a, b) => new Date(b.matches[0].playedAt).getTime() - new Date(a.matches[0].playedAt).getTime());

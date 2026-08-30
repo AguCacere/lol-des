@@ -253,8 +253,9 @@ export interface ClashTournament {
   key: string;
   label: string; // "Clash — 14 de junio de 2025"
   matches: ClashMatch[];
-  /** Sum of tracked players' individual game appearances that day (one shared win counts once per player) — not the count of unique matches. */
+  /** Count of unique Clash games played that day (matches.length) — one team game shared by several tracked friends still counts once, not once per player. */
   gamesPlayed: number;
+  /** Also per unique game, not per player-appearance — same convention as gamesPlayed. */
   wins: number;
   losses: number;
   winrate: number;

@@ -603,7 +603,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    invocador" — the three leaderboards that used to be one flat list top
    to bottom, same "form" complaint as everywhere else this treatment's
    been applied. */
-.podium{display:grid; grid-template-columns:1fr 1.15fr 1fr; gap:12px; align-items:end; margin-bottom:14px;}
+/* margin-top clears the medal badge's own -13px offset (see .podium-medal
+   below) regardless of whatever sits right above — some callers (Clash's
+   "Winrate por invocador") follow a paragraph with margin-bottom:0, which
+   otherwise let the medal visually collide with that text above it. */
+.podium{display:grid; grid-template-columns:1fr 1.15fr 1fr; gap:12px; align-items:end; margin:18px 0 14px;}
 .podium-card{
   position:relative; display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center;
   background:var(--surface-raised); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm);
