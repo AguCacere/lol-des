@@ -2,6 +2,7 @@ import type { Match } from "@/lib/types";
 import { formatRelativeDate } from "@/lib/ladder";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
+import { ClockIcon, EyeIcon, ShieldIcon, TrendUpIcon, ZapIcon } from "./StatIcons";
 
 /** Only pentakills get the celebratory banner — doubles/triples/quadras are common enough to skip. */
 function multikillLabel(m: Match): string | null {
@@ -67,10 +68,13 @@ function MiniBreakdown({ items }: { items: { value: number; label: string; icons
   );
 }
 
-function Group({ label, children }: { label: string; children: React.ReactNode }) {
+function Group({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="match-detail-group">
-      <h4 className="match-detail-group-label">{label}</h4>
+      <h4 className="match-detail-group-label">
+        <span className="match-detail-group-icon">{icon}</span>
+        {label}
+      </h4>
       <div className="match-detail-grid">{children}</div>
     </div>
   );
@@ -94,7 +98,7 @@ export function MatchDetail({ match }: { match: Match }) {
     <div className="match-detail">
       {multikill && <div className="match-multikill">{multikill}</div>}
 
-      <Group label="Partida">
+      <Group label="Partida" icon={<ClockIcon />}>
         <Stat label="Duración">{m.dur} min</Stat>
         <Stat label="CS" tooltip={METRIC_INFO.csPerMin}>
           {m.cs} <span className="unit">({m.csmin}/min)</span>
@@ -106,7 +110,7 @@ export function MatchDetail({ match }: { match: Match }) {
         <Stat label="Jugada">{formatRelativeDate(m.playedAt)}</Stat>
       </Group>
 
-      <Group label="Combate">
+      <Group label="Combate" icon={<ZapIcon />}>
         <Stat label="% daño del equipo" tooltip={METRIC_INFO.dmgShare}>
           {m.dmgShare}%
         </Stat>
@@ -125,7 +129,7 @@ export function MatchDetail({ match }: { match: Match }) {
         {m.pentaKills > 0 && <Stat label="Pentakills">{m.pentaKills}</Stat>}
       </Group>
 
-      <Group label="Visión y objetivos">
+      <Group label="Visión y objetivos" icon={<EyeIcon />}>
         <Stat label="Visión" tooltip={METRIC_INFO.visionScore}>
           {m.visionScore}
         </Stat>
@@ -167,7 +171,7 @@ export function MatchDetail({ match }: { match: Match }) {
         </Stat>
       </Group>
 
-      <Group label="Build">
+      <Group label="Build" icon={<ShieldIcon />}>
         <Stat label="Runas" wide>
           <span className="build-line">
             {m.primaryRuneIconUrl && (
@@ -204,7 +208,7 @@ export function MatchDetail({ match }: { match: Match }) {
       </Group>
 
       {hasTimeline && (
-        <Group label="Timeline">
+        <Group label="Timeline" icon={<TrendUpIcon />}>
           {m.goldDiff10 != null && (
             <Stat label="Gold diff @10'" tooltip={METRIC_INFO.goldDiffLane}>
               <GoldDiff diff={m.goldDiff10} />
