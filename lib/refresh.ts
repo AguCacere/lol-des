@@ -16,6 +16,10 @@ type SupabaseClient = ReturnType<typeof getSupabaseServerClient>;
 /** Minimum time between Riot API pulls for the same summoner via the manual POST /api/refresh (no UI button — the cron every ~15min is what actually keeps the ladder fresh, see app/api/cron/refresh/route.ts). */
 export const MANUAL_REFRESH_COOLDOWN_MS = 2 * 60 * 1000;
 
+const RANKED_SOLO_QUEUE_ID = 420;
+/** Match-V5 queueId for Clash — see lib/clash.ts for how these get grouped into "tournaments" once stored. */
+export const CLASH_QUEUE_ID = 700;
+
 /**
  * Inserts a new lp_snapshots row for one queue (SoloQ or Flex) — but only
  * when something actually changed since that queue's last snapshot.
@@ -206,6 +210,7 @@ async function fetchAndStoreMatch(supabase: SupabaseClient, puuid: string, match
     first_tower_time_s: timelineStats?.firstTowerTimeS ?? null,
     dragon_types: timelineStats?.dragonTypes ?? [],
     team_position: me.teamPosition,
+    queue_id: match.info.queueId,
     game_duration_s: match.info.gameDuration,
     played_at: new Date(match.info.gameCreation).toISOString(),
   });
@@ -238,6 +243,18 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string): Promi
 
   const matchIds = await getMatchIdsByPuuid(puuid, 20);
   for (const matchId of matchIds) {
+    if (known.has(matchId)) continue;
+    const warning = await fetchAndStoreMatch(supabase, puuid, matchId);
+    if (warning) warnings.push(warning);
+  }
+
+  // Clash games are rare (a handful of days a year, at most), so this almost
+  // always comes back empty — but checking the last 20 ids every ~15min
+  // (same cost as one extra Riot call, no per-match cost unless something's
+  // actually new) is what keeps "Clash" tab data current without needing its
+  // own separate refresh trigger.
+  const clashMatchIds = await getMatchIdsByPuuid(puuid, 20, 0, CLASH_QUEUE_ID);
+  for (const matchId of clashMatchIds) {
     if (known.has(matchId)) continue;
     const warning = await fetchAndStoreMatch(supabase, puuid, matchId);
     if (warning) warnings.push(warning);
@@ -328,6 +345,10 @@ const BACKFILL_PAGE_SIZE = 100;
 const BACKFILL_DEFAULT_MAX = 200;
 const BACKFILL_HARD_CAP = 1000;
 const BACKFILL_CONCURRENCY = 3;
+// Clash history is inherently small (a handful of tournament days a year, a
+// few games each) — no reason to expose a tunable cap for it like ranked's
+// maxMatches, 300 comfortably covers a summoner's entire Clash lifetime.
+const CLASH_BACKFILL_MAX = 300;
 
 export interface BackfillResult {
   fetched: number;
@@ -335,13 +356,43 @@ export interface BackfillResult {
   warnings: string[];
 }
 
+/** Paginates Match-V5 ids for one queue, then fetches+stores whichever aren't already in `known`. Shared by the ranked and Clash passes of backfillOne — only the queue id and how far to page differ. */
+async function backfillQueue(
+  supabase: SupabaseClient,
+  puuid: string,
+  queue: number,
+  maxMatches: number,
+  known: Set<string>
+): Promise<{ found: number; fetched: number; warnings: string[] }> {
+  const allIds: string[] = [];
+  let start = 0;
+  while (allIds.length < maxMatches) {
+    const page = await getMatchIdsByPuuid(puuid, BACKFILL_PAGE_SIZE, start, queue);
+    if (page.length === 0) break;
+    allIds.push(...page);
+    if (page.length < BACKFILL_PAGE_SIZE) break; // Riot ran out of history to give us for this queue
+    start += BACKFILL_PAGE_SIZE;
+  }
+
+  const toFetch = allIds.slice(0, maxMatches).filter((id) => !known.has(id));
+  const warnings: string[] = [];
+  await mapWithConcurrency(toFetch, BACKFILL_CONCURRENCY, async (matchId) => {
+    const warning = await fetchAndStoreMatch(supabase, puuid, matchId);
+    if (warning) warnings.push(warning);
+  });
+
+  return { found: allIds.length, fetched: toFetch.length - warnings.length, warnings };
+}
+
 /**
- * One-time deep pull of a summoner's ranked match history, well beyond the
- * last-20-per-refresh window refreshOne normally keeps up with. Exists
- * because champion-specific stats (see "Mayor winrate por campeón" in
- * Estadísticas) depend entirely on matches stored locally — unlike season
- * winrate, Riot has no endpoint that hands back win/loss by champion, so the
- * only way to get there faster is to pull more history ourselves.
+ * One-time deep pull of a summoner's ranked AND Clash match history, well
+ * beyond the last-20-per-refresh window refreshOne normally keeps up with.
+ * Ranked matters for champion-specific stats (see "Mayor winrate por
+ * campeón" in Estadísticas) — Riot has no endpoint that hands back win/loss
+ * by champion, so the only way to get there faster is to pull more history
+ * ourselves. Clash matters for the "Clash" tab's tournament history — the
+ * `refreshOne` cron only catches NEW Clash games going forward, this is what
+ * backfills everything that happened before this feature existed.
  * Idempotent: already-known match_ids are skipped before ever hitting Riot
  * for them, so calling this again just tops up whatever's newly in range.
  */
@@ -359,24 +410,14 @@ export async function backfillOne(
   if (existingError) throw new Error(`No se pudo leer matches existentes: ${existingError.message}`);
   const known = new Set((existing ?? []).map((m) => m.match_id));
 
-  const allIds: string[] = [];
-  let start = 0;
-  while (allIds.length < cappedMax) {
-    const page = await getMatchIdsByPuuid(puuid, BACKFILL_PAGE_SIZE, start);
-    if (page.length === 0) break;
-    allIds.push(...page);
-    if (page.length < BACKFILL_PAGE_SIZE) break; // Riot ran out of ranked solo/duo history to give us
-    start += BACKFILL_PAGE_SIZE;
-  }
+  const ranked = await backfillQueue(supabase, puuid, RANKED_SOLO_QUEUE_ID, cappedMax, known);
+  const clash = await backfillQueue(supabase, puuid, CLASH_QUEUE_ID, CLASH_BACKFILL_MAX, known);
 
-  const toFetch = allIds.slice(0, cappedMax).filter((id) => !known.has(id));
-  const warnings: string[] = [];
-  await mapWithConcurrency(toFetch, BACKFILL_CONCURRENCY, async (matchId) => {
-    const warning = await fetchAndStoreMatch(supabase, puuid, matchId);
-    if (warning) warnings.push(warning);
-  });
-
-  return { fetched: toFetch.length - warnings.length, alreadyKnown: allIds.length - toFetch.length, warnings };
+  return {
+    fetched: ranked.fetched + clash.fetched,
+    alreadyKnown: ranked.found - ranked.fetched + (clash.found - clash.fetched),
+    warnings: [...ranked.warnings, ...clash.warnings],
+  };
 }
 
 // How many summoners refreshOne() runs for at once. One-at-a-time used to

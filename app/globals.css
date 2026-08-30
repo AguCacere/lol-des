@@ -848,6 +848,48 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .duo-wr.bad{color:var(--critical);}
 .duo-record{font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted);}
 
+.clash-lifetime{font-size:12.5px; color:var(--text-muted); margin:-4px 0 12px; font-family:var(--font-mono);}
+.clash-lifetime-wr.good{color:var(--good); font-weight:600;}
+.clash-lifetime-wr.bad{color:var(--critical); font-weight:600;}
+.clash-detail{
+  display:flex; flex-direction:column; gap:10px;
+  background:rgba(255,255,255,0.018); border:1px solid rgba(166,134,46,0.2);
+  border-radius:var(--radius-md); padding:12px 14px; margin-top:-2px;
+}
+.clash-match-head{
+  display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-muted);
+  font-family:var(--font-mono); margin-bottom:6px; padding:0 2px;
+}
+.clash-match-players{display:flex; flex-direction:column; gap:5px;}
+.clash-player-row{
+  display:grid; grid-template-columns:26px 26px 1fr auto auto; align-items:center; gap:10px;
+  background:var(--surface-hover); border-radius:var(--radius-sm); padding:7px 10px;
+}
+.clash-player-avatar, .clash-player-champ{
+  width:26px; height:26px; border-radius:7px; flex:none; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:700; font-size:10px;
+  background:var(--surface); color:var(--text-secondary);
+}
+.clash-player-avatar img, .clash-player-champ img{width:100%; height:100%; object-fit:cover; display:block;}
+.clash-player-mid{display:flex; flex-direction:column; min-width:0;}
+.clash-player-name{
+  font-size:11.5px; font-weight:600; color:var(--text-primary);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.clash-player-champ-name{font-size:10px; color:var(--text-muted);}
+.clash-player-stats{text-align:right; font-family:var(--font-mono); font-size:11px; white-space:nowrap;}
+.clash-player-stats .kda{font-family:var(--font-stat); font-weight:800; font-size:12.5px; font-variant-numeric:tabular-nums;}
+.clash-player-stats .kda .neu{color:var(--text-muted); font-weight:400;}
+.clash-player-stats .extra{display:block; color:var(--text-muted); font-size:9.5px; margin-top:1px;}
+.clash-player-result{font-size:9.5px; font-weight:700; letter-spacing:0.04em; flex:none;}
+.clash-player-result.w{color:var(--good);}
+.clash-player-result.l{color:var(--critical);}
+.clash-conclusion{
+  margin:0; padding-top:10px; border-top:1px solid rgba(255,255,255,0.06);
+  font-size:12px; color:var(--text-secondary); line-height:1.5;
+}
+
 .footnote{
   margin-top:34px; padding-top:18px; border-top:1px solid var(--border-soft);
   font-size:11.5px; color:var(--text-muted); text-align:center; line-height:1.6;

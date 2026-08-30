@@ -181,6 +181,57 @@ export interface ChampionLeaderboardEntry {
   avgKda: number;
 }
 
+/**
+ * One tracked player's result in one Clash game — always paired with
+ * others from the SAME match_id in ClashMatch.players. Carries its own `win`
+ * (not a match-level one): two tracked friends can in principle land on
+ * opposing Clash teams, and `win` is what actually distinguishes teams here
+ * since Clash's teamId isn't stored in `matches`.
+ */
+export interface ClashMatchPlayer {
+  playerName: string;
+  playerTag: string;
+  profileIconUrl: string | null;
+  champion: string;
+  win: boolean;
+  k: number;
+  d: number;
+  a: number;
+  cs: number;
+  csPerMin: string;
+  dmgShare: number;
+  damageToChamps: number;
+  visionScore: number;
+  teamPosition: string | null;
+}
+
+export interface ClashMatch {
+  matchId: string;
+  playedAt: string; // ISO timestamp
+  durationS: number;
+  /** Only the TRACKED players who played this match — Clash rosters can include untracked friends, same convention as everywhere else in this app. */
+  players: ClashMatchPlayer[];
+}
+
+/**
+ * One reconstructed "Clash day" for the group — see lib/clash.ts for why
+ * this is grouped by calendar date rather than a real Riot tournament id
+ * (Clash-V1 has no history endpoint, only "currently registered").
+ */
+export interface ClashTournament {
+  /** Calendar-date cluster key (en-CA, e.g. "2025-06-14") — stable identity for React keys, not shown in the UI. */
+  key: string;
+  label: string; // "Clash — 14 de junio de 2025"
+  matches: ClashMatch[];
+  /** Sum of tracked players' individual game appearances that day (one shared win counts once per player) — not the count of unique matches. */
+  gamesPlayed: number;
+  wins: number;
+  losses: number;
+  winrate: number;
+  /** Auto-generated Spanish one-liner: record, MVP of the day, and a callout on a especially good/bad day. */
+  conclusion: string;
+}
+
 export interface Player {
   name: string;
   tag: string;

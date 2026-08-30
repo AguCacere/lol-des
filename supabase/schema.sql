@@ -94,6 +94,7 @@ create table if not exists matches (
   first_tower_time_s int,      -- ídem para la primera torre caída
   dragon_types  text[] not null default '{}', -- monsterSubType (Match-V5 timeline) por cada dragón que MATÓ este jugador, ej. {FIRE_DRAGON,WATER_DRAGON} — puede ser más corto que dragon_kills en partidas viejas sin timeline guardado
   team_position text,          -- TOP/JUNGLE/MIDDLE/BOTTOM/UTILITY
+  queue_id      int not null default 420, -- Match-V5 queueId: 420=ranked solo/duo, 700=Clash (ver lib/clash.ts)
   game_duration_s int not null,
   played_at     timestamptz not null,
   inserted_at   timestamptz not null default now(),

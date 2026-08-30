@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { ChampionLeaderboardEntry, DuoPair, LiveGame, Player, RoleKey } from "@/lib/types";
+import type { ChampionLeaderboardEntry, ClashTournament, DuoPair, LiveGame, Player, RoleKey } from "@/lib/types";
 import { TopBar, type AddStatus } from "@/components/TopBar";
 import { TabNav, type TabKey } from "@/components/TabNav";
 import { LadderTable, playerKey, type SortKey } from "@/components/LadderTable";
@@ -9,6 +9,7 @@ import { PlayerProfile } from "@/components/PlayerProfile";
 import { DuoSynergy } from "@/components/DuoSynergy";
 import { TopWinrate } from "@/components/TopWinrate";
 import { ChampionWinrateLeaderboard } from "@/components/ChampionWinrateLeaderboard";
+import { ClashHistory } from "@/components/ClashHistory";
 
 function parseRiotId(raw: string): { gameName: string; tagLine: string } | null {
   const i = raw.indexOf("#");
@@ -20,6 +21,9 @@ export default function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [duoSynergy, setDuoSynergy] = useState<DuoPair[]>([]);
   const [championLeaderboard, setChampionLeaderboard] = useState<ChampionLeaderboardEntry[]>([]);
+  const [clashTournaments, setClashTournaments] = useState<ClashTournament[]>([]);
+  const [clashLoading, setClashLoading] = useState(false);
+  const [clashLoaded, setClashLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [ddragonVersion, setDdragonVersion] = useState<string | null>(null);
@@ -102,6 +106,30 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [loadLadder]);
 
+  const loadClash = useCallback(async () => {
+    setClashLoading(true);
+    try {
+      const res = await fetch("/api/clash");
+      const data = await res.json();
+      if (res.ok) setClashTournaments((data.tournaments as ClashTournament[]) ?? []);
+    } catch {
+      // best-effort — the tab just stays empty/stale until the user reopens it
+    } finally {
+      setClashLoading(false);
+      setClashLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Fetched lazily on first visit to the tab, not alongside loadLadder —
+    // Clash history changes maybe a few times a year, no reason to pay for
+    // it on every ladder poll.
+    if (tab === "clash" && !clashLoaded && !clashLoading) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- loadClash sets state once the fetch resolves, not synchronously here
+      loadClash();
+    }
+  }, [tab, clashLoaded, clashLoading, loadClash]);
+
   const activePlayer = players.find((p) => playerKey(p) === activeKey) ?? null;
 
   const q = filterText.trim().toLowerCase();
@@ -167,11 +195,15 @@ export default function Home() {
           />
           <PlayerProfile player={activePlayer} allPlayers={players} ddragonVersion={ddragonVersion} />
         </div>
-      ) : (
+      ) : tab === "stats" ? (
         <div id="view-stats">
           <TopWinrate players={players} />
           <ChampionWinrateLeaderboard entries={championLeaderboard} ddragonVersion={ddragonVersion} />
           <DuoSynergy pairs={duoSynergy} loading={loading} ddragonVersion={ddragonVersion} />
+        </div>
+      ) : (
+        <div id="view-clash">
+          <ClashHistory tournaments={clashTournaments} loading={clashLoading} ddragonVersion={ddragonVersion} />
         </div>
       )}
 
