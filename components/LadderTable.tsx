@@ -169,8 +169,16 @@ export function LadderTable({
               )}
             </div>
           ) : (
-            rows.map((p) => {
-              const rank = players.indexOf(p) + 1;
+            rows.map((p, i) => {
+              // Ladder order keeps each player's real LP-ladder position even
+              // under a role filter (dropping other roles shouldn't renumber
+              // who's actually #1 overall) — but any OTHER sort re-orders the
+              // rows entirely, and showing the stale LP rank next to a list
+              // now sorted by winrate/wins/streak/progreso read as random
+              // numbers with no relation to what's on screen (e.g. the top
+              // winrate row showing "#5"). Once re-sorted, the rank column
+              // has to describe THIS order, not the ladder's.
+              const rank = sortKey === "ladder" ? players.indexOf(p) + 1 : i + 1;
               const t = tierFor(p.tierKey);
               const key = playerKey(p);
               const isActive = key === activeKey;
