@@ -313,10 +313,12 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   flex:none; color:var(--gold); overflow:hidden;
 }
 .role-chip svg{width:14px;height:14px;}
-/* Real role badges are self-contained square art (their own dark backdrop baked
-   in, no transparency) — fill the whole chip instead of floating inside the
-   wash background like the hand-drawn fallback glyph does. */
-.role-chip img{width:100%;height:100%;object-fit:cover;display:block;}
+/* contain, not cover: top/jungle/mid/support are self-contained square art
+   (their own dark backdrop baked in) so this fills the chip edge-to-edge
+   either way, but adc is a transparent gold glyph with no backdrop of its
+   own — cover would crop it trying to fill the box, contain lets it
+   letterbox cleanly inside the chip's own gold-wash background instead. */
+.role-chip img{width:100%;height:100%;object-fit:contain;display:block;}
 .player-id{min-width:0; position:relative; display:block;}
 .player-name{
   font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
