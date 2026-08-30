@@ -81,30 +81,30 @@ function ClashMatchCard({ m, ddragonVersion }: { m: ClashMatch; ddragonVersion: 
 function ClashTournamentRow({ t, ddragonVersion }: { t: ClashTournament; ddragonVersion: string | null }) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <div className="duo-item">
+    <div className="clash-day-item">
       <button
         type="button"
-        className={`duo-row${expanded ? " is-expanded" : ""}`}
+        className={`clash-day-row${expanded ? " is-expanded" : ""}`}
         onClick={() => setExpanded((v) => !v)}
       >
-        <div className="duo-mid">
-          <span className="duo-names">{t.label}</span>
-          <span className="duo-meta">
+        <div className="clash-day-mid">
+          <span className="clash-day-label">{t.label}</span>
+          <span className="clash-day-meta">
             {t.matches.length} partida{t.matches.length === 1 ? "" : "s"} de Clash
           </span>
-          <div className="duo-bar">
-            <span className="duo-seg win" style={{ flex: t.wins }} />
-            <span className="duo-seg loss" style={{ flex: t.losses }} />
-          </div>
         </div>
-        <div className="duo-stats">
-          <span className={`duo-wr ${t.winrate >= 50 ? "good" : "bad"}`}>{t.winrate}%</span>
-          <span className="duo-record">
+        <div className="clash-day-bar">
+          <span className="duo-seg win" style={{ flex: t.wins }} />
+          <span className="duo-seg loss" style={{ flex: t.losses }} />
+        </div>
+        <div className="clash-day-stats">
+          <span className={`clash-day-wr ${t.winrate >= 50 ? "good" : "bad"}`}>{t.winrate}%</span>
+          <span className="clash-day-record">
             {t.wins}V {t.losses}D
           </span>
         </div>
         <svg
-          className="duo-chevron"
+          className="clash-day-chevron"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -116,7 +116,7 @@ function ClashTournamentRow({ t, ddragonVersion }: { t: ClashTournament; ddragon
         </svg>
       </button>
       {expanded && (
-        <div className="clash-detail">
+        <div className="clash-day-detail">
           {t.matches.map((m) => (
             <ClashMatchCard m={m} ddragonVersion={ddragonVersion} key={m.matchId} />
           ))}
@@ -172,12 +172,16 @@ export function ClashHistory({
       {!loading && playerStats.length > 0 && (
         <>
           <h4 className="subsection-label">Winrate por invocador</h4>
+          <p className="chart-note">
+            Partidas de Clash individuales ganadas/perdidas por cada uno, sumando TODOS los torneos jugados — no el
+            resultado de un torneo puntual.
+          </p>
           <ClashPlayerStatsList stats={playerStats} />
           <h4 className="subsection-label">Historial por día</h4>
         </>
       )}
 
-      <div className="duo-list">
+      <div className={tournaments.length === 0 ? "duo-list" : "clash-days"}>
         {loading ? (
           <div className="empty-state">
             <strong>Cargando…</strong>
