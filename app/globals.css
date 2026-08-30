@@ -778,41 +778,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(0);
 }
 
+/* .duo-list only wraps the loading/empty states now (see .panel-list below
+   for the actual populated Sinergia de dúo / Clash lists) — kept minimal on
+   purpose, an empty-state message doesn't need its own card background. */
 .duo-list{display:flex; flex-direction:column; gap:10px;}
-.duo-item{display:flex; flex-direction:column; gap:8px;}
-.duo-row{
-  display:flex; align-items:center; gap:16px;
-  background:var(--surface-raised); border-radius:var(--radius-md); box-shadow:var(--shadow-sm);
-  padding:14px 18px; transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
-  width:100%; text-align:left; cursor:pointer; appearance:none; -webkit-appearance:none; border:none;
-}
-.duo-row:hover{transform:translateY(-1px); box-shadow:var(--shadow); background:var(--surface-hover);}
-.duo-row:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
-.duo-row.is-expanded{box-shadow:inset 0 0 0 1px var(--accent-dim);}
-.duo-chevron{width:14px; height:14px; color:var(--text-muted); transition:transform .15s ease; flex:none;}
-.duo-row.is-expanded .duo-chevron{transform:rotate(180deg); color:var(--accent);}
-.duo-detail{
-  display:grid; grid-template-columns:1fr 1fr; gap:10px;
-  background:rgba(255,255,255,0.018); border:1px solid rgba(166,134,46,0.2);
-  border-radius:var(--radius-md); padding:12px 14px; margin-top:-2px;
-}
-@media (max-width:600px){.duo-detail{grid-template-columns:1fr;}}
-.duo-detail-player{display:flex; align-items:center; gap:10px; min-width:0;}
-.duo-detail-mid{display:flex; flex-direction:column; min-width:0; flex:1;}
-.duo-detail-name{font-weight:600; font-size:12.5px; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-.duo-detail-kda{font-size:11px; color:var(--text-muted); font-family:var(--font-mono); margin-top:1px;}
-.duo-detail-champ{
-  display:flex; flex-direction:column; align-items:center; gap:3px; flex:none;
-  font-size:9.5px; color:var(--text-muted); text-align:center; max-width:52px;
-}
-.duo-detail-champ-avatar{
-  width:26px; height:26px; border-radius:7px; overflow:hidden;
-  display:flex; align-items:center; justify-content:center;
-  font-family:var(--font-display); font-weight:700; font-size:10px;
-  background:var(--surface-hover); color:var(--text-secondary);
-}
-.duo-detail-champ-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
-.duo-avatars{display:flex; align-items:center; flex:none;}
 .duo-avatar{
   width:36px; height:36px; border-radius:10px; flex:none;
   display:flex; align-items:center; justify-content:center;
@@ -822,31 +791,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   overflow:hidden;
 }
 .duo-avatar-img{width:100%; height:100%; object-fit:cover; display:block;}
-.duo-avatar-b{margin-left:-8px;}
-.duo-mid{display:flex; flex-direction:column; min-width:0; flex:1; gap:5px;}
-.duo-names{font-weight:600; font-size:13.5px; color:var(--text-primary);}
-.duo-amp{color:var(--text-muted); font-weight:400;}
-.duo-meta{
-  display:flex; align-items:center; gap:6px;
-  font-size:11px; color:var(--text-muted); font-family:var(--font-mono);
-}
-.duo-roles{display:inline-flex; align-items:center; gap:2px; flex:none;}
-.duo-role-icon{width:15px; height:15px; border-radius:4px; overflow:hidden; flex:none;}
-.duo-role-icon img{width:100%; height:100%; object-fit:cover; display:block;}
-.duo-role-icon svg{width:100%; height:100%; display:block;}
-.duo-bar{
-  display:flex; gap:1.5px; height:4px; border-radius:99px; overflow:hidden;
-  background:var(--surface); max-width:220px;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04);
-}
 .duo-seg{height:100%;}
 .duo-seg.win{background:var(--good);}
 .duo-seg.loss{background:var(--critical);}
-.duo-stats{display:flex; flex-direction:column; align-items:flex-end; gap:1px; flex:none;}
-.duo-wr{font-family:var(--font-stat); font-weight:800; font-size:16px; font-variant-numeric:tabular-nums;}
-.duo-wr.good{color:var(--good);}
-.duo-wr.bad{color:var(--critical);}
-.duo-record{font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted);}
 
 .clash-lifetime{font-size:12.5px; color:var(--text-muted); margin:-4px 0 12px; font-family:var(--font-mono);}
 .clash-lifetime-wr.good{color:var(--good); font-weight:600;}
@@ -855,39 +802,39 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    dozen Clash days each in their own separately-shadowed, generously-padded
    card (the original design here) reads as a long stack of form fields and
    takes a full scroll to get through, not a compact list you scan at a glance. */
-.clash-days{
+.panel-list{
   background:var(--surface-raised); border-radius:var(--radius-sm); box-shadow:var(--shadow-sm);
   overflow:hidden;
 }
-.clash-day-item{border-bottom:1px solid var(--border-soft);}
-.clash-day-item:last-child{border-bottom:none;}
-.clash-day-row{
+.panel-item{border-bottom:1px solid var(--border-soft);}
+.panel-item:last-child{border-bottom:none;}
+.panel-row{
   display:flex; align-items:center; gap:14px; width:100%; text-align:left;
   cursor:pointer; appearance:none; -webkit-appearance:none; border:none; background:none;
   padding:9px 14px; transition:background .15s ease;
 }
-.clash-day-row:hover{background:var(--surface-hover);}
-.clash-day-row:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
-.clash-day-mid{display:flex; flex-direction:column; min-width:0; flex:1; gap:1px;}
-.clash-day-label{font-weight:600; font-size:12.5px; color:var(--text-primary);}
-.clash-day-meta{font-size:10.5px; color:var(--text-muted); font-family:var(--font-mono);}
-.clash-day-bar{
+.panel-row:hover{background:var(--surface-hover);}
+.panel-row:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
+.panel-row-mid{display:flex; flex-direction:column; min-width:0; flex:1; gap:1px;}
+.panel-row-label{font-weight:600; font-size:12.5px; color:var(--text-primary);}
+.panel-row-meta{font-size:10.5px; color:var(--text-muted); font-family:var(--font-mono);}
+.panel-row-bar{
   display:flex; gap:1.5px; height:4px; width:70px; border-radius:99px; overflow:hidden; flex:none;
   background:var(--surface); box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04);
 }
-.clash-day-stats{display:flex; align-items:baseline; gap:8px; flex:none;}
-.clash-day-wr{font-family:var(--font-stat); font-weight:800; font-size:14px; font-variant-numeric:tabular-nums;}
-.clash-day-wr.good{color:var(--good);}
-.clash-day-wr.bad{color:var(--critical);}
-.clash-day-record{font-family:var(--font-mono); font-size:11px; color:var(--text-muted); white-space:nowrap;}
-.clash-day-chevron{width:13px; height:13px; color:var(--text-muted); transition:transform .15s ease; flex:none;}
-.clash-day-row.is-expanded .clash-day-chevron{transform:rotate(180deg); color:var(--accent);}
-.clash-day-detail{
+.panel-row-stats{display:flex; align-items:baseline; gap:8px; flex:none;}
+.panel-row-wr{font-family:var(--font-stat); font-weight:800; font-size:14px; font-variant-numeric:tabular-nums;}
+.panel-row-wr.good{color:var(--good);}
+.panel-row-wr.bad{color:var(--critical);}
+.panel-row-record{font-family:var(--font-mono); font-size:11px; color:var(--text-muted); white-space:nowrap;}
+.panel-row-chevron{width:13px; height:13px; color:var(--text-muted); transition:transform .15s ease; flex:none;}
+.panel-row.is-expanded .panel-row-chevron{transform:rotate(180deg); color:var(--accent);}
+.panel-row-detail{
   display:flex; flex-direction:column; gap:10px;
   background:rgba(255,255,255,0.018); border-top:1px solid rgba(166,134,46,0.2);
   padding:12px 14px 10px;
 }
-@media (max-width:480px){.clash-day-bar{display:none;}}
+@media (max-width:480px){.panel-row-bar{display:none;}}
 .clash-match-head{
   display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-muted);
   font-family:var(--font-mono); margin-bottom:6px; padding:0 2px;
@@ -921,6 +868,40 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   margin:0; padding-top:10px; border-top:1px solid rgba(255,255,255,0.06);
   font-size:12px; color:var(--text-secondary); line-height:1.5;
 }
+
+/* Sinergia de dúo's per-player expanded panel: "Compañeros de dúo" reuses
+   .champ-pool as-is (identical shape to the winrate leaderboards), these two
+   are just for "Últimas partidas" — a read-only echo of the match-row look
+   from PlayerProfile, minus the click/hover affordance since it doesn't
+   expand into anything here. */
+.duosum-section-title{
+  font-family:var(--font-display); font-weight:700; font-size:10px; letter-spacing:0.09em;
+  text-transform:uppercase; color:var(--text-muted); margin:0 0 6px;
+}
+.duosum-matches{display:flex; flex-direction:column; gap:5px;}
+.duosum-match-row{
+  display:grid; grid-template-columns:4px 30px 1fr auto; align-items:center; gap:10px;
+  background:var(--surface-hover); border-radius:var(--radius-sm); padding:7px 10px 7px 8px;
+}
+.duosum-match-stripe{align-self:stretch; border-radius:2px;}
+.duosum-match-stripe.w{background:var(--good);}
+.duosum-match-stripe.l{background:var(--critical);}
+.duosum-match-champ{
+  width:30px; height:30px; border-radius:8px; flex:none; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:700; font-size:10.5px;
+  background:var(--surface); color:var(--text-secondary);
+}
+.duosum-match-champ img{width:100%; height:100%; object-fit:cover; display:block;}
+.duosum-match-mid{display:flex; flex-direction:column; min-width:0; gap:1px;}
+.duosum-match-champ-name{font-size:11.5px; font-weight:600; color:var(--text-primary);}
+.duosum-match-sub{font-size:10px; color:var(--text-muted); font-family:var(--font-mono);}
+.duosum-match-right{text-align:right; font-family:var(--font-mono); font-size:11px; white-space:nowrap;}
+.duosum-match-right .kda{font-family:var(--font-stat); font-weight:800; font-size:12.5px; font-variant-numeric:tabular-nums;}
+.duosum-match-right .neu{color:var(--text-muted); font-weight:400;}
+.duosum-match-result{display:block; font-size:9px; font-weight:700; letter-spacing:0.04em; margin-top:1px;}
+.duosum-match-result.w{color:var(--good);}
+.duosum-match-result.l{color:var(--critical);}
 
 .footnote{
   margin-top:34px; padding-top:18px; border-top:1px solid var(--border-soft);

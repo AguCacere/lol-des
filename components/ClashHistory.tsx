@@ -81,30 +81,30 @@ function ClashMatchCard({ m, ddragonVersion }: { m: ClashMatch; ddragonVersion: 
 function ClashTournamentRow({ t, ddragonVersion }: { t: ClashTournament; ddragonVersion: string | null }) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <div className="clash-day-item">
+    <div className="panel-item">
       <button
         type="button"
-        className={`clash-day-row${expanded ? " is-expanded" : ""}`}
+        className={`panel-row${expanded ? " is-expanded" : ""}`}
         onClick={() => setExpanded((v) => !v)}
       >
-        <div className="clash-day-mid">
-          <span className="clash-day-label">{t.label}</span>
-          <span className="clash-day-meta">
+        <div className="panel-row-mid">
+          <span className="panel-row-label">{t.label}</span>
+          <span className="panel-row-meta">
             {t.matches.length} partida{t.matches.length === 1 ? "" : "s"} de Clash
           </span>
         </div>
-        <div className="clash-day-bar">
+        <div className="panel-row-bar">
           <span className="duo-seg win" style={{ flex: t.wins }} />
           <span className="duo-seg loss" style={{ flex: t.losses }} />
         </div>
-        <div className="clash-day-stats">
-          <span className={`clash-day-wr ${t.winrate >= 50 ? "good" : "bad"}`}>{t.winrate}%</span>
-          <span className="clash-day-record">
+        <div className="panel-row-stats">
+          <span className={`panel-row-wr ${t.winrate >= 50 ? "good" : "bad"}`}>{t.winrate}%</span>
+          <span className="panel-row-record">
             {t.wins}V {t.losses}D
           </span>
         </div>
         <svg
-          className="clash-day-chevron"
+          className="panel-row-chevron"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -116,7 +116,7 @@ function ClashTournamentRow({ t, ddragonVersion }: { t: ClashTournament; ddragon
         </svg>
       </button>
       {expanded && (
-        <div className="clash-day-detail">
+        <div className="panel-row-detail">
           {t.matches.map((m) => (
             <ClashMatchCard m={m} ddragonVersion={ddragonVersion} key={m.matchId} />
           ))}
@@ -181,7 +181,7 @@ export function ClashHistory({
         </>
       )}
 
-      <div className={tournaments.length === 0 ? "duo-list" : "clash-days"}>
+      <div className={tournaments.length === 0 ? "duo-list" : "panel-list"}>
         {loading ? (
           <div className="empty-state">
             <strong>Cargando…</strong>
