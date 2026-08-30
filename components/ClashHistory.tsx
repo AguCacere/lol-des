@@ -5,31 +5,59 @@ import type { ClashMatch, ClashMatchPlayer, ClashPlayerStats, ClashTournament } 
 import { ChampIcon } from "./ChampIcon";
 import { PlayerAvatar } from "./PlayerAvatar";
 
-/** "Winrate por invocador" — cada tracked player's lifetime Clash record, reusing the same merged-panel leaderboard styling as "Mayor winrate" (Estadísticas) for visual consistency. */
+const MEDALS = ["gold", "silver", "bronze"];
+
+/** "Winrate por invocador" — cada tracked player's lifetime Clash record. Top 3 en podio (medalla + avatar grande, #1 destacado), el resto en la lista compacta — mismo tratamiento que "Mayor winrate" (Estadísticas). */
 function ClashPlayerStatsList({ stats }: { stats: ClashPlayerStats[] }) {
+  const podium = stats.slice(0, 3);
+  const rest = stats.slice(3);
   return (
-    <div className="champ-pool">
-      {stats.map((s, i) => (
-        <div className="champ-pool-row" key={`${s.playerName}#${s.playerTag}`}>
-          <span className="leaderboard-rank">{i + 1}</span>
-          <PlayerAvatar name={s.playerName} iconUrl={s.profileIconUrl} className="duo-avatar" />
-          <div className="champ-pool-mid">
-            <span className="champ-pool-name">
-              {s.playerName} <span className="player-tag">#{s.playerTag}</span>
-            </span>
-            <span className="champ-pool-games">
-              {s.games} {s.games === 1 ? "partida de Clash" : "partidas de Clash"}
-            </span>
-          </div>
-          <div className="champ-pool-stats">
-            <span className={`champ-pool-wr ${s.winrate >= 50 ? "good" : "bad"}`}>{s.winrate}%</span>
-            <span className="champ-pool-kda">
+    <>
+      <div className="podium">
+        {podium.map((s, i) => (
+          <div className={`podium-card rank-${i + 1}`} key={`${s.playerName}#${s.playerTag}`}>
+            <span className={`podium-medal ${MEDALS[i]}`}>{i + 1}</span>
+            <PlayerAvatar name={s.playerName} iconUrl={s.profileIconUrl} className="podium-avatar" />
+            <div className="podium-mid">
+              <span className="podium-name">
+                {s.playerName} <span className="player-tag">#{s.playerTag}</span>
+              </span>
+              <span className="podium-meta">
+                {s.games} {s.games === 1 ? "partida de Clash" : "partidas de Clash"}
+              </span>
+            </div>
+            <span className={`podium-wr ${s.winrate >= 50 ? "good" : "bad"}`}>{s.winrate}%</span>
+            <span className="podium-record">
               {s.wins}V {s.losses}D
             </span>
           </div>
+        ))}
+      </div>
+      {rest.length > 0 && (
+        <div className="champ-pool">
+          {rest.map((s, i) => (
+            <div className="champ-pool-row" key={`${s.playerName}#${s.playerTag}`}>
+              <span className="leaderboard-rank">{i + 4}</span>
+              <PlayerAvatar name={s.playerName} iconUrl={s.profileIconUrl} className="duo-avatar" />
+              <div className="champ-pool-mid">
+                <span className="champ-pool-name">
+                  {s.playerName} <span className="player-tag">#{s.playerTag}</span>
+                </span>
+                <span className="champ-pool-games">
+                  {s.games} {s.games === 1 ? "partida de Clash" : "partidas de Clash"}
+                </span>
+              </div>
+              <div className="champ-pool-stats">
+                <span className={`champ-pool-wr ${s.winrate >= 50 ? "good" : "bad"}`}>{s.winrate}%</span>
+                <span className="champ-pool-kda">
+                  {s.wins}V {s.losses}D
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      )}
+    </>
   );
 }
 
