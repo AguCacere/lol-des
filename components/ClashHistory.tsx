@@ -61,7 +61,16 @@ function ClashPlayerStatsList({ stats }: { stats: ClashPlayerStats[] }) {
   );
 }
 
-function ClashPlayerRow({ p, ddragonVersion }: { p: ClashMatchPlayer; ddragonVersion: string | null }) {
+function ClashPlayerRow({
+  p,
+  ddragonVersion,
+  showResult,
+}: {
+  p: ClashMatchPlayer;
+  ddragonVersion: string | null;
+  /** Only rendered per-row for the rare case where this match's tracked players split across both teams — normally the result is shown once in the match header instead of repeated on every row. */
+  showResult: boolean;
+}) {
   return (
     <div className="clash-player-row">
       <PlayerAvatar name={p.playerName} iconUrl={p.profileIconUrl} className="clash-player-avatar" />
@@ -85,21 +94,32 @@ function ClashPlayerRow({ p, ddragonVersion }: { p: ClashMatchPlayer; ddragonVer
           {p.cs} CS · {p.dmgShare}% daño
         </span>
       </div>
-      <span className={`clash-player-result ${p.win ? "w" : "l"}`}>{p.win ? "VICTORIA" : "DERROTA"}</span>
+      {showResult && <span className={`clash-player-result ${p.win ? "w" : "l"}`}>{p.win ? "VICTORIA" : "DERROTA"}</span>}
     </div>
   );
 }
 
+/** All tracked players in one Clash game are on the same 5-stack roster in the overwhelming majority of cases — the one shared result belongs in the card header, not repeated on every single row underneath it. */
+function matchOutcome(m: ClashMatch): "w" | "l" | "mixed" {
+  if (m.players.every((p) => p.win)) return "w";
+  if (m.players.every((p) => !p.win)) return "l";
+  return "mixed";
+}
+
 function ClashMatchCard({ m, ddragonVersion }: { m: ClashMatch; ddragonVersion: string | null }) {
+  const outcome = matchOutcome(m);
   return (
-    <div className="clash-match">
+    <div className={`clash-match${outcome !== "mixed" ? ` ${outcome}` : ""}`}>
       <div className="clash-match-head">
         <span>{new Date(m.playedAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span>
-        <span>{Math.round(m.durationS / 60)} min</span>
+        {outcome !== "mixed" && (
+          <span className={`clash-match-result ${outcome}`}>{outcome === "w" ? "VICTORIA" : "DERROTA"}</span>
+        )}
+        <span className="clash-match-dur">{Math.round(m.durationS / 60)} min</span>
       </div>
       <div className="clash-match-players">
         {m.players.map((p) => (
-          <ClashPlayerRow p={p} ddragonVersion={ddragonVersion} key={`${p.playerName}#${p.playerTag}`} />
+          <ClashPlayerRow p={p} ddragonVersion={ddragonVersion} showResult={outcome === "mixed"} key={`${p.playerName}#${p.playerTag}`} />
         ))}
       </div>
     </div>
@@ -109,7 +129,7 @@ function ClashMatchCard({ m, ddragonVersion }: { m: ClashMatch; ddragonVersion: 
 function ClashTournamentRow({ t, ddragonVersion }: { t: ClashTournament; ddragonVersion: string | null }) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <div className="panel-item">
+    <div className={`panel-item clash-day-item ${t.winrate >= 50 ? "w" : "l"}`}>
       <button
         type="button"
         className={`panel-row${expanded ? " is-expanded" : ""}`}

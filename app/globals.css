@@ -932,14 +932,36 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   padding:12px 14px 10px;
 }
 @media (max-width:480px){.panel-row-bar{display:none;}}
-.clash-match-head{
-  display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-muted);
-  font-family:var(--font-mono); margin-bottom:6px; padding:0 2px;
+/* A day's own win/loss lean gets a thin accent stripe on the row itself
+   (inset shadow, not a border — doesn't disturb .panel-list's rounded-
+   corner clipping on the first/last row), same idea as .ladder-row.is-you
+   and every match-stripe elsewhere: color carries the result before you
+   read a single number. */
+.clash-day-item.w{box-shadow:inset 3px 0 0 var(--good);}
+.clash-day-item.l{box-shadow:inset 3px 0 0 var(--critical);}
+/* Each Clash game is its OWN card, not a loose continuation of the row
+   list above it — a tinted background ties its players together as one
+   team result, and that one result is stated ONCE in the header instead
+   of repeated on every player row below (five stacked "VICTORIA"s for a
+   single shared win was the actual redundant-form feeling here). */
+.clash-match{
+  border-radius:var(--radius-md); padding:9px 10px;
+  background:var(--surface-hover); box-shadow:inset 3px 0 0 var(--border-soft);
 }
+.clash-match.w{background:linear-gradient(90deg, var(--good-wash), transparent 55%), var(--surface-hover); box-shadow:inset 3px 0 0 var(--good);}
+.clash-match.l{background:linear-gradient(90deg, var(--critical-wash), transparent 55%), var(--surface-hover); box-shadow:inset 3px 0 0 var(--critical);}
+.clash-match-head{
+  display:flex; align-items:center; gap:10px; font-size:10.5px; color:var(--text-muted);
+  font-family:var(--font-mono); margin-bottom:7px; padding:0 2px;
+}
+.clash-match-result{font-family:var(--font-display); font-weight:800; font-size:10.5px; letter-spacing:0.05em;}
+.clash-match-result.w{color:var(--good);}
+.clash-match-result.l{color:var(--critical);}
+.clash-match-dur{margin-left:auto;}
 .clash-match-players{display:flex; flex-direction:column; gap:5px;}
 .clash-player-row{
   display:grid; grid-template-columns:26px 26px 1fr auto auto; align-items:center; gap:10px;
-  background:var(--surface-hover); border-radius:var(--radius-sm); padding:7px 10px;
+  background:rgba(0,0,0,0.16); border-radius:var(--radius-sm); padding:7px 10px;
 }
 .clash-player-avatar, .clash-player-champ{
   width:26px; height:26px; border-radius:7px; flex:none; overflow:hidden;
