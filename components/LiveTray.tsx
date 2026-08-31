@@ -1,14 +1,11 @@
 "use client";
 
 import type { Player } from "@/lib/types";
+import { liveGameTimeLabel } from "@/lib/ladder";
 import { ChampIcon } from "./ChampIcon";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { UsersIcon } from "./StatIcons";
 import { playerKey } from "./LadderTable";
-
-function timeLabel(mins: number): string {
-  return mins <= 0 ? "recién empezó" : `hace ${mins} min`;
-}
 
 interface LiveGroup {
   key: string;
@@ -79,7 +76,7 @@ function SoloRow({ p, ddragonVersion }: { p: Player; ddragonVersion: string | nu
           {p.name} <span className="player-tag">#{p.tag}</span>
         </span>
         <span className="live-tray-meta">
-          {game.champion} · {game.queueLabel} · {timeLabel(game.startedMinutesAgo)}
+          {game.champion} · {game.queueLabel} · {liveGameTimeLabel(game.startedMinutesAgo)}
         </span>
       </span>
     </div>
@@ -106,7 +103,7 @@ function TogetherRow({ group, ddragonVersion }: { group: LiveGroup; ddragonVersi
           Jugando juntos
         </span>
         <span className="live-tray-meta">
-          {game.queueLabel} · {timeLabel(game.startedMinutesAgo)}
+          {game.queueLabel} · {liveGameTimeLabel(game.startedMinutesAgo)}
         </span>
       </span>
     </div>

@@ -1,5 +1,5 @@
 import type { Player, RoleKey } from "@/lib/types";
-import { champTag, currentStreak, formatRelativeTime, rankScore, ROLES, tierFor, trendColor } from "@/lib/ladder";
+import { champTag, currentStreak, formatRelativeTime, liveGameTimeLabel, rankScore, ROLES, tierFor, trendColor } from "@/lib/ladder";
 import { RoleIcon } from "./RoleIcon";
 import { StreakIcon } from "./StreakIcon";
 import { SparkChart } from "./SparkChart";
@@ -204,7 +204,7 @@ export function LadderTable({
                         {p.liveGame && (
                           <span
                             className="live-badge"
-                            aria-label={`En vivo: ${p.liveGame.champion}, ${p.liveGame.queueLabel}, hace ${p.liveGame.startedMinutesAgo} min`}
+                            aria-label={`En vivo: ${p.liveGame.champion}, ${p.liveGame.queueLabel}, ${liveGameTimeLabel(p.liveGame.startedMinutesAgo)}`}
                           >
                             <span className="live-dot" />
                             En vivo · {p.liveGame.champion}
@@ -241,7 +241,7 @@ export function LadderTable({
                             {p.liveGame.champion}
                           </span>
                           <span className="live-popup-meta">
-                            {p.liveGame.queueLabel} · hace {p.liveGame.startedMinutesAgo} min
+                            {p.liveGame.queueLabel} · {liveGameTimeLabel(p.liveGame.startedMinutesAgo)}
                           </span>
                         </span>
                       )}

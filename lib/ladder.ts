@@ -101,6 +101,17 @@ export function champTag(name: string): string {
 }
 
 /**
+ * Shared "hace N min" wording for a LiveGame, used everywhere one shows up
+ * (LiveTray, PlayerProfile's live banner, LadderTable's row badge) — Spectator
+ * V5's gameLength is already clamped to >=0 in lib/live.ts, but "hace 0 min"
+ * still reads oddly right at that boundary, so 0 gets its own phrasing here
+ * instead of each call site inventing its own.
+ */
+export function liveGameTimeLabel(startedMinutesAgo: number): string {
+  return startedMinutesAgo <= 0 ? "recién empezó" : `hace ${startedMinutesAgo} min`;
+}
+
+/**
  * Green if the series net-rose, red if it net-fell — matches the app's own
  * verde=positivo/rojo=negativo rule. Same hex as --good/--critical in
  * globals.css (not the CSS var itself, since this feeds an inline SVG stroke

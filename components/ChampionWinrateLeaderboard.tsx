@@ -1,6 +1,5 @@
 import type { ChampionLeaderboardEntry } from "@/lib/types";
 import { ChampIcon } from "./ChampIcon";
-import { PlayerAvatar } from "./PlayerAvatar";
 
 /** Below this, a record on one specific champion is too short to mean much as a "best on X" claim. */
 const MIN_GAMES = 50;
@@ -14,6 +13,10 @@ const MEDALS = ["gold", "silver", "bronze"];
  * que califican — ver computeChampionLeaderboard() en
  * app/api/ladder/route.ts para el cálculo real. Top 3 en podio (medalla +
  * ícono de campeón grande, #1 destacado) — el resto en la lista compacta.
+ * El campeón es el único ícono por fila a propósito: el nombre del jugador ya
+ * va como texto justo debajo, así que un mini-avatar del jugador superpuesto
+ * al ícono del campeón sería el mismo "dos íconos, un dato" que se sacó de
+ * las tarjetas de Clash.
  */
 export function ChampionWinrateLeaderboard({
   entries,
@@ -45,10 +48,7 @@ export function ChampionWinrateLeaderboard({
             {podium.map((e, i) => (
               <div className={`podium-card rank-${i + 1}`} key={`${e.playerName}#${e.playerTag}-${e.champion}`}>
                 <span className={`podium-medal ${MEDALS[i]}`}>{i + 1}</span>
-                <div className="podium-avatar-wrap">
-                  <ChampIcon champ={e.champion} version={ddragonVersion} className="podium-avatar" />
-                  <PlayerAvatar name={e.playerName} iconUrl={e.profileIconUrl} className="podium-mini-avatar" />
-                </div>
+                <ChampIcon champ={e.champion} version={ddragonVersion} className="podium-avatar" />
                 <div className="podium-mid">
                   <span className="podium-name">{e.champion}</span>
                   <span className="podium-meta">
@@ -66,7 +66,6 @@ export function ChampionWinrateLeaderboard({
                 <div className="champ-pool-row" key={`${e.playerName}#${e.playerTag}-${e.champion}`}>
                   <span className="leaderboard-rank">{i + 4}</span>
                   <ChampIcon champ={e.champion} version={ddragonVersion} className="champ-pool-avatar" />
-                  <PlayerAvatar name={e.playerName} iconUrl={e.profileIconUrl} className="duo-avatar leaderboard-mini-avatar" />
                   <div className="champ-pool-mid">
                     <span className="champ-pool-name">{e.champion}</span>
                     <span className="champ-pool-games">

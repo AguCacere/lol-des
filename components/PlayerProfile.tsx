@@ -12,6 +12,7 @@ import {
   trendColor,
   nextDivisionInfo,
   rankScore,
+  liveGameTimeLabel,
 } from "@/lib/ladder";
 import { SparkChart } from "./SparkChart";
 import { StreakIcon } from "./StreakIcon";
@@ -244,7 +245,7 @@ export function PlayerProfile({
               {p.liveGame && (
                 <div className="profile-live-banner">
                   <span className="live-dot" />
-                  En vivo ahora · {p.liveGame.champion} · {p.liveGame.queueLabel} · hace {p.liveGame.startedMinutesAgo} min
+                  En vivo ahora · {p.liveGame.champion} · {p.liveGame.queueLabel} · {liveGameTimeLabel(p.liveGame.startedMinutesAgo)}
                 </div>
               )}
             </div>
