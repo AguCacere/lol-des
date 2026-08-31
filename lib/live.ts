@@ -31,7 +31,12 @@ export async function getLiveGamesByPuuid(puuids: string[]): Promise<Map<string,
     liveGameByPuuid.set(puuid, {
       champion: champ,
       queueLabel: queueLabelFromId(game.gameQueueConfigId),
-      startedMinutesAgo: Math.floor(game.gameLength / 60),
+      // gameLength counts up from a negative offset during the loading
+      // screen (before the in-game clock actually starts) — clamped so that
+      // phase reads as "just started" instead of "hace -3 min".
+      startedMinutesAgo: Math.max(0, Math.floor(game.gameLength / 60)),
+      gameId: game.gameId,
+      teamId: me.teamId,
     });
   }
   return liveGameByPuuid;

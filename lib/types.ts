@@ -120,6 +120,9 @@ export interface LiveGame {
   champion: string;
   queueLabel: string;
   startedMinutesAgo: number;
+  /** Riot's own match id for the game in progress and this player's team (100/200) — lets the UI tell two tracked players are in the SAME game together, on the same side, rather than just coincidentally both live right now. */
+  gameId: number;
+  teamId: number;
 }
 
 /** One entry in the Champion Mastery V4 top-5 — Riot's career-wide signal, not derived from our own stored matches. */

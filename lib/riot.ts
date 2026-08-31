@@ -187,9 +187,10 @@ export function getMatchTimeline(matchId: string) {
 }
 
 export interface RiotActiveGame {
+  gameId: number;
   gameQueueConfigId: number;
   gameLength: number; // seconds elapsed as of this response — a snapshot, not a live clock
-  participants: { puuid: string; championId: number }[];
+  participants: { puuid: string; championId: number; teamId: number }[];
 }
 
 /**
