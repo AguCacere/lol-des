@@ -61,39 +61,41 @@ function ClashPlayerStatsList({ stats }: { stats: ClashPlayerStats[] }) {
   );
 }
 
-function ClashPlayerRow({
+/**
+ * A roster tile, not a table row — champion art is the headline (like an
+ * actual post-game screen), player identity rides along as a small badge
+ * overlapping its corner instead of a same-size icon competing for space
+ * next to it. A grid of these reads as a team roster; a stack of full-width
+ * rows with two equal-sized icons each read as a spreadsheet, which was
+ * the actual complaint even after the redundant per-row VICTORIA was gone.
+ */
+function ClashPlayerCard({
   p,
   ddragonVersion,
   showResult,
 }: {
   p: ClashMatchPlayer;
   ddragonVersion: string | null;
-  /** Only rendered per-row for the rare case where this match's tracked players split across both teams — normally the result is shown once in the match header instead of repeated on every row. */
+  /** Only rendered per-card for the rare case where this match's tracked players split across both teams — normally the result is shown once in the match header instead of repeated on every card. */
   showResult: boolean;
 }) {
   return (
-    <div className="clash-player-row">
-      <PlayerAvatar name={p.playerName} iconUrl={p.profileIconUrl} className="clash-player-avatar" />
-      <ChampIcon champ={p.champion} version={ddragonVersion} className="clash-player-champ" />
-      <div className="clash-player-mid">
-        <span className="clash-player-name">
-          {p.playerName}
-          <span className="player-tag">#{p.playerTag}</span>
-        </span>
-        <span className="clash-player-champ-name">{p.champion}</span>
+    <div className="clash-player-card">
+      <div className="clash-player-champ-wrap">
+        <ChampIcon champ={p.champion} version={ddragonVersion} className="clash-player-champ" />
+        <PlayerAvatar name={p.playerName} iconUrl={p.profileIconUrl} className="clash-player-mini-avatar" />
       </div>
-      <div className="clash-player-stats">
-        <span className="kda">
-          {p.k}
-          <span className="neu">/</span>
-          {p.d}
-          <span className="neu">/</span>
-          {p.a}
-        </span>
-        <span className="extra">
-          {p.cs} CS · {p.dmgShare}% daño
-        </span>
-      </div>
+      <span className="clash-player-name">{p.playerName}</span>
+      <span className="clash-player-kda">
+        {p.k}
+        <span className="neu">/</span>
+        {p.d}
+        <span className="neu">/</span>
+        {p.a}
+      </span>
+      <span className="clash-player-extra">
+        {p.cs} CS · {p.dmgShare}%
+      </span>
       {showResult && <span className={`clash-player-result ${p.win ? "w" : "l"}`}>{p.win ? "VICTORIA" : "DERROTA"}</span>}
     </div>
   );
@@ -119,7 +121,7 @@ function ClashMatchCard({ m, ddragonVersion }: { m: ClashMatch; ddragonVersion: 
       </div>
       <div className="clash-match-players">
         {m.players.map((p) => (
-          <ClashPlayerRow p={p} ddragonVersion={ddragonVersion} showResult={outcome === "mixed"} key={`${p.playerName}#${p.playerTag}`} />
+          <ClashPlayerCard p={p} ddragonVersion={ddragonVersion} showResult={outcome === "mixed"} key={`${p.playerName}#${p.playerTag}`} />
         ))}
       </div>
     </div>
