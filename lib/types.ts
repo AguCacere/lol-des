@@ -72,6 +72,8 @@ export interface Match {
   goldDiff20: number | null;
   firstBloodTimeS: number | null;
   firstTowerTimeS: number | null;
+  /** Real purchase order (Match-V5 timeline ITEM_PURCHASED), itemIds in the order actually bought — not reconciled against later sells/undos. Empty on matches stored before this field existed. */
+  itemBuild: number[];
 }
 
 export interface LpHistoryPoint {

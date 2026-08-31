@@ -93,6 +93,7 @@ create table if not exists matches (
   first_blood_time_s int,      -- segundo del juego en que ocurrió la primera sangre (dato de la partida, no del jugador)
   first_tower_time_s int,      -- ídem para la primera torre caída
   dragon_types  text[] not null default '{}', -- monsterSubType (Match-V5 timeline) por cada dragón que MATÓ este jugador, ej. {FIRE_DRAGON,WATER_DRAGON} — puede ser más corto que dragon_kills en partidas viejas sin timeline guardado
+  item_build    int[] not null default '{}', -- itemId de cada ITEM_PURCHASED (Match-V5 timeline) de este jugador, EN ORDEN de compra real — no reconciliado contra ventas/undo, incluye consumibles/trinket. Vacío en partidas guardadas antes de que este campo existiera.
   team_position text,          -- TOP/JUNGLE/MIDDLE/BOTTOM/UTILITY
   queue_id      int not null default 420, -- Match-V5 queueId: 420=ranked solo/duo, 700=Clash (ver lib/clash.ts)
   game_duration_s int not null,

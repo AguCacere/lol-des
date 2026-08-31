@@ -18,6 +18,18 @@ export interface TimelineStats {
    * player took zero dragons or none matched their participant id.
    */
   dragonTypes: string[];
+  /**
+   * Every ITEM_PURCHASED event's itemId for this player, in the order they
+   * actually happened — the real purchase sequence, not a "final build"
+   * summary. Deliberately NOT reconciled against ITEM_SOLD/ITEM_UNDO: an
+   * item that got sold or undone later still shows here, because it WAS
+   * really bought at that point — reconstructing "what's left after
+   * sells/undos" would need stack-based undo logic for marginal benefit
+   * over just showing what happened. Includes consumables/trinkets too
+   * (Health Potions, wards) — that's part of the real purchase story, not
+   * noise to filter out.
+   */
+  itemBuild: number[];
 }
 
 /** Gold diff vs. the enemy in the same lane (teamPosition) at a fixed minute mark — team totals would hide who's actually winning a lane. */
@@ -55,6 +67,7 @@ export function extractTimelineStats(
   let firstBloodTimeS: number | null = null;
   let firstTowerTimeS: number | null = null;
   const dragonTypes: string[] = [];
+  const itemBuild: number[] = [];
   for (const frame of timeline.info.frames) {
     for (const event of frame.events) {
       if (event.type === "CHAMPION_KILL" && firstBloodTimeS === null) {
@@ -66,6 +79,9 @@ export function extractTimelineStats(
       if (event.type === "ELITE_MONSTER_KILL" && event.monsterType === "DRAGON" && event.killerId === myParticipantId) {
         dragonTypes.push(event.monsterSubType ?? "UNKNOWN_DRAGON");
       }
+      if (event.type === "ITEM_PURCHASED" && event.participantId === myParticipantId && event.itemId != null) {
+        itemBuild.push(event.itemId);
+      }
     }
   }
 
@@ -76,5 +92,6 @@ export function extractTimelineStats(
     firstBloodTimeS,
     firstTowerTimeS,
     dragonTypes,
+    itemBuild,
   };
 }

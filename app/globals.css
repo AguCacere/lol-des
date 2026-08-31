@@ -986,14 +986,17 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   color:var(--gold); background:var(--gold-wash); border:1px solid rgba(245,185,66,0.3);
   border-radius:var(--radius-sm); padding:7px 10px; text-align:center; margin-bottom:11px;
 }
-.match-detail-missing{
-  border-top:1px solid rgba(255,255,255,0.06); padding-top:8px;
-  font-size:11px; color:var(--text-muted); line-height:1.5;
+/* Real purchase order (Match-V5 timeline) — same flex-wrap reasoning as
+   .mini-breakdown above (a fixed grid either overflows or overlaps for a
+   row of this many small same-size chips), just without the raggedness
+   concern since every item icon is the same fixed square. */
+.item-build-row{display:flex; flex-wrap:wrap; gap:4px;}
+.item-build-icon{
+  width:26px; height:26px; border-radius:5px; flex:none; overflow:hidden;
+  background:var(--surface-hover); box-shadow:var(--shadow-sm);
 }
-.match-detail-missing p{margin:0 0 6px;}
-.match-detail-missing p:last-child{margin-bottom:0;}
-.match-detail-missing strong{color:var(--text-secondary); font-weight:600;}
-.pending-inline{color:var(--text-muted); font-style:italic;}
+.item-build-icon img{width:100%; height:100%; object-fit:cover; display:block;}
+.build-line-empty{color:var(--text-muted); font-style:italic; font-size:11px;}
 
 .info-tip{
   position:relative; display:inline-flex; align-items:center; justify-content:center;

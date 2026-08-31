@@ -473,7 +473,7 @@ export function PlayerProfile({
                         <polyline points="6 9 12 15 18 9" />
                       </svg>
                     </button>
-                    {isExpanded && <MatchDetail match={m} />}
+                    {isExpanded && <MatchDetail match={m} ddragonVersion={ddragonVersion} />}
                   </div>
                 );
               })}

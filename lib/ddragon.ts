@@ -219,3 +219,12 @@ export function profileIconUrl(version: string, iconId: number): string {
 export function championIconUrl(version: string, championName: string): string {
   return `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${championName}.png`;
 }
+
+/**
+ * Item square art — Data Dragon keys these image files directly by Riot's own
+ * numeric itemId (unlike champions/runes/summoner spells, which need a name
+ * lookup first), so this is pure/sync like the other two URL builders above.
+ */
+export function itemIconUrl(version: string, itemId: number): string {
+  return `https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${itemId}.png`;
+}

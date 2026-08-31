@@ -1,5 +1,6 @@
 import type { Match } from "@/lib/types";
 import { formatRelativeDate } from "@/lib/ladder";
+import { itemIconUrl } from "@/lib/ddragon";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
 import { ClockIcon, EyeIcon, ShieldIcon, TrendUpIcon, ZapIcon } from "./StatIcons";
@@ -68,6 +69,31 @@ function MiniBreakdown({ items }: { items: { value: number; label: string; icons
   );
 }
 
+/**
+ * Real purchase order (Match-V5 timeline ITEM_PURCHASED), not a "final build"
+ * summary — an item bought then later sold/undone still shows here, because
+ * it WAS really bought at that point (see TimelineStats.itemBuild). Empty on
+ * matches stored before this field existed, or if the timeline call failed
+ * for this specific match (best-effort, see lib/refresh.ts).
+ */
+function ItemBuildRow({ items, version }: { items: number[]; version: string | null }) {
+  if (items.length === 0) {
+    return <span className="build-line-empty">Sin datos de build guardados para esta partida.</span>;
+  }
+  return (
+    <span className="item-build-row">
+      {items.map((itemId, i) => (
+        <span className="item-build-icon" key={i}>
+          {version && (
+            // eslint-disable-next-line @next/next/no-img-element -- tiny fixed-size icon, not a page asset
+            <img src={itemIconUrl(version, itemId)} alt="" />
+          )}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function Group({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="match-detail-group">
@@ -82,14 +108,12 @@ function Group({ label, icon, children }: { label: string; icon: React.ReactNode
 
 /**
  * Expanded view for one match, shown inline below its row in PlayerProfile.
- * Only renders real data we actually have. Sections we can't back with real
- * data yet (build, stats al minuto 15) are explicitly marked "Próximamente"
- * rather than guessed. LP ganado/perdido por partida no está acá a propósito:
- * no es un "todavía no lo hicimos", es un gap real de arquitectura (LP se
- * trackea por snapshot periódico, no por partida) que necesita un trigger o
- * mecanismo nuevo — se vuelve a agregar cuando exista.
+ * Only renders real data we actually have. LP ganado/perdido por partida no
+ * está acá a propósito: no es un "todavía no lo hicimos", es un gap real de
+ * arquitectura (LP se trackea por snapshot periódico, no por partida) que
+ * necesita un trigger o mecanismo nuevo — se vuelve a agregar cuando exista.
  */
-export function MatchDetail({ match }: { match: Match }) {
+export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVersion: string | null }) {
   const m = match;
   const multikill = multikillLabel(m);
   const hasTimeline =
@@ -205,6 +229,9 @@ export function MatchDetail({ match }: { match: Match }) {
             </span>
           </span>
         </Stat>
+        <Stat label="Orden de compra" wide>
+          <ItemBuildRow items={m.itemBuild} version={ddragonVersion} />
+        </Stat>
       </Group>
 
       {hasTimeline && (
@@ -228,13 +255,6 @@ export function MatchDetail({ match }: { match: Match }) {
           {m.firstTowerTimeS != null && <Stat label="Primera torre (partida)">{formatMmSs(m.firstTowerTimeS)}</Stat>}
         </Group>
       )}
-
-      <div className="match-detail-missing">
-        <p>
-          <strong>Build (orden de ítems):</strong> <span className="pending-inline">Próximamente</span> — está en el
-          mismo timeline que ya pedimos, todavía no lo parseamos.
-        </p>
-      </div>
     </div>
   );
 }

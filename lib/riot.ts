@@ -158,11 +158,13 @@ export function getMatchById(matchId: string) {
 }
 
 export interface RiotTimelineEvent {
-  type: string; // "CHAMPION_KILL" | "BUILDING_KILL" | "ELITE_MONSTER_KILL" | ...
+  type: string; // "CHAMPION_KILL" | "BUILDING_KILL" | "ELITE_MONSTER_KILL" | "ITEM_PURCHASED" | ...
   timestamp: number; // ms since game start
   killerId?: number; // participantId — only on kill-type events
   monsterType?: string; // "DRAGON" | "RIFTHERALD" | "BARON_NASHOR" | "HORDE" — only on ELITE_MONSTER_KILL
   monsterSubType?: string; // e.g. "FIRE_DRAGON" — only when monsterType is "DRAGON"
+  participantId?: number; // only on ITEM_* events
+  itemId?: number; // only on ITEM_PURCHASED/ITEM_SOLD/ITEM_DESTROYED
 }
 
 export interface RiotTimelineFrame {

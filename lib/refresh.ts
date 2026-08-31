@@ -209,6 +209,7 @@ async function fetchAndStoreMatch(supabase: SupabaseClient, puuid: string, match
     first_blood_time_s: timelineStats?.firstBloodTimeS ?? null,
     first_tower_time_s: timelineStats?.firstTowerTimeS ?? null,
     dragon_types: timelineStats?.dragonTypes ?? [],
+    item_build: timelineStats?.itemBuild ?? [],
     team_position: me.teamPosition,
     queue_id: match.info.queueId,
     game_duration_s: match.info.gameDuration,
