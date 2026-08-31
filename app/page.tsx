@@ -10,6 +10,7 @@ import { DuoSynergy } from "@/components/DuoSynergy";
 import { TopWinrate } from "@/components/TopWinrate";
 import { ChampionWinrateLeaderboard } from "@/components/ChampionWinrateLeaderboard";
 import { ClashHistory } from "@/components/ClashHistory";
+import { LiveTray } from "@/components/LiveTray";
 
 function parseRiotId(raw: string): { gameName: string; tagLine: string } | null {
   const i = raw.indexOf("#");
@@ -221,6 +222,8 @@ export default function Home() {
           ? "Cargando ladder…"
           : `${players.length} invocador${players.length === 1 ? "" : "es"} trackeados.`}
       </p>
+
+      <LiveTray players={players} ddragonVersion={ddragonVersion} />
     </div>
   );
 }

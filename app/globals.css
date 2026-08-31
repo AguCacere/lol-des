@@ -227,8 +227,13 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   transition:opacity .15s ease, transform .15s ease, visibility .15s;
   z-index:30;
 }
-.player-id:has(.live-badge:hover) .live-popup{
-  opacity:1; visibility:visible; transform:translate(0, 0) scale(1);
+/* Only wired up on narrow screens now — wide screens get the always-on
+   .live-tray in the corner instead (see below), so the row-hover popup
+   would just be a second, redundant way to see the same thing. */
+@media (max-width:680px){
+  .player-id:has(.live-badge:hover) .live-popup{
+    opacity:1; visibility:visible; transform:translate(0, 0) scale(1);
+  }
 }
 .live-popup::after{
   content:""; position:absolute; right:100%; top:14px;
@@ -255,6 +260,60 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .profile-live-banner{
   display:flex; align-items:center; gap:8px; font-size:12px; color:var(--good);
   background:var(--good-wash); border-radius:var(--radius-sm); padding:8px 12px; margin-top:8px;
+}
+
+/* Fixed corner tray: one glass card listing everyone currently live, mounted
+   and visible on its own — not something you have to hover a row to see.
+   Same translucent+blurred glass treatment as .spark-tooltip (rgba over
+   --surface-hover + backdrop-filter, not a flat surface fill), so it reads
+   as floating over the app rather than another opaque panel. Every live
+   player is another row in this ONE tray, never a second tray. */
+.live-tray{
+  position:fixed; right:18px; bottom:18px; z-index:40;
+  width:230px; max-height:min(60vh, 420px); overflow-y:auto;
+  background:rgba(29,28,23,0.78);
+  backdrop-filter:blur(14px) saturate(150%);
+  -webkit-backdrop-filter:blur(14px) saturate(150%);
+  border:1px solid rgba(255,255,255,0.09);
+  border-radius:var(--radius-md);
+  box-shadow:var(--shadow), 0 1px 0 rgba(255,255,255,0.05) inset;
+}
+.live-tray-head{
+  display:flex; align-items:center; gap:7px;
+  font-family:var(--font-display); font-weight:700; font-size:10px; letter-spacing:0.07em;
+  text-transform:uppercase; color:var(--good);
+  padding:10px 12px 8px; border-bottom:1px solid var(--border-soft);
+}
+.live-tray-list{display:flex; flex-direction:column;}
+.live-tray-row{
+  display:flex; align-items:center; gap:9px;
+  padding:9px 12px; border-bottom:1px solid var(--border-soft);
+}
+.live-tray-row:last-child{border-bottom:none;}
+.live-tray-avatar{
+  width:28px; height:28px; border-radius:8px; flex:none; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--surface); color:var(--text-secondary);
+  font-family:var(--font-display); font-weight:700; font-size:11px;
+}
+.live-tray-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
+.live-tray-mid{display:flex; flex-direction:column; min-width:0; flex:1; gap:1px;}
+.live-tray-name{font-weight:700; font-size:11.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.live-tray-champ{display:flex; align-items:center; gap:6px; font-weight:600; font-size:11px;}
+.live-tray-champ-avatar{
+  width:18px; height:18px; border-radius:5px; flex:none; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--good-wash); color:var(--good);
+  font-family:var(--font-display); font-weight:700; font-size:8.5px;
+}
+.live-tray-champ-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
+.live-tray-meta{font-family:var(--font-mono); font-size:10px; color:var(--text-muted);}
+
+/* Desktop-only — the row-level "EN VIVO" badge + its hover popup keep doing
+   this job on narrow screens (see the max-width:680px guard above on the
+   popup's own show-on-hover rule). */
+@media (max-width:680px){
+  .live-tray{display:none;}
 }
 
 /* ---------- ladder table ---------- */
