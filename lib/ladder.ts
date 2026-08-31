@@ -175,34 +175,7 @@ export function formatRelativeTime(iso: string): string {
   return formatRelativeDate(iso);
 }
 
-export interface RoleAverages {
-  kda: number | null;
-  csPerMin: number | null;
-  dmgShare: number | null;
-  killParticipation: number | null;
-  objShare: number | null;
-  /** how many other tracked players in this role fed the average — 0 means no peers to compare against. */
-  sampleSize: number;
-}
-
-/**
- * Averages KDA/CS-per-min/damage-share across every OTHER tracked player who
- * shares `player`'s role, pooling their real stored matches. Never compares
- * across roles — a support's CS is naturally far lower than a mid's by game
- * design, so a cross-role average would misrepresent "good"/"bad" rather than
- * clarify it. Returns nulls (sampleSize 0) when there's nobody else in that
- * role yet — callers must show "sin datos" rather than fabricate a number.
- */
-export function computeRoleAverages(allPlayers: Player[], player: Player): RoleAverages {
-  const peers = allPlayers.filter((p) => p !== player && p.role === player.role && p.matches.length > 0);
-  if (peers.length === 0) {
-    return { kda: null, csPerMin: null, dmgShare: null, killParticipation: null, objShare: null, sampleSize: 0 };
-  }
-  const peerMatches = peers.flatMap((p) => p.matches);
-  const kda = peerMatches.reduce((s, m) => s + (m.k + m.a) / Math.max(1, m.d), 0) / peerMatches.length;
-  const csPerMin = peerMatches.reduce((s, m) => s + parseFloat(m.csmin), 0) / peerMatches.length;
-  const dmgShare = peerMatches.reduce((s, m) => s + m.dmgShare, 0) / peerMatches.length;
-  const killParticipation = peerMatches.reduce((s, m) => s + m.killParticipation, 0) / peerMatches.length;
-  const objShare = peerMatches.reduce((s, m) => s + m.objShare, 0) / peerMatches.length;
-  return { kda, csPerMin, dmgShare, killParticipation, objShare, sampleSize: peers.length };
-}
+// RoleAverages now lives in ./types — computed server-side in
+// app/api/ladder/route.ts from every tracked player's real per-match role
+// (team_position), not client-side from players grouped by their one
+// declared role. See Player.roleAverages for why.

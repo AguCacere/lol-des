@@ -4,7 +4,7 @@ import { peakFromHistory, tierScore } from "@/lib/ladder";
 import { divisionFromRiot, normalizeRole, roleFromTeamPosition, tierKeyFromRiot } from "@/lib/mapping";
 import { getLiveGamesByPuuid } from "@/lib/live";
 import { getLatestVersion, profileIconUrl, runeIconUrlByName, summonerSpellIconUrlByName } from "@/lib/ddragon";
-import type { ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, DuoSharedMatch, FlexRank, LpHistoryPoint, MasteryEntry, Match, Player, RoleKey } from "@/lib/types";
+import type { ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, DuoSharedMatch, FlexRank, LpHistoryPoint, MasteryEntry, Match, Player, RoleAverages, RoleKey } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -202,6 +202,35 @@ export async function GET() {
   // this IS the role source — team_position comes straight from Riot.
   const champFreqByPuuid = new Map<string, Map<string, number>>();
   const roleFreqByPuuid = new Map<string, Map<RoleKey, number>>();
+  // Per-ROLE totals (kda/cs/dmg/killPart/objShare), tagged by each match's OWN
+  // real team_position — not by any player's single declared/majority role.
+  // `roleAggByRole` pools every tracked player's matches actually played in
+  // that role; `roleAggByPuuid` mirrors the same per player, so a given
+  // player's own contribution can be subtracted out of the group total to
+  // get a fair "everyone else" comparison (see roleAveragesFor below). This
+  // is what makes role comparisons work for someone who rotates roles
+  // constantly — the pool is every REAL game in that role from the whole
+  // group, not just players whose overall role also happens to match.
+  interface RoleAgg {
+    count: number;
+    kdaSum: number;
+    csMinSum: number;
+    dmgShareSum: number;
+    killPartSum: number;
+    objShareSum: number;
+  }
+  const roleAggByRole = new Map<RoleKey, RoleAgg>();
+  const roleAggByPuuid = new Map<string, Map<RoleKey, RoleAgg>>();
+  function addRoleAgg(map: Map<RoleKey, RoleAgg>, role: RoleKey, row: MatchRow) {
+    const agg = map.get(role) ?? { count: 0, kdaSum: 0, csMinSum: 0, dmgShareSum: 0, killPartSum: 0, objShareSum: 0 };
+    agg.count += 1;
+    agg.kdaSum += (row.kills + row.assists) / Math.max(1, row.deaths);
+    agg.csMinSum += Number(row.cs_per_min);
+    agg.dmgShareSum += Number(row.dmg_share ?? 0);
+    agg.killPartSum += Number(row.kill_participation ?? 0);
+    agg.objShareSum += Number(row.obj_share ?? 0);
+    map.set(role, agg);
+  }
   // Per-champion win/loss + KDA totals across ALL stored matches — feeds the
   // "Campeones más jugados" card. Kept separate from champFreqByPuuid (which
   // only needs a count) since this also needs sums to average later.
@@ -258,6 +287,11 @@ export async function GET() {
       const roleFreq = roleFreqByPuuid.get(row.puuid) ?? new Map<RoleKey, number>();
       roleFreq.set(role, (roleFreq.get(role) ?? 0) + 1);
       roleFreqByPuuid.set(row.puuid, roleFreq);
+
+      addRoleAgg(roleAggByRole, role, row);
+      const ownRoleAgg = roleAggByPuuid.get(row.puuid) ?? new Map<RoleKey, RoleAgg>();
+      addRoleAgg(ownRoleAgg, role, row);
+      roleAggByPuuid.set(row.puuid, ownRoleAgg);
     }
 
     const champStats = champStatsByPuuid.get(row.puuid) ?? new Map<string, ChampAgg>();
@@ -335,6 +369,31 @@ export async function GET() {
       firstTowerTimeS: row.first_tower_time_s,
     });
     matchesByPuuid.set(row.puuid, arr);
+  }
+
+  /**
+   * "Everyone else's" average for `role`, excluding `puuid`'s own games in
+   * it — global per-role totals minus this player's own per-role totals,
+   * both built from every stored match's real team_position (see
+   * roleAggByRole/roleAggByPuuid above). Never falls back to a different
+   * role or fabricates a number: sampleSize 0 (no peer games in this role
+   * yet) means the caller shows "sin datos", same contract as before.
+   */
+  function roleAveragesFor(puuid: string, role: RoleKey): RoleAverages {
+    const empty: RoleAverages = { kda: null, csPerMin: null, dmgShare: null, killParticipation: null, objShare: null, sampleSize: 0 };
+    const global = roleAggByRole.get(role);
+    if (!global) return empty;
+    const own = roleAggByPuuid.get(puuid)?.get(role);
+    const count = global.count - (own?.count ?? 0);
+    if (count <= 0) return empty;
+    return {
+      kda: (global.kdaSum - (own?.kdaSum ?? 0)) / count,
+      csPerMin: (global.csMinSum - (own?.csMinSum ?? 0)) / count,
+      dmgShare: (global.dmgShareSum - (own?.dmgShareSum ?? 0)) / count,
+      killParticipation: (global.killPartSum - (own?.killPartSum ?? 0)) / count,
+      objShare: (global.objShareSum - (own?.objShareSum ?? 0)) / count,
+      sampleSize: count,
+    };
   }
 
   function mostPlayedChamp(puuid: string): string | null {
@@ -587,11 +646,13 @@ export async function GET() {
     const peakLp = peakFromHistory(history.length > 0 ? history : [fallbackPoint]);
     const matches = matchesByPuuid.get(row.puuid) ?? [];
 
+    const role = row.role ? normalizeRole(row.role) : mostPlayedRole(row.puuid) ?? "mid";
+
     return {
       name: row.game_name,
       tag: row.tag_line,
       you: row.is_you,
-      role: row.role ? normalizeRole(row.role) : mostPlayedRole(row.puuid) ?? "mid",
+      role,
       tierKey: tierKeyFromRiot(row.tier),
       division: divisionFromRiot(row.division),
       lp,
@@ -608,6 +669,7 @@ export async function GET() {
       liveGame: liveGameByPuuid.get(row.puuid) ?? null,
       matches,
       winrate: wins + losses > 0 ? Math.round((100 * wins) / (wins + losses)) : 0,
+      roleAverages: roleAveragesFor(row.puuid, role),
     };
   });
 

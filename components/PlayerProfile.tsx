@@ -7,7 +7,6 @@ import {
   champTag,
   ROLES,
   currentStreak,
-  computeRoleAverages,
   formatRelativeDate,
   trendColor,
   nextDivisionInfo,
@@ -79,11 +78,9 @@ function CmpBar({
 
 export function PlayerProfile({
   player,
-  allPlayers,
   ddragonVersion,
 }: {
   player: Player | null;
-  allPlayers: Player[];
   ddragonVersion: string | null;
 }) {
   const [displayed, setDisplayed] = useState(player);
@@ -197,7 +194,7 @@ export function PlayerProfile({
     );
   });
   const streak = currentStreak(p.matches);
-  const roleAvg = computeRoleAverages(allPlayers, p);
+  const roleAvg = p.roleAverages;
   const metricInsights = buildMetricInsights([
     { key: "kda", label: "KDA", value: Number(avgKDA.toFixed(2)), avg: roleAvg.kda, unit: "" },
     { key: "csPerMin", label: "CS / min", value: Number(avgCS.toFixed(1)), avg: roleAvg.csPerMin, unit: "", tooltip: METRIC_INFO.csPerMin },

@@ -198,7 +198,7 @@ export default function Home() {
             onSortKeyChange={setSortKey}
             ddragonVersion={ddragonVersion}
           />
-          <PlayerProfile player={activePlayer} allPlayers={players} ddragonVersion={ddragonVersion} />
+          <PlayerProfile player={activePlayer} ddragonVersion={ddragonVersion} />
         </div>
       ) : tab === "stats" ? (
         <div id="view-stats">

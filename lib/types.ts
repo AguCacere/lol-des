@@ -266,6 +266,16 @@ export interface ClashTournament {
   conclusion: string;
 }
 
+export interface RoleAverages {
+  kda: number | null;
+  csPerMin: number | null;
+  dmgShare: number | null;
+  killParticipation: number | null;
+  objShare: number | null;
+  /** How many peer MATCHES (from anyone tracked, actually played in this role — not "players whose overall role matches") fed the average. 0 means no peer games in this role yet. */
+  sampleSize: number;
+}
+
 export interface Player {
   name: string;
   tag: string;
@@ -290,4 +300,13 @@ export interface Player {
   liveGame: LiveGame | null;
   matches: Match[];
   winrate: number;
+  /**
+   * Peer comparison for `role`, computed server-side from every tracked
+   * player's REAL per-match team_position — not from "players whose overall
+   * declared role also happens to be this one". A player who rotates roles
+   * constantly still gets a fair, well-sampled comparison for whichever
+   * role they're shown under, pooled from every actual game played in that
+   * role by the whole group (this player's own games excluded).
+   */
+  roleAverages: RoleAverages;
 }

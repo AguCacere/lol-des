@@ -38,7 +38,7 @@ export function InsightsCard({
   if (sampleSize === 0) {
     return (
       <div className="insights-card insights-empty">
-        Necesitamos más gente trackeada en tu rol para poder comparar fortalezas y debilidades.
+        Todavía no hay partidas de otros invocadores en ese rol para comparar — se completa solo a medida que el grupo acumula más partidas en cada rol.
       </div>
     );
   }
