@@ -63,11 +63,13 @@ function ClashPlayerStatsList({ stats }: { stats: ClashPlayerStats[] }) {
 
 /**
  * A roster tile, not a table row — champion art is the headline (like an
- * actual post-game screen), player identity rides along as a small badge
- * overlapping its corner instead of a same-size icon competing for space
- * next to it. A grid of these reads as a team roster; a stack of full-width
- * rows with two equal-sized icons each read as a spreadsheet, which was
- * the actual complaint even after the redundant per-row VICTORIA was gone.
+ * actual post-game screen). A grid of these reads as a team roster; a stack
+ * of full-width rows with two equal-sized icons each read as a spreadsheet,
+ * which was the actual complaint even after the redundant per-row VICTORIA
+ * was gone. The player's own avatar isn't repeated here — the name text
+ * right below already identifies them, so a small overlapping avatar badge
+ * on every single tile was one more colored circle contributing to visual
+ * noise without carrying any information the name didn't already give.
  */
 function ClashPlayerCard({
   p,
@@ -81,10 +83,7 @@ function ClashPlayerCard({
 }) {
   return (
     <div className="clash-player-card">
-      <div className="clash-player-champ-wrap">
-        <ChampIcon champ={p.champion} version={ddragonVersion} className="clash-player-champ" />
-        <PlayerAvatar name={p.playerName} iconUrl={p.profileIconUrl} className="clash-player-mini-avatar" />
-      </div>
+      <ChampIcon champ={p.champion} version={ddragonVersion} className="clash-player-champ" />
       <span className="clash-player-name">{p.playerName}</span>
       <span className="clash-player-kda">
         {p.k}

@@ -48,6 +48,37 @@ function dateKey(iso: string): string {
   return new Date(iso).toLocaleDateString("en-CA", { timeZone: CLUSTER_TZ });
 }
 
+/** Which set of tracked players shared this game — the actual roster, not the time it happened. */
+function rosterKey(m: ClashMatch): string {
+  return m.players
+    .map((p) => `${p.playerName}#${p.playerTag}`)
+    .sort()
+    .join(",");
+}
+
+/**
+ * Re-orders a day's matches so every game a given roster shared stays
+ * together as one block, instead of pure chronological order interleaving
+ * them with whatever else happened that day (e.g. one friend playing a
+ * pickup game solo between two games the main 5-stack played together). A
+ * stable grouping — first-seen roster's games come first, each group keeps
+ * its own original relative order — reads as "here's how this team did",
+ * not a shuffled log.
+ */
+function groupByRoster(matches: ClashMatch[]): ClashMatch[] {
+  const order: string[] = [];
+  const groups = new Map<string, ClashMatch[]>();
+  for (const m of matches) {
+    const key = rosterKey(m);
+    if (!groups.has(key)) {
+      groups.set(key, []);
+      order.push(key);
+    }
+    groups.get(key)!.push(m);
+  }
+  return order.flatMap((key) => groups.get(key)!);
+}
+
 export function computeClashTournaments(
   rows: ClashMatchRow[],
   playerByPuuid: Map<string, ClashPlayerInfo>
@@ -98,8 +129,12 @@ export function computeClashTournaments(
     matchesByDate.set(key, arr);
   }
 
-  const tournaments: ClashTournament[] = [...matchesByDate.entries()].map(([key, dayMatches]) => {
-    dayMatches.sort((a, b) => new Date(a.playedAt).getTime() - new Date(b.playedAt).getTime());
+  const tournaments: ClashTournament[] = [...matchesByDate.entries()].map(([key, rawDayMatches]) => {
+    rawDayMatches.sort((a, b) => new Date(a.playedAt).getTime() - new Date(b.playedAt).getTime());
+    // Grouped by roster for DISPLAY order — every stat below (wins, MVP,
+    // label date) only cares about the set of games that day, not which
+    // order they're listed in, so this is safe to apply before computing them.
+    const dayMatches = groupByRoster(rawDayMatches);
 
     // Per MATCH, not per player-appearance — a shared game where 2-3 tracked
     // friends were all on the same team is still ONE game the team played,

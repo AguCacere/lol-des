@@ -361,8 +361,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   background:var(--surface); min-width:0; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04);
 }
 .wr-seg{height:100%;}
-.wr-seg.win{background:var(--good);}
-.wr-seg.loss{background:var(--critical);}
+/* Translucent, not the flat solid --good/--critical used for text/badges —
+   a softer fill reads as more refined for a bar this size, and it still has
+   plenty of contrast against .wr-bar's own dark track underneath it. */
+.wr-seg.win{background:rgba(52,201,124,0.82);}
+.wr-seg.loss{background:rgba(240,85,95,0.82);}
 .wr-streak{flex:none; font-size:10.5px; font-weight:700; white-space:nowrap; display:inline-flex; align-items:center; gap:2px;}
 .wr-streak.w{color:var(--good);}
 .wr-streak.l{color:var(--critical);}
@@ -947,16 +950,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* Each Clash game is its OWN card, not a loose continuation of the row
    list above it, and its one shared result is stated ONCE in the header
    (five stacked "VICTORIA"s for a single shared win was the original
-   redundant-form feeling here) — but a full-bleed color wash on top of
-   already-colorful champion art turned out to be its own kind of noise, so
-   the win/loss signal here is just the thin left accent plus the header
-   text, not a tinted background. */
+   redundant-form feeling here). No win/loss stripe or wash on the card
+   itself — between the day row's own stripe above and a colored VICTORIA/
+   DERROTA on every single match card below it, repeating that same green
+   accent that many times over was the actual "too much color" complaint,
+   on top of champion art that's already plenty colorful on its own. The
+   header text alone carries the result here. */
 .clash-match{
-  border-radius:var(--radius-md); padding:9px 10px;
-  background:var(--surface-hover); box-shadow:inset 3px 0 0 var(--border-soft);
+  border-radius:var(--radius-md); padding:9px 10px; background:var(--surface-hover);
 }
-.clash-match.w{box-shadow:inset 3px 0 0 var(--good);}
-.clash-match.l{box-shadow:inset 3px 0 0 var(--critical);}
 .clash-match-head{
   display:flex; align-items:center; gap:10px; font-size:10.5px; color:var(--text-muted);
   font-family:var(--font-mono); margin-bottom:9px; padding:0 2px;
@@ -971,22 +973,17 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    badge was gone. */
 .clash-match-players{display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px;}
 .clash-player-card{
-  position:relative; display:flex; flex-direction:column; align-items:center; gap:3px;
+  display:flex; flex-direction:column; align-items:center; gap:3px;
   text-align:center; padding:9px 6px 8px; border-radius:var(--radius-sm);
   background:rgba(0,0,0,0.16);
 }
-.clash-player-champ-wrap{position:relative; width:44px; height:44px; flex:none;}
 .clash-player-champ{
-  width:44px; height:44px; border-radius:11px; overflow:hidden;
+  width:44px; height:44px; border-radius:11px; overflow:hidden; flex:none;
   display:flex; align-items:center; justify-content:center;
   font-family:var(--font-display); font-weight:700; font-size:13px;
   background:var(--surface); color:var(--text-secondary);
 }
 .clash-player-champ img{width:100%; height:100%; object-fit:cover; display:block;}
-.clash-player-mini-avatar{
-  position:absolute; right:-5px; bottom:-5px; width:19px; height:19px; border-radius:6px;
-  box-shadow:0 0 0 2px var(--surface-raised); font-size:8px;
-}
 .clash-player-name{
   font-size:10.5px; font-weight:600; color:var(--text-primary); max-width:100%;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;

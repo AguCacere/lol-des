@@ -42,6 +42,10 @@ export function SparkChart({
   const haloStrokeWidth = detailed ? 1.5 : 1;
   const strokeWidth = detailed ? 2.5 : 2;
   const lineJoin = detailed ? "miter" : "round";
+  // Compact's line+dot go translucent rather than flat-solid — a softer,
+  // more refined feel for the dense "últimos 20" column specifically;
+  // detailed (the profile's own big LP chart) keeps full-strength color.
+  const lineOpacity = detailed ? 1 : 0.82;
   // Restrained glow — enough to keep the line from reading as a flat hairline,
   // without the neon-gaming look a heavier blur gave it. Compact's used to be
   // proportionally bigger than detailed's for the same reason as before: a
@@ -150,6 +154,7 @@ export function SparkChart({
           d={line}
           fill="none"
           stroke={color}
+          strokeOpacity={lineOpacity}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeLinejoin={lineJoin}
@@ -185,7 +190,7 @@ export function SparkChart({
           strokeOpacity={haloOpacity}
           strokeWidth={haloStrokeWidth}
         />
-        <circle cx={last[0].toFixed(1)} cy={last[1].toFixed(1)} r={dotRadius} fill={color} />
+        <circle cx={last[0].toFixed(1)} cy={last[1].toFixed(1)} r={dotRadius} fill={color} fillOpacity={lineOpacity} />
         {hover !== null && hover !== points.length - 1 && (
           <circle cx={points[hover][0]} cy={points[hover][1]} r={dotRadius + 1.5} fill={color} stroke="var(--bg)" strokeWidth={2} />
         )}
