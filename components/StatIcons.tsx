@@ -66,6 +66,17 @@ export function TrendUpIcon() {
   );
 }
 
+export function CoinIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9 15.5c0 1.1 1.3 2 3 2s3-.8 3-1.8-1.3-1.6-3-1.7-3-.7-3-1.7 1.3-1.8 3-1.8 3 .9 3 2" />
+      <line x1="12" y1="6.5" x2="12" y2="8" />
+      <line x1="12" y1="16" x2="12" y2="17.5" />
+    </svg>
+  );
+}
+
 export function UsersIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">

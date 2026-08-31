@@ -21,6 +21,7 @@ import { ChampionPool } from "./ChampionPool";
 import { MasteryPool } from "./MasteryPool";
 import { InsightsCard } from "./InsightsCard";
 import { RoleDistribution } from "./RoleDistribution";
+import { PersonalRecords } from "./PersonalRecords";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
 import { buildMetricInsights, splitStrengthsWeaknesses } from "@/lib/insights";
@@ -379,6 +380,13 @@ export function PlayerProfile({
 
             <h4 className="subsection-label">Campeones más jugados</h4>
             <ChampionPool pool={p.championPool} ddragonVersion={ddragonVersion} />
+
+            {p.personalRecords && (
+              <>
+                <h4 className="subsection-label">Récords personales</h4>
+                <PersonalRecords records={p.personalRecords} />
+              </>
+            )}
           </div>
 
           <div>

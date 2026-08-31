@@ -318,4 +318,18 @@ export interface Player {
    * role yet.
    */
   roleDistribution: { role: RoleKey; pct: number }[];
+  /** Best/most-extreme single-game numbers across EVERY stored match (not just the last 5 shown) — null if there are no stored matches yet. */
+  personalRecords: PersonalRecords | null;
+}
+
+export interface PersonalRecords {
+  longestGameMin: number;
+  bestKda: number;
+  /** Which champion the best-KDA game was on, for a bit of flavor next to the raw number. */
+  bestKdaChamp: string;
+  /** Longest run of consecutive wins anywhere in stored history — not the CURRENT streak (see currentStreak() in lib/ladder.ts for that). */
+  longestWinStreak: number;
+  mostKillsSingleGame: number;
+  mostDamageSingleGame: number;
+  mostCsSingleGame: number;
 }

@@ -4,7 +4,7 @@ import { peakFromHistory, ROLES, tierScore } from "@/lib/ladder";
 import { divisionFromRiot, normalizeRole, roleFromTeamPosition, tierKeyFromRiot } from "@/lib/mapping";
 import { getLiveGamesByPuuid } from "@/lib/live";
 import { getLatestVersion, profileIconUrl, runeIconUrlByName, summonerSpellIconUrlByName } from "@/lib/ddragon";
-import type { ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, DuoSharedMatch, FlexRank, LpHistoryPoint, MasteryEntry, Match, Player, RoleAverages, RoleKey } from "@/lib/types";
+import type { ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, DuoSharedMatch, FlexRank, LpHistoryPoint, MasteryEntry, Match, PersonalRecords, Player, RoleAverages, RoleKey } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -231,6 +231,53 @@ export async function GET() {
     agg.objShareSum += Number(row.obj_share ?? 0);
     map.set(role, agg);
   }
+
+  // Best/most-extreme single-game numbers across ALL stored matches — feeds
+  // "Récords personales". matchRows arrives sorted played_at DESCENDING, so
+  // a per-puuid subsequence pulled out of it (stable filter) stays in that
+  // same chronological order — enough to track a running win streak
+  // correctly without a separate sort (direction doesn't matter for "longest
+  // run of consecutive wins", only true adjacency does).
+  interface RecordsAgg {
+    longestGameS: number;
+    bestKda: number;
+    bestKdaChamp: string;
+    mostKills: number;
+    mostDamage: number;
+    mostCs: number;
+    currentWinStreak: number;
+    maxWinStreak: number;
+  }
+  const recordsByPuuid = new Map<string, RecordsAgg>();
+  function trackRecords(row: MatchRow) {
+    const rec = recordsByPuuid.get(row.puuid) ?? {
+      longestGameS: 0,
+      bestKda: -1,
+      bestKdaChamp: "",
+      mostKills: 0,
+      mostDamage: 0,
+      mostCs: 0,
+      currentWinStreak: 0,
+      maxWinStreak: 0,
+    };
+    if (row.game_duration_s > rec.longestGameS) rec.longestGameS = row.game_duration_s;
+    const kda = (row.kills + row.assists) / Math.max(1, row.deaths);
+    if (kda > rec.bestKda) {
+      rec.bestKda = kda;
+      rec.bestKdaChamp = row.champion;
+    }
+    if (row.kills > rec.mostKills) rec.mostKills = row.kills;
+    if (row.damage_to_champs > rec.mostDamage) rec.mostDamage = row.damage_to_champs;
+    if (row.cs > rec.mostCs) rec.mostCs = row.cs;
+    if (row.win) {
+      rec.currentWinStreak += 1;
+      if (rec.currentWinStreak > rec.maxWinStreak) rec.maxWinStreak = rec.currentWinStreak;
+    } else {
+      rec.currentWinStreak = 0;
+    }
+    recordsByPuuid.set(row.puuid, rec);
+  }
+
   // Per-champion win/loss + KDA totals across ALL stored matches — feeds the
   // "Campeones más jugados" card. Kept separate from champFreqByPuuid (which
   // only needs a count) since this also needs sums to average later.
@@ -277,6 +324,7 @@ export async function GET() {
       durationS: row.game_duration_s,
     });
     trackedByMatchId.set(row.match_id, tracked);
+    trackRecords(row);
 
     const freq = champFreqByPuuid.get(row.puuid) ?? new Map<string, number>();
     freq.set(row.champion, (freq.get(row.champion) ?? 0) + 1);
@@ -628,6 +676,20 @@ export async function GET() {
     return ALL_ROLES.map((role) => ({ role, pct: Math.round((100 * (freq.get(role) ?? 0)) / total) }));
   }
 
+  function personalRecordsFor(puuid: string): PersonalRecords | null {
+    const rec = recordsByPuuid.get(puuid);
+    if (!rec) return null;
+    return {
+      longestGameMin: Math.round(rec.longestGameS / 60),
+      bestKda: Number(rec.bestKda.toFixed(2)),
+      bestKdaChamp: rec.bestKdaChamp,
+      longestWinStreak: rec.maxWinStreak,
+      mostKillsSingleGame: rec.mostKills,
+      mostDamageSingleGame: rec.mostDamage,
+      mostCsSingleGame: rec.mostCs,
+    };
+  }
+
   // Shared by computeDuoSynergy() and computeChampionLeaderboard() below —
   // both need "which name/tag/avatar goes with this puuid" and neither
   // should compute it separately.
@@ -688,6 +750,7 @@ export async function GET() {
       winrate: wins + losses > 0 ? Math.round((100 * wins) / (wins + losses)) : 0,
       roleAverages: roleAveragesFor(row.puuid, role),
       roleDistribution: roleDistributionFor(row.puuid),
+      personalRecords: personalRecordsFor(row.puuid),
     };
   });
 
