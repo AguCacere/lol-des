@@ -439,15 +439,25 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .wr-count .wc-d{color:var(--critical);}
 .wr-bottom{display:flex; align-items:center; gap:8px;}
 .wr-bar{
-  flex:1; display:flex; gap:1.5px; height:6px; border-radius:99px; overflow:hidden;
-  background:var(--surface); min-width:0; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04);
+  flex:1; display:flex; gap:2px; height:8px; border-radius:99px; overflow:hidden;
+  background:var(--surface); min-width:0;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04), 0 1px 3px rgba(0,0,0,0.4);
 }
 .wr-seg{height:100%;}
-/* Translucent, not the flat solid --good/--critical used for text/badges —
-   a softer fill reads as more refined for a bar this size, and it still has
-   plenty of contrast against .wr-bar's own dark track underneath it. */
-.wr-seg.win{background:rgba(52,201,124,0.82);}
-.wr-seg.loss{background:rgba(240,85,95,0.82);}
+/* A flat fill on a bar this thin read as a plain HTML <progress> element —
+   a real top-to-bottom gradient (bright highlight → base color → a slightly
+   darker foot) plus an inset highlight/shadow pair gives each segment actual
+   roundness, like a glossy pill rather than a painted-on rectangle — the
+   same "glass, not flat paint" language the rest of the app uses (podium
+   cards, spark-tooltip, the live tray). */
+.wr-seg.win{
+  background:linear-gradient(180deg, #82efb2 0%, rgba(52,201,124,0.9) 55%, rgba(31,150,92,0.9) 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1.5px 2px rgba(0,0,0,0.3);
+}
+.wr-seg.loss{
+  background:linear-gradient(180deg, #fba3aa 0%, rgba(240,85,95,0.9) 55%, rgba(191,53,63,0.9) 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1.5px 2px rgba(0,0,0,0.3);
+}
 .wr-streak{flex:none; font-size:10.5px; font-weight:700; white-space:nowrap; display:inline-flex; align-items:center; gap:2px;}
 .wr-streak.w{color:var(--good);}
 .wr-streak.l{color:var(--critical);}
@@ -992,9 +1002,19 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   overflow:hidden;
 }
 .duo-avatar-img{width:100%; height:100%; object-fit:cover; display:block;}
+/* Same glossy-gradient treatment as .wr-seg (ladder's winrate bar) — this is
+   the identical bar pattern reused for the Clash day-row track, and used to
+   be flat solid --good/--critical while the ladder's got the softer glass
+   look, so the two read as two different bar styles in the same app. */
 .duo-seg{height:100%;}
-.duo-seg.win{background:var(--good);}
-.duo-seg.loss{background:var(--critical);}
+.duo-seg.win{
+  background:linear-gradient(180deg, #82efb2 0%, rgba(52,201,124,0.9) 55%, rgba(31,150,92,0.9) 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1.5px 2px rgba(0,0,0,0.3);
+}
+.duo-seg.loss{
+  background:linear-gradient(180deg, #fba3aa 0%, rgba(240,85,95,0.9) 55%, rgba(191,53,63,0.9) 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1.5px 2px rgba(0,0,0,0.3);
+}
 
 .clash-lifetime{font-size:12.5px; color:var(--text-muted); margin:-4px 0 12px; font-family:var(--font-mono);}
 .clash-lifetime-wr.good{color:var(--good); font-weight:600;}
