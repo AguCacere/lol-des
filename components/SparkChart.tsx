@@ -98,6 +98,17 @@ export function SparkChart({
             <stop offset="0%" stopColor={color} stopOpacity={detailed ? "0.35" : "0.45"} />
             <stop offset="100%" stopColor={color} stopOpacity="0" />
           </linearGradient>
+          {/* Off-center highlight (top-left) on the endpoint dot only — a flat
+              fill on a small solid circle read as a plain painted disc, no
+              different from a CSS div. A radial gradient with the light
+              coming from one side gives it just enough sphere-like depth to
+              read as a real marker instead of a flat 2D shape, without the
+              heavier gloss/gradient treatment tried (and reverted) elsewhere. */}
+          <radialGradient id={`${gid}-dot`} cx="35%" cy="30%" r="75%">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.85" />
+            <stop offset="45%" stopColor={color} stopOpacity="1" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.9" />
+          </radialGradient>
           {/*
             filterUnits="userSpaceOnUse" with absolute coordinates on purpose: the default
             objectBoundingBox sizes this region as a % of the filtered element's own bbox,
@@ -194,7 +205,7 @@ export function SparkChart({
           strokeOpacity={haloOpacity}
           strokeWidth={haloStrokeWidth}
         />
-        <circle cx={last[0].toFixed(1)} cy={last[1].toFixed(1)} r={dotRadius} fill={color} fillOpacity={lineOpacity} />
+        <circle cx={last[0].toFixed(1)} cy={last[1].toFixed(1)} r={dotRadius} fill={`url(#${gid}-dot)`} fillOpacity={lineOpacity} />
         {hover !== null && hover !== points.length - 1 && (
           <circle cx={points[hover][0]} cy={points[hover][1]} r={dotRadius + 1.5} fill={color} stroke="var(--bg)" strokeWidth={2} />
         )}
