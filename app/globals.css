@@ -571,12 +571,12 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .lp-chart-arrow{color:var(--text-muted); font-weight:400; margin:0 6px;}
 .lp-chart-delta{
-  font-family:var(--font-stat); font-size:22px; font-weight:800; font-variant-numeric:tabular-nums;
-  flex:none; white-space:nowrap; display:flex; align-items:baseline; gap:4px;
+  font-family:var(--font-stat); font-size:14px; font-weight:700; font-variant-numeric:tabular-nums;
+  flex:none; white-space:nowrap; display:flex; align-items:baseline; gap:3px;
 }
 .lp-chart-delta.up{color:var(--good);}
 .lp-chart-delta.down{color:var(--critical);}
-.lp-chart-delta-unit{font-family:var(--font-mono); font-size:11px; font-weight:500; opacity:0.75;}
+.lp-chart-delta-unit{font-family:var(--font-mono); font-size:9.5px; font-weight:500; opacity:0.75;}
 .lp-svg{display:block; width:100%; height:118px;}
 .chart-note{margin:8px 2px 0; font-size:11px; color:var(--text-muted); line-height:1.5;}
 
