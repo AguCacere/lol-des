@@ -819,15 +819,26 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .cmp-row{padding:9px 12px; border-bottom:1px solid var(--border-soft);}
 .cmp-row:last-child{border-bottom:none;}
-.cmp-row-top{display:flex; justify-content:space-between; font-size:11.5px; margin-bottom:6px;}
+.cmp-row-top{display:flex; justify-content:space-between; align-items:baseline; font-size:11.5px; margin-bottom:6px;}
 .cmp-row-top .k{color:var(--text-secondary);}
-.cmp-row-top .v{font-family:var(--font-mono); color:var(--text-primary); font-weight:500;}
+.cmp-row-top .v{display:flex; align-items:baseline; gap:7px;}
+/* Your own number and the role average used to be one run-on string
+   ("4.39 · prom. rol 3.06") differing only by a muted text color — easy to
+   misread which figure was which at a glance. The role average is now a
+   distinct pill (its own background, smaller, rounded) instead of trailing
+   text, so it reads as a separate reference chip next to your number rather
+   than a continuation of it. */
+.cmp-value{font-family:var(--font-stat); font-weight:800; font-size:14px; color:var(--text-primary);}
+.cmp-avg-chip{
+  font-family:var(--font-mono); font-size:10px; font-weight:600; color:var(--text-muted);
+  background:var(--surface-hover); border-radius:999px; padding:2.5px 8px; white-space:nowrap; flex:none;
+}
 /* Side-by-side wraps both halves at once on a narrow phone (a two-word
    label like "% daño del equipo" breaking into its own two lines squeezed
    right up against "sin datos del rol todavía" wrapping too) — stacked,
    each one gets the row's full width instead of fighting over half. */
-@media (max-width:600px){.cmp-row-top{flex-direction:column; align-items:flex-start; gap:2px;}}
-.cmp-no-data{color:var(--text-muted); font-style:italic;}
+@media (max-width:600px){.cmp-row-top{flex-direction:column; align-items:flex-start; gap:4px;}}
+.cmp-no-data{color:var(--text-muted); font-style:italic; font-size:10.5px;}
 .cmp-bar-track{height:5px; border-radius:99px; background:var(--track); overflow:hidden; position:relative;}
 .cmp-bar-fill{height:100%; border-radius:99px; background:var(--accent);}
 .cmp-bar-fill.good{background:var(--good);}

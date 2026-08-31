@@ -54,15 +54,17 @@ function CmpBar({
           {tooltip && <InfoTip text={tooltip} />}
         </span>
         <span className="v">
-          {value}
-          {suffix}{" "}
+          <span className="cmp-value">
+            {value}
+            {suffix}
+          </span>
           {avg !== null ? (
-            <span style={{ color: "var(--text-muted)" }}>
-              · prom. rol {avg}
+            <span className="cmp-avg-chip">
+              prom. rol {avg}
               {suffix}
             </span>
           ) : (
-            <span className="cmp-no-data">· sin datos del rol todavía</span>
+            <span className="cmp-no-data">sin datos del rol todavía</span>
           )}
         </span>
       </div>
