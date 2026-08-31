@@ -43,6 +43,7 @@ que crees el proyecto:
 | `RIOT_REGION` | `americas` — routing region para Account-V1/Match-V5 |
 | `NEXT_PUBLIC_SUPABASE_URL` | Project Settings → API, en supabase.com |
 | `SUPABASE_SERVICE_ROLE_KEY` | idem — **nunca** exponer al browser |
+| `DISCORD_WEBHOOK_URL` | Opcional — URL de un webhook de Discord (canal → Editar canal → Integraciones → Webhooks). Sin esto, las notificaciones (subida de rango, rachas) simplemente no se mandan; nada se rompe. |
 
 Si la Riot API Key se filtra alguna vez, se regenera con "Nueva clave API" en
 el portal — no hace falta pedir una nueva app.

@@ -10,6 +10,9 @@ import {
 } from "./riot";
 import { championNameById, runeNameById, summonerSpellNameById } from "./ddragon";
 import { extractTimelineStats } from "./timeline";
+import { sendDiscordNotification } from "./discord";
+import { tierFor } from "./ladder";
+import { divisionFromRiot, tierKeyFromRiot } from "./mapping";
 
 type SupabaseClient = ReturnType<typeof getSupabaseServerClient>;
 
@@ -19,6 +22,68 @@ export const MANUAL_REFRESH_COOLDOWN_MS = 2 * 60 * 1000;
 const RANKED_SOLO_QUEUE_ID = 420;
 /** Match-V5 queueId for Clash — see lib/clash.ts for how these get grouped into "tournaments" once stored. */
 export const CLASH_QUEUE_ID = 700;
+/** Below this, a win/loss streak doesn't get a Discord ping — see checkStreakAndNotify. */
+const STREAK_NOTIFY_THRESHOLD = 3;
+
+/** "Nombre#TAG" for a puuid — only looked up on the rare path that's actually about to send a Discord message, not on every refresh. */
+async function summonerLabel(supabase: SupabaseClient, puuid: string): Promise<string | null> {
+  const { data } = await supabase.from("summoners").select("game_name, tag_line").eq("puuid", puuid).maybeSingle();
+  return data ? `${data.game_name}#${data.tag_line}` : null;
+}
+
+/**
+ * Higher = better rank. Tier order (Iron..Master, see tierFor's TIERS table)
+ * dominates; division only breaks ties WITHIN a tier, and lower division
+ * number is better (I beats IV) so it's subtracted rather than added.
+ * Deliberately ignores LP — going up LP within the same division is normal
+ * progress already visible in the profile's own chart, not a "subiste de
+ * rango" moment worth a Discord ping.
+ */
+function rankOrdinal(tier: string, rank: string): number {
+  return tierFor(tierKeyFromRiot(tier)).rank * 10 - divisionFromRiot(rank);
+}
+
+async function notifyPromotion(supabase: SupabaseClient, puuid: string, entry: RiotLeagueEntry) {
+  const label = await summonerLabel(supabase, puuid);
+  if (!label) return;
+  const t = tierFor(tierKeyFromRiot(entry.tier));
+  const division = divisionFromRiot(entry.rank);
+  await sendDiscordNotification(`📈 **${label}** subió a **${t.name} ${division}**!`);
+}
+
+/**
+ * Fires once per refresh cycle (not once per newly-inserted match — with
+ * several new ranked games in one cycle that would send one message per
+ * game, each describing an earlier/smaller streak than the last, out of
+ * order) — call after every new ranked match for this puuid is already
+ * stored. Reads the last 20 ranked matches back from the DB (not Riot) so
+ * this reflects the exact same data currentStreak() in lib/ladder.ts would
+ * compute from player.matches, just server-side.
+ */
+async function checkStreakAndNotify(supabase: SupabaseClient, puuid: string) {
+  const { data: recent } = await supabase
+    .from("matches")
+    .select("win")
+    .eq("puuid", puuid)
+    .eq("queue_id", RANKED_SOLO_QUEUE_ID)
+    .order("played_at", { ascending: false })
+    .limit(20);
+  if (!recent || recent.length < STREAK_NOTIFY_THRESHOLD) return;
+
+  const result = recent[0].win;
+  let count = 0;
+  for (const m of recent) {
+    if (m.win !== result) break;
+    count++;
+  }
+  if (count < STREAK_NOTIFY_THRESHOLD) return;
+
+  const label = await summonerLabel(supabase, puuid);
+  if (!label) return;
+  const emoji = result ? "🔥" : "💀";
+  const word = result ? "victorias" : "derrotas";
+  await sendDiscordNotification(`${emoji} **${label}** está en racha de **${count} ${word}** seguidas.`);
+}
 
 /**
  * Inserts a new lp_snapshots row for one queue (SoloQ or Flex) — but only
@@ -48,6 +113,13 @@ async function upsertRankSnapshot(supabase: SupabaseClient, puuid: string, entry
     lastSnapshot.losses === entry.losses;
 
   if (!unchanged) {
+    // Solo queue only — Flex promotions aren't what "subiste de rango" means
+    // for this group (the whole app treats RANKED_SOLO_5x5 as the main
+    // ladder). Only on a real tier/division improvement, never on a
+    // demotion or a same-division LP change.
+    if (lastSnapshot && queueType === "RANKED_SOLO_5x5" && rankOrdinal(entry.tier, entry.rank) > rankOrdinal(lastSnapshot.tier, lastSnapshot.division)) {
+      await notifyPromotion(supabase, puuid, entry);
+    }
     await supabase.from("lp_snapshots").insert({
       puuid,
       queue_type: queueType,
@@ -243,11 +315,18 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string): Promi
   const known = new Set((existing ?? []).map((m) => m.match_id));
 
   const matchIds = await getMatchIdsByPuuid(puuid, 20);
+  let newRankedMatches = false;
   for (const matchId of matchIds) {
     if (known.has(matchId)) continue;
     const warning = await fetchAndStoreMatch(supabase, puuid, matchId);
     if (warning) warnings.push(warning);
+    else newRankedMatches = true;
   }
+  // Once per refresh cycle, after everything new is already stored — not
+  // once per match inside the loop above, which (with several new ranked
+  // games in the same cycle) would fire one Discord message per game, each
+  // describing an earlier/smaller streak than the one before it.
+  if (newRankedMatches) await checkStreakAndNotify(supabase, puuid);
 
   // Clash games are rare (a handful of days a year, at most), so this almost
   // always comes back empty — but checking the last 20 ids every ~15min
