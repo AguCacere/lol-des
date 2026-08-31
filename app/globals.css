@@ -723,6 +723,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .cmp-row-top{display:flex; justify-content:space-between; font-size:11.5px; margin-bottom:6px;}
 .cmp-row-top .k{color:var(--text-secondary);}
 .cmp-row-top .v{font-family:var(--font-mono); color:var(--text-primary); font-weight:500;}
+/* Side-by-side wraps both halves at once on a narrow phone (a two-word
+   label like "% daño del equipo" breaking into its own two lines squeezed
+   right up against "sin datos del rol todavía" wrapping too) — stacked,
+   each one gets the row's full width instead of fighting over half. */
+@media (max-width:600px){.cmp-row-top{flex-direction:column; align-items:flex-start; gap:2px;}}
 .cmp-no-data{color:var(--text-muted); font-style:italic;}
 .cmp-bar-track{height:5px; border-radius:99px; background:var(--track); overflow:hidden; position:relative;}
 .cmp-bar-fill{height:100%; border-radius:99px; background:var(--accent);}
