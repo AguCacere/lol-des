@@ -663,8 +663,18 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .champ-pool-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
 .champ-pool-mid{display:flex; flex-direction:column; min-width:0; flex:1;}
-.champ-pool-name{font-weight:600; font-size:12.5px; color:var(--text-primary);}
-.champ-pool-games{font-size:10.5px; color:var(--text-muted); font-family:var(--font-mono);}
+.champ-pool-name{
+  font-weight:600; font-size:12.5px; color:var(--text-primary);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+/* Truncates instead of wrapping — without this a long player name here
+   ("compren bitcoin · 50 partidas") could wrap onto a second line while
+   every shorter row around it stayed single-line, making rows in the same
+   list different heights for no reason a reader could see. */
+.champ-pool-games{
+  font-size:10.5px; color:var(--text-muted); font-family:var(--font-mono);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
 .champ-pool-stats{display:flex; align-items:baseline; gap:10px; flex:none;}
 .champ-pool-wr{font-family:var(--font-stat); font-weight:800; font-size:14px; font-variant-numeric:tabular-nums;}
 .champ-pool-wr.good{color:var(--good);}
