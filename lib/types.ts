@@ -309,4 +309,13 @@ export interface Player {
    * role by the whole group (this player's own games excluded).
    */
   roleAverages: RoleAverages;
+  /**
+   * % of this player's own stored matches played in each role (top/jungle/
+   * mid/adc/support, always all 5, 0 for one never played), from Match-V5's
+   * real team_position — not the single derived `role` label. This is what
+   * actually shows someone rotating roles constantly instead of hiding it
+   * behind one "main". Empty array means no stored matches with a resolved
+   * role yet.
+   */
+  roleDistribution: { role: RoleKey; pct: number }[];
 }

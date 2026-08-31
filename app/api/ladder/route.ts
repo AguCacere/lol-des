@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
-import { peakFromHistory, tierScore } from "@/lib/ladder";
+import { peakFromHistory, ROLES, tierScore } from "@/lib/ladder";
 import { divisionFromRiot, normalizeRole, roleFromTeamPosition, tierKeyFromRiot } from "@/lib/mapping";
 import { getLiveGamesByPuuid } from "@/lib/live";
 import { getLatestVersion, profileIconUrl, runeIconUrlByName, summonerSpellIconUrlByName } from "@/lib/ddragon";
@@ -611,6 +611,23 @@ export async function GET() {
     return best;
   }
 
+  const ALL_ROLES = Object.keys(ROLES) as RoleKey[];
+
+  /**
+   * % of ALL this player's stored matches played in each role — always all 5
+   * roles (0 for one never played), from the same roleFreqByPuuid built off
+   * every match's real team_position. Empty array (not five zeros) when
+   * there's no resolved-role match at all yet, so the UI can show an actual
+   * empty state instead of a row of 0%s.
+   */
+  function roleDistributionFor(puuid: string): { role: RoleKey; pct: number }[] {
+    const freq = roleFreqByPuuid.get(puuid);
+    if (!freq) return [];
+    const total = [...freq.values()].reduce((s, c) => s + c, 0);
+    if (total === 0) return [];
+    return ALL_ROLES.map((role) => ({ role, pct: Math.round((100 * (freq.get(role) ?? 0)) / total) }));
+  }
+
   // Shared by computeDuoSynergy() and computeChampionLeaderboard() below —
   // both need "which name/tag/avatar goes with this puuid" and neither
   // should compute it separately.
@@ -670,6 +687,7 @@ export async function GET() {
       matches,
       winrate: wins + losses > 0 ? Math.round((100 * wins) / (wins + losses)) : 0,
       roleAverages: roleAveragesFor(row.puuid, role),
+      roleDistribution: roleDistributionFor(row.puuid),
     };
   });
 

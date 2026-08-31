@@ -20,6 +20,7 @@ import { MatchDetail } from "./MatchDetail";
 import { ChampionPool } from "./ChampionPool";
 import { MasteryPool } from "./MasteryPool";
 import { InsightsCard } from "./InsightsCard";
+import { RoleDistribution } from "./RoleDistribution";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
 import { buildMetricInsights, splitStrengthsWeaknesses } from "@/lib/insights";
@@ -295,6 +296,16 @@ export function PlayerProfile({
             </div>
           </div>
         </div>
+
+        {p.roleDistribution.length > 0 && (
+          <div className="role-dist-wrap">
+            <span className="role-dist-label">
+              Reparto de roles
+              <InfoTip text="% de todas tus partidas guardadas jugadas en cada rol — no solo la línea que se muestra como main arriba." />
+            </span>
+            <RoleDistribution distribution={p.roleDistribution} currentRole={p.role} />
+          </div>
+        )}
 
         <div className="stack-cols">
           <div>
