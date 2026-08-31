@@ -308,14 +308,16 @@ export function PlayerProfile({
                   <span className="label">
                     LP · progresión reciente <InfoTip text={METRIC_INFO.lpProgression} />
                   </span>
-                  <br />
-                  <span className="big">
-                    {lpEndpointLabel(lpStartPoint)} → {lpEndpointLabel(lpCurrentPoint)}
-                  </span>
-                  <span className={`delta ${lpDelta >= 0 ? "up" : "down"}`}>
-                    {lpDelta >= 0 ? "▲" : "▼"} {Math.abs(lpDelta)} {lpDeltaUnit}
-                  </span>
+                  <div className="lp-chart-range">
+                    {lpEndpointLabel(lpStartPoint)}
+                    <span className="lp-chart-arrow">→</span>
+                    {lpEndpointLabel(lpCurrentPoint)}
+                  </div>
                 </div>
+                <span className={`lp-chart-delta ${lpDelta >= 0 ? "up" : "down"}`}>
+                  {lpDelta >= 0 ? "▲" : "▼"} {Math.abs(lpDelta)}
+                  <span className="lp-chart-delta-unit">{lpDeltaUnit}</span>
+                </span>
               </div>
               <div className="lp-svg">
                 <SparkChart
