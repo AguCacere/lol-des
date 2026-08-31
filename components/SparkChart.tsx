@@ -31,7 +31,7 @@ export function SparkChart({
   // most of its row width but keeps a bit more vertical breathing room, rather
   // than using the same pad on both axes like the detailed profile chart does.
   const padX = detailed ? pad : pad + 3;
-  const { line, area, last, points } = lineAreaGeometry(values, width, height, padX, 10, pad);
+  const { line, area, last, points } = lineAreaGeometry(values, width, height, padX, 10, pad, !detailed);
   const gid = "spark-" + useId().replace(/[:]/g, "");
   // Compact's endpoint marker used to feel like a separate button stuck onto
   // the line (big halo ring) — shrunk so it reads as "last value, subtly
@@ -136,13 +136,17 @@ export function SparkChart({
           />
         )}
         {/*
-          The area fill is a detailed-only accent — in the compact 28px cells
-          a translucent fill from line-height down to the baseline read as a
-          colored smudge under the sparkline rather than "subtle depth" (the
-          fill height there is a large fraction of the whole cell, unlike the
-          118px detailed chart where the same treatment stays unobtrusive).
+          Now drawn for both variants — it used to be detailed-only because a
+          translucent fill under a JAGGED zigzag line read as a colored smudge
+          in the compact 28px cells. Now that the compact line itself is a
+          smoothed curve (see lineAreaGeometry's `smooth` flag above), the
+          fill follows that same curve instead of the zigzag and reads as
+          depth rather than noise — the gradient's own stop opacity is
+          already tuned lower for compact (0.45 vs 0.35 — inverted-looking on
+          purpose, since a short 28px cell needs a stronger top stop than the
+          118px detailed chart to register as fill at all once it fades out).
         */}
-        {detailed && <path d={area} fill={`url(#${gid})`} stroke="none" />}
+        <path d={area} fill={`url(#${gid})`} stroke="none" />
         {/*
           Compact skips the blur filter on the line itself entirely — a
           Gaussian blur (even a small one) softens the stroke's own edges,
