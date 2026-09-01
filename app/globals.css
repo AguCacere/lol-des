@@ -835,22 +835,46 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .digest-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;}
 @media (max-width:680px){.digest-grid{grid-template-columns:1fr;}}
 .digest-card{
-  background:var(--surface-raised); border:1px solid var(--border-soft); border-radius:var(--radius-md);
-  padding:14px 16px;
+  background:var(--surface-raised); border:1px solid var(--border-soft); border-left:3px solid var(--border-soft);
+  border-radius:var(--radius-md); padding:14px 16px; transition:border-color 0.12s;
 }
+.digest-card.accent-good{border-left-color:var(--good);}
+.digest-card.accent-gold{border-left-color:var(--gold);}
+.digest-card.accent-critical{border-left-color:var(--critical);}
+.digest-card.accent-primary{border-left-color:var(--accent);}
 .digest-card-label{
-  display:flex; align-items:center; gap:6px; margin-bottom:10px;
+  display:flex; align-items:center; gap:7px; margin-bottom:11px;
   font-size:10px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.07em;
 }
-.digest-card-label svg{width:13px; height:13px; color:var(--accent); flex:none;}
-.digest-card-body{display:flex; align-items:center; gap:10px;}
+.digest-card-icon{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:20px; height:20px; border-radius:6px; flex:none;
+}
+.digest-card-icon svg{width:12px; height:12px;}
+.digest-card-icon.good{background:var(--good-wash); color:var(--good);}
+.digest-card-icon.gold{background:var(--gold-wash); color:var(--gold);}
+.digest-card-icon.critical{background:var(--critical-wash); color:var(--critical);}
+.digest-card-icon.accent{background:var(--accent-wash); color:var(--accent);}
+.digest-card-body{display:flex; align-items:center; gap:11px;}
 .digest-card-mid{display:flex; flex-direction:column; gap:2px; min-width:0; flex:1;}
-.digest-card-name{font-weight:600; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.digest-card-name{font-weight:600; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .digest-card-sub{font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .digest-card-value{
-  font-family:var(--font-stat); font-weight:800; font-size:15px; margin-left:auto; flex:none;
+  font-family:var(--font-stat); font-weight:800; font-size:18px; margin-left:auto; flex:none;
   font-variant-numeric:tabular-nums; white-space:nowrap;
 }
+.digest-champ-toggle{width:100%; text-align:left; border-radius:var(--radius-sm);}
+.digest-champ-toggle:not(:disabled){cursor:pointer;}
+.digest-champ-toggle:not(:disabled):hover{background:var(--surface-hover);}
+.digest-chevron{width:13px; height:13px; color:var(--text-muted); transition:transform 0.15s ease; flex:none;}
+.digest-champ-toggle.is-expanded .digest-chevron{transform:rotate(180deg); color:var(--accent);}
+.digest-champ-players{
+  margin-top:11px; padding-top:11px; border-top:1px solid var(--border-soft);
+  display:flex; flex-direction:column; gap:9px;
+}
+.digest-champ-player-row{display:flex; align-items:center; gap:9px;}
+.digest-champ-player-stat{margin-left:auto; font-size:11px; color:var(--text-muted); white-space:nowrap; flex:none;}
+.duo-avatar.sm{width:26px; height:26px; border-radius:8px; font-size:10px;}
 .digest-copy-btn{
   display:inline-flex; align-items:center; gap:7px; cursor:pointer;
   font-size:12.5px; font-weight:600; color:var(--accent); background:var(--accent-wash);

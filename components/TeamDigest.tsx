@@ -11,6 +11,57 @@ function formatWindowRange(startIso: string, endIso: string): string {
   return `${fmt(startIso)} – ${fmt(endIso)}`;
 }
 
+function ChampionCard({ champion, ddragonVersion }: { champion: NonNullable<TeamDigestData["mostPlayedChampion"]>; ddragonVersion: string | null }) {
+  const [expanded, setExpanded] = useState(false);
+  const canExpand = champion.players.length > 0;
+  return (
+    <div className="digest-card accent-primary">
+      <span className="digest-card-label">
+        <span className="digest-card-icon accent">
+          <TrophyIcon />
+        </span>
+        Campeón más jugado
+      </span>
+      <button
+        type="button"
+        className={`digest-card-body digest-champ-toggle${expanded ? " is-expanded" : ""}`}
+        onClick={() => canExpand && setExpanded((v) => !v)}
+        disabled={!canExpand}
+        aria-expanded={expanded}
+      >
+        <ChampIcon champ={champion.champion} version={ddragonVersion} className="duo-avatar" />
+        <div className="digest-card-mid">
+          <span className="digest-card-name">{champion.champion}</span>
+          <span className="digest-card-sub">{champion.games} partidas</span>
+        </div>
+        <span className="digest-card-value">
+          {champion.wins}V-{champion.games - champion.wins}D
+        </span>
+        {canExpand && (
+          <svg className="digest-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        )}
+      </button>
+      {expanded && (
+        <div className="digest-champ-players">
+          {champion.players.map((p) => (
+            <div className="digest-champ-player-row" key={`${p.name}#${p.tag}`}>
+              <PlayerAvatar name={p.name} iconUrl={p.profileIconUrl} className="duo-avatar sm" />
+              <span className="digest-card-name">
+                {p.name} <span className="player-tag">#{p.tag}</span>
+              </span>
+              <span className="digest-champ-player-stat">
+                {p.games} {p.games === 1 ? "partida" : "partidas"} · {p.wins}V-{p.games - p.wins}D
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DigestBody({
   digest,
   ddragonVersion,
@@ -36,9 +87,12 @@ function DigestBody({
     <>
       <div className="digest-grid">
         {digest.biggestLpGain && (
-          <div className="digest-card">
+          <div className="digest-card accent-good">
             <span className="digest-card-label">
-              <TrendUpIcon /> Mayor subida de LP
+              <span className="digest-card-icon good">
+                <TrendUpIcon />
+              </span>
+              Mayor subida de LP
             </span>
             <div className="digest-card-body">
               <PlayerAvatar name={digest.biggestLpGain.name} iconUrl={digest.biggestLpGain.profileIconUrl} className="duo-avatar" />
@@ -54,9 +108,12 @@ function DigestBody({
           </div>
         )}
         {digest.bestKda && (
-          <div className="digest-card">
+          <div className="digest-card accent-gold">
             <span className="digest-card-label">
-              <ZapIcon /> Mejor KDA
+              <span className="digest-card-icon gold">
+                <ZapIcon />
+              </span>
+              Mejor KDA
             </span>
             <div className="digest-card-body">
               <PlayerAvatar name={digest.bestKda.name} iconUrl={digest.bestKda.profileIconUrl} className="duo-avatar" />
@@ -73,9 +130,12 @@ function DigestBody({
           </div>
         )}
         {digest.worstLoss && (
-          <div className="digest-card">
+          <div className="digest-card accent-critical">
             <span className="digest-card-label">
-              <TrendDownIcon /> Peor derrota
+              <span className="digest-card-icon critical">
+                <TrendDownIcon />
+              </span>
+              Peor derrota
             </span>
             <div className="digest-card-body">
               <PlayerAvatar name={digest.worstLoss.name} iconUrl={digest.worstLoss.profileIconUrl} className="duo-avatar" />
@@ -95,23 +155,7 @@ function DigestBody({
             </div>
           </div>
         )}
-        {digest.mostPlayedChampion && (
-          <div className="digest-card">
-            <span className="digest-card-label">
-              <TrophyIcon /> Campeón más jugado
-            </span>
-            <div className="digest-card-body">
-              <ChampIcon champ={digest.mostPlayedChampion.champion} version={ddragonVersion} className="duo-avatar" />
-              <div className="digest-card-mid">
-                <span className="digest-card-name">{digest.mostPlayedChampion.champion}</span>
-                <span className="digest-card-sub">{digest.mostPlayedChampion.games} partidas</span>
-              </div>
-              <span className="digest-card-value">
-                {digest.mostPlayedChampion.wins}V-{digest.mostPlayedChampion.games - digest.mostPlayedChampion.wins}D
-              </span>
-            </div>
-          </div>
-        )}
+        {digest.mostPlayedChampion && <ChampionCard champion={digest.mostPlayedChampion} ddragonVersion={ddragonVersion} />}
       </div>
 
       <button type="button" className="digest-copy-btn" onClick={onCopy}>

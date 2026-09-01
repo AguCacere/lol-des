@@ -148,7 +148,7 @@ export async function GET() {
   }
   if (worstLoss === null) worstLoss = worstLossKdaFallback;
 
-  // Campeón más jugado del grupo esa semana.
+  // Campeón más jugado del grupo esa semana, y quién lo jugó (más partidas primero).
   const champCount = new Map<string, { games: number; wins: number }>();
   for (const m of matches) {
     const agg = champCount.get(m.champion) ?? { games: 0, wins: 0 };
@@ -156,11 +156,26 @@ export async function GET() {
     agg.wins += m.win ? 1 : 0;
     champCount.set(m.champion, agg);
   }
-  let mostPlayedChampion: TeamDigest["mostPlayedChampion"] = null;
+  let topChampion: { champion: string; games: number; wins: number } | null = null;
   for (const [champion, agg] of champCount) {
-    if (mostPlayedChampion === null || agg.games > mostPlayedChampion.games) {
-      mostPlayedChampion = { champion, games: agg.games, wins: agg.wins };
+    if (topChampion === null || agg.games > topChampion.games) {
+      topChampion = { champion, games: agg.games, wins: agg.wins };
     }
+  }
+  let mostPlayedChampion: TeamDigest["mostPlayedChampion"] = null;
+  if (topChampion) {
+    const perPuuid = new Map<string, { games: number; wins: number }>();
+    for (const m of matches) {
+      if (m.champion !== topChampion.champion) continue;
+      const agg = perPuuid.get(m.puuid) ?? { games: 0, wins: 0 };
+      agg.games += 1;
+      agg.wins += m.win ? 1 : 0;
+      perPuuid.set(m.puuid, agg);
+    }
+    const players = [...perPuuid.entries()]
+      .map(([puuid, agg]) => ({ ...playerRef(puuid), ...agg }))
+      .sort((a, b) => b.games - a.games);
+    mostPlayedChampion = { ...topChampion, players };
   }
 
   const plainText = buildPlainText({ biggestLpGain, bestKda, worstLoss, mostPlayedChampion });

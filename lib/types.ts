@@ -133,7 +133,15 @@ export interface TeamDigest {
         goldDiffMinute: 10 | 15 | 20 | null;
       })
     | null;
-  mostPlayedChampion: { champion: string; games: number; wins: number } | null;
+  mostPlayedChampion:
+    | {
+        champion: string;
+        games: number;
+        wins: number;
+        /** Every tracked player who played it this week, most games first. */
+        players: (TeamDigestPlayerRef & { games: number; wins: number })[];
+      }
+    | null;
   /** Same 4 highlights, pre-formatted as a plain-text block ready to paste into Discord/WhatsApp. */
   plainText: string;
 }
