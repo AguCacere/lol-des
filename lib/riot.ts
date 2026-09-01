@@ -170,8 +170,11 @@ export interface RiotTimelineEvent {
   type: string; // "CHAMPION_KILL" | "BUILDING_KILL" | "ELITE_MONSTER_KILL" | "ITEM_PURCHASED" | ...
   timestamp: number; // ms since game start
   killerId?: number; // participantId — only on kill-type events
+  killerTeamId?: number; // 100 | 200 — only on ELITE_MONSTER_KILL, the team that got the takedown directly (no need to resolve killerId → team)
   monsterType?: string; // "DRAGON" | "RIFTHERALD" | "BARON_NASHOR" | "HORDE" — only on ELITE_MONSTER_KILL
   monsterSubType?: string; // e.g. "FIRE_DRAGON" — only when monsterType is "DRAGON"
+  buildingType?: string; // "TOWER_BUILDING" | "INHIBITOR_BUILDING" — only on BUILDING_KILL
+  teamId?: number; // 100 | 200 — only on BUILDING_KILL, the team that OWNED the destroyed building (so the killer's team is the other one)
   participantId?: number; // only on ITEM_* events
   itemId?: number; // only on ITEM_PURCHASED/ITEM_SOLD/ITEM_DESTROYED
 }

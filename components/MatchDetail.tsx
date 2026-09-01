@@ -20,6 +20,16 @@ function formatMmSs(totalSeconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+/** "8:32 · tuya"/"rival" in green/red — null `mine` (missing teamId on an old match) just drops the tag, keeps the time. */
+function ObjectiveTiming({ timeS, mine }: { timeS: number; mine: boolean | null }) {
+  return (
+    <>
+      {formatMmSs(timeS)}
+      {mine != null && <span className={mine ? "gd-pos" : "gd-neg"}> · {mine ? "tuya" : "rival"}</span>}
+    </>
+  );
+}
+
 function Stat({
   label,
   tooltip,
@@ -117,7 +127,13 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
   const m = match;
   const multikill = multikillLabel(m);
   const hasTimeline =
-    m.goldDiff10 != null || m.goldDiff15 != null || m.goldDiff20 != null || m.firstBloodTimeS != null || m.firstTowerTimeS != null;
+    m.goldDiff10 != null ||
+    m.goldDiff15 != null ||
+    m.goldDiff20 != null ||
+    m.firstBloodTimeS != null ||
+    m.firstTowerTimeS != null ||
+    m.firstDragonTimeS != null ||
+    m.firstBaronTimeS != null;
   return (
     <div className="match-detail">
       {multikill && <div className="match-multikill">{multikill}</div>}
@@ -258,7 +274,21 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
             </Stat>
           )}
           {m.firstBloodTimeS != null && <Stat label="Primera sangre (partida)">{formatMmSs(m.firstBloodTimeS)}</Stat>}
-          {m.firstTowerTimeS != null && <Stat label="Primera torre (partida)">{formatMmSs(m.firstTowerTimeS)}</Stat>}
+          {m.firstTowerTimeS != null && (
+            <Stat label="Primera torre">
+              <ObjectiveTiming timeS={m.firstTowerTimeS} mine={m.firstTowerMine} />
+            </Stat>
+          )}
+          {m.firstDragonTimeS != null && (
+            <Stat label="Primer dragón">
+              <ObjectiveTiming timeS={m.firstDragonTimeS} mine={m.firstDragonMine} />
+            </Stat>
+          )}
+          {m.firstBaronTimeS != null && (
+            <Stat label="Primer barón">
+              <ObjectiveTiming timeS={m.firstBaronTimeS} mine={m.firstBaronMine} />
+            </Stat>
+          )}
         </Group>
       )}
     </div>

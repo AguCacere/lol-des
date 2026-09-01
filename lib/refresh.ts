@@ -228,7 +228,8 @@ async function fetchAndStoreMatch(supabase: SupabaseClient, puuid: string, match
       timeline,
       me.participantId,
       enemy?.participantId ?? null,
-      match.info.gameDuration
+      match.info.gameDuration,
+      me.teamId
     );
   } catch {
     // ignore — match still gets saved, just without timeline-derived stats
@@ -281,6 +282,11 @@ async function fetchAndStoreMatch(supabase: SupabaseClient, puuid: string, match
     gold_diff_20: timelineStats?.goldDiff20 ?? null,
     first_blood_time_s: timelineStats?.firstBloodTimeS ?? null,
     first_tower_time_s: timelineStats?.firstTowerTimeS ?? null,
+    first_tower_mine: timelineStats?.firstTowerMine ?? null,
+    first_dragon_time_s: timelineStats?.firstDragonTimeS ?? null,
+    first_dragon_mine: timelineStats?.firstDragonMine ?? null,
+    first_baron_time_s: timelineStats?.firstBaronTimeS ?? null,
+    first_baron_mine: timelineStats?.firstBaronMine ?? null,
     dragon_types: timelineStats?.dragonTypes ?? [],
     item_build: timelineStats?.itemBuild ?? [],
     team_position: me.teamPosition,

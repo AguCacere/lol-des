@@ -93,6 +93,11 @@ create table if not exists matches (
   gold_diff_20  int,           -- o si no se pudo identificar al rival del mismo carril
   first_blood_time_s int,      -- segundo del juego en que ocurrió la primera sangre (dato de la partida, no del jugador)
   first_tower_time_s int,      -- ídem para la primera torre caída
+  first_tower_mine boolean,    -- true si la tiró el equipo de este jugador, false si fue el rival, null si no hay dato (remake) o partida vieja
+  first_dragon_time_s int,
+  first_dragon_mine boolean,
+  first_baron_time_s int,
+  first_baron_mine boolean,
   dragon_types  text[] not null default '{}', -- monsterSubType (Match-V5 timeline) por cada dragón que MATÓ este jugador (no asistió), ej. {FIRE_DRAGON,WATER_DRAGON} — puede ser más corto que dragon_takedowns, que también cuenta asistencias
   item_build    int[] not null default '{}', -- itemId de cada ITEM_PURCHASED (Match-V5 timeline) de este jugador, EN ORDEN de compra real — no reconciliado contra ventas/undo, incluye consumibles/trinket. Vacío en partidas guardadas antes de que este campo existiera.
   team_position text,          -- TOP/JUNGLE/MIDDLE/BOTTOM/UTILITY

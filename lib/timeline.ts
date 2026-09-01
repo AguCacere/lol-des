@@ -10,6 +10,12 @@ export interface TimelineStats {
   goldDiff20: number | null;
   firstBloodTimeS: number | null;
   firstTowerTimeS: number | null;
+  /** Whose team destroyed the first tower of the game — null if the match had none (remake) or teamId was missing on the event. */
+  firstTowerMine: boolean | null;
+  firstDragonTimeS: number | null;
+  firstDragonMine: boolean | null;
+  firstBaronTimeS: number | null;
+  firstBaronMine: boolean | null;
   /**
    * Riot's `monsterSubType` for each dragon THIS player personally landed the
    * killing blow on (e.g. ["FIRE_DRAGON", "WATER_DRAGON"]) — same source data
@@ -51,7 +57,8 @@ export function extractTimelineStats(
   timeline: RiotTimeline,
   myParticipantId: number,
   enemyParticipantId: number | null,
-  gameDurationS: number
+  gameDurationS: number,
+  myTeamId: number
 ): TimelineStats {
   const durationMs = gameDurationS * 1000;
 
@@ -66,6 +73,11 @@ export function extractTimelineStats(
   // scan that stopped there silently dropped every later dragon kill.
   let firstBloodTimeS: number | null = null;
   let firstTowerTimeS: number | null = null;
+  let firstTowerMine: boolean | null = null;
+  let firstDragonTimeS: number | null = null;
+  let firstDragonMine: boolean | null = null;
+  let firstBaronTimeS: number | null = null;
+  let firstBaronMine: boolean | null = null;
   const dragonTypes: string[] = [];
   const itemBuild: number[] = [];
   for (const frame of timeline.info.frames) {
@@ -73,11 +85,24 @@ export function extractTimelineStats(
       if (event.type === "CHAMPION_KILL" && firstBloodTimeS === null) {
         firstBloodTimeS = Math.round(event.timestamp / 1000);
       }
-      if (event.type === "BUILDING_KILL" && firstTowerTimeS === null) {
+      if (event.type === "BUILDING_KILL" && event.buildingType === "TOWER_BUILDING" && firstTowerTimeS === null) {
         firstTowerTimeS = Math.round(event.timestamp / 1000);
+        // teamId on a BUILDING_KILL is the team that OWNED the destroyed
+        // tower — the takedown belongs to the OTHER team.
+        firstTowerMine = event.teamId != null ? event.teamId !== myTeamId : null;
       }
-      if (event.type === "ELITE_MONSTER_KILL" && event.monsterType === "DRAGON" && event.killerId === myParticipantId) {
-        dragonTypes.push(event.monsterSubType ?? "UNKNOWN_DRAGON");
+      if (event.type === "ELITE_MONSTER_KILL" && event.monsterType === "DRAGON") {
+        if (event.killerId === myParticipantId) {
+          dragonTypes.push(event.monsterSubType ?? "UNKNOWN_DRAGON");
+        }
+        if (firstDragonTimeS === null) {
+          firstDragonTimeS = Math.round(event.timestamp / 1000);
+          firstDragonMine = event.killerTeamId != null ? event.killerTeamId === myTeamId : null;
+        }
+      }
+      if (event.type === "ELITE_MONSTER_KILL" && event.monsterType === "BARON_NASHOR" && firstBaronTimeS === null) {
+        firstBaronTimeS = Math.round(event.timestamp / 1000);
+        firstBaronMine = event.killerTeamId != null ? event.killerTeamId === myTeamId : null;
       }
       if (event.type === "ITEM_PURCHASED" && event.participantId === myParticipantId && event.itemId != null) {
         itemBuild.push(event.itemId);
@@ -91,6 +116,11 @@ export function extractTimelineStats(
     goldDiff20: atMinute(20),
     firstBloodTimeS,
     firstTowerTimeS,
+    firstTowerMine,
+    firstDragonTimeS,
+    firstDragonMine,
+    firstBaronTimeS,
+    firstBaronMine,
     dragonTypes,
     itemBuild,
   };

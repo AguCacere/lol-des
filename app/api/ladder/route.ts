@@ -75,6 +75,11 @@ interface MatchRow {
   gold_diff_20: number | null;
   first_blood_time_s: number | null;
   first_tower_time_s: number | null;
+  first_tower_mine: boolean | null;
+  first_dragon_time_s: number | null;
+  first_dragon_mine: boolean | null;
+  first_baron_time_s: number | null;
+  first_baron_mine: boolean | null;
   team_position: string | null;
   game_duration_s: number;
   played_at: string;
@@ -117,7 +122,7 @@ export async function GET() {
     supabase
       .from("matches")
       .select(
-        "match_id, puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, damage_to_champs, gold_earned, vision_score, kill_participation, obj_share, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, champ_level, damage_taken, damage_mitigated, wards_placed, wards_killed, control_wards, turret_takedowns, dragon_takedowns, dragon_types, item_build, baron_takedowns, herald_takedowns, inhibitor_kills, first_blood, first_tower, summoner1, summoner2, solo_kills, skillshots_hit, damage_per_min, gold_diff_10, gold_diff_15, gold_diff_20, first_blood_time_s, first_tower_time_s, team_position, game_duration_s, played_at"
+        "match_id, puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, damage_to_champs, gold_earned, vision_score, kill_participation, obj_share, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, champ_level, damage_taken, damage_mitigated, wards_placed, wards_killed, control_wards, turret_takedowns, dragon_takedowns, dragon_types, item_build, baron_takedowns, herald_takedowns, inhibitor_kills, first_blood, first_tower, summoner1, summoner2, solo_kills, skillshots_hit, damage_per_min, gold_diff_10, gold_diff_15, gold_diff_20, first_blood_time_s, first_tower_time_s, first_tower_mine, first_dragon_time_s, first_dragon_mine, first_baron_time_s, first_baron_mine, team_position, game_duration_s, played_at"
       )
       .in("puuid", puuids)
       // Ranked solo/duo only — this table also holds Clash games (queueId
@@ -438,6 +443,11 @@ export async function GET() {
       goldDiff20: row.gold_diff_20,
       firstBloodTimeS: row.first_blood_time_s,
       firstTowerTimeS: row.first_tower_time_s,
+      firstTowerMine: row.first_tower_mine,
+      firstDragonTimeS: row.first_dragon_time_s,
+      firstDragonMine: row.first_dragon_mine,
+      firstBaronTimeS: row.first_baron_time_s,
+      firstBaronMine: row.first_baron_mine,
     });
     matchesByPuuid.set(row.puuid, arr);
   }

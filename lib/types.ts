@@ -81,6 +81,12 @@ export interface Match {
   goldDiff20: number | null;
   firstBloodTimeS: number | null;
   firstTowerTimeS: number | null;
+  /** Whose team got the first tower of the game — null if there wasn't one (remake) or the match predates this field. */
+  firstTowerMine: boolean | null;
+  firstDragonTimeS: number | null;
+  firstDragonMine: boolean | null;
+  firstBaronTimeS: number | null;
+  firstBaronMine: boolean | null;
   /** Real purchase order (Match-V5 timeline ITEM_PURCHASED), itemIds in the order actually bought — not reconciled against later sells/undos. Empty on matches stored before this field existed. */
   itemBuild: number[];
 }
