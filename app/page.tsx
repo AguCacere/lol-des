@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { ChampionLeaderboardEntry, ClashPlayerStats, ClashTournament, DuoPair, LiveGame, Player, RoleKey } from "@/lib/types";
+import type { ChampionLeaderboardEntry, ClashPlayerStats, ClashTournament, DuoPair, LiveGame, Player, RoleKey, TeamDigest as TeamDigestData } from "@/lib/types";
 import { TopBar, type AddStatus } from "@/components/TopBar";
 import { TabNav, type TabKey } from "@/components/TabNav";
 import { LadderTable, playerKey, type SortKey } from "@/components/LadderTable";
@@ -11,6 +11,7 @@ import { TopWinrate } from "@/components/TopWinrate";
 import { ChampionWinrateLeaderboard } from "@/components/ChampionWinrateLeaderboard";
 import { ClashHistory } from "@/components/ClashHistory";
 import { LiveTray } from "@/components/LiveTray";
+import { TeamDigest } from "@/components/TeamDigest";
 
 function parseRiotId(raw: string): { gameName: string; tagLine: string } | null {
   const i = raw.indexOf("#");
@@ -26,6 +27,9 @@ export default function Home() {
   const [clashPlayerStats, setClashPlayerStats] = useState<ClashPlayerStats[]>([]);
   const [clashLoading, setClashLoading] = useState(false);
   const [clashLoaded, setClashLoaded] = useState(false);
+  const [teamDigest, setTeamDigest] = useState<TeamDigestData | null>(null);
+  const [teamDigestLoading, setTeamDigestLoading] = useState(false);
+  const [teamDigestLoaded, setTeamDigestLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [ddragonVersion, setDdragonVersion] = useState<string | null>(null);
@@ -135,6 +139,29 @@ export default function Home() {
     }
   }, [tab, clashLoaded, clashLoading, loadClash]);
 
+  const loadTeamDigest = useCallback(async () => {
+    setTeamDigestLoading(true);
+    try {
+      const res = await fetch("/api/team-digest");
+      const data = await res.json();
+      if (res.ok) setTeamDigest(data as TeamDigestData);
+    } catch {
+      // best-effort — the tab just stays empty/stale until the user reopens it
+    } finally {
+      setTeamDigestLoading(false);
+      setTeamDigestLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Same lazy-on-first-visit convention as Clash — it's a read of stuff
+    // already saved, no reason to pay for it on every ladder poll either.
+    if (tab === "team" && !teamDigestLoaded && !teamDigestLoading) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- loadTeamDigest sets state once the fetch resolves, not synchronously here
+      loadTeamDigest();
+    }
+  }, [tab, teamDigestLoaded, teamDigestLoading, loadTeamDigest]);
+
   const activePlayer = players.find((p) => playerKey(p) === activeKey) ?? null;
 
   const q = filterText.trim().toLowerCase();
@@ -206,7 +233,7 @@ export default function Home() {
           <ChampionWinrateLeaderboard entries={championLeaderboard} ddragonVersion={ddragonVersion} />
           <DuoSynergy pairs={duoSynergy} loading={loading} ddragonVersion={ddragonVersion} />
         </div>
-      ) : (
+      ) : tab === "clash" ? (
         <div id="view-clash">
           <ClashHistory
             tournaments={clashTournaments}
@@ -214,6 +241,10 @@ export default function Home() {
             loading={clashLoading}
             ddragonVersion={ddragonVersion}
           />
+        </div>
+      ) : (
+        <div id="view-team">
+          <TeamDigest digest={teamDigest} loading={teamDigestLoading} ddragonVersion={ddragonVersion} />
         </div>
       )}
 

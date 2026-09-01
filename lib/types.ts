@@ -98,6 +98,46 @@ export interface MatchFlag {
   reasons: string[];
 }
 
+interface TeamDigestPlayerRef {
+  name: string;
+  tag: string;
+  profileIconUrl: string | null;
+}
+
+/**
+ * "Equipo" tab — a weekly (rolling last 7 days, not calendar Mon-Sun) group
+ * digest computed entirely from already-stored matches/lp_snapshots, no new
+ * Riot calls. See app/api/team-digest/route.ts. Each highlight is null when
+ * nothing in the window qualifies (e.g. nobody gained LP, or zero matches).
+ */
+export interface TeamDigest {
+  windowStart: string; // ISO
+  windowEnd: string; // ISO
+  biggestLpGain: (TeamDigestPlayerRef & { delta: number; unit: "LP" | "pts" }) | null;
+  bestKda: (TeamDigestPlayerRef & { champion: string; kda: number; k: number; d: number; a: number }) | null;
+  /**
+   * The loss judged "most lopsided" — prefers the biggest gold deficit vs.
+   * the lane opponent at whichever of @20/@15/@10 is available (in that
+   * order) among this week's losses; if NONE of this week's losses have any
+   * timeline data, falls back to the single worst KDA among losses instead.
+   * k/d/a is always the real box score either way — goldDiffAtEnd/Minute
+   * are only set when the gold-diff path was actually used.
+   */
+  worstLoss:
+    | (TeamDigestPlayerRef & {
+        champion: string;
+        k: number;
+        d: number;
+        a: number;
+        goldDiffAtEnd: number | null;
+        goldDiffMinute: 10 | 15 | 20 | null;
+      })
+    | null;
+  mostPlayedChampion: { champion: string; games: number; wins: number } | null;
+  /** Same 4 highlights, pre-formatted as a plain-text block ready to paste into Discord/WhatsApp. */
+  plainText: string;
+}
+
 export interface LpHistoryPoint {
   lp: number;
   capturedAt: string; // ISO timestamp
