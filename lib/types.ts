@@ -89,6 +89,13 @@ export interface Match {
   firstBaronMine: boolean | null;
   /** Real purchase order (Match-V5 timeline ITEM_PURCHASED), itemIds in the order actually bought — not reconciled against later sells/undos. Empty on matches stored before this field existed. */
   itemBuild: number[];
+  /** "Para repasar" — this match swung hard vs. this player's OWN recent form (see lib/matchflags.ts). Null when nothing stood out, or too few recent matches to trust a baseline yet. */
+  flag: MatchFlag | null;
+}
+
+/** Why one match got flagged as worth a group look — see lib/matchflags.ts for the thresholds. */
+export interface MatchFlag {
+  reasons: string[];
 }
 
 export interface LpHistoryPoint {

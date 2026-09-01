@@ -6,6 +6,7 @@ import { getLiveGamesByPuuid } from "@/lib/live";
 import { getLatestVersion, profileIconUrl, runeIconUrlByName, summonerSpellIconUrlByName } from "@/lib/ddragon";
 import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { computeAegisStats } from "@/lib/aegis";
+import { computeMatchFlag, STATS_WINDOW_SIZE, type StatSample } from "@/lib/matchflags";
 import type { AegisStats, ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, DuoSharedMatch, FlexRank, LpHistoryPoint, MasteryEntry, Match, PersonalRecords, Player, RoleAverages, RoleKey } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -218,6 +219,10 @@ export async function GET() {
   // per the query above) since that function needs the FULL history, not
   // just the last 5 kept in matchesByPuuid.
   const rankedMatchesByPuuid = new Map<string, { playedAt: string; win: boolean }[]>();
+  // This player's own last STATS_WINDOW_SIZE matches (cs/min, vision/min,
+  // kda) — the baseline "para repasar" flags each match against, see
+  // lib/matchflags.ts. Own recent form, not the role average used elsewhere.
+  const statsWindowByPuuid = new Map<string, StatSample[]>();
   // Champion / role frequency across ALL stored matches (not just the last 5
   // shown) — used as the "most played" fallback when main_champ/role aren't
   // set manually. `summoners.role` has no UI to set it yet, so in practice
@@ -352,6 +357,21 @@ export async function GET() {
     rankedList.push({ playedAt: row.played_at, win: row.win });
     rankedMatchesByPuuid.set(row.puuid, rankedList);
 
+    // Same cap-while-iterating trick as matchesByPuuid below, just a bigger
+    // window (25 vs. 5) — matchRows is globally played_at DESC, so a stable
+    // per-puuid subsequence of it stays in that player's own DESC order.
+    // MUST run before the `continue` a few lines down, or matches past the
+    // 5th (most of this window) would never get collected.
+    const statsWindow = statsWindowByPuuid.get(row.puuid) ?? [];
+    if (statsWindow.length < STATS_WINDOW_SIZE) {
+      statsWindow.push({
+        csPerMin: Number(row.cs_per_min),
+        visionPerMin: row.vision_score / Math.max(1, row.game_duration_s / 60),
+        kda: (row.kills + row.assists) / Math.max(1, row.deaths),
+      });
+      statsWindowByPuuid.set(row.puuid, statsWindow);
+    }
+
     const freq = champFreqByPuuid.get(row.puuid) ?? new Map<string, number>();
     freq.set(row.champion, (freq.get(row.champion) ?? 0) + 1);
     champFreqByPuuid.set(row.puuid, freq);
@@ -448,8 +468,22 @@ export async function GET() {
       firstDragonMine: row.first_dragon_mine,
       firstBaronTimeS: row.first_baron_time_s,
       firstBaronMine: row.first_baron_mine,
+      // Set below, once statsWindowByPuuid has this player's FULL window —
+      // matchRows is globally DESC across every player, so this player's
+      // 6th-25th matches (needed for the baseline) can still be ahead in the
+      // loop when their 1st-5th (the ones that become Match objects) are
+      // processed. Same order as statsWindowByPuuid's per-puuid array, so
+      // zipping them by index after the loop lines them up correctly.
+      flag: null,
     });
     matchesByPuuid.set(row.puuid, arr);
+  }
+
+  for (const [puuid, matches] of matchesByPuuid) {
+    const window = statsWindowByPuuid.get(puuid) ?? [];
+    matches.forEach((match, i) => {
+      match.flag = computeMatchFlag(window, window[i]);
+    });
   }
 
   /**

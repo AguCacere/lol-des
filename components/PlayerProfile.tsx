@@ -26,7 +26,7 @@ import { AegisStats } from "./AegisStats";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
 import { buildMetricInsights, splitStrengthsWeaknesses } from "@/lib/insights";
-import { ClockIcon, EyeIcon, TargetIcon, TrendUpIcon, TrophyIcon, ZapIcon } from "./StatIcons";
+import { ClockIcon, EyeIcon, ReviewIcon, TargetIcon, TrendUpIcon, TrophyIcon, ZapIcon } from "./StatIcons";
 
 function CmpBar({
   label,
@@ -472,6 +472,12 @@ export function PlayerProfile({
                       <div className="match-mid">
                         <div className="match-top-line">
                           <span className="match-champ-name">{m.champ}</span>
+                          {m.flag && (
+                            <span className="review-badge" title={m.flag.reasons.join(" · ")}>
+                              <ReviewIcon />
+                              Para repasar
+                            </span>
+                          )}
                           <span className={`match-result ${m.win ? "w" : "l"}`}>
                             {m.win ? "VICTORIA" : "DERROTA"}
                           </span>

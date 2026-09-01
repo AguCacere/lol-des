@@ -3,7 +3,7 @@ import { formatRelativeDate } from "@/lib/ladder";
 import { itemIconUrl } from "@/lib/ddragon";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
-import { ClockIcon, EyeIcon, ShieldIcon, TrendUpIcon, ZapIcon } from "./StatIcons";
+import { ClockIcon, EyeIcon, ReviewIcon, ShieldIcon, TrendUpIcon, ZapIcon } from "./StatIcons";
 
 /** Only pentakills get the celebratory banner — doubles/triples/quadras are common enough to skip. */
 function multikillLabel(m: Match): string | null {
@@ -137,6 +137,14 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
   return (
     <div className="match-detail">
       {multikill && <div className="match-multikill">{multikill}</div>}
+      {m.flag && (
+        <div className="match-review-banner">
+          <ReviewIcon />
+          <span>
+            <strong>Para repasar</strong> — <span className="match-review-reasons">{m.flag.reasons.join(" · ")}</span>
+          </span>
+        </div>
+      )}
 
       <Group label="Partida" icon={<ClockIcon />}>
         <Stat label="Duración">{m.dur} min</Stat>
