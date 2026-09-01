@@ -169,26 +169,32 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
             ]}
           />
         </Stat>
-        <Stat label="Objetivos personales" wide>
+        <Stat
+          label="Objetivos"
+          tooltip="Torres, dragones, barones y heraldo cuentan participación (kill o asistencia), no solo si vos diste el golpe final. Inhibidores es la excepción: Riot no expone participación para eso, solo cuenta si lo rompiste vos. Vacas del Vacío no están porque Riot tampoco las separa del resto."
+          wide
+        >
           <MiniBreakdown
             items={[
-              { value: m.turretKills, label: "torres" },
+              { value: m.turretTakedowns, label: "torres" },
               {
-                value: m.dragonKills,
+                value: m.dragonTakedowns,
                 label: "dragones",
                 // Un ícono real por dragón que efectivamente mató este jugador
                 // (Match-V5 timeline, monsterSubType) — Hextech/Chemtech/Elder
                 // no tienen arte propio así que esos kills quedan sin ícono,
-                // pero siguen contando en el número. Partidas viejas (sin
-                // timeline guardado) caen al infernal genérico, mejor que nada.
+                // pero siguen contando en el número. Si solo asistió (no mató)
+                // o la partida es vieja sin timeline guardado, cae al infernal
+                // genérico, mejor que nada.
                 icons:
                   m.dragonTypes.length > 0
                     ? m.dragonTypes.map((t) => DRAGON_ICON_BY_SUBTYPE[t]).filter((src): src is string => !!src)
-                    : m.dragonKills > 0
+                    : m.dragonTakedowns > 0
                       ? ["/icons/dragons/infernal-48.png"]
                       : [],
               },
-              { value: m.baronKills, label: "barones" },
+              { value: m.baronTakedowns, label: "barones" },
+              { value: m.heraldTakedowns, label: "heraldo" },
               { value: m.inhibitorKills, label: "inhib." },
             ]}
           />

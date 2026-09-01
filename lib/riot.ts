@@ -136,6 +136,15 @@ export interface RiotParticipant {
     soloKills?: number;
     skillshotsHit?: number;
     damagePerMinute?: number;
+    // Team-participation counts (kill OR assist) for each objective type —
+    // unlike turretKills/dragonKills/baronKills above, which only count the
+    // killing blow. Confirmed against a real match dump: there's no
+    // equivalent field for inhibitors or void grubs specifically (grubs only
+    // show up bundled into the boolean voidMonsterKill, useless for a count).
+    turretTakedowns?: number;
+    dragonTakedowns?: number;
+    baronTakedowns?: number;
+    riftHeraldTakedowns?: number;
   };
 }
 

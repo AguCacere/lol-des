@@ -76,10 +76,11 @@ create table if not exists matches (
   wards_placed  int,
   wards_killed  int,
   control_wards int,           -- visionWardsBoughtInGame
-  turret_kills  int,
-  dragon_kills  int,
-  baron_kills   int,
-  inhibitor_kills int,
+  turret_takedowns int not null default 0, -- de challenges (Riot) — kill O asistencia, no solo el golpe final
+  dragon_takedowns int not null default 0,
+  baron_takedowns int not null default 0,
+  herald_takedowns int not null default 0,
+  inhibitor_kills int,          -- Riot no expone un equivalente de "takedown" para esto, solo el golpe final propio
   first_blood   boolean not null default false, -- kill o asistencia de first blood
   first_tower   boolean not null default false, -- kill o asistencia de la primera torre
   summoner1     text,          -- hechizo de invocador, ej. "Flash"
@@ -92,7 +93,7 @@ create table if not exists matches (
   gold_diff_20  int,           -- o si no se pudo identificar al rival del mismo carril
   first_blood_time_s int,      -- segundo del juego en que ocurrió la primera sangre (dato de la partida, no del jugador)
   first_tower_time_s int,      -- ídem para la primera torre caída
-  dragon_types  text[] not null default '{}', -- monsterSubType (Match-V5 timeline) por cada dragón que MATÓ este jugador, ej. {FIRE_DRAGON,WATER_DRAGON} — puede ser más corto que dragon_kills en partidas viejas sin timeline guardado
+  dragon_types  text[] not null default '{}', -- monsterSubType (Match-V5 timeline) por cada dragón que MATÓ este jugador (no asistió), ej. {FIRE_DRAGON,WATER_DRAGON} — puede ser más corto que dragon_takedowns, que también cuenta asistencias
   item_build    int[] not null default '{}', -- itemId de cada ITEM_PURCHASED (Match-V5 timeline) de este jugador, EN ORDEN de compra real — no reconciliado contra ventas/undo, incluye consumibles/trinket. Vacío en partidas guardadas antes de que este campo existiera.
   team_position text,          -- TOP/JUNGLE/MIDDLE/BOTTOM/UTILITY
   queue_id      int not null default 420, -- Match-V5 queueId: 420=ranked solo/duo, 700=Clash (ver lib/clash.ts)

@@ -56,11 +56,12 @@ interface MatchRow {
   wards_placed: number | null;
   wards_killed: number | null;
   control_wards: number | null;
-  turret_kills: number | null;
-  dragon_kills: number | null;
+  turret_takedowns: number | null;
+  dragon_takedowns: number | null;
   dragon_types: string[] | null;
   item_build: number[] | null;
-  baron_kills: number | null;
+  baron_takedowns: number | null;
+  herald_takedowns: number | null;
   inhibitor_kills: number | null;
   first_blood: boolean | null;
   first_tower: boolean | null;
@@ -116,7 +117,7 @@ export async function GET() {
     supabase
       .from("matches")
       .select(
-        "match_id, puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, damage_to_champs, gold_earned, vision_score, kill_participation, obj_share, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, champ_level, damage_taken, damage_mitigated, wards_placed, wards_killed, control_wards, turret_kills, dragon_kills, dragon_types, item_build, baron_kills, inhibitor_kills, first_blood, first_tower, summoner1, summoner2, solo_kills, skillshots_hit, damage_per_min, gold_diff_10, gold_diff_15, gold_diff_20, first_blood_time_s, first_tower_time_s, team_position, game_duration_s, played_at"
+        "match_id, puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, damage_to_champs, gold_earned, vision_score, kill_participation, obj_share, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, champ_level, damage_taken, damage_mitigated, wards_placed, wards_killed, control_wards, turret_takedowns, dragon_takedowns, dragon_types, item_build, baron_takedowns, herald_takedowns, inhibitor_kills, first_blood, first_tower, summoner1, summoner2, solo_kills, skillshots_hit, damage_per_min, gold_diff_10, gold_diff_15, gold_diff_20, first_blood_time_s, first_tower_time_s, team_position, game_duration_s, played_at"
       )
       .in("puuid", puuids)
       // Ranked solo/duo only — this table also holds Clash games (queueId
@@ -416,11 +417,12 @@ export async function GET() {
       wardsPlaced: row.wards_placed ?? 0,
       wardsKilled: row.wards_killed ?? 0,
       controlWards: row.control_wards ?? 0,
-      turretKills: row.turret_kills ?? 0,
-      dragonKills: row.dragon_kills ?? 0,
+      turretTakedowns: row.turret_takedowns ?? 0,
+      dragonTakedowns: row.dragon_takedowns ?? 0,
       dragonTypes: row.dragon_types ?? [],
       itemBuild: row.item_build ?? [],
-      baronKills: row.baron_kills ?? 0,
+      baronTakedowns: row.baron_takedowns ?? 0,
+      heraldTakedowns: row.herald_takedowns ?? 0,
       inhibitorKills: row.inhibitor_kills ?? 0,
       firstBlood: row.first_blood ?? false,
       firstTower: row.first_tower ?? false,

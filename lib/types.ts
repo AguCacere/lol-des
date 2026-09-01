@@ -51,11 +51,20 @@ export interface Match {
   wardsPlaced: number;
   wardsKilled: number;
   controlWards: number;
-  turretKills: number;
-  dragonKills: number;
-  /** monsterSubType per dragon this player personally killed (e.g. ["FIRE_DRAGON"]) — from the match timeline, may be shorter than dragonKills on older/unparsed matches. */
+  /**
+   * Objective participation — kill OR assist, from Riot's `challenges`
+   * object. Not the same as the old killing-blow-only turretKills/
+   * dragonKills/baronKills stats: those said "you personally landed the
+   * final hit", these say "you were there for it". No equivalent field
+   * exists for void grubs (Riot doesn't expose a per-grub count).
+   */
+  turretTakedowns: number;
+  dragonTakedowns: number;
+  /** monsterSubType per dragon THIS PLAYER personally landed the killing blow on (e.g. ["FIRE_DRAGON"]) — from the match timeline. Narrower than dragonTakedowns (which also counts assists), used only to pick which dragon icons to show. */
   dragonTypes: string[];
-  baronKills: number;
+  baronTakedowns: number;
+  heraldTakedowns: number;
+  /** Riot has no participation-based inhibitor stat — this is the only option, and it only counts the killing blow (not assists). */
   inhibitorKills: number;
   firstBlood: boolean;
   firstTower: boolean;
