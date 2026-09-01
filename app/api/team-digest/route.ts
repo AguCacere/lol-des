@@ -108,7 +108,8 @@ export async function GET() {
     if (delta <= 0) continue;
     if (biggestLpGain === null || delta > biggestLpGain.delta) {
       const crossedBoundary = first.tier !== last.tier || first.division !== last.division;
-      biggestLpGain = { ...playerRef(puuid), delta, unit: crossedBoundary ? "pts" : "LP" };
+      const lpScores = rows.map((r) => rankScore(tierKeyFromRiot(r.tier), divisionFromRiot(r.division), r.lp));
+      biggestLpGain = { ...playerRef(puuid), delta, unit: crossedBoundary ? "pts" : "LP", lpScores };
     }
   }
 

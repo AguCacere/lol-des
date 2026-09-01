@@ -113,7 +113,14 @@ interface TeamDigestPlayerRef {
 export interface TeamDigest {
   windowStart: string; // ISO
   windowEnd: string; // ISO
-  biggestLpGain: (TeamDigestPlayerRef & { delta: number; unit: "LP" | "pts" }) | null;
+  biggestLpGain:
+    | (TeamDigestPlayerRef & {
+        delta: number;
+        unit: "LP" | "pts";
+        /** rankScore per lp_snapshot this player got THIS week, ascending — feeds a mini sparkline so the card isn't just a bare number next to the others' champion art. */
+        lpScores: number[];
+      })
+    | null;
   bestKda: (TeamDigestPlayerRef & { champion: string; kda: number; k: number; d: number; a: number }) | null;
   /**
    * The loss judged "most lopsided" — prefers the biggest gold deficit vs.

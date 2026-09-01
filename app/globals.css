@@ -863,6 +863,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-family:var(--font-stat); font-weight:800; font-size:18px; margin-left:auto; flex:none;
   font-variant-numeric:tabular-nums; white-space:nowrap;
 }
+.digest-card-chart{margin-top:10px;}
+.digest-card-chart svg{display:block; width:100%; height:auto;}
 .digest-champ-toggle{width:100%; text-align:left; border-radius:var(--radius-sm);}
 .digest-champ-toggle:not(:disabled){cursor:pointer;}
 .digest-champ-toggle:not(:disabled):hover{background:var(--surface-hover);}
@@ -879,15 +881,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   display:inline-flex; align-items:center; gap:7px; cursor:pointer;
   font-size:12.5px; font-weight:600; color:var(--accent); background:var(--accent-wash);
   border:1px solid rgba(212,175,55,0.3); border-radius:var(--radius-sm); padding:8px 14px;
-  margin-bottom:10px; transition:background 0.12s;
+  transition:background 0.12s;
 }
 .digest-copy-btn:hover{background:var(--accent-wash-soft);}
 .digest-copy-btn svg{width:14px; height:14px; flex:none;}
-.digest-plaintext{
-  font-family:var(--font-mono); font-size:12px; line-height:1.7; color:var(--text-secondary);
-  background:var(--track); border:1px solid var(--border-soft); border-radius:var(--radius-sm);
-  padding:12px 14px; white-space:pre-wrap; word-break:break-word;
-}
 
 .mastery-badge{
   font-family:var(--font-stat); font-weight:800; font-size:12px; padding:3px 9px;

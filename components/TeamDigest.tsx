@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import type { TeamDigest as TeamDigestData } from "@/lib/types";
+import { trendColor } from "@/lib/ladder";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { ChampIcon } from "./ChampIcon";
+import { SparkChart } from "./SparkChart";
 import { CheckIcon, CopyIcon, TrendDownIcon, TrendUpIcon, TrophyIcon, ZapIcon } from "./StatIcons";
 
 function formatWindowRange(startIso: string, endIso: string): string {
@@ -105,6 +107,11 @@ function DigestBody({
                 +{digest.biggestLpGain.delta} {digest.biggestLpGain.unit}
               </span>
             </div>
+            {digest.biggestLpGain.lpScores.length >= 2 && (
+              <div className="digest-card-chart">
+                <SparkChart values={digest.biggestLpGain.lpScores} width={280} height={36} pad={4} color={trendColor(digest.biggestLpGain.lpScores)} />
+              </div>
+            )}
           </div>
         )}
         {digest.bestKda && (
@@ -162,7 +169,6 @@ function DigestBody({
         {copied ? <CheckIcon /> : <CopyIcon />}
         {copied ? "Copiado" : "Copiar para Discord/WhatsApp"}
       </button>
-      <pre className="digest-plaintext">{digest.plainText}</pre>
     </>
   );
 }
