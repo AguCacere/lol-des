@@ -51,6 +51,15 @@ async function notifyPromotion(supabase: SupabaseClient, puuid: string, entry: R
   await sendDiscordNotification(`📈 **${label}** subió a **${t.name} ${division}**!`);
 }
 
+/** Only for a genuine LEAGUE drop (e.g. Esmeralda → Platino) — a division drop within the same tier (Platino 2 → Platino 3) never calls this, see the tier-rank-only check in upsertRankSnapshot. */
+async function notifyDemotion(supabase: SupabaseClient, puuid: string, entry: RiotLeagueEntry) {
+  const label = await summonerLabel(supabase, puuid);
+  if (!label) return;
+  const t = tierFor(tierKeyFromRiot(entry.tier));
+  const division = divisionFromRiot(entry.rank);
+  await sendDiscordNotification(`😭 **${label}** bajó a **${t.name} ${division}**...`);
+}
+
 /**
  * Fires once per refresh cycle (not once per newly-inserted match — with
  * several new ranked games in one cycle that would send one message per
@@ -115,10 +124,20 @@ async function upsertRankSnapshot(supabase: SupabaseClient, puuid: string, entry
   if (!unchanged) {
     // Solo queue only — Flex promotions aren't what "subiste de rango" means
     // for this group (the whole app treats RANKED_SOLO_5x5 as the main
-    // ladder). Only on a real tier/division improvement, never on a
-    // demotion or a same-division LP change.
-    if (lastSnapshot && queueType === "RANKED_SOLO_5x5" && rankOrdinal(entry.tier, entry.rank) > rankOrdinal(lastSnapshot.tier, lastSnapshot.division)) {
-      await notifyPromotion(supabase, puuid, entry);
+    // ladder). Promotion needs a real tier/division improvement (never a
+    // same-division LP change). Demotion is stricter still — TIER only
+    // (Esmeralda → Platino), never a division drop within the same tier
+    // (Platino 2 → Platino 3, still Platino, not worth a ping) — compares
+    // tierFor(...).rank directly instead of the combined rankOrdinal, which
+    // conflates tier and division and would fire on both.
+    if (lastSnapshot && queueType === "RANKED_SOLO_5x5") {
+      const oldTierRank = tierFor(tierKeyFromRiot(lastSnapshot.tier)).rank;
+      const newTierRank = tierFor(tierKeyFromRiot(entry.tier)).rank;
+      if (rankOrdinal(entry.tier, entry.rank) > rankOrdinal(lastSnapshot.tier, lastSnapshot.division)) {
+        await notifyPromotion(supabase, puuid, entry);
+      } else if (newTierRank < oldTierRank) {
+        await notifyDemotion(supabase, puuid, entry);
+      }
     }
     await supabase.from("lp_snapshots").insert({
       puuid,
