@@ -4,7 +4,9 @@ import { peakFromHistory, ROLES, tierScore } from "@/lib/ladder";
 import { divisionFromRiot, normalizeRole, roleFromTeamPosition, tierKeyFromRiot } from "@/lib/mapping";
 import { getLiveGamesByPuuid } from "@/lib/live";
 import { getLatestVersion, profileIconUrl, runeIconUrlByName, summonerSpellIconUrlByName } from "@/lib/ddragon";
-import type { ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, DuoSharedMatch, FlexRank, LpHistoryPoint, MasteryEntry, Match, PersonalRecords, Player, RoleAverages, RoleKey } from "@/lib/types";
+import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
+import { computeAegisStats } from "@/lib/aegis";
+import type { AegisStats, ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, DuoSharedMatch, FlexRank, LpHistoryPoint, MasteryEntry, Match, PersonalRecords, Player, RoleAverages, RoleKey } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -117,6 +119,14 @@ export async function GET() {
         "match_id, puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, damage_to_champs, gold_earned, vision_score, kill_participation, obj_share, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, champ_level, damage_taken, damage_mitigated, wards_placed, wards_killed, control_wards, turret_kills, dragon_kills, dragon_types, item_build, baron_kills, inhibitor_kills, first_blood, first_tower, summoner1, summoner2, solo_kills, skillshots_hit, damage_per_min, gold_diff_10, gold_diff_15, gold_diff_20, first_blood_time_s, first_tower_time_s, team_position, game_duration_s, played_at"
       )
       .in("puuid", puuids)
+      // Ranked solo/duo only — this table also holds Clash games (queueId
+      // 700, see lib/clash.ts's own separate query), which used to leak into
+      // every stat computed below (champion pool, personal records, role
+      // averages, duo synergy) since this query never filtered by queue_id
+      // at all. Clash has its own dedicated tab; mixing a 5-stack premade's
+      // numbers into "partida más larga"/"mejor KDA"/etc. was silently
+      // comparing two different populations.
+      .eq("queue_id", RANKED_SOLO_QUEUE_ID)
       .order("played_at", { ascending: false })
       .returns<MatchRow[]>(),
     supabase
@@ -197,6 +207,11 @@ export async function GET() {
   }
 
   const matchesByPuuid = new Map<string, Match[]>();
+  // Feeds computeAegisStats (lib/aegis.ts) — every ranked match's own
+  // playedAt/win, built straight from matchRows (already queue_id=420-only
+  // per the query above) since that function needs the FULL history, not
+  // just the last 5 kept in matchesByPuuid.
+  const rankedMatchesByPuuid = new Map<string, { playedAt: string; win: boolean }[]>();
   // Champion / role frequency across ALL stored matches (not just the last 5
   // shown) — used as the "most played" fallback when main_champ/role aren't
   // set manually. `summoners.role` has no UI to set it yet, so in practice
@@ -326,6 +341,10 @@ export async function GET() {
     });
     trackedByMatchId.set(row.match_id, tracked);
     trackRecords(row);
+
+    const rankedList = rankedMatchesByPuuid.get(row.puuid) ?? [];
+    rankedList.push({ playedAt: row.played_at, win: row.win });
+    rankedMatchesByPuuid.set(row.puuid, rankedList);
 
     const freq = champFreqByPuuid.get(row.puuid) ?? new Map<string, number>();
     freq.set(row.champion, (freq.get(row.champion) ?? 0) + 1);
@@ -692,6 +711,16 @@ export async function GET() {
     };
   }
 
+  function aegisStatsFor(puuid: string): AegisStats | null {
+    const snapshotsAsc = lpHistoryByPuuid.get(puuid);
+    if (!snapshotsAsc || snapshotsAsc.length < 2) return null;
+    // matchRows (and everything built from it, including this) arrives
+    // played_at DESCENDING — reverse for computeAegisStats, which needs
+    // oldest-first to walk consecutive snapshot windows in order.
+    const rankedAsc = [...(rankedMatchesByPuuid.get(puuid) ?? [])].reverse();
+    return computeAegisStats(snapshotsAsc, rankedAsc);
+  }
+
   // Shared by computeDuoSynergy() and computeChampionLeaderboard() below —
   // both need "which name/tag/avatar goes with this puuid" and neither
   // should compute it separately.
@@ -753,6 +782,7 @@ export async function GET() {
       roleAverages: roleAveragesFor(row.puuid, role),
       roleDistribution: roleDistributionFor(row.puuid),
       personalRecords: personalRecordsFor(row.puuid),
+      aegisStats: aegisStatsFor(row.puuid),
     };
   });
 

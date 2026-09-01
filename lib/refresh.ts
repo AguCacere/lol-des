@@ -19,7 +19,7 @@ type SupabaseClient = ReturnType<typeof getSupabaseServerClient>;
 /** Minimum time between Riot API pulls for the same summoner via the manual POST /api/refresh (no UI button — the cron every ~15min is what actually keeps the ladder fresh, see app/api/cron/refresh/route.ts). */
 export const MANUAL_REFRESH_COOLDOWN_MS = 2 * 60 * 1000;
 
-const RANKED_SOLO_QUEUE_ID = 420;
+export const RANKED_SOLO_QUEUE_ID = 420;
 /** Match-V5 queueId for Clash — see lib/clash.ts for how these get grouped into "tournaments" once stored. */
 export const CLASH_QUEUE_ID = 700;
 /** Below this, a win/loss streak doesn't get a Discord ping — see checkStreakAndNotify. */

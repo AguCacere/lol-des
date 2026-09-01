@@ -322,6 +322,27 @@ export interface Player {
   roleDistribution: { role: RoleKey; pct: number }[];
   /** Best/most-extreme single-game numbers across EVERY stored match (not just the last 5 shown) — null if there are no stored matches yet. */
   personalRecords: PersonalRecords | null;
+  /** Inferred "Aegis of Valor" count (Riot exposes nothing about it — see lib/aegis.ts) — null if there isn't enough clean, isolated LP-delta data yet to infer anything. */
+  aegisStats: AegisStats | null;
+}
+
+/**
+ * Riot doesn't expose "Aegis of Valor" (the 2026 double-LP/loss-protection
+ * mechanic for good performances in an autofilled role) anywhere in the
+ * Match-V5 API — confirmed by scanning full match JSON for any
+ * aegis/valor-named field, three times, including a match known to have
+ * triggered it. This is a STATISTICAL INFERENCE from lp_snapshots instead:
+ * an isolated match's real LP delta compared against this player's own
+ * median delta for a win/loss. Never a certainty — always shown as
+ * "posible", not confirmed.
+ */
+export interface AegisStats {
+  /** Wins whose isolated LP delta was well above this player's own median win delta. */
+  doubleLp: number;
+  /** Losses whose isolated LP delta was well above (less negative than) this player's own median loss delta. */
+  protectedLosses: number;
+  /** How many isolated (unambiguous single-match) windows fed both medians — context for how much to trust the counts above. */
+  sampleSize: number;
 }
 
 export interface PersonalRecords {
