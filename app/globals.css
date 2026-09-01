@@ -685,6 +685,25 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   display:flex; align-items:center; gap:10px;
 }
 .subsection-label::after{content:""; flex:1; height:1px; background:rgba(255,255,255,0.08);}
+
+/* Deliberately lighter than .subsection-label/.stat-grid — this is an
+   INFERENCE (see lib/aegis.ts), never a confirmed number, so it reads as a
+   soft outlined badge rather than a filled stat-tile making a hard claim. */
+.aegis-wrap{margin-top:14px;}
+.aegis-label{
+  display:flex; align-items:center; gap:5px;
+  font-size:10px; font-weight:600; color:var(--text-muted);
+  text-transform:uppercase; letter-spacing:0.07em; margin-bottom:8px;
+}
+.aegis-badges{display:flex; gap:8px; flex-wrap:wrap;}
+.aegis-badge{
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:11.5px; font-weight:600; color:var(--text-secondary);
+  background:transparent; border:1px solid var(--border-soft);
+  border-radius:999px; padding:6px 12px;
+}
+.aegis-badge svg{width:13px; height:13px; flex:none; color:var(--gold);}
+.aegis-badge.protected svg{color:var(--good);}
 /* Same "one panel, thin dividers" treatment as .stat-grid — five identical
    rows each in their own separately-shadowed card read as a stack of form
    fields, not a ranked list. */

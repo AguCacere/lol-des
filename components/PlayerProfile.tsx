@@ -22,6 +22,7 @@ import { MasteryPool } from "./MasteryPool";
 import { InsightsCard } from "./InsightsCard";
 import { RoleDistribution } from "./RoleDistribution";
 import { PersonalRecords } from "./PersonalRecords";
+import { AegisStats } from "./AegisStats";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
 import { buildMetricInsights, splitStrengthsWeaknesses } from "@/lib/insights";
@@ -387,6 +388,8 @@ export function PlayerProfile({
                 <PersonalRecords records={p.personalRecords} />
               </>
             )}
+
+            <AegisStats stats={p.aegisStats} />
           </div>
 
           <div>
