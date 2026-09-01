@@ -191,9 +191,16 @@ export interface RiotTimeline {
  * chronological event log (kills, building kills, ...) for one match.
  * Separate call from getMatchById, same match_id — used for gold diff at
  * fixed minute marks and first blood/tower timing. Region-routed.
+ *
+ * Path is /matches/{matchId}/timeline, NOT /timelines/by-match/{matchId} —
+ * that older-looking path 403s even with a valid key, because this app's
+ * registered product on the Riot Developer Portal only approves specific
+ * exact method paths (see the app's Match-V5 method list there), and that
+ * one isn't among them. Confirmed directly against the portal's own listed
+ * methods, not just docs.
  */
 export function getMatchTimeline(matchId: string) {
-  const url = `https://${REGION}.api.riotgames.com/lol/match/v5/timelines/by-match/${matchId}`;
+  const url = `https://${REGION}.api.riotgames.com/lol/match/v5/matches/${matchId}/timeline`;
   return riotFetch<RiotTimeline>(url);
 }
 
