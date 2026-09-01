@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import { getAccountByRiotId, getMatchIdsByPuuid, getMatchTimeline } from "@/lib/riot";
+import { getAccountByRiotId, getMatchById, getMatchIdsByPuuid, getMatchTimeline } from "@/lib/riot";
 
-// One-shot diagnostic — item_build/dragon_types/gold_diff_* have been empty
-// on EVERY stored match (confirmed via a direct DB query), which only
-// happens if getMatchTimeline() is throwing every single time (it's wrapped
-// in a try/catch in lib/refresh.ts that silently swallows the error so the
-// rest of the match still gets saved). This calls it directly for the most
-// recent ranked match and reports the real error instead of swallowing it.
-// Delete once checked.
+// One-shot diagnostic, round 2 — the first check showed getMatchTimeline()
+// throwing a 403 Forbidden on the most recent match. That's odd: 403 (not
+// 429) rules out rate limiting, and the SAME key/request already got this
+// far via getAccountByRiotId + getMatchIdsByPuuid (also Match-V5). This
+// checks 3 recent matches, and for each one calls BOTH getMatchById (known
+// to work — that's where champion/kills/etc. come from) and getMatchTimeline
+// with the exact same key/matchId, to see whether 403 is universal to the
+// timeline endpoint or specific to certain matches. Delete once checked.
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const gameName = searchParams.get("gameName");
@@ -17,23 +18,28 @@ export async function GET(req: Request) {
   }
   try {
     const account = await getAccountByRiotId(gameName, tagLine);
-    const [matchId] = await getMatchIdsByPuuid(account.puuid, 1);
-    if (!matchId) return NextResponse.json({ error: "Sin partidas ranked recientes" }, { status: 404 });
-    try {
-      const timeline = await getMatchTimeline(matchId);
-      return NextResponse.json({
-        matchId,
-        ok: true,
-        frameCount: timeline.info.frames.length,
-        eventTypeSample: timeline.info.frames.flatMap((f) => f.events.map((e) => e.type)).slice(0, 20),
-      });
-    } catch (timelineErr) {
-      return NextResponse.json({
-        matchId,
-        ok: false,
-        error: timelineErr instanceof Error ? timelineErr.message : String(timelineErr),
-      });
+    const matchIds = await getMatchIdsByPuuid(account.puuid, 3);
+    const results = [];
+    for (const matchId of matchIds) {
+      let matchOk = false;
+      let matchError: string | null = null;
+      try {
+        await getMatchById(matchId);
+        matchOk = true;
+      } catch (err) {
+        matchError = err instanceof Error ? err.message : String(err);
+      }
+      let timelineOk = false;
+      let timelineError: string | null = null;
+      try {
+        await getMatchTimeline(matchId);
+        timelineOk = true;
+      } catch (err) {
+        timelineError = err instanceof Error ? err.message : String(err);
+      }
+      results.push({ matchId, matchOk, matchError, timelineOk, timelineError });
     }
+    return NextResponse.json({ puuid: account.puuid, results });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
   }
