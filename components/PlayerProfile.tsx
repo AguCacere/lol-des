@@ -91,6 +91,11 @@ export function PlayerProfile({
   const [displayed, setDisplayed] = useState(player);
   const [fading, setFading] = useState(false);
   const [expandedMatch, setExpandedMatch] = useState<number | null>(null);
+  // Macro/Micro se muestran lado a lado en desktop, pero apiladas se hacen
+  // eternas para scrollear en mobile (ver .stack-cols en globals.css) — este
+  // toggle solo hace algo por debajo de ese mismo breakpoint (760px), en
+  // desktop ambas columnas siguen visibles siempre.
+  const [mobileTab, setMobileTab] = useState<"macro" | "micro">("macro");
 
   useEffect(() => {
     if (player === displayed) return;
@@ -101,6 +106,7 @@ export function PlayerProfile({
       setDisplayed(player);
       setFading(false);
       setExpandedMatch(null);
+      setMobileTab("macro");
     }, 160);
     return () => clearTimeout(t);
   }, [player, displayed]);
@@ -309,8 +315,29 @@ export function PlayerProfile({
           </div>
         )}
 
-        <div className="stack-cols">
-          <div>
+        <div className="mobile-tabs" role="tablist">
+          <button
+            type="button"
+            className={`mobile-tab${mobileTab === "macro" ? " is-active" : ""}`}
+            role="tab"
+            aria-selected={mobileTab === "macro"}
+            onClick={() => setMobileTab("macro")}
+          >
+            Macro
+          </button>
+          <button
+            type="button"
+            className={`mobile-tab${mobileTab === "micro" ? " is-active" : ""}`}
+            role="tab"
+            aria-selected={mobileTab === "micro"}
+            onClick={() => setMobileTab("micro")}
+          >
+            Micro
+          </button>
+        </div>
+
+        <div className="stack-cols" data-active-tab={mobileTab}>
+          <div data-tab-panel="macro">
             <h3 className="subhead">
               <span className="tag macro">Macro</span>Progresión y mapa
             </h3>
@@ -392,7 +419,7 @@ export function PlayerProfile({
             <AegisStats stats={p.aegisStats} />
           </div>
 
-          <div>
+          <div data-tab-panel="micro">
             <h3 className="subhead">
               <span className="tag micro">Micro</span>Últimas partidas
             </h3>
