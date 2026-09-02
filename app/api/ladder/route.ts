@@ -846,11 +846,21 @@ export async function GET() {
   // components/ChampIcon.tsx) instead of every champion chip needing its own
   // resolved icon URL computed server-side — one version string covers all
   // of them, same as profileIconUrl already does per-player above.
-  return NextResponse.json({
-    players,
-    duoSynergy: computeDuoSynergy(),
-    championLeaderboard: computeChampionLeaderboard(),
-    lastUpdated,
-    ddragonVersion,
-  });
+  // Edge-cached for 60s: this handler re-reads every stored match and calls
+  // Spectator-V5 once PER PLAYER on every request, so N friends refreshing
+  // the page independently multiplied Riot calls for identical data. Vercel's
+  // CDN honors s-maxage even with force-dynamic (that flag only turns off
+  // Next's own data cache). The embedded liveGame can be up to 60s stale on
+  // first paint — /api/live (uncached, polled every 60s client-side) merges
+  // the fresh status in right after, so nothing user-visible is lost.
+  return NextResponse.json(
+    {
+      players,
+      duoSynergy: computeDuoSynergy(),
+      championLeaderboard: computeChampionLeaderboard(),
+      lastUpdated,
+      ddragonVersion,
+    },
+    { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } }
+  );
 }

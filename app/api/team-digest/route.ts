@@ -78,8 +78,9 @@ export async function GET() {
   if (matchesRes.error) return NextResponse.json({ error: matchesRes.error.message }, { status: 500 });
   if (lpRes.error) return NextResponse.json({ error: lpRes.error.message }, { status: 500 });
 
+  const summonerByPuuid = new Map((summonersRes.data ?? []).map((s) => [s.puuid, s]));
   function playerRef(puuid: string) {
-    const s = (summonersRes.data ?? []).find((row) => row.puuid === puuid);
+    const s = summonerByPuuid.get(puuid);
     return {
       name: s?.game_name ?? "?",
       tag: s?.tag_line ?? "",
@@ -190,7 +191,13 @@ export async function GET() {
     mostPlayedChampion,
     plainText,
   };
-  return NextResponse.json(digest);
+  // Edge-cached: the underlying data only moves when the ~15-min cron writes,
+  // and every friend opening the tab within 5 min gets the same answer — no
+  // reason to recompute per visitor. s-maxage is honored by Vercel's CDN even
+  // with force-dynamic (that flag only disables Next's own data cache).
+  return NextResponse.json(digest, {
+    headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
+  });
 }
 
 function buildPlainText(d: Omit<TeamDigest, "windowStart" | "windowEnd" | "plainText">): string {

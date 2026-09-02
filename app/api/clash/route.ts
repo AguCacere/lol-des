@@ -49,5 +49,11 @@ export async function GET() {
   const typedRows = (rows ?? []) as ClashMatchRow[];
   const tournaments = computeClashTournaments(typedRows, playerByPuuid);
   const playerStats = computeClashPlayerStats(typedRows, playerByPuuid);
-  return NextResponse.json({ tournaments, playerStats, ddragonVersion });
+  // Clash history changes a few times a year — 5 min at the edge is
+  // conservative, and it stops every visit to the tab from re-reading the
+  // whole table (see /api/ladder for why s-maxage works with force-dynamic).
+  return NextResponse.json(
+    { tournaments, playerStats, ddragonVersion },
+    { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } }
+  );
 }
