@@ -571,11 +571,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   display:flex; align-items:center; gap:14px; flex-wrap:wrap;
   margin-bottom:22px; padding-bottom:20px; border-bottom:1px solid var(--border-soft);
 }
-.role-dist-label{
-  display:flex; align-items:center; gap:5px; flex:none;
-  font-size:11px; font-weight:600; color:var(--text-muted);
-  text-transform:uppercase; letter-spacing:0.06em;
-}
+.role-dist-label{flex:none;}
 .role-dist{display:flex; gap:8px;}
 .role-dist-item{display:flex; flex-direction:column; align-items:center; gap:4px;}
 .role-dist-icon{
@@ -693,7 +689,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   overflow:hidden; margin-bottom:6px;
 }
 .stat-tile{
-  padding:12px 14px;
+  padding:11px 14px 12px;
   border-right:1px solid var(--border-soft);
   border-bottom:1px solid var(--border-soft);
   transition:background .15s ease;
@@ -703,7 +699,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .stat-tile:hover{background:var(--surface-hover);}
 .stat-tile:hover svg{color:var(--accent); opacity:1;}
 .stat-tile svg{
-  display:block; width:15px; height:15px; color:var(--text-muted); margin-bottom:7px; opacity:0.9;
+  /* Closer to the number it belongs to: at 7px it floated alone in the tile's
+     top-left, reading as decoration parked above unrelated text rather than
+     as part of one stat. */
+  display:block; width:15px; height:15px; color:var(--text-muted); margin-bottom:5px; opacity:0.9;
   transition:color .15s ease, opacity .15s ease;
 }
 .stat-tile .v{font-family:var(--font-stat); font-size:19px; font-weight:800; font-variant-numeric:tabular-nums;}
@@ -711,22 +710,30 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   display:flex; align-items:center; gap:3px;
   font-size:10.5px; color:var(--text-muted); margin-top:2px; letter-spacing:0.01em;
 }
-.subsection-label{
+/* ONE treatment for every block label in the profile. These three classes
+   all name the block under them, but had drifted into three different looks
+   — gold/10px/700/0.09em, muted/11px/600/0.06em and muted/10px/600/0.07em —
+   which is what made the column read as separately-built components rather
+   than one designed system. Geometry and colour now come from here; only
+   the trailing rule and the margins vary, by layout (the roles label sits
+   inline beside its icons, so it takes neither). */
+.subsection-label, .role-dist-label, .aegis-label{
   font-family:var(--font-display); font-weight:700; font-size:10px; letter-spacing:0.09em;
-  text-transform:uppercase; color:var(--accent); opacity:0.85; margin:16px 0 8px;
-  display:flex; align-items:center; gap:10px;
+  text-transform:uppercase; color:var(--accent); opacity:0.85;
+  display:flex; align-items:center; gap:6px;
 }
-.subsection-label::after{content:""; flex:1; height:1px; background:rgba(255,255,255,0.08);}
+.subsection-label, .aegis-label{margin:16px 0 8px;}
+.subsection-label::after, .aegis-label::after{
+  content:""; flex:1; height:1px; margin-left:4px; background:rgba(255,255,255,0.08);
+}
 
 /* Deliberately lighter than .subsection-label/.stat-grid — this is an
    INFERENCE (see lib/aegis.ts), never a confirmed number, so it reads as a
    soft outlined badge rather than a filled stat-tile making a hard claim. */
-.aegis-wrap{margin-top:14px;}
-.aegis-label{
-  display:flex; align-items:center; gap:5px;
-  font-size:10px; font-weight:600; color:var(--text-muted);
-  text-transform:uppercase; letter-spacing:0.07em; margin-bottom:8px;
-}
+/* Margin lives on the label (shared rule above) so this block starts exactly
+   where "Récords personales" and every other one does — it used to sit 14px
+   below its neighbour while the rest sat at 16px. */
+.aegis-wrap{margin-top:0;}
 .aegis-badges{display:flex; gap:8px; flex-wrap:wrap;}
 .aegis-badge{
   display:inline-flex; align-items:center; gap:6px;
