@@ -153,15 +153,22 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .profile-empty strong{display:block; font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--text-secondary); margin-bottom:6px;}
 
 /* ---------- section headers ---------- */
+/* One rhythm for the whole page: every section is separated by this single
+   margin, so section → content → section reads as a continuous document
+   instead of islands adrift in black. Was 32/14 — with each section's own
+   content also carrying top margin, the real gap between a list and the next
+   title ran well past 40px and broke the page into disconnected blocks. */
 .section-head{
   display:flex; align-items:baseline; justify-content:space-between;
-  margin:32px 0 14px; gap:12px; flex-wrap:wrap;
+  margin:26px 0 12px; gap:12px; flex-wrap:wrap;
 }
 .section-head h2{
   font-family:var(--font-display); font-weight:700; font-size:19px;
   margin:0; letter-spacing:0.01em; display:flex; align-items:center; gap:9px;
 }
-.section-head .meta{font-size:12.5px; color:var(--text-muted);}
+/* Clearly subordinate to a 19px title — at 12.5px it was reading as a second
+   piece of header copy rather than as the title's footnote. */
+.section-head .meta{font-size:11.5px; color:var(--text-muted); text-align:right;}
 .last-updated{white-space:nowrap;}
 
 .ladder-controls{
@@ -190,7 +197,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   box-shadow:0 0 0 3px var(--good-wash);
   animation:pulse 2.2s ease-in-out infinite;
 }
-.live-dot.accent{background:var(--accent); box-shadow:0 0 0 3px var(--accent-wash);}
+/* The gold variant marks a SECTION; only the plain green one marks live data.
+   The inherited pulse therefore had nothing to signal on these headers and
+   read as a stray blinking artifact — held still, and a size down with a
+   tighter halo, it becomes a deliberate section mark. */
+.live-dot.accent{
+  background:var(--accent); box-shadow:0 0 0 2.5px var(--accent-wash);
+  width:6px; height:6px; animation:none;
+}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.45;}}
 
 /* Transparent, no pill fill — the dot + its own soft halo already carry
@@ -729,23 +743,28 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   background:var(--surface-raised); border-radius:var(--radius-sm); box-shadow:var(--shadow-sm);
   overflow:hidden;
 }
+/* The other half of the scale correction: the podium above came down, these
+   rows come up. Same padding as .panel-row now (they were 8/12 vs 9/14 for
+   no reason a reader could see, and both lists sit on the same page). Also
+   shared by "Compañeros de X" in Sinergia de dúo, which is where the
+   cramped feel was most acute. */
 .champ-pool-row{
-  display:flex; align-items:center; gap:10px;
-  padding:8px 12px; border-bottom:1px solid var(--border-soft);
+  display:flex; align-items:center; gap:11px;
+  padding:10px 14px; border-bottom:1px solid var(--border-soft);
   transition:background .15s ease;
 }
 .champ-pool-row:last-child{border-bottom:none;}
 .champ-pool-row:hover{background:var(--surface-hover);}
 .champ-pool-avatar{
-  width:30px; height:30px; border-radius:8px; flex:none; overflow:hidden;
+  width:32px; height:32px; border-radius:9px; flex:none; overflow:hidden;
   display:flex; align-items:center; justify-content:center;
   font-family:var(--font-display); font-weight:700; font-size:11px;
   background:var(--surface-hover); color:var(--text-secondary);
 }
 .champ-pool-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
-.champ-pool-mid{display:flex; flex-direction:column; min-width:0; flex:1;}
+.champ-pool-mid{display:flex; flex-direction:column; min-width:0; flex:1; gap:2px;}
 .champ-pool-name{
-  font-weight:600; font-size:12.5px; color:var(--text-primary);
+  font-weight:600; font-size:13px; color:var(--text-primary);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 /* Truncates instead of wrapping — without this a long player name here
@@ -756,15 +775,29 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-size:10.5px; color:var(--text-muted); font-family:var(--font-mono);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-.champ-pool-stats{display:flex; align-items:baseline; gap:10px; flex:none;}
-.champ-pool-wr{font-family:var(--font-stat); font-weight:800; font-size:14px; font-variant-numeric:tabular-nums;}
+/* The winrate is the point of the row; the record beside it is context. They
+   were 14px/11px with a 10px gap, close enough to read as a single compound
+   figure — a size step plus more air separates the two roles. */
+.champ-pool-stats{display:flex; align-items:baseline; gap:12px; flex:none;}
+.champ-pool-wr{font-family:var(--font-stat); font-weight:800; font-size:15px; font-variant-numeric:tabular-nums;}
 .champ-pool-wr.good{color:var(--good);}
 .champ-pool-wr.bad{color:var(--critical);}
-.champ-pool-kda{font-family:var(--font-mono); font-size:11px; color:var(--text-muted); white-space:nowrap;}
+/* Fixed character width so every winrate in the list lands on the SAME
+   vertical axis. Without it the group is right-aligned as a block, so a
+   shorter record ("60V 80D") pushed its percentage 13px right of the one
+   above it ("213V 207D") — six rows, six slightly different positions. 9ch
+   is the widest record these lists produce. */
+.champ-pool-kda{
+  font-family:var(--font-mono); font-size:11px; color:var(--text-muted); white-space:nowrap;
+  min-width:9ch; text-align:right;
+}
 /* Leaderboard-style champ-pool-row usages (Mayor winrate, Mayor winrate por
    campeón) prepend a rank number before the avatar(s) — same treatment as
    the ladder's own #1/#2/#3 column. */
-.leaderboard-rank{font-family:var(--font-mono); color:var(--text-muted); font-size:12px; width:14px; flex:none; text-align:center;}
+/* Wider fixed column so 4-7 sit on a real axis with breathing room from the
+   avatar — at 14px wide with the row's 10px gap the number was practically
+   touching the portrait. */
+.leaderboard-rank{font-family:var(--font-mono); color:var(--text-muted); font-size:11.5px; width:18px; flex:none; text-align:center;}
 .champ-pool-empty{
   font-size:11.5px; color:var(--text-muted); line-height:1.5;
   background:var(--surface-raised); border-radius:var(--radius-sm); padding:12px 14px;
@@ -781,43 +814,64 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    below) regardless of whatever sits right above — some callers (Clash's
    "Winrate por invocador") follow a paragraph with margin-bottom:0, which
    otherwise let the medal visually collide with that text above it. */
-.podium{display:grid; grid-template-columns:1fr 1.15fr 1fr; gap:12px; align-items:end; margin:18px 0 14px;}
+/* The header's own margin-bottom already sets the title→content distance;
+   this used to add 18px on top of it, so the podium sat ~32px below its own
+   title while the lists under it sat at 12px. */
+.podium{display:grid; grid-template-columns:1fr 1.15fr 1fr; gap:12px; align-items:end; margin:0 0 12px;}
+/* A three-column podium only makes sense with three cards. With one (a
+   champion leaderboard where a single champ clears the games threshold) the
+   1fr 1.15fr 1fr track list still reserved all three columns, stranding a
+   lone card in the left third beside a huge dead field that read as a
+   rendering failure. Bounded single/double layouts make that case look
+   deliberate — without inventing filler cards to occupy the space. */
+.podium:not(:has(> :nth-child(2))){grid-template-columns:minmax(0,300px);}
+.podium:has(> :nth-child(2)):not(:has(> :nth-child(3))){grid-template-columns:repeat(2,minmax(0,1fr));}
 .podium-card{
-  position:relative; display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; min-width:0;
+  position:relative; display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center; min-width:0;
   background:var(--surface-raised); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm);
-  padding:26px 12px 16px; border:1px solid transparent;
+  padding:18px 12px 13px; border:1px solid transparent;
 }
+/* First place earns its emphasis from the border, the badge and the centre
+   column — the wash behind it is a supporting hint, not a third signal, so
+   it drops to the soft token and fades out sooner. */
 .podium-card.rank-1{
-  order:2; padding-top:30px; border-color:var(--accent-dim);
-  background:linear-gradient(180deg, var(--accent-wash) 0%, var(--surface-raised) 65%);
+  order:2; padding-top:21px; border-color:var(--accent-dim);
+  background:linear-gradient(180deg, var(--accent-wash-soft) 0%, var(--surface-raised) 55%);
 }
 .podium-card.rank-2{order:1;}
 .podium-card.rank-3{order:3;}
+/* Sits ON the card's top edge rather than floating above it: the ring in the
+   page background colour carves the badge out of the border, so it reads as
+   part of the card instead of a chip dropped on top of it. */
 .podium-medal{
-  position:absolute; top:-13px; left:50%; transform:translateX(-50%);
-  width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-  font-family:var(--font-display); font-weight:800; font-size:12px; box-shadow:var(--shadow-sm); flex:none;
+  position:absolute; top:-11px; left:50%; transform:translateX(-50%);
+  width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:800; font-size:11px; line-height:1; flex:none;
+  box-shadow:0 0 0 3px var(--bg), var(--shadow-sm);
 }
 .podium-medal.gold{background:var(--gold); color:var(--accent-ink);}
 .podium-medal.silver{background:#C9CDD6; color:#1a1a18;}
 .podium-medal.bronze{background:#C98A5C; color:#241a05;}
 .podium-avatar{
-  width:52px; height:52px; border-radius:14px; overflow:hidden; flex:none;
+  width:42px; height:42px; border-radius:12px; overflow:hidden; flex:none;
   display:flex; align-items:center; justify-content:center;
   font-family:var(--font-display); font-weight:700; font-size:15px;
   background:var(--surface-hover); color:var(--text-secondary);
   box-shadow:0 0 0 2px var(--surface-raised);
 }
 .podium-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
-.podium-card.rank-1 .podium-avatar{width:64px; height:64px;}
-.podium-mid{display:flex; flex-direction:column; align-items:center; min-width:0; gap:1px;}
+.podium-card.rank-1 .podium-avatar{width:50px; height:50px; border-radius:14px;}
+.podium-mid{display:flex; flex-direction:column; align-items:center; min-width:0; gap:2px;}
+/* Nudged UP while the winrate below came down — the two were 8.5px apart in
+   size, which read as a headline shouting over a caption. Closing that gap
+   is most of what makes the card feel composed rather than stretched. */
 .podium-name{
-  font-weight:700; font-size:12.5px; color:var(--text-primary);
+  font-weight:700; font-size:13px; color:var(--text-primary);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;
 }
-.podium-meta{font-size:10px; color:var(--text-muted); font-family:var(--font-mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;}
-.podium-wr{font-family:var(--font-stat); font-weight:800; font-size:21px; font-variant-numeric:tabular-nums; margin-top:2px;}
-.podium-card.rank-1 .podium-wr{font-size:25px;}
+.podium-meta{font-size:10.5px; color:var(--text-muted); font-family:var(--font-mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;}
+.podium-wr{font-family:var(--font-stat); font-weight:800; font-size:19px; line-height:1.1; font-variant-numeric:tabular-nums; margin-top:3px;}
+.podium-card.rank-1 .podium-wr{font-size:22px;}
 .podium-wr.good{color:var(--good);}
 .podium-wr.bad{color:var(--critical);}
 .podium-record{font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted);}
@@ -833,14 +887,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .podium-record{display:none;}
 }
 
-/* The accent dot is shared with the live-status headers, where the pulse
-   means "this is happening right now". On a closed weekly summary that
-   animation had nothing to signal, so it read as a stray blinking artifact —
-   held still (and with a tighter halo) it becomes a deliberate section mark.
-   Scoped here so the genuinely live headers keep their pulse. */
-.digest-section .section-head h2 .live-dot.accent{
-  animation:none; width:6px; height:6px; box-shadow:0 0 0 2.5px var(--accent-wash);
-}
 /* A date range is numeric metadata — mono lines its digits up with the rest
    of the app's figures (LP, records, timestamps) instead of floating in the
    body face. */
@@ -1326,9 +1372,13 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    vertical list — picking one opens the two-column detail below (partners
    left, shared-match detail right) instead of stretching the page downward. */
 .duo-chip-row{display:flex; gap:10px; overflow-x:auto; padding:2px 2px 8px; margin-bottom:16px;}
+/* The portrait is what you actually pick by — the name under it is a
+   confirmation, and truncates. Avatar up, padding in: same footprint, more
+   of it spent on the thing being identified. */
+.duo-chip .duo-avatar{width:40px; height:40px; border-radius:11px; font-size:13px;}
 .duo-chip{
-  display:flex; flex-direction:column; align-items:center; gap:6px; flex:none;
-  width:76px; padding:10px 8px; border-radius:var(--radius-md);
+  display:flex; flex-direction:column; align-items:center; gap:7px; flex:none;
+  width:78px; padding:9px 7px 10px; border-radius:var(--radius-md);
   background:var(--surface-raised); box-shadow:var(--shadow-sm);
   border:1px solid transparent; cursor:pointer;
   transition:background .15s ease, border-color .15s ease, transform .15s ease;
@@ -1344,24 +1394,40 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    switching here reads as a change too instead of an instant content swap. */
 .duo-panel{opacity:1; transition:opacity .16s ease;}
 .duo-panel.is-fading{opacity:0;}
-.duo-cols-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;}
-.duo-filter-row{display:flex; gap:6px; flex:none;}
+.duo-cols-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; min-height:28px;}
+/* These label their column, so they get the same uppercase treatment as
+   every other sub-heading in the app instead of reading as loose grey copy
+   floating above a list. */
+.duo-cols-head .meta{
+  font-size:10.5px; font-weight:700; color:var(--text-secondary);
+  text-transform:uppercase; letter-spacing:0.09em;
+}
+/* One control, two states — not two buttons that happen to sit together.
+   The shared track (border + inset background) is what makes "Más jugado |
+   Más WR" read as a single either/or switch. */
+.duo-filter-row{
+  display:inline-flex; gap:2px; flex:none; padding:3px; border-radius:999px;
+  background:var(--surface); border:1px solid var(--border-soft);
+}
 .duo-filter-btn{
-  padding:6px 12px; border-radius:999px; font-size:11px; font-weight:600;
-  background:var(--surface); color:var(--text-secondary); border:1px solid var(--border-soft);
-  cursor:pointer; transition:background .15s ease, color .15s ease, border-color .15s ease;
+  padding:5px 11px; border-radius:999px; font-size:11px; font-weight:600;
+  background:transparent; color:var(--text-muted); border:none;
+  cursor:pointer; transition:background .15s ease, color .15s ease;
 }
 .duo-filter-btn:hover{color:var(--text-primary);}
-.duo-filter-btn.is-active{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
+.duo-filter-btn.is-active{background:var(--accent); color:var(--accent-ink);}
 .duo-partner-row{width:100%; text-align:left; cursor:pointer;}
 .duo-partner-row.is-active{background:var(--accent-wash-soft);}
 
 /* Expanded detail: the last 5 games THIS DUO shared — both sides' own
    champ+KDA from the SAME game, not one player's generic recent matches. */
-.duosum-matches{display:flex; flex-direction:column; gap:5px;}
+.duosum-matches{display:flex; flex-direction:column; gap:6px;}
+/* Three readable zones — result stripe | champions + KDA | when/how long.
+   The extra vertical padding and the gap between zones is the whole fix
+   here; the row stays compact, it just stops running together. */
 .duovs-match-row{
-  display:flex; align-items:center; gap:8px;
-  background:var(--surface-hover); border-radius:var(--radius-sm); padding:7px 10px;
+  display:flex; align-items:center; gap:9px;
+  background:var(--surface-hover); border-radius:var(--radius-sm); padding:9px 11px;
 }
 .duovs-match-stripe{width:3px; align-self:stretch; border-radius:2px; flex:none;}
 .duovs-match-stripe.w{background:var(--good);}
@@ -1374,13 +1440,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   background:var(--surface); color:var(--text-secondary);
 }
 .duovs-match-champ img{width:100%; height:100%; object-fit:cover; display:block;}
-.duovs-match-kda{font-family:var(--font-stat); font-weight:700; font-size:11.5px; color:var(--text-primary); white-space:nowrap;}
+/* The KDA is the substance of the row — the VICTORIA/DERROTA label stays
+   deliberately small since the coloured stripe already carries the result. */
+.duovs-match-kda{font-family:var(--font-stat); font-weight:700; font-size:12.5px; font-variant-numeric:tabular-nums; color:var(--text-primary); white-space:nowrap;}
 .duovs-match-sep{color:var(--text-muted); font-size:11px; flex:none;}
 .duovs-match-meta{margin-left:auto; text-align:right; flex:none;}
 .duovs-match-result{display:block; font-size:9.5px; font-weight:700; letter-spacing:0.04em;}
 .duovs-match-result.w{color:var(--good);}
 .duovs-match-result.l{color:var(--critical);}
-.duovs-match-date{display:block; font-size:9.5px; color:var(--text-muted); font-family:var(--font-mono); margin-top:1px;}
+.duovs-match-date{display:block; font-size:10px; color:var(--text-muted); font-family:var(--font-mono); margin-top:2px;}
 
 .footnote{
   margin-top:34px; padding-top:18px; border-top:1px solid var(--border-soft);
