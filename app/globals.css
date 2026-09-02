@@ -212,9 +212,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   width:180px; box-sizing:border-box;
   background:var(--surface-hover); border-radius:9px; box-shadow:var(--shadow);
   padding:10px 12px; font-size:11px; line-height:1.5; color:var(--text-primary);
-  opacity:0; visibility:hidden; pointer-events:none;
+  /* display:none while hidden for the same reason as .info-tip-bubble — a
+     hidden 180px box hanging off the name cell still widens the page. */
+  display:none; opacity:0; pointer-events:none;
   transform:translate(-4px, 0) scale(0.97); transform-origin:left center;
-  transition:opacity .15s ease, transform .15s ease, visibility .15s;
+  transition:opacity .15s ease, transform .15s ease, display .15s allow-discrete;
   z-index:30;
 }
 /* Only wired up on narrow screens now — wide screens get the always-on
@@ -222,7 +224,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    would just be a second, redundant way to see the same thing. */
 @media (max-width:680px){
   .player-id:has(.live-badge:hover) .live-popup{
-    opacity:1; visibility:visible; transform:translate(0, 0) scale(1);
+    display:block; opacity:1; transform:translate(0, 0) scale(1);
+  }
+  @starting-style{
+    .player-id:has(.live-badge:hover) .live-popup{opacity:0;}
   }
 }
 .live-popup::after{
@@ -247,6 +252,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .live-popup-champ-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
 .live-popup-meta{display:block; color:var(--text-muted); font-family:var(--font-mono); font-size:10.5px;}
+/* Mobile: no room to the right of the name cell for a 180px popup — open it
+   BELOW the badge instead, arrow flipped to point up. Being off-screen also
+   made the whole page scroll sideways (a hidden absolute element still counts
+   toward scrollable overflow). */
+@media (max-width:680px){
+  .live-popup{left:0; right:auto; top:calc(100% + 8px); transform-origin:top left; transform:translate(0, -4px) scale(0.97);}
+  .live-popup::after{right:auto; left:14px; top:auto; bottom:100%; border-right-color:transparent; border-bottom-color:var(--surface-hover);}
+}
 .profile-live-banner{
   display:flex; align-items:center; gap:8px; font-size:12px; color:var(--good);
   background:var(--good-wash); border-radius:var(--radius-sm); padding:8px 12px; margin-top:8px;
@@ -467,7 +480,12 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap;
   margin-bottom:22px; padding-bottom:20px; border-bottom:1px solid var(--border-soft);
 }
-.profile-id{display:flex; align-items:center; gap:14px;}
+/* min-width:0 on the flex chain + overflow-wrap so a long Riot ID wraps
+   instead of pushing the whole header (and the page) past the viewport on
+   mobile — flex items default to min-width:auto, which lets a nowrap-ish
+   child blow the container out. */
+.profile-id{display:flex; align-items:center; gap:14px; min-width:0; flex:1 1 260px;}
+.profile-id > div{min-width:0;}
 .profile-avatar{
   /* Bumped from 52px — this is often a real Riot profile icon now (see
      PlayerProfile.tsx), not just the champion-initial placeholder, and real
@@ -489,7 +507,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   line-height:1; padding:3px 5px; border-radius:6px;
   border:1px solid var(--border); box-shadow:var(--shadow-sm);
 }
-.profile-name{font-family:var(--font-display); font-weight:700; font-size:21px; margin:0; display:flex; align-items:center; gap:9px;}
+.profile-name{font-family:var(--font-display); font-weight:700; font-size:21px; margin:0; display:flex; align-items:center; gap:9px; flex-wrap:wrap; overflow-wrap:anywhere;}
 .profile-sub{font-size:12.5px; color:var(--text-muted); margin-top:3px;}
 .profile-tier{text-align:right;}
 .profile-tier .tn{font-family:var(--font-display); font-weight:700; font-size:17px;}
@@ -765,7 +783,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    otherwise let the medal visually collide with that text above it. */
 .podium{display:grid; grid-template-columns:1fr 1.15fr 1fr; gap:12px; align-items:end; margin:18px 0 14px;}
 .podium-card{
-  position:relative; display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center;
+  position:relative; display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; min-width:0;
   background:var(--surface-raised); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm);
   padding:26px 12px 16px; border:1px solid transparent;
 }
@@ -797,7 +815,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-weight:700; font-size:12.5px; color:var(--text-primary);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;
 }
-.podium-meta{font-size:10px; color:var(--text-muted); font-family:var(--font-mono); white-space:nowrap;}
+.podium-meta{font-size:10px; color:var(--text-muted); font-family:var(--font-mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;}
 .podium-wr{font-family:var(--font-stat); font-weight:800; font-size:21px; font-variant-numeric:tabular-nums; margin-top:2px;}
 .podium-card.rank-1 .podium-wr{font-size:25px;}
 .podium-wr.good{color:var(--good);}
@@ -820,6 +838,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .digest-card{
   background:var(--surface-raised); border:1px solid var(--border-soft); border-left:3px solid var(--border-soft);
   border-radius:var(--radius-md); padding:14px 16px; transition:border-color 0.12s;
+  min-width:0; /* grid items default to min-width:auto — a nowrap name would widen the card past the track */
 }
 .digest-card.accent-good{border-left-color:var(--good);}
 .digest-card.accent-gold{border-left-color:var(--gold);}
@@ -1102,7 +1121,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   width:230px; max-width:60vw; background:var(--surface-hover); color:var(--text-secondary);
   font-size:11px; font-weight:400; line-height:1.55; text-align:left; text-transform:none; letter-spacing:normal;
   padding:9px 11px; border-radius:8px; box-shadow:var(--shadow);
-  opacity:0; pointer-events:none; transition:opacity .12s ease, transform .12s ease;
+  /* display:none while hidden, NOT just opacity:0 — an invisible 230px box
+     still counts toward the page's scrollable overflow, and the "Máximo ⓘ"
+     pill sits at the far right of the profile header, so its hidden bubble
+     stuck out past the viewport and made the whole page scroll sideways
+     (708px on desktop, 1046px on mobile). allow-discrete + @starting-style
+     keep the fade-in on browsers that support it; older ones just snap. */
+  display:none; opacity:0; pointer-events:none;
+  transition:opacity .12s ease, transform .12s ease, display .12s allow-discrete;
   z-index:30;
 }
 .info-tip-bubble::after{
@@ -1110,7 +1136,12 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   border:5px solid transparent; border-top-color:var(--surface-hover);
 }
 .info-tip:hover .info-tip-bubble, .info-tip:focus-visible .info-tip-bubble{
-  opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(0);
+  display:block; opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(0);
+}
+@starting-style{
+  .info-tip:hover .info-tip-bubble, .info-tip:focus-visible .info-tip-bubble{
+    opacity:0; transform:translateX(-50%) translateY(4px);
+  }
 }
 
 /* .duo-list only wraps the loading/empty states now (see .panel-list below

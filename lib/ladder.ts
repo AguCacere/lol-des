@@ -40,12 +40,15 @@ export function tierFor(key: TierKey): Tier {
  * community mirror of Riot's game assets); dropped after it turned out
  * unreliable in practice (worked once, then 404'd) — a third-party CDN this
  * app doesn't control isn't worth the flakiness when local files work every
- * time. TierEmblem's existing image/text fallback means nothing breaks while
- * a given tier's file is missing — it just shows the text badge until the
- * file shows up here.
+ * time. Returns null for a tier whose file isn't in the repo yet, so
+ * TierEmblem renders the text badge directly instead of firing a request
+ * that's known to 404 and flashing a broken image first — add the file AND
+ * the key here when new art lands.
  */
-export function rankEmblemUrl(tierKey: TierKey): string {
-  return `/icons/ranks/${tierKey}.webp`;
+const RANK_EMBLEMS_AVAILABLE: ReadonlySet<TierKey> = new Set(["bronze", "gold", "platinum", "emerald", "diamond"]);
+
+export function rankEmblemUrl(tierKey: TierKey): string | null {
+  return RANK_EMBLEMS_AVAILABLE.has(tierKey) ? `/icons/ranks/${tierKey}.webp` : null;
 }
 
 /** division 1 (Riot's "I") outranks division 4 ("IV") within the same tier. */

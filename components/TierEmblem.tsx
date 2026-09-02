@@ -12,8 +12,11 @@ import { useImageFallback } from "@/lib/useImageFallback";
 export function TierEmblem({ tierKey, division }: { tierKey: TierKey; division: number }) {
   const { errored, imgRef } = useImageFallback(tierKey);
   const t = tierFor(tierKey);
+  const url = rankEmblemUrl(tierKey);
 
-  if (errored) {
+  // No art for this tier yet (url null) or the file failed to load — same
+  // colored-square-with-initial either way, just without a wasted 404 first.
+  if (url === null || errored) {
     return (
       <span className="tier-badge" style={{ background: t.bg, color: t.fg }}>
         {t.name[0]}
@@ -24,7 +27,7 @@ export function TierEmblem({ tierKey, division }: { tierKey: TierKey; division: 
   return (
     <span className="tier-badge tier-badge-real">
       {/* eslint-disable-next-line @next/next/no-img-element -- tiny fixed-size icon repeated many times per page, not worth next/image's config for an external CDN */}
-      <img ref={imgRef} src={rankEmblemUrl(tierKey)} alt="" />
+      <img ref={imgRef} src={url} alt="" />
     </span>
   );
 }
