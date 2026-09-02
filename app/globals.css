@@ -833,20 +833,47 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .podium-record{display:none;}
 }
 
+/* The accent dot is shared with the live-status headers, where the pulse
+   means "this is happening right now". On a closed weekly summary that
+   animation had nothing to signal, so it read as a stray blinking artifact —
+   held still (and with a tighter halo) it becomes a deliberate section mark.
+   Scoped here so the genuinely live headers keep their pulse. */
+.digest-section .section-head h2 .live-dot.accent{
+  animation:none; width:6px; height:6px; box-shadow:0 0 0 2.5px var(--accent-wash);
+}
+/* A date range is numeric metadata — mono lines its digits up with the rest
+   of the app's figures (LP, records, timestamps) instead of floating in the
+   body face. */
+.digest-section .section-head .meta{
+  font-family:var(--font-mono); font-size:11.5px; font-variant-numeric:tabular-nums; letter-spacing:0.01em;
+}
+
 .digest-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;}
 @media (max-width:680px){.digest-grid{grid-template-columns:1fr;}}
+/* Flex column + a growing body is what keeps the four cards feeling equally
+   dense: grid stretches every card in a row to the tallest one (the LP card,
+   which carries the chart), and with top-aligned content the others just
+   grew a pocket of dead space at the bottom. Letting the body take the slack
+   and center inside it distributes that space above AND below the content
+   instead, so a card without a chart reads as composed rather than empty —
+   without adding a single element to fill it. */
 .digest-card{
-  background:var(--surface-raised); border:1px solid var(--border-soft); border-left:3px solid var(--border-soft);
+  background:var(--surface-raised); border:1px solid var(--border-soft); border-left:2px solid var(--border-soft);
   border-radius:var(--radius-md); padding:14px 16px; transition:border-color 0.12s;
   min-width:0; /* grid items default to min-width:auto — a nowrap name would widen the card past the track */
+  display:flex; flex-direction:column;
 }
 .digest-card.accent-good{border-left-color:var(--good);}
 .digest-card.accent-gold{border-left-color:var(--gold);}
 .digest-card.accent-critical{border-left-color:var(--critical);}
 .digest-card.accent-primary{border-left-color:var(--accent);}
+/* Was text-muted at 600 — legible enough in isolation, but as the top line of
+   a card it sat so far back that each card opened on a whisper. Secondary +
+   700 + a touch more tracking reads as a deliberate section label while
+   staying clearly below the player name and the value in the hierarchy. */
 .digest-card-label{
-  display:flex; align-items:center; gap:7px; margin-bottom:11px;
-  font-size:10px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.07em;
+  display:flex; align-items:center; gap:8px; margin-bottom:13px;
+  font-size:10.5px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.09em;
 }
 .digest-card-icon{
   display:inline-flex; align-items:center; justify-content:center;
@@ -857,26 +884,61 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .digest-card-icon.gold{background:var(--gold-wash); color:var(--gold);}
 .digest-card-icon.critical{background:var(--critical-wash); color:var(--critical);}
 .digest-card-icon.accent{background:var(--accent-wash); color:var(--accent);}
-.digest-card-body{display:flex; align-items:center; gap:11px;}
-.digest-card-mid{display:flex; flex-direction:column; gap:2px; min-width:0; flex:1;}
-.digest-card-name{font-weight:600; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.digest-card-body{display:flex; align-items:center; gap:12px; flex:1; min-height:0;}
+.digest-card-mid{display:flex; flex-direction:column; gap:3px; min-width:0; flex:1;}
+.digest-card-name{
+  font-weight:700; font-size:14px; line-height:1.25; color:var(--text-primary);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+/* The tag has to stay clearly subordinate to the name it hangs off — same
+   muted color as everywhere else, but stepped down in size too, so the eye
+   lands on "marlboro de diez" and only then on "#LAS". */
+.digest-card-name .player-tag{font-size:11.5px;}
 .digest-card-sub{font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+/* The card's headline. Bigger, but the presence comes mostly from the rest:
+   line-height:1 and tight tracking make it a compact solid mass, and
+   padding-left guarantees it never crowds a long name that ellipsises right
+   up against it. Vertically it centers on the whole player block (avatar +
+   name + metadata), not on the name alone. */
 .digest-card-value{
-  font-family:var(--font-stat); font-weight:800; font-size:18px; margin-left:auto; flex:none;
+  font-family:var(--font-stat); font-weight:800; font-size:20px; line-height:1;
+  letter-spacing:-0.015em; color:var(--text-primary);
+  margin-left:auto; padding-left:10px; flex:none;
   font-variant-numeric:tabular-nums; white-space:nowrap;
 }
-.digest-card-chart{margin-top:10px;}
-.digest-card-chart svg{display:block; width:100%; height:auto;}
+/* Sits at the card's bottom edge, full inner width, reading as a base rule
+   under the content — the negative bottom margin trims the SVG's own
+   built-in breathing room so the optical gap matches the card's padding
+   instead of looking like a floating block with a gutter under it. */
+.digest-card-chart{margin-top:12px; margin-bottom:-3px;}
+/* Explicit height, NOT height:auto — the viewBox is 280x30, so auto scales
+   the drawing proportionally to the card's width and rendered it ~57px tall,
+   nearly double the intended size and the main reason this card towered over
+   its neighbour. preserveAspectRatio="none" means fixing the height just
+   stretches the curve to fit, same as the ladder sparklines. */
+.digest-card-chart svg{display:block; width:100%; height:40px;}
 .digest-champ-toggle{width:100%; text-align:left; border-radius:var(--radius-sm);}
 .digest-champ-toggle:not(:disabled){cursor:pointer;}
 .digest-champ-toggle:not(:disabled):hover{background:var(--surface-hover);}
-.digest-chevron{width:13px; height:13px; color:var(--text-muted); transition:transform 0.15s ease; flex:none;}
-.digest-champ-toggle.is-expanded .digest-chevron{transform:rotate(180deg); color:var(--accent);}
+/* An affordance, not a data point: it was the same size and weight as the
+   record beside it, so "16V-7D ⌄" read as one two-part value. Smaller and
+   dimmed, it steps back — and comes forward on hover/expand, when it's
+   actually the thing being used. */
+.digest-chevron{
+  width:11px; height:11px; margin-left:9px; flex:none;
+  color:var(--text-muted); opacity:0.45; transition:transform 0.15s ease, opacity 0.12s ease;
+}
+.digest-champ-toggle:not(:disabled):hover .digest-chevron{opacity:0.8;}
+.digest-champ-toggle.is-expanded .digest-chevron{transform:rotate(180deg); color:var(--accent); opacity:1;}
 .digest-champ-players{
   margin-top:11px; padding-top:11px; border-top:1px solid var(--border-soft);
   display:flex; flex-direction:column; gap:9px;
 }
 .digest-champ-player-row{display:flex; align-items:center; gap:9px;}
+/* The drill-down list reuses .digest-card-name, which is now the card's
+   primary text size — stepped back down here so the champion stays the
+   headline and these read as its breakdown. */
+.digest-champ-player-row .digest-card-name{font-size:13px; font-weight:600;}
 .digest-champ-player-stat{margin-left:auto; font-size:11px; color:var(--text-muted); white-space:nowrap; flex:none;}
 .duo-avatar.sm{width:26px; height:26px; border-radius:8px; font-size:10px;}
 .digest-copy-btn{

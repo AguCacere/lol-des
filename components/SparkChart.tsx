@@ -9,8 +9,13 @@ interface SparkChartProps {
   height?: number;
   pad?: number;
   color: string;
-  /** "detailed" adds reference gridlines, a glow behind the line, and (with pointLabels) a hover tooltip. */
-  variant?: "compact" | "detailed";
+  /**
+   * "detailed" adds reference gridlines, a glow behind the line, and (with
+   * pointLabels) a hover tooltip. "mini" is the quietest of the three — a
+   * thinner, crisper line with a much lighter area fill, for the digest card
+   * where the chart supports a headline number instead of being the subject.
+   */
+  variant?: "compact" | "detailed" | "mini";
   /** One React node per value, shown in the hover tooltip — detailed variant only. */
   pointLabels?: React.ReactNode[];
 }
@@ -26,26 +31,36 @@ export function SparkChart({
   pointLabels,
 }: SparkChartProps) {
   const detailed = variant === "detailed";
+  const mini = variant === "mini";
   // Compact ("últimos 20" ladder cells) gets its own horizontal margin, wider
   // than its vertical one — a sparkline reads as more "premium" when it fills
   // most of its row width but keeps a bit more vertical breathing room, rather
   // than using the same pad on both axes like the detailed profile chart does.
-  const padX = detailed ? pad : pad + 3;
+  // Mini spans the card's full inner width instead, so it reads as a base rule
+  // under the card's content rather than a floating inset graphic.
+  const padX = detailed || mini ? pad : pad + 3;
   const { line, area, last, points } = lineAreaGeometry(values, width, height, padX, 10, pad, !detailed);
   const gid = "spark-" + useId().replace(/[:]/g, "");
   // Compact's endpoint marker used to feel like a separate button stuck onto
   // the line (big halo ring) — shrunk so it reads as "last value, subtly
   // marked" instead of a UI element competing with the row's own chevron.
-  const dotRadius = detailed ? 4 : 2.6;
-  const haloExtra = detailed ? 3 : 2;
-  const haloOpacity = detailed ? 0.35 : 0.3;
+  const dotRadius = detailed ? 4 : mini ? 2.2 : 2.6;
+  const haloExtra = detailed ? 3 : mini ? 1.6 : 2;
+  const haloOpacity = detailed ? 0.35 : mini ? 0.22 : 0.3;
   const haloStrokeWidth = detailed ? 1.5 : 1;
-  const strokeWidth = detailed ? 2.5 : 2;
+  const strokeWidth = detailed ? 2.5 : mini ? 1.75 : 2;
   const lineJoin = detailed ? "miter" : "round";
+  // Area fill: mini's is deliberately the faintest of the three. At compact's
+  // 0.45 the wash under a wide card-width curve turned into a solid green
+  // block that outweighed the "+260 pts" it's supposed to support.
+  const areaTopOpacity = detailed ? "0.35" : mini ? "0.18" : "0.45";
   // Compact's line+dot go translucent rather than flat-solid — a softer,
   // more refined feel for the dense "últimos 20" column specifically;
   // detailed (the profile's own big LP chart) keeps full-strength color.
-  const lineOpacity = detailed ? 1 : 0.82;
+  // Mini keeps its line nearly full-strength: at 1.75px the stroke is already
+  // light, and dropping opacity on top of that made it read as washed out
+  // rather than delicate.
+  const lineOpacity = detailed ? 1 : mini ? 0.92 : 0.82;
   // Restrained glow — enough to keep the line from reading as a flat hairline,
   // without the neon-gaming look a heavier blur gave it. Compact's used to be
   // proportionally bigger than detailed's for the same reason as before: a
@@ -95,7 +110,7 @@ export function SparkChart({
       >
         <defs>
           <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity={detailed ? "0.35" : "0.45"} />
+            <stop offset="0%" stopColor={color} stopOpacity={areaTopOpacity} />
             <stop offset="100%" stopColor={color} stopOpacity="0" />
           </linearGradient>
           {/* Off-center highlight (top-left) on the endpoint dot only — a flat

@@ -109,7 +109,7 @@ function DigestBody({
             </div>
             {digest.biggestLpGain.lpScores.length >= 2 && (
               <div className="digest-card-chart">
-                <SparkChart values={digest.biggestLpGain.lpScores} width={280} height={36} pad={4} color={trendColor(digest.biggestLpGain.lpScores)} />
+                <SparkChart values={digest.biggestLpGain.lpScores} width={280} height={30} pad={3} color={trendColor(digest.biggestLpGain.lpScores)} variant="mini" />
               </div>
             )}
           </div>
@@ -202,7 +202,7 @@ export function TeamDigest({
   }
 
   return (
-    <section>
+    <section className="digest-section">
       <div className="section-head">
         <h2>
           <span className="live-dot accent" />
