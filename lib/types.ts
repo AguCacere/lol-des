@@ -365,6 +365,37 @@ export interface RoleAverages {
   sampleSize: number;
 }
 
+/** Un valor de la misma métrica en las dos ventanas: últimas N partidas vs. todo lo anterior. */
+export interface FormSplit {
+  recent: number;
+  baseline: number;
+}
+
+/**
+ * "Forma reciente" (ver lib/form.ts) — el jugador contra su propia versión
+ * anterior, no contra el rol ni contra el grupo. Null cuando todavía no hay
+ * suficiente historial viejo para que la comparación signifique algo.
+ *
+ * Cada métrica puede venir null por separado: una columna que no existía
+ * cuando se guardaron las partidas viejas (kill_participation) tiene dato en
+ * la ventana reciente y no en el histórico, y ahí no hay comparación posible.
+ */
+export interface RecentForm {
+  /** Cuántas partidas entraron en la ventana reciente (siempre FORM_WINDOW_SIZE si hay RecentForm). */
+  recentGames: number;
+  /** Cuántas partidas viejas forman el histórico — el contexto de cuánto confiar en la comparación. */
+  baselineGames: number;
+  winrate: FormSplit | null;
+  kda: FormSplit | null;
+  csPerMin: FormSplit | null;
+  damagePerMin: FormSplit | null;
+  goldPerMin: FormSplit | null;
+  killParticipation: FormSplit | null;
+  visionPerMin: FormSplit | null;
+  /** La única donde MENOS es mejor — el componente invierte el color, no el signo. */
+  deathsPerGame: FormSplit | null;
+}
+
 export interface Player {
   name: string;
   tag: string;
@@ -411,6 +442,8 @@ export interface Player {
   personalRecords: PersonalRecords | null;
   /** Inferred "Aegis of Valor" count (Riot exposes nothing about it — see lib/aegis.ts) — null if there isn't enough clean, isolated LP-delta data yet to infer anything. */
   aegisStats: AegisStats | null;
+  /** Últimas 20 partidas vs. todo el historial anterior de este mismo jugador (ver lib/form.ts) — null hasta tener al menos 30 partidas guardadas. */
+  recentForm: RecentForm | null;
 }
 
 /**

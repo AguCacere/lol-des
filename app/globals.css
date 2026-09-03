@@ -738,6 +738,56 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   content:""; flex:1; height:1px; margin-left:4px; background:rgba(255,255,255,0.08);
 }
 
+/* "Forma reciente" — mismo material que .stat-grid (panel único, divisiones
+   finas) pero 4 columnas y sin iconos: son 8 métricas, y un icono por tile
+   convertía una tabla de números en una pared de decoración. La jerarquía
+   dentro del tile va al revés que en .stat-tile a propósito — primero QUÉ se
+   mide, después el número de ahora, y el histórico al final en gris: se lee
+   como "esto es, así está, así estaba". */
+.form-wrap{margin-bottom:16px;}
+/* El contexto de la muestra al lado del título, no en una línea propia:
+   "vs. 143 anteriores" es lo que hace creíble al bloque entero, pero no
+   merece su propio renglón. */
+.form-window{
+  /* order:1 lo manda DESPUÉS del ::after de .subsection-label (la línea que
+     rellena el ancho sobrante), así queda pegado al margen derecho como el
+     .meta de un .section-head. Con el orden natural caía entre el título y
+     la línea, y ahí compite con el título en vez de acompañarlo. */
+  order:1; padding-left:8px;
+  font-family:var(--font-body); font-size:10px; font-weight:600;
+  letter-spacing:0.02em; text-transform:none; color:var(--text-muted);
+}
+.form-grid{
+  display:grid; grid-template-columns:repeat(4,1fr);
+  background:var(--surface-raised); border-radius:var(--radius-md); box-shadow:var(--shadow-sm);
+  overflow:hidden;
+}
+/* Bordes en TODOS los tiles en vez de la lógica :nth-child(4n) de .stat-grid:
+   acá la cantidad de tiles es variable (una métrica sin histórico no se
+   dibuja), así que cualquier regla atada a la posición se rompe sola. Los
+   bordes que quedan en el canto exterior los recorta el overflow del panel. */
+.form-tile{padding:10px 13px 11px; border-right:1px solid var(--border-soft); border-bottom:1px solid var(--border-soft);}
+.form-tile-k{
+  display:flex; align-items:center; gap:3px;
+  font-size:10.5px; color:var(--text-muted); letter-spacing:0.01em; margin-bottom:4px;
+}
+.form-tile-row{display:flex; align-items:baseline; gap:7px; flex-wrap:wrap;}
+.form-tile-v{font-family:var(--font-stat); font-size:19px; font-weight:800; font-variant-numeric:tabular-nums;}
+.form-tile-base{font-size:10.5px; color:var(--text-muted); font-variant-numeric:tabular-nums; margin-top:3px;}
+.form-delta{
+  display:inline-flex; align-items:center; gap:2px;
+  font-size:11px; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+.form-delta-arrow{font-size:8px; line-height:1;}
+.form-delta.up{color:var(--good);}
+.form-delta.down{color:var(--critical);}
+/* Sin cambio real: el número igual se muestra, pero en gris — teñirlo de
+   verde o rojo le daría a un ±1% un significado que no tiene. */
+.form-delta.flat{color:var(--text-muted); font-weight:600;}
+@media (max-width:760px){
+  .form-grid{grid-template-columns:repeat(2,1fr);}
+}
+
 /* Deliberately lighter than .subsection-label/.stat-grid — this is an
    INFERENCE (see lib/aegis.ts), never a confirmed number, so it reads as a
    soft outlined badge rather than a filled stat-tile making a hard claim. */

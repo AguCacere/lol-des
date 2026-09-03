@@ -22,6 +22,7 @@ import { MasteryPool } from "./MasteryPool";
 import { InsightsCard } from "./InsightsCard";
 import { RoleDistribution } from "./RoleDistribution";
 import { PersonalRecords } from "./PersonalRecords";
+import { RecentForm } from "./RecentForm";
 import { AegisStats } from "./AegisStats";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
@@ -477,47 +478,53 @@ export function PlayerProfile({
         )}
 
         {tab === "rendimiento" && (
-          <div className="stack-cols">
-            <div>
-              <h4 className="subsection-label">Comparación con tu rol</h4>
-              <div className="cmp-card">
-                <CmpBar
-                  label="KDA promedio"
-                  value={Number(avgKDA.toFixed(2))}
-                  avg={roleAvg.kda !== null ? Number(roleAvg.kda.toFixed(2)) : null}
-                  max={6}
-                />
-                <CmpBar
-                  label="CS / min"
-                  value={Number(avgCS.toFixed(1))}
-                  avg={roleAvg.csPerMin !== null ? Number(roleAvg.csPerMin.toFixed(1)) : null}
-                  max={10}
-                  tooltip={METRIC_INFO.csPerMin}
-                />
-                <CmpBar
-                  label="% daño del equipo"
-                  value={Math.round(avgDmg)}
-                  avg={roleAvg.dmgShare !== null ? Math.round(roleAvg.dmgShare) : null}
-                  max={45}
-                  suffix="%"
-                  tooltip={METRIC_INFO.dmgShare}
-                />
+          <>
+            {/* Ancho completo y arriba de todo: es la lectura de cabecera de
+                esta pestaña ("¿voy mejorando?"), y las dos columnas de abajo
+                son el detalle de por qué. */}
+            <RecentForm form={p.recentForm} />
+            <div className="stack-cols">
+              <div>
+                <h4 className="subsection-label">Comparación con tu rol</h4>
+                <div className="cmp-card">
+                  <CmpBar
+                    label="KDA promedio"
+                    value={Number(avgKDA.toFixed(2))}
+                    avg={roleAvg.kda !== null ? Number(roleAvg.kda.toFixed(2)) : null}
+                    max={6}
+                  />
+                  <CmpBar
+                    label="CS / min"
+                    value={Number(avgCS.toFixed(1))}
+                    avg={roleAvg.csPerMin !== null ? Number(roleAvg.csPerMin.toFixed(1)) : null}
+                    max={10}
+                    tooltip={METRIC_INFO.csPerMin}
+                  />
+                  <CmpBar
+                    label="% daño del equipo"
+                    value={Math.round(avgDmg)}
+                    avg={roleAvg.dmgShare !== null ? Math.round(roleAvg.dmgShare) : null}
+                    max={45}
+                    suffix="%"
+                    tooltip={METRIC_INFO.dmgShare}
+                  />
+                </div>
+
+                <h4 className="subsection-label">Fortalezas y debilidades</h4>
+                <InsightsCard strengths={strengths} weaknesses={weaknesses} sampleSize={roleAvg.sampleSize} />
               </div>
 
-              <h4 className="subsection-label">Fortalezas y debilidades</h4>
-              <InsightsCard strengths={strengths} weaknesses={weaknesses} sampleSize={roleAvg.sampleSize} />
+              <div>
+                {p.personalRecords && (
+                  <>
+                    <h4 className="subsection-label">Récords personales</h4>
+                    <PersonalRecords records={p.personalRecords} />
+                  </>
+                )}
+                <AegisStats stats={p.aegisStats} />
+              </div>
             </div>
-
-            <div>
-              {p.personalRecords && (
-                <>
-                  <h4 className="subsection-label">Récords personales</h4>
-                  <PersonalRecords records={p.personalRecords} />
-                </>
-              )}
-              <AegisStats stats={p.aegisStats} />
-            </div>
-          </div>
+          </>
         )}
 
         {tab === "campeones" && (

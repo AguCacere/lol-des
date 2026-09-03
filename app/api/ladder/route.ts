@@ -6,6 +6,7 @@ import { getLiveGamesByPuuid } from "@/lib/live";
 import { getLatestVersion, profileIconUrl, runeIconUrlByName, summonerSpellIconUrlByName } from "@/lib/ddragon";
 import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { computeAegisStats } from "@/lib/aegis";
+import { computeRecentForm, type FormSample } from "@/lib/form";
 import { computeMatchFlag, STATS_WINDOW_SIZE, type StatSample } from "@/lib/matchflags";
 import type { AegisStats, ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, DuoSharedMatch, FlexRank, LpHistoryPoint, MasteryEntry, Match, PersonalRecords, Player, RoleAverages, RoleKey } from "@/lib/types";
 
@@ -214,11 +215,14 @@ export async function GET() {
   }
 
   const matchesByPuuid = new Map<string, Match[]>();
-  // Feeds computeAegisStats (lib/aegis.ts) — every ranked match's own
-  // playedAt/win, built straight from matchRows (already queue_id=420-only
-  // per the query above) since that function needs the FULL history, not
-  // just the last 5 kept in matchesByPuuid.
-  const rankedMatchesByPuuid = new Map<string, { playedAt: string; win: boolean }[]>();
+  // Every ranked match this player has stored, built straight from matchRows
+  // (already queue_id=420-only per the query above) since the two consumers
+  // need the FULL history, not just the last 5 kept in matchesByPuuid:
+  // computeAegisStats (lib/aegis.ts) reads playedAt/win, computeRecentForm
+  // (lib/form.ts) reads the per-match stats. Una sola lista para los dos —
+  // recorrer matchRows otra vez para armar un segundo mapa idéntico no
+  // agregaba nada.
+  const rankedMatchesByPuuid = new Map<string, (FormSample & { playedAt: string })[]>();
   // This player's own last STATS_WINDOW_SIZE matches (cs/min, vision/min,
   // kda) — the baseline "para repasar" flags each match against, see
   // lib/matchflags.ts. Own recent form, not the role average used elsewhere.
@@ -354,7 +358,19 @@ export async function GET() {
     trackRecords(row);
 
     const rankedList = rankedMatchesByPuuid.get(row.puuid) ?? [];
-    rankedList.push({ playedAt: row.played_at, win: row.win });
+    rankedList.push({
+      playedAt: row.played_at,
+      win: row.win,
+      kills: row.kills,
+      deaths: row.deaths,
+      assists: row.assists,
+      csPerMin: Number(row.cs_per_min),
+      visionScore: row.vision_score,
+      goldEarned: row.gold_earned,
+      damageToChamps: row.damage_to_champs,
+      killParticipation: row.kill_participation === null ? null : Number(row.kill_participation),
+      durationS: row.game_duration_s,
+    });
     rankedMatchesByPuuid.set(row.puuid, rankedList);
 
     // Same cap-while-iterating trick as matchesByPuuid below, just a bigger
@@ -829,6 +845,10 @@ export async function GET() {
       roleDistribution: roleDistributionFor(row.puuid),
       personalRecords: personalRecordsFor(row.puuid),
       aegisStats: aegisStatsFor(row.puuid),
+      // rankedMatchesByPuuid ya viene played_at DESC (más nueva primero),
+      // que es justo el orden que computeRecentForm espera para cortar la
+      // ventana — al revés que computeAegisStats, que lo necesita ascendente.
+      recentForm: computeRecentForm(rankedMatchesByPuuid.get(row.puuid) ?? []),
     };
   });
 
