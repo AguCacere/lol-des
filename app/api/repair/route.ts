@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { repairMatches } from "@/lib/refresh";
 
-// Una tanda entra cómoda acá: el ritmo lo pone el rate limit de Riot (ver
-// REPAIR_PACE_MS), no la latencia, y el batch por defecto está calculado
-// para terminar dentro de esta ventana.
+// 300 es lo que este endpoint PIDE, no lo que necesariamente obtiene: un
+// plan que no lo sostenga lo recorta en silencio y Vercel corta la función
+// con un 504 antes de este número (visto en producción). El batch por
+// defecto (REPAIR_DEFAULT_BATCH, ver lib/refresh.ts) ya está calculado para
+// entrar aun si el límite real es bastante más bajo que esto.
 export const maxDuration = 300;
 
 /**
@@ -22,6 +24,12 @@ export const maxDuration = 300;
  *
  * Idempotente y reanudable: llamalo de nuevo mientras la respuesta traiga
  * `remaining > 0`. Cada tanda arranca sola donde quedó la anterior.
+ *
+ * Si tira 504 (Gateway Timeout, con un body que no es JSON): el plan cortó
+ * la función antes de que la tanda terminara. Lo ya reparado hasta ese punto
+ * quedó guardado igual — cada fila se escribe apenas se repara, no al final
+ * de la tanda — así que no hay nada que deshacer, solo llamar nuevo con un
+ * batchSize más chico: { "batchSize": 8 }.
  *
  * Requiere la migración de `repaired_at` (ver supabase/schema.sql) corrida
  * antes de la primera llamada — sin esa columna el UPDATE falla.

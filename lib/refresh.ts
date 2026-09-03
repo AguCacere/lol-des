@@ -599,9 +599,20 @@ export async function backfillOne(
  *   update matches set repaired_at = null where repaired_at is not null and item_build = '{}';
  */
 
-/** Filas por tanda. A ~2,4s por fila esto entra cómodo en los 300s de maxDuration de Vercel. */
-const REPAIR_DEFAULT_BATCH = 100;
-const REPAIR_HARD_CAP = 400;
+/**
+ * Filas por tanda. El cálculo original (100 filas, ~240s de puro pace) daba
+ * por sentado que Vercel te deja correr los 300s que pide `maxDuration` —
+ * y en la práctica cortó con un 504 bastante antes. maxDuration es un techo
+ * que el plan puede recortar en silencio, no una garantía. 15 filas ronda
+ * los 36s de pace más la latencia real de Riot y Supabase, con margen
+ * incluso si el límite real termina siendo bajo.
+ *
+ * Si tu plan sí sostiene tandas más largas, pasá un `batchSize` mayor en el
+ * body — hasta REPAIR_HARD_CAP — y listo; si vuelve a tirar 504, es que el
+ * límite real está más cerca de acá que de ahí.
+ */
+const REPAIR_DEFAULT_BATCH = 15;
+const REPAIR_HARD_CAP = 100;
 /**
  * Pausa entre filas. Una key personal aguanta ~100 requests cada 2 minutos y
  * cada fila gasta 2 (partida + timeline), así que ~1,2s por request es el
