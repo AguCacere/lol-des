@@ -413,21 +413,37 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .col-rank{font-family:var(--font-mono); color:var(--text-muted); font-size:13px; text-align:center;}
 .col-player{display:flex; align-items:center; gap:11px; min-width:0;}
-.role-chip{
-  width:26px;height:26px;border-radius:7px; background:var(--gold-wash);
-  box-shadow:var(--shadow-sm); display:flex; align-items:center; justify-content:center;
-  flex:none; color:var(--gold); overflow:hidden;
+/* Avatar del invocador con el rol como badge encima, en vez de un chip de rol
+   suelto. Es el cambio que más hace que el ladder deje de leerse como una
+   planilla: cada fila pasa a tener cara. El badge va sobre la esquina para no
+   pedir una casilla propia — la misma información en un elemento menos. */
+.ladder-avatar-wrap{position:relative; flex:none; line-height:0;}
+.ladder-avatar{
+  width:38px; height:38px; border-radius:10px; overflow:hidden; flex:none;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--surface-hover); color:var(--text-secondary);
+  font-family:var(--font-display); font-weight:700; font-size:13px;
+  box-shadow:var(--shadow-sm);
 }
-.role-chip svg{width:14px;height:14px;}
-/* contain, not cover: top/jungle/mid/support are self-contained square art
-   (their own dark backdrop baked in) so this fills the chip edge-to-edge
-   either way, but adc is a transparent gold glyph with no backdrop of its
-   own — cover would crop it trying to fill the box, contain lets it
-   letterbox cleanly inside the chip's own gold-wash background instead. */
-.role-chip img{width:100%;height:100%;object-fit:contain;display:block;}
+.ladder-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
+.ladder-role-badge{
+  position:absolute; right:-3px; bottom:-3px;
+  width:17px; height:17px; border-radius:5px; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--surface); color:var(--gold);
+  /* El anillo del color de la card, no un borde: separa el badge del avatar
+     aunque la foto que tenga atrás sea clara. */
+  box-shadow:0 0 0 2px var(--surface-raised);
+}
+.ladder-role-badge svg{width:11px; height:11px;}
+/* contain, not cover: top/jungle/mid/support son arte cuadrado con su propio
+   fondo, así que llenan el badge de cualquier forma, pero adc es un glifo
+   dorado transparente sin fondo propio — cover lo recortaría tratando de
+   llenar la caja, contain lo deja entrar entero. */
+.ladder-role-badge img{width:100%; height:100%; object-fit:contain; display:block;}
 .player-id{min-width:0; position:relative; display:block;}
 .player-name{
-  font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   display:flex; align-items:center; gap:7px;
 }
 .player-tag{color:var(--text-muted); font-weight:400; font-size:12px;}
@@ -449,14 +465,17 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .tier-badge.tier-badge-real{border-radius:0; background:none;}
 .tier-badge-real img{width:100%; height:100%; object-fit:contain; display:block;}
 .tier-text{line-height:1.25;}
-.tier-name{display:block; font-size:12.5px; font-weight:700;}
+.tier-name{display:block; font-size:13.5px; font-weight:700;}
 .tier-lp{display:block; font-family:var(--font-mono); font-size:11px; color:var(--text-muted);}
 .col-winrate{min-width:0;}
 .wr-top{display:flex; align-items:baseline; gap:7px; margin-bottom:5px; white-space:nowrap;}
 /* wr-pct is the hero number (font-stat, heavy weight); wr-count is supporting
    detail — dropped to font-mono/600 so the two don't compete at nearly the
    same visual weight the way they did before (800 vs 700, same typeface). */
-.wr-pct{font-family:var(--font-stat); font-weight:800; font-size:17px; letter-spacing:-0.01em; font-variant-numeric:tabular-nums;}
+/* 17px hacía del winrate el número más grande de la fila, por encima del
+   nombre y del rango — que son los que dicen QUIÉN es y DÓNDE está. Es un
+   stat, no la identidad de la fila. */
+.wr-pct{font-family:var(--font-stat); font-weight:800; font-size:15px; letter-spacing:-0.01em; font-variant-numeric:tabular-nums;}
 .wr-count{font-family:var(--font-mono); font-weight:600; font-size:11px; font-variant-numeric:tabular-nums;}
 .wr-count .wc-v{color:var(--good);}
 .wr-count .wc-sep{color:var(--text-muted); font-weight:500;}
@@ -477,6 +496,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .wr-streak.l{color:var(--critical);}
 .wr-streak svg{width:9px; height:9px; flex:none;}
 .col-spark{display:flex; flex-direction:column; gap:2px;}
+/* La curva da la forma, este número da la magnitud: sin él, dos siluetas
+   idénticas pueden ser 5 puntos o 90 y no hay forma de saberlo. */
+.spark-delta{
+  align-self:flex-end; font-family:var(--font-mono); font-size:10.5px; font-weight:700;
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+.spark-delta.up{color:var(--good);}
+.spark-delta.down{color:var(--critical);}
 .col-spark svg{display:block; width:100%; height:40px; transition:filter .18s ease;}
 /* Row hover gives the sparkline itself a very slight lift — line, endpoint dot and its halo all brighten together, nothing redraws or resizes. */
 .ladder-row:hover .col-spark svg{filter:brightness(1.12);}
@@ -909,7 +936,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .radar-row-peer.up{color:var(--good);}
 .radar-row-peer.down{color:var(--critical);}
 .radar-row-peer.flat{color:var(--text-muted);}
-.radar-note{margin:10px 0 0; font-size:10.5px; line-height:1.5; color:var(--text-muted);}
+/* Mismo tratamiento que .form-window: order:1 lo manda después del ::after
+   de .subsection-label (la línea que rellena el ancho), así queda pegado al
+   margen derecho en vez de competir con el título. */
+.radar-sample{
+  order:1; padding-left:8px;
+  font-family:var(--font-body); font-size:10px; font-weight:600;
+  letter-spacing:0.02em; text-transform:none; color:var(--text-muted);
+}
 
 /* "Forma reciente" — mismo material que .stat-grid (panel único, divisiones
    finas) pero 4 columnas y sin iconos: son 8 métricas, y un icono por tile

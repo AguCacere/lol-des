@@ -1,6 +1,7 @@
 import type { Player, RoleKey } from "@/lib/types";
 import { champTag, currentStreak, formatRelativeTime, liveGameTimeLabel, rankScore, ROLES, tierFor, trendColor } from "@/lib/ladder";
 import { RoleIcon } from "./RoleIcon";
+import { PlayerAvatar } from "./PlayerAvatar";
 import { StreakIcon } from "./StreakIcon";
 import { SparkChart } from "./SparkChart";
 import { ChampIcon } from "./ChampIcon";
@@ -194,8 +195,17 @@ export function LadderTable({
                 >
                   <span className="col-rank">{rank}</span>
                   <span className="col-player">
-                    <span className="role-chip" title={p.role}>
-                      <RoleIcon role={p.role} />
+                    {/* La cara del invocador, no solo el ícono de su rol. Un
+                        ladder sin caras se lee como una planilla: el avatar es
+                        lo que hace que cada fila sea una PERSONA y no un
+                        renglón. El rol pasa a badge sobre el avatar en vez de
+                        ocupar su propia casilla — misma información, un
+                        elemento menos por fila. */}
+                    <span className="ladder-avatar-wrap">
+                      <PlayerAvatar name={p.name} iconUrl={p.profileIconUrl} className="ladder-avatar" />
+                      <span className="ladder-role-badge" title={ROLES[p.role].label}>
+                        <RoleIcon role={p.role} />
+                      </span>
                     </span>
                     <span className="player-id">
                       <span className="player-name">
@@ -281,6 +291,15 @@ export function LadderTable({
                   </span>
                   <span className="col-spark">
                     <SparkChart values={spark} width={150} height={40} pad={8} color={trendColor(spark)} />
+                    {/* La curva sola dice la forma pero no la magnitud: dos
+                        jugadores con la misma silueta pueden haber movido 5
+                        puntos o 90. recentDelta ya se calculaba para ordenar
+                        por "progreso reciente", solo que nunca se mostraba. */}
+                    {spark.length >= 2 && (
+                      <span className={`spark-delta ${recentDelta(p) >= 0 ? "up" : "down"}`}>
+                        {recentDelta(p) >= 0 ? "▲" : "▼"} {Math.abs(recentDelta(p))} pts
+                      </span>
+                    )}
                   </span>
                   <span className="col-chevron">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">

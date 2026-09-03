@@ -3,7 +3,7 @@ import type { RoleKey } from "@/lib/types";
 /**
  * Real role badges for all five roles. top/jungle/mid/support are Riot's own
  * square art (their own dark backdrop baked in, no transparency); adc is a
- * transparent gold glyph instead (no self-contained backdrop) — .role-chip
+ * transparent gold glyph instead (no self-contained backdrop) — .ladder-role-badge
  * img uses object-fit:contain rather than cover so this one letterboxes
  * cleanly inside the chip's own gold-wash background instead of getting
  * cropped, which has no visible effect on the other four since they're

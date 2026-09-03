@@ -479,8 +479,7 @@ export function PlayerProfile({
             <RecentForm form={p.recentForm} />
             <div className="stack-cols">
               <div>
-                <h4 className="subsection-label">Perfil de rendimiento</h4>
-                <RadarChart radar={p.radar} />
+                <RadarChart radar={p.radar} role={p.role} />
               </div>
 
               <div>

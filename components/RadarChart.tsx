@@ -1,4 +1,6 @@
 import type { RadarMetric, RadarProfile } from "@/lib/radar";
+import type { RoleKey } from "@/lib/types";
+import { ROLES } from "@/lib/ladder";
 import { METRIC_INFO } from "@/lib/metric-info";
 import { InfoTip } from "./InfoTip";
 
@@ -55,13 +57,25 @@ function fmt(n: number, decimals: number): string {
  * anillo va marcado distinto que el resto de la grilla y dicho con todas las
  * letras en la leyenda.
  */
-export function RadarChart({ radar }: { radar: RadarProfile | null }) {
+export function RadarChart({ radar, role }: { radar: RadarProfile | null; role: RoleKey }) {
   if (!radar) return null;
   const n = radar.axes.length;
   const shape = radar.axes.map((a, i) => pt(i, n, a.radius));
 
   return (
-    <div className="radar-wrap">
+    <>
+      <h4 className="subsection-label">
+        Perfil de rendimiento
+        <InfoTip
+          text={`Cada eje se mide en desvíos estándar respecto del promedio del grupo en tu mismo rol, no en porcentaje: así el farmeo y la visión pesan igual en la figura aunque se muevan en rangos muy distintos. El anillo punteado del medio es ese promedio — lo que queda afuera es por encima del grupo y lo que queda adentro por debajo.`}
+        />
+        {/* La muestra al lado del título y no en un párrafo abajo: es lo que
+            hace creíble a la figura, pero son dos números, no un texto. */}
+        <span className="radar-sample">
+          tus {radar.ownGames} partidas como {ROLES[role].label} vs. {radar.peerGames} del grupo
+        </span>
+      </h4>
+      <div className="radar-wrap">
       <svg className="radar-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Radar de rendimiento por eje">
         {GRID_RINGS.map((r) => (
           <polygon
@@ -134,11 +148,7 @@ export function RadarChart({ radar }: { radar: RadarProfile | null }) {
         })}
       </div>
 
-      <p className="radar-note">
-        Tus {radar.ownGames} partidas en el rol contra las {radar.peerGames} del resto del grupo. Cada eje se mide en
-        desvíos respecto de ese promedio, no en porcentaje — así el farmeo y la visión pesan igual en la figura aunque
-        se muevan en rangos muy distintos.
-      </p>
     </div>
+    </>
   );
 }
