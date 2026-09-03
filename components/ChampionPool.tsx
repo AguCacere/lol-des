@@ -1,15 +1,10 @@
 import type { ChampionPoolEntry } from "@/lib/types";
 import { ChampIcon } from "./ChampIcon";
 import { championLabel } from "@/lib/champion-names";
-
-/**
- * Debajo de esto el winrate se muestra en gris en vez de verde o rojo. El
- * porcentaje sigue estando — lo que se saca es el COLOR, que es una
- * afirmación: "100%" sobre una sola partida pintado de verde dice "sos
- * bueno con este campeón" y el dato no dice eso, dice "ganaste una vez".
- * Mismo criterio que los deltas chicos de "Forma reciente".
- */
-const CONFIDENT_GAMES = 5;
+// Mismo umbral que usan los insights para decidir si se puede concluir algo
+// de un winrate: si no alcanza para sacar una conclusión, tampoco alcanza
+// para pintar el porcentaje de verde o rojo.
+import { CONFIDENT_GAMES } from "@/lib/champion-insights";
 
 /**
  * "Campeones más jugados" — agregado sobre TODAS las partidas ranked

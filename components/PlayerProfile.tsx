@@ -20,6 +20,7 @@ import { ChampIcon } from "./ChampIcon";
 import { MatchDetail } from "./MatchDetail";
 import { ChampionPool } from "./ChampionPool";
 import { MasteryPool } from "./MasteryPool";
+import { ChampionInsights } from "./ChampionInsights";
 import { Matchups } from "./Matchups";
 import { InsightsCard } from "./InsightsCard";
 import { RoleDistribution } from "./RoleDistribution";
@@ -516,12 +517,23 @@ export function PlayerProfile({
           </div>
         )}
 
-        {/* A lo ancho y debajo de las dos columnas: cada fila lleva dos
-            íconos, dos nombres, el oro a los 15 y el récord, y a media
-            columna eso se amontona. Además es otra unidad de análisis que
-            las listas de arriba — un par, no un campeón suelto. */}
         {tab === "campeones" && (
           <>
+            {/* Antes que los enfrentamientos porque conecta con las dos listas
+                de arriba: es la conclusión de mirarlas juntas, no un bloque
+                nuevo de datos. */}
+            {p.championInsights.length > 0 && (
+              <h4 className="subsection-label">
+                Lectura del pool
+                <InfoTip text="Sale de cruzar las dos listas de arriba: la maestría dice cuánto invertiste en cada campeón de toda tu carrera, el pool dice cómo te está yendo en ranked. Ninguna de las dos por separado puede señalar un campeón muy trabajado que no está rindiendo, o uno que te rinde sin ser de los tuyos." />
+              </h4>
+            )}
+            <ChampionInsights insights={p.championInsights} ddragonVersion={ddragonVersion} />
+
+            {/* A lo ancho y debajo de las dos columnas: cada fila lleva dos
+                íconos, dos nombres, el oro a los 15 y el récord, y a media
+                columna eso se amontona. Además es otra unidad de análisis que
+                las listas de arriba — un par, no un campeón suelto. */}
             <h4 className="subsection-label">Enfrentamientos de línea</h4>
             <Matchups matchups={p.matchups} ddragonVersion={ddragonVersion} />
           </>

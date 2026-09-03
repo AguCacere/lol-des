@@ -9,6 +9,7 @@ import { computeAegisStats } from "@/lib/aegis";
 import { computeRecentForm, type FormSample } from "@/lib/form";
 import { computeRadar, RADAR_METRICS, type MetricStats, type RadarMetric } from "@/lib/radar";
 import { computeMatchups, type MatchupSample } from "@/lib/matchups";
+import { computeChampionInsights } from "@/lib/champion-insights";
 import { computeMatchFlag, STATS_WINDOW_SIZE, type StatSample } from "@/lib/matchflags";
 import type { AegisStats, ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, DuoSharedMatch, FlexRank, LpHistoryPoint, MasteryEntry, Match, PersonalRecords, Player, RoleAverages, RoleKey } from "@/lib/types";
 
@@ -631,7 +632,14 @@ export async function GET() {
   }
 
   /** Top 5 champions by games played, from ALL stored matches — real stats, not fabricated. */
-  function championPool(puuid: string): ChampionPoolEntry[] {
+  /**
+   * TODOS los campeones jugados, no el top 5. El pool que viaja al cliente sí
+   * va recortado (championPool), pero el cruce con la maestría necesita la
+   * lista entera: sin ella, un campeón de mucha maestría que quedó sexto en
+   * partidas se vería igual que uno que nunca jugó, y computeChampionInsights
+   * afirmaría "no lo jugaste" sobre alguien que lo jugó cuatro veces.
+   */
+  function championPoolAll(puuid: string): ChampionPoolEntry[] {
     const stats = champStatsByPuuid.get(puuid);
     if (!stats) return [];
     return [...stats.entries()]
@@ -644,8 +652,11 @@ export async function GET() {
         avgKda: Number(((s.kSum + s.aSum) / Math.max(1, s.dSum)).toFixed(2)),
         avgCsPerMin: Number((s.csMinSum / s.games).toFixed(1)),
       }))
-      .sort((a, b) => b.games - a.games)
-      .slice(0, 5);
+      .sort((a, b) => b.games - a.games);
+  }
+
+  function championPool(puuid: string): ChampionPoolEntry[] {
+    return championPoolAll(puuid).slice(0, 5);
   }
 
   const CHAMPION_LEADERBOARD_MIN_GAMES = 50;
@@ -908,6 +919,7 @@ export async function GET() {
     const matches = matchesByPuuid.get(row.puuid) ?? [];
 
     const role = row.role ? normalizeRole(row.role) : mostPlayedRole(row.puuid) ?? "mid";
+    const mastery = masteryPoolByPuuid.get(row.puuid) ?? [];
 
     return {
       name: row.game_name,
@@ -926,7 +938,8 @@ export async function GET() {
       peakLp,
       flexRank: flexByPuuid.get(row.puuid) ?? null,
       championPool: championPool(row.puuid),
-      masteryPool: masteryPoolByPuuid.get(row.puuid) ?? [],
+      masteryPool: mastery,
+      championInsights: computeChampionInsights(mastery, championPoolAll(row.puuid)),
       liveGame: liveGameByPuuid.get(row.puuid) ?? null,
       matches,
       winrate: wins + losses > 0 ? Math.round((100 * wins) / (wins + losses)) : 0,

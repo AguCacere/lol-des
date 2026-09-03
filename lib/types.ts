@@ -1,3 +1,4 @@
+import type { ChampionInsight } from "./champion-insights";
 import type { ChampionMatchups } from "./matchups";
 import type { RadarProfile } from "./radar";
 
@@ -451,6 +452,8 @@ export interface Player {
   radar: RadarProfile | null;
   /** Enfrentamientos de línea agrupados por campeón propio (ver lib/matchups.ts), los campeones más jugados primero. Vacío hasta que un cruce se repita al menos MATCHUP_MIN_GAMES veces. */
   matchups: ChampionMatchups[];
+  /** El cruce entre maestría e historial real (ver lib/champion-insights.ts) — como mucho una observación de cada tipo. Vacío si ninguna se sostiene con los datos. */
+  championInsights: ChampionInsight[];
 }
 
 /**
