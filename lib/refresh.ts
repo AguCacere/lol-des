@@ -233,15 +233,23 @@ async function fetchAndStoreMatch(supabase: SupabaseClient, puuid: string, match
     // ignore — match still gets saved, just without spell names
   }
 
+  // The lane opponent is in the match payload we ALREADY have — same
+  // teamPosition, other team. Deliberately hoisted out of the timeline
+  // try/catch below: it costs no extra call, so a timeline failure (they do
+  // happen — see the 403 that silently emptied item_build for weeks) must
+  // not also cost us the matchup. Null when Riot didn't resolve a position
+  // (remakes, odd queues) or nobody matched it.
+  const enemy =
+    match.info.participants.find(
+      (p) => p.teamId !== me.teamId && p.teamPosition === me.teamPosition && me.teamPosition !== ""
+    ) ?? null;
+
   // Timeline is a separate, second Match-V5 call per match — gold diff vs.
   // the enemy in the same lane (teamPosition) at 10/15/20 min, plus first
   // blood/tower timing. Non-fatal: an older match or a transient failure
   // here shouldn't lose the rest of the match's real-time stats above.
   let timelineStats: Awaited<ReturnType<typeof extractTimelineStats>> | null = null;
   try {
-    const enemy = match.info.participants.find(
-      (p) => p.teamId !== me.teamId && p.teamPosition === me.teamPosition && me.teamPosition !== ""
-    );
     const timeline = await getMatchTimeline(matchId);
     timelineStats = extractTimelineStats(
       timeline,
@@ -309,6 +317,7 @@ async function fetchAndStoreMatch(supabase: SupabaseClient, puuid: string, match
     dragon_types: timelineStats?.dragonTypes ?? [],
     item_build: timelineStats?.itemBuild ?? [],
     team_position: me.teamPosition,
+    opponent_champion: enemy?.championName ?? null,
     queue_id: match.info.queueId,
     game_duration_s: match.info.gameDuration,
     played_at: new Date(match.info.gameCreation).toISOString(),

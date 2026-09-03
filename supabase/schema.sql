@@ -101,6 +101,7 @@ create table if not exists matches (
   dragon_types  text[] not null default '{}', -- monsterSubType (Match-V5 timeline) por cada dragón que MATÓ este jugador (no asistió), ej. {FIRE_DRAGON,WATER_DRAGON} — puede ser más corto que dragon_takedowns, que también cuenta asistencias
   item_build    int[] not null default '{}', -- itemId de cada ITEM_PURCHASED (Match-V5 timeline) de este jugador, EN ORDEN de compra real — no reconciliado contra ventas/undo, incluye consumibles/trinket. Vacío en partidas guardadas antes de que este campo existiera.
   team_position text,          -- TOP/JUNGLE/MIDDLE/BOTTOM/UTILITY
+  opponent_champion text,      -- campeón del rival del MISMO carril (mismo teamPosition, otro equipo). Sale del payload de Match-V5 que ya bajamos, sin llamada extra — es la base de los matchups ("con Caitlyn contra Jhin: 11V 8D"). Null si Riot no resolvió posición o nadie coincidió.
   queue_id      int not null default 420, -- Match-V5 queueId: 420=ranked solo/duo, 700=Clash (ver lib/clash.ts)
   game_duration_s int not null,
   played_at     timestamptz not null,
