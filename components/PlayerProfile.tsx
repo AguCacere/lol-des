@@ -69,19 +69,29 @@ export function PlayerProfile({
   const shownKey = displayed ? `${displayed.name}#${displayed.tag}` : null;
 
   // Mismo jugador con datos frescos: se cambia el objeto en su lugar, sin
-  // crossfade y sin tocar la pestaña ni la partida abierta. Va durante el
-  // render y no en un efecto porque es un AJUSTE de estado derivado — el
-  // patrón que documenta React y el mismo que usa useImageFallback acá al
-  // lado; en un efecto dispara un render en cascada.
-  //
-  // Acá estaba el bug: la guarda comparaba `player === displayed` por
-  // REFERENCIA, y el poll de "en vivo" reconstruye la lista entera cada 60s,
-  // así que fallaba siempre y disparaba el reset completo — te sacaba de
-  // "Campeones" a "Resumen" cada minuto. Peor con el análisis del pool, que
-  // vive dentro de esa pestaña: al resetear se desmontaba y perdías el
-  // informe recién generado.
+  // crossfade. Va durante el render y no en un efecto porque es un AJUSTE de
+  // estado derivado — el patrón que documenta React y el mismo que usa
+  // useImageFallback acá al lado; en un efecto dispara un render en cascada.
   if (player !== displayed && targetKey === shownKey) {
     setDisplayed(player);
+  }
+
+  // La pestaña se resetea si y SOLO SI cambió el jugador. Antes esto vivía
+  // adentro del setTimeout del crossfade, y ahí estaba el bug de fondo: el
+  // timeout se dispara ante cualquier cosa que haga diferir las claves,
+  // aunque sea por un solo render, y arrastraba el reset con él. Un `player`
+  // que se va a null por un render (una lista que se rearma, un refetch a
+  // mitad de camino) alcanzaba para tirarte de "Campeones" a "Resumen".
+  //
+  // Comparando contra la identidad del último jugador para el que se
+  // reseteó, ningún refetch puede disparar esto — solo un cambio real de
+  // jugador. Y el null se ignora a propósito: si vuelve el mismo jugador
+  // después de un parpadeo, no hay nada que resetear.
+  const [tabOwner, setTabOwner] = useState<string | null>(targetKey);
+  if (targetKey !== null && targetKey !== tabOwner) {
+    setTabOwner(targetKey);
+    setTab("resumen");
+    setExpandedMatch(null);
   }
 
   useEffect(() => {
@@ -92,8 +102,6 @@ export function PlayerProfile({
     const t = setTimeout(() => {
       setDisplayed(player);
       setFading(false);
-      setExpandedMatch(null);
-      setTab("resumen");
     }, 160);
     return () => clearTimeout(t);
   }, [player, targetKey, shownKey]);
