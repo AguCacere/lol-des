@@ -274,9 +274,13 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .live-popup{left:0; right:auto; top:calc(100% + 8px); transform-origin:top left; transform:translate(0, -4px) scale(0.97);}
   .live-popup::after{right:auto; left:14px; top:auto; bottom:100%; border-right-color:transparent; border-bottom-color:var(--surface-hover);}
 }
-.profile-live-banner{
-  display:flex; align-items:center; gap:8px; font-size:12px; color:var(--good);
-  background:var(--good-wash); border-radius:var(--radius-sm); padding:8px 12px; margin-top:8px;
+/* Antes era un bloque relleno de verde, y por eso era lo primero que mirabas
+   del header — por encima del rango, que es el titular. Como línea con punto
+   pulsante dice exactamente lo mismo sin robarle la jerarquía a nada, y de
+   paso usa el mismo .live-dot que los títulos de sección. */
+.profile-live-line{
+  display:flex; align-items:center; gap:7px;
+  font-size:12px; color:var(--good); margin-top:6px;
 }
 
 /* Fixed corner tray: one glass card listing everyone currently live, mounted
@@ -490,10 +494,17 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   opacity:1; transition:opacity .16s ease;
 }
 .profile.is-fading{opacity:0;}
+/* Tres zonas: identidad · roles · rango. Antes eran dos bloques a los
+   extremos con ~400px muertos en el medio, y el de la derecha era una pila
+   de siete elementos con tres formas distintas donde nada decía cuál era el
+   importante. */
 .profile-header{
-  display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap;
+  display:flex; align-items:flex-start; justify-content:space-between; gap:24px; flex-wrap:wrap;
   margin-bottom:22px; padding-bottom:20px; border-bottom:1px solid var(--border-soft);
 }
+/* No crece (flex-grow 0): si se lo dejaba crecer, con pocos roles quedaba
+   estirado y volvía a abrirse el hueco que este bloque vino a llenar. */
+.profile-roles{display:flex; flex-direction:column; gap:9px; flex:0 1 auto;}
 /* min-width:0 on the flex chain + overflow-wrap so a long Riot ID wraps
    instead of pushing the whole header (and the page) past the viewport on
    mobile — flex items default to min-width:auto, which lets a nowrap-ish
@@ -523,10 +534,47 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .profile-name{font-family:var(--font-display); font-weight:700; font-size:21px; margin:0; display:flex; align-items:center; gap:9px; flex-wrap:wrap; overflow-wrap:anywhere;}
 .profile-sub{font-size:12.5px; color:var(--text-muted); margin-top:3px;}
-.profile-tier{text-align:right;}
-.profile-tier .tn{font-family:var(--font-display); font-weight:700; font-size:17px;}
-.profile-tier .tl{font-family:var(--font-mono); font-size:12px; color:var(--text-muted); margin-bottom:6px;}
-.profile-tier-meta{display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:wrap;}
+.profile-tier{text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:9px; flex:0 0 auto;}
+.profile-tier-top{display:flex; align-items:center; gap:11px;}
+.profile-tier-emblem{width:44px; height:44px; flex:none; object-fit:contain;}
+.profile-tier-names{text-align:right;}
+.profile-tier .tn{font-family:var(--font-display); font-weight:700; font-size:19px; line-height:1.15;}
+.profile-tier .tl{font-family:var(--font-mono); font-size:12px; color:var(--text-muted);}
+.profile-tier-meta{display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:wrap;}
+
+/* La progresión dentro de la división. Los LP van de 0 a 100 ahí adentro,
+   así que la proporción es real y no una escala inventada — por eso acá sí
+   corresponde una barra y no otro chip de texto. */
+.rank-progress{display:flex; flex-direction:column; align-items:flex-end; gap:5px; width:100%; min-width:190px;}
+.rank-progress-track{
+  width:100%; height:5px; border-radius:99px; background:var(--track); overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04);
+}
+/* El color lo pone el tier desde el JSX: es la misma señal que el nombre del
+   rango de arriba, y con un acento fijo la barra se leía como un progreso
+   genérico y no como "te falta esto para el próximo escalón". */
+.rank-progress-fill{height:100%; border-radius:99px; transition:width .3s ease;}
+.rank-progress-label{font-size:11px; color:var(--text-muted); white-space:nowrap;}
+.rank-progress-label strong{color:var(--text-secondary); font-family:var(--font-mono); font-weight:700;}
+
+/* Contexto, no titular: máximo y flex eran dos pills con fondo que competían
+   con el rango. Como texto apagado en una línea siguen estando y dejan de
+   pelear. */
+.profile-tier-context{
+  display:flex; align-items:center; justify-content:flex-end; gap:6px 14px; flex-wrap:wrap;
+  font-size:11px; color:var(--text-muted);
+}
+.profile-flex{display:inline-flex; align-items:center; gap:5px;}
+@media (max-width:760px){
+  /* Apilado, el rango alineado a la derecha quedaba desfasado contra la
+     identidad y los roles, que van a la izquierda — tres bloques con dos
+     ejes de lectura distintos. Acá pasa a ocupar el ancho entero y alinear
+     como los otros dos. */
+  .profile-tier{align-items:stretch; text-align:left; width:100%;}
+  .profile-tier-names{text-align:left;}
+  .profile-tier-meta, .profile-tier-context{justify-content:flex-start;}
+  .rank-progress{align-items:flex-start;}
+}
 .streak-chip{
   font-size:10.5px; font-weight:700; letter-spacing:0.02em; padding:3px 9px; border-radius:999px;
   white-space:nowrap; display:inline-flex; align-items:center; gap:3px;
@@ -547,9 +595,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   share one pill treatment so this reads as a considered row of info, not
   leftover text lines plus one chip.
 */
-.profile-tier-peak{
-  margin-top:12px; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px;
-}
 .info-pill{
   display:inline-flex; align-items:center; gap:5px; white-space:nowrap;
   font-size:11px; color:var(--text-secondary);
@@ -567,10 +612,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* "Reparto de roles" — full-width strip between the profile header and the
    Macro/Micro columns, not squeezed into either side of the header (which is
    already busy with name/rank/streak/peak-LP chips). */
-.role-dist-wrap{
-  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
-  margin-bottom:22px; padding-bottom:20px; border-bottom:1px solid var(--border-soft);
-}
 .role-dist-label{flex:none;}
 .role-dist{display:flex; gap:8px;}
 .role-dist-item{display:flex; flex-direction:column; align-items:center; gap:4px;}

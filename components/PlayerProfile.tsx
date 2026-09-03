@@ -11,6 +11,7 @@ import {
   trendColor,
   nextDivisionInfo,
   rankScore,
+  rankEmblemUrl,
   liveGameTimeLabel,
 } from "@/lib/ladder";
 import { SparkChart } from "./SparkChart";
@@ -179,6 +180,9 @@ export function PlayerProfile({
   const isAtPeak = p.peakLp.tier === p.tierKey && p.peakLp.division === p.division && p.peakLp.lp === p.lp;
   const next = nextDivisionInfo(p.tierKey, p.division, p.lp);
   const nextTier = next ? tierFor(next.tier) : null;
+  // Null en los tiers para los que todavía no tenemos arte (ver
+  // RANK_EMBLEMS_AVAILABLE) — ahí el rango queda como estaba, solo texto.
+  const emblemUrl = rankEmblemUrl(p.tierKey);
 
   return (
     <section id="profileSection">
@@ -212,18 +216,49 @@ export function PlayerProfile({
                 {ROLES[p.role].label} · main {championLabel(p.mainChamp)} · {p.wins + p.losses} partidas esta season
               </p>
               {p.liveGame && (
-                <div className="profile-live-banner">
+                // Punto pulsante y texto, no el bloque verde sólido de antes:
+                // llenar una caja de color hacía que lo primero que mirabas
+                // del header fuera esto y no el rango, que es el titular.
+                <p className="profile-live-line">
                   <span className="live-dot" />
-                  En vivo ahora · {championLabel(p.liveGame.champion)} · {p.liveGame.queueLabel} · {liveGameTimeLabel(p.liveGame.startedMinutesAgo)}
-                </div>
+                  En vivo · {championLabel(p.liveGame.champion)} · {p.liveGame.queueLabel} ·{" "}
+                  {liveGameTimeLabel(p.liveGame.startedMinutesAgo)}
+                </p>
               )}
             </div>
           </div>
-          <div className="profile-tier">
-            <div className="tn" style={{ color: t.fg }}>
-              {t.name} {p.division}
+
+          {/* El reparto de roles pasa de una franja propia a la zona del
+              medio del header: llena el hueco que quedaba entre el nombre y
+              el rango con algo que ya existía, y le saca al perfil una fila
+              entera de alto — que en mobile es donde más molesta. */}
+          {p.roleDistribution.length > 0 && (
+            <div className="profile-roles">
+              <span className="role-dist-label">
+                Reparto de roles
+                <InfoTip text="% de todas tus partidas guardadas jugadas en cada rol — no solo la línea que se muestra como main arriba." />
+              </span>
+              <RoleDistribution distribution={p.roleDistribution} currentRole={p.role} />
             </div>
-            <div className="tl">{p.lp} LP</div>
+          )}
+
+          <div className="profile-tier">
+            <div className="profile-tier-top">
+              {/* El emblema le da al rango el ancla visual que le faltaba:
+                  era el dato más importante del header y competía como texto
+                  suelto contra cuatro chips de colores. */}
+              {emblemUrl && (
+                // eslint-disable-next-line @next/next/no-img-element -- ícono local fijo, no vale la config de next/image
+                <img src={emblemUrl} alt="" className="profile-tier-emblem" />
+              )}
+              <div className="profile-tier-names">
+                <div className="tn" style={{ color: t.fg }}>
+                  {t.name} {p.division}
+                </div>
+                <div className="tl">{p.lp} LP</div>
+              </div>
+            </div>
+
             <div className="profile-tier-meta">
               <span className={`delta-chip ${lpDelta >= 0 ? "up" : "down"}`}>
                 {lpDelta >= 0 ? "▲" : "▼"} {Math.abs(lpDelta)} {lpDeltaUnit}
@@ -235,23 +270,42 @@ export function PlayerProfile({
                 </span>
               )}
             </div>
-            <div className="profile-tier-peak">
-              <span className="info-pill">
-                Máximo <InfoTip text={METRIC_INFO.peakLp} />:{" "}
-                <span style={{ color: peakTier.fg }}>{peakTier.name} {p.peakLp.division}</span> · {p.peakLp.lp} LP
-                {isAtPeak && " (actual)"}
+
+            {/* Barra en vez de la pill "Faltan N LP para X". Los LP dentro de
+                una división van de 0 a 100, así que la proporción existe de
+                verdad y se lee de un vistazo; el texto que estaba antes queda
+                igual debajo, sin perder el número exacto. */}
+            <div className="rank-progress">
+              <div className="rank-progress-track">
+                <div
+                  className="rank-progress-fill"
+                  style={{ width: `${Math.max(2, Math.min(100, p.lp))}%`, background: t.fg }}
+                />
+              </div>
+              <span className="rank-progress-label">
+                {next ? (
+                  <>
+                    Faltan <strong>{next.lpNeeded} LP</strong> para {nextTier!.name}
+                    {next.division ? ` ${next.division}` : ""}
+                  </>
+                ) : (
+                  "Tope de división del sistema alcanzado"
+                )}
               </span>
-              {next ? (
-                <span className="info-pill">
-                  Faltan <strong>{next.lpNeeded} LP</strong> para{" "}
-                  {nextTier!.name}
-                  {next.division ? ` ${next.division}` : ""}
-                </span>
-              ) : (
-                <span className="info-pill">Tope de división del sistema alcanzado</span>
-              )}
+            </div>
+
+            {/* Máximo y Flex en una sola línea apagada: son contexto, no
+                titulares, y como pills competían con el rango de arriba. */}
+            <div className="profile-tier-context">
+              <span>
+                Máximo <InfoTip text={METRIC_INFO.peakLp} />{" "}
+                <span style={{ color: peakTier.fg }}>
+                  {peakTier.name} {p.peakLp.division}
+                </span>{" "}
+                · {p.peakLp.lp} LP{isAtPeak && " (actual)"}
+              </span>
               {p.flexRank && (
-                <span className="info-pill flex-chip" title={`Flex: ${tierFor(p.flexRank.tier).name} ${p.flexRank.division} · ${p.flexRank.lp} LP`}>
+                <span className="profile-flex">
                   <span
                     className="flex-chip-badge"
                     style={{ background: tierFor(p.flexRank.tier).bg, color: tierFor(p.flexRank.tier).fg }}
@@ -265,16 +319,6 @@ export function PlayerProfile({
             </div>
           </div>
         </div>
-
-        {p.roleDistribution.length > 0 && (
-          <div className="role-dist-wrap">
-            <span className="role-dist-label">
-              Reparto de roles
-              <InfoTip text="% de todas tus partidas guardadas jugadas en cada rol — no solo la línea que se muestra como main arriba." />
-            </span>
-            <RoleDistribution distribution={p.roleDistribution} currentRole={p.role} />
-          </div>
-        )}
 
         <div className="profile-tabs" role="tablist">
           {PROFILE_TABS.map((t) => (
