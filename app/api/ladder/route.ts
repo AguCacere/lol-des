@@ -7,6 +7,7 @@ import { getLatestVersion, profileIconUrl, runeIconUrlByName, summonerSpellIconU
 import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { computeAegisStats } from "@/lib/aegis";
 import { computeRecentForm, type FormSample } from "@/lib/form";
+import { computeRadar, RADAR_METRICS, type MetricStats, type RadarMetric } from "@/lib/radar";
 import { computeMatchFlag, STATS_WINDOW_SIZE, type StatSample } from "@/lib/matchflags";
 import type { AegisStats, ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, DuoSharedMatch, FlexRank, LpHistoryPoint, MasteryEntry, Match, PersonalRecords, Player, RoleAverages, RoleKey } from "@/lib/types";
 
@@ -242,25 +243,87 @@ export async function GET() {
   // is what makes role comparisons work for someone who rotates roles
   // constantly — the pool is every REAL game in that role from the whole
   // group, not just players whose overall role also happens to match.
-  interface RoleAgg {
-    count: number;
-    kdaSum: number;
-    csMinSum: number;
-    dmgShareSum: number;
-    killPartSum: number;
-    objShareSum: number;
+  //
+  // Se acumula por MÉTRICA y no con un solo `count` global porque no toda
+  // partida tiene todas: kill_participation y obj_share nacieron con
+  // `not null default 0` y sin backfill (ver el ALTER de a336cae), así que
+  // ~130 partidas viejas traen un 0 que nunca se midió. Contarlas hundía el
+  // promedio del rol de esas dos métricas. Con un n propio por métrica, esas
+  // partidas simplemente no aportan al eje que no tienen y sí a los demás.
+  //
+  // Y además de la suma se guarda la suma de cuadrados: el radar necesita el
+  // desvío estándar del rol, no solo el promedio (ver lib/radar.ts), y sale
+  // de la misma pasada sin recorrer las partidas otra vez.
+  type RoleAgg = Record<RadarMetric, { n: number; sum: number; sumSq: number }>;
+  function emptyRoleAgg(): RoleAgg {
+    return Object.fromEntries(RADAR_METRICS.map((k) => [k, { n: 0, sum: 0, sumSq: 0 }])) as RoleAgg;
+  }
+  /**
+   * Los siete números de UNA partida, o null en la métrica que esa partida no
+   * tenga. El 0 de kill_participation/obj_share se trata como "sin dato" por
+   * lo explicado arriba; el costo es perder algún 0 real (un jugador que no
+   * le pegó a ningún objetivo), que es raro y no justifica sesgar el resto.
+   */
+  function radarMetricsOf(row: MatchRow): Record<RadarMetric, number | null> {
+    const minutes = Math.max(1, row.game_duration_s / 60);
+    const killPart = Number(row.kill_participation ?? 0);
+    const objShare = Number(row.obj_share ?? 0);
+    return {
+      kda: (row.kills + row.assists) / Math.max(1, row.deaths),
+      killParticipation: killPart === 0 ? null : killPart,
+      dmgShare: Number(row.dmg_share ?? 0),
+      objShare: objShare === 0 ? null : objShare,
+      goldPerMin: row.gold_earned / minutes,
+      csPerMin: Number(row.cs_per_min),
+      visionPerMin: row.vision_score / minutes,
+    };
   }
   const roleAggByRole = new Map<RoleKey, RoleAgg>();
   const roleAggByPuuid = new Map<string, Map<RoleKey, RoleAgg>>();
   function addRoleAgg(map: Map<RoleKey, RoleAgg>, role: RoleKey, row: MatchRow) {
-    const agg = map.get(role) ?? { count: 0, kdaSum: 0, csMinSum: 0, dmgShareSum: 0, killPartSum: 0, objShareSum: 0 };
-    agg.count += 1;
-    agg.kdaSum += (row.kills + row.assists) / Math.max(1, row.deaths);
-    agg.csMinSum += Number(row.cs_per_min);
-    agg.dmgShareSum += Number(row.dmg_share ?? 0);
-    agg.killPartSum += Number(row.kill_participation ?? 0);
-    agg.objShareSum += Number(row.obj_share ?? 0);
+    const agg = map.get(role) ?? emptyRoleAgg();
+    const values = radarMetricsOf(row);
+    for (const key of RADAR_METRICS) {
+      const v = values[key];
+      if (v === null || !Number.isFinite(v)) continue;
+      agg[key].n += 1;
+      agg[key].sum += v;
+      agg[key].sumSq += v * v;
+    }
     map.set(role, agg);
+  }
+  /** El resto del grupo en `role`: el total global menos lo que aportó este jugador, métrica por métrica. */
+  function peerStatsFor(puuid: string, role: RoleKey): Partial<Record<RadarMetric, MetricStats>> {
+    const global = roleAggByRole.get(role);
+    if (!global) return {};
+    const own = roleAggByPuuid.get(puuid)?.get(role);
+    const out: Partial<Record<RadarMetric, MetricStats>> = {};
+    for (const key of RADAR_METRICS) {
+      const n = global[key].n - (own?.[key].n ?? 0);
+      if (n <= 1) continue;
+      const sum = global[key].sum - (own?.[key].sum ?? 0);
+      const sumSq = global[key].sumSq - (own?.[key].sumSq ?? 0);
+      const mean = sum / n;
+      // Varianza poblacional a partir de sumas, con piso en 0: la resta de
+      // acumuladores en punto flotante puede dar un negativo minúsculo
+      // cuando la dispersión real es prácticamente nula, y Math.sqrt de eso
+      // devuelve NaN, que se propagaría a todo el eje.
+      out[key] = { n, mean, sd: Math.sqrt(Math.max(0, sumSq / n - mean * mean)) };
+    }
+    return out;
+  }
+  /** Lo propio en `role`, en el mismo formato — el sd no se usa, pero sale gratis. */
+  function ownStatsFor(puuid: string, role: RoleKey): Partial<Record<RadarMetric, MetricStats>> {
+    const own = roleAggByPuuid.get(puuid)?.get(role);
+    if (!own) return {};
+    const out: Partial<Record<RadarMetric, MetricStats>> = {};
+    for (const key of RADAR_METRICS) {
+      const { n, sum, sumSq } = own[key];
+      if (n <= 0) continue;
+      const mean = sum / n;
+      out[key] = { n, mean, sd: Math.sqrt(Math.max(0, sumSq / n - mean * mean)) };
+    }
+    return out;
   }
 
   // Best/most-extreme single-game numbers across ALL stored matches — feeds
@@ -512,18 +575,22 @@ export async function GET() {
    */
   function roleAveragesFor(puuid: string, role: RoleKey): RoleAverages {
     const empty: RoleAverages = { kda: null, csPerMin: null, dmgShare: null, killParticipation: null, objShare: null, sampleSize: 0 };
-    const global = roleAggByRole.get(role);
-    if (!global) return empty;
-    const own = roleAggByPuuid.get(puuid)?.get(role);
-    const count = global.count - (own?.count ?? 0);
-    if (count <= 0) return empty;
+    const peer = peerStatsFor(puuid, role);
+    if (!peer.kda) return empty;
     return {
-      kda: (global.kdaSum - (own?.kdaSum ?? 0)) / count,
-      csPerMin: (global.csMinSum - (own?.csMinSum ?? 0)) / count,
-      dmgShare: (global.dmgShareSum - (own?.dmgShareSum ?? 0)) / count,
-      killParticipation: (global.killPartSum - (own?.killPartSum ?? 0)) / count,
-      objShare: (global.objShareSum - (own?.objShareSum ?? 0)) / count,
-      sampleSize: count,
+      kda: peer.kda.mean,
+      csPerMin: peer.csPerMin?.mean ?? null,
+      dmgShare: peer.dmgShare?.mean ?? null,
+      // Estas dos ahora salen de su propio n (ver radarMetricsOf): las
+      // partidas viejas con el 0 falso de kill_participation/obj_share ya no
+      // las hunden. El número que muestra "Comparación con tu rol" sube un
+      // poco respecto de antes, y ese de ahora es el correcto.
+      killParticipation: peer.killParticipation?.mean ?? null,
+      objShare: peer.objShare?.mean ?? null,
+      // El KDA lo tiene toda partida guardada, así que su n es el total de
+      // partidas del rol — la misma "cantidad de partidas comparadas" que
+      // este campo significaba antes.
+      sampleSize: peer.kda.n,
     };
   }
 
@@ -849,6 +916,7 @@ export async function GET() {
       // que es justo el orden que computeRecentForm espera para cortar la
       // ventana — al revés que computeAegisStats, que lo necesita ascendente.
       recentForm: computeRecentForm(rankedMatchesByPuuid.get(row.puuid) ?? []),
+      radar: computeRadar(ownStatsFor(row.puuid, role), peerStatsFor(row.puuid, role)),
     };
   });
 

@@ -22,6 +22,7 @@ import { MasteryPool } from "./MasteryPool";
 import { InsightsCard } from "./InsightsCard";
 import { RoleDistribution } from "./RoleDistribution";
 import { PersonalRecords } from "./PersonalRecords";
+import { RadarChart } from "./RadarChart";
 import { RecentForm } from "./RecentForm";
 import { AegisStats } from "./AegisStats";
 import { InfoTip } from "./InfoTip";
@@ -485,6 +486,11 @@ export function PlayerProfile({
             <RecentForm form={p.recentForm} />
             <div className="stack-cols">
               <div>
+                <h4 className="subsection-label">Perfil de rendimiento</h4>
+                <RadarChart radar={p.radar} />
+              </div>
+
+              <div>
                 <h4 className="subsection-label">Comparación con tu rol</h4>
                 <div className="cmp-card">
                   <CmpBar
@@ -512,9 +518,6 @@ export function PlayerProfile({
 
                 <h4 className="subsection-label">Fortalezas y debilidades</h4>
                 <InsightsCard strengths={strengths} weaknesses={weaknesses} sampleSize={roleAvg.sampleSize} />
-              </div>
-
-              <div>
                 {p.personalRecords && (
                   <>
                     <h4 className="subsection-label">Récords personales</h4>

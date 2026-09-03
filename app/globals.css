@@ -738,6 +738,50 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   content:""; flex:1; height:1px; margin-left:4px; background:rgba(255,255,255,0.08);
 }
 
+/* Radar de rendimiento (ver lib/radar.ts y components/RadarChart.tsx).
+   Card propia y no .stat-grid: es una figura, no una tabla, y necesita su
+   propio fondo para que el polígono no flote sobre el fondo de la página. */
+.radar-wrap{
+  background:var(--surface-raised); border-radius:var(--radius-md); box-shadow:var(--shadow-sm);
+  padding:14px 14px 12px;
+}
+.radar-svg{display:block; width:100%; max-width:320px; height:auto; margin:0 auto;}
+.radar-ring{fill:none; stroke:var(--border-soft); stroke-width:1;}
+/* El anillo del promedio del grupo es la única referencia que hay que
+   entender para leer la figura, así que se separa del resto de la grilla:
+   punteado y en dorado apagado en vez de una línea más igual a las otras. */
+.radar-ring.is-peer{stroke:var(--accent-dim); stroke-dasharray:3 3; opacity:0.55;}
+.radar-spoke{stroke:var(--border-soft); stroke-width:1;}
+.radar-shape{fill:var(--accent-wash); stroke:var(--accent); stroke-width:1.75; stroke-linejoin:round;}
+.radar-dot{fill:var(--accent);}
+.radar-label{
+  font-family:var(--font-body); font-size:9px; font-weight:600;
+  fill:var(--text-muted); letter-spacing:0.02em;
+}
+.radar-legend{
+  display:flex; justify-content:center; gap:14px; flex-wrap:wrap;
+  margin:6px 0 12px; font-size:10.5px; color:var(--text-muted);
+}
+.radar-legend-item{display:inline-flex; align-items:center; gap:5px;}
+.radar-swatch{width:10px; height:10px; border-radius:2px; flex:none;}
+.radar-swatch.you{background:var(--accent-wash); border:1.5px solid var(--accent);}
+.radar-swatch.peer{border-top:2px dashed var(--accent-dim); height:0; border-radius:0; opacity:0.8;}
+/* La tabla debajo del dibujo: el radar da la forma de un vistazo, pero el
+   número exacto de cada eje hay que poder leerlo igual — un polígono no se
+   mide a ojo. */
+.radar-table{display:flex; flex-direction:column; gap:1px;}
+.radar-row{
+  display:grid; grid-template-columns:1fr auto auto; align-items:baseline; gap:10px;
+  padding:5px 2px; border-top:1px solid var(--border-soft);
+}
+.radar-row-k{display:flex; align-items:center; gap:3px; font-size:11px; color:var(--text-secondary);}
+.radar-row-v{font-family:var(--font-stat); font-size:13px; font-weight:800; font-variant-numeric:tabular-nums;}
+.radar-row-peer{font-size:10.5px; font-variant-numeric:tabular-nums; min-width:7ch; text-align:right;}
+.radar-row-peer.up{color:var(--good);}
+.radar-row-peer.down{color:var(--critical);}
+.radar-row-peer.flat{color:var(--text-muted);}
+.radar-note{margin:10px 0 0; font-size:10.5px; line-height:1.5; color:var(--text-muted);}
+
 /* "Forma reciente" — mismo material que .stat-grid (panel único, divisiones
    finas) pero 4 columnas y sin iconos: son 8 métricas, y un icono por tile
    convertía una tabla de números en una pared de decoración. La jerarquía
