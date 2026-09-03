@@ -125,12 +125,20 @@ export default function Home() {
     // scenes. Slower than the live-status poll on purpose: this one re-reads
     // and re-aggregates the full ladder, so it doesn't need 60s granularity
     // to feel current.
+    //
+    // Y NO corre con un perfil abierto. Este refresh reemplaza la lista
+    // entera de jugadores por objetos nuevos, y eso reconstruye el perfil que
+    // estás leyendo debajo: la pestaña activa ahora sobrevive (ver
+    // PlayerProfile), pero cualquier estado local del subárbol se pierde
+    // igual. Refrescar por atrás datos que alguien está mirando es molesto y
+    // no urgente — el ladder se pone al día apenas cerrás el perfil, y el
+    // estado "en vivo", que sí es urgente, lo sigue trayendo el otro poll.
     const FULL_REFRESH_MS = 5 * 60 * 1000;
     const interval = setInterval(() => {
-      if (document.visibilityState === "visible") loadLadder();
+      if (document.visibilityState === "visible" && activeKey === null) loadLadder();
     }, FULL_REFRESH_MS);
     return () => clearInterval(interval);
-  }, [loadLadder]);
+  }, [loadLadder, activeKey]);
 
   const loadClash = useCallback(async () => {
     setClashLoading(true);
