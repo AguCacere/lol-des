@@ -6,6 +6,7 @@ import {
   getMatchTimeline,
   getSummonerByPuuid,
   getTopChampionMasteries,
+  RiotRateLimitError,
   type RiotLeagueEntry,
 } from "./riot";
 import { championNameById, runeNameById, summonerSpellNameById } from "./ddragon";
@@ -152,31 +153,21 @@ async function upsertRankSnapshot(supabase: SupabaseClient, puuid: string, entry
 }
 
 /**
- * Fetches full detail + timeline for one matchId and inserts it into
- * `matches`. Shared by refreshOne (last 20 ids, every ~15min) and
- * backfillOne (much deeper one-time history pull) — the actual
- * fetch/parse/insert logic is identical either way, only how the caller
- * gets its list of matchIds differs. Returns a warning string if the match
- * itself couldn't be fetched (transient Riot hiccup — non-fatal, caller just
- * skips it and tries again next time), or null on success.
+ * Arma la fila de `matches` para UN jugador dentro de una partida ya bajada.
+ * Separado del guardado a propósito: la misma fila la escribe un INSERT
+ * (partida nueva, ver fetchAndStoreMatch) o un UPDATE (reparación de una
+ * fila vieja a la que le faltan columnas, ver repairMatchRow). Tener una
+ * sola función que la arma es lo que garantiza que las dos escriban
+ * exactamente lo mismo y no se vayan separando con el tiempo.
+ *
+ * Devuelve null si el jugador no está en esa partida (no debería pasar,
+ * pero Riot devuelve lo que devuelve).
  */
-async function fetchAndStoreMatch(supabase: SupabaseClient, puuid: string, matchId: string): Promise<string | null> {
-  let match: Awaited<ReturnType<typeof getMatchById>>;
-  try {
-    match = await getMatchById(matchId);
-  } catch (err) {
-    // Riot sometimes lists a match id (via the ids endpoint) slightly before
-    // the full match detail is actually fetchable — a transient 404/5xx here
-    // used to blow up the WHOLE refresh for this player (no try/catch), which
-    // meant every later matchId, champion mastery, and the profile icon never
-    // ran either. Worse: since the match never got marked known, the NEXT
-    // cron cycle hit the exact same not-yet-ready match first and failed
-    // identically — a brand-new match could get stuck failing forever
-    // instead of just needing one more cron tick once Riot caught up.
-    const message = err instanceof Error ? err.message : String(err);
-    console.error(`fetchAndStoreMatch(${puuid}): match ${matchId} fetch failed —`, message);
-    return `match ${matchId}: ${message}`;
-  }
+async function buildMatchRow(
+  puuid: string,
+  matchId: string,
+  match: Awaited<ReturnType<typeof getMatchById>>
+): Promise<{ row: Record<string, unknown>; timelineOk: boolean } | null> {
   const me = match.info.participants.find((p) => p.puuid === puuid);
   if (!me) return null;
 
@@ -258,11 +249,18 @@ async function fetchAndStoreMatch(supabase: SupabaseClient, puuid: string, match
       match.info.gameDuration,
       me.teamId
     );
-  } catch {
-    // ignore — match still gets saved, just without timeline-derived stats
+  } catch (err) {
+    // La partida igual se guarda, pero SIN silencio: este catch mudo es lo
+    // que dejó pasar semanas un 403 por un path mal escrito, con item_build
+    // y gold_diff_* vaciándose sin que nadie se enterara. Un fallo puntual
+    // acá sigue siendo no fatal; uno sistemático ahora se ve en los logs.
+    console.error(
+      `buildMatchRow(${puuid}): timeline de ${matchId} falló —`,
+      err instanceof Error ? err.message : err
+    );
   }
 
-  const { error: insertError } = await supabase.from("matches").insert({
+  const row: Record<string, unknown> = {
     match_id: matchId,
     puuid,
     champion: me.championName,
@@ -321,7 +319,41 @@ async function fetchAndStoreMatch(supabase: SupabaseClient, puuid: string, match
     queue_id: match.info.queueId,
     game_duration_s: match.info.gameDuration,
     played_at: new Date(match.info.gameCreation).toISOString(),
-  });
+  };
+  return { row, timelineOk: timelineStats !== null };
+}
+
+/**
+ * Fetches full detail + timeline for one matchId and inserts it into
+ * `matches`. Shared by refreshOne (last 20 ids, every ~15min) and
+ * backfillOne (much deeper one-time history pull) — the actual
+ * fetch/parse/insert logic is identical either way, only how the caller
+ * gets its list of matchIds differs. Returns a warning string if the match
+ * itself couldn't be fetched (transient Riot hiccup — non-fatal, caller just
+ * skips it and tries again next time), or null on success.
+ */
+async function fetchAndStoreMatch(supabase: SupabaseClient, puuid: string, matchId: string): Promise<string | null> {
+  let match: Awaited<ReturnType<typeof getMatchById>>;
+  try {
+    match = await getMatchById(matchId);
+  } catch (err) {
+    // Riot sometimes lists a match id (via the ids endpoint) slightly before
+    // the full match detail is actually fetchable — a transient 404/5xx here
+    // used to blow up the WHOLE refresh for this player (no try/catch), which
+    // meant every later matchId, champion mastery, and the profile icon never
+    // ran either. Worse: since the match never got marked known, the NEXT
+    // cron cycle hit the exact same not-yet-ready match first and failed
+    // identically — a brand-new match could get stuck failing forever
+    // instead of just needing one more cron tick once Riot caught up.
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`fetchAndStoreMatch(${puuid}): match ${matchId} fetch failed —`, message);
+    return `match ${matchId}: ${message}`;
+  }
+
+  const built = await buildMatchRow(puuid, matchId, match);
+  if (!built) return null;
+
+  const { error: insertError } = await supabase.from("matches").insert(built.row);
   // Fail loud instead of silently dropping the match — if this is a schema
   // mismatch (e.g. a migration that hasn't run yet), every remaining
   // matchId in the caller's loop would fail identically anyway, so stop here
@@ -532,6 +564,161 @@ export async function backfillOne(
     fetched: ranked.fetched + clash.fetched,
     alreadyKnown: ranked.found - ranked.fetched + (clash.found - clash.fetched),
     warnings: [...ranked.warnings, ...clash.warnings],
+  };
+}
+
+/**
+ * Filas de `matches` guardadas antes de que existieran columnas que hoy sí
+ * llenamos. No es que falten partidas — la fila está completa en lo básico
+ * (campeón, KDA, CS, oro, resultado); lo que está vacío son campos que se
+ * agregaron después y a los que nadie les volvió a pedir el dato a Riot:
+ *
+ *   - item_build / dragon_types  (columna del 31/08, y encima el timeline
+ *     tiraba 403 hasta el 01/09 — ver el fix en getMatchTimeline)
+ *   - gold_diff_* y los first_*  (dependían del mismo timeline roto)
+ *   - turret/dragon/baron/herald_takedowns  (columnas del 01/09)
+ *   - opponent_champion          (columna del 03/09, base de los matchups)
+ *
+ * Por qué no sirve backfillOne para esto: esa función lee los match_id que
+ * ya están guardados y los descarta ANTES de llamar a Riot — está hecha para
+ * agregar lo que falta, y saltea justamente las filas que hay que reparar.
+ *
+ * Idempotente y reanudable vía `repaired_at`: una fila reparada queda
+ * marcada y no vuelve a entrar, así que alcanza con volver a llamar hasta
+ * que `remaining` llegue a cero.
+ *
+ * Una fila se marca SIEMPRE, incluso si el timeline no vino. La tentación es
+ * no marcarla para reintentarla sola, pero eso cuelga la reparación entera:
+ * la tanda se toma las más nuevas primero, y una partida cuyo timeline Riot
+ * ya no tiene volvería a salir elegida en cada corrida, tapando el lugar de
+ * las que sí se pueden arreglar. Esas filas se cuentan aparte como `partial`
+ * — igual ganaron todo lo que sale del payload de la partida
+ * (opponent_champion, los takedowns), solo les faltan los campos del
+ * timeline. Si son muchas y querés reintentarlas:
+ *
+ *   update matches set repaired_at = null where repaired_at is not null and item_build = '{}';
+ */
+
+/** Filas por tanda. A ~2,4s por fila esto entra cómodo en los 300s de maxDuration de Vercel. */
+const REPAIR_DEFAULT_BATCH = 100;
+const REPAIR_HARD_CAP = 400;
+/**
+ * Pausa entre filas. Una key personal aguanta ~100 requests cada 2 minutos y
+ * cada fila gasta 2 (partida + timeline), así que ~1,2s por request es el
+ * ritmo sostenible. Ir más rápido solo cambia el 429 de lugar: en vez de
+ * fallar al final de la tanda falla en el medio, y hay que reintentar igual.
+ */
+const REPAIR_PACE_MS = 2400;
+
+export interface RepairResult {
+  /** Filas reparadas del todo (partida + timeline). */
+  repaired: number;
+  /** Filas reparadas a medias: el timeline no vino, así que les faltan build y gold_diff_*. Igual quedan marcadas — ver el comentario de arriba. */
+  partial: number;
+  /** Filas que siguen pendientes después de esta tanda. */
+  remaining: number;
+  warnings: string[];
+}
+
+/** Espera `ms`. Solo para respetar el rate limit de Riot, nunca para pollear. */
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Re-pide una partida y pisa la fila existente con TODAS las columnas de hoy. */
+async function repairMatchRow(
+  supabase: SupabaseClient,
+  puuid: string,
+  matchId: string
+): Promise<{ ok: boolean; timelineOk: boolean; warning?: string }> {
+  let match: Awaited<ReturnType<typeof getMatchById>>;
+  try {
+    match = await getMatchById(matchId);
+  } catch (err) {
+    // Un 429 no es un problema de ESTA fila, es que hay que frenar: se
+    // propaga para que el loop corte la tanda entera en vez de quemar el
+    // resto de las filas contra la misma pared.
+    if (err instanceof RiotRateLimitError) throw err;
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, timelineOk: false, warning: `match ${matchId}: ${message}` };
+  }
+
+  const built = await buildMatchRow(puuid, matchId, match);
+  if (!built) return { ok: false, timelineOk: false, warning: `match ${matchId}: el jugador no está en esa partida` };
+
+  // La clave primaria no se toca: identifica la fila, no es un valor a
+  // actualizar. Todo lo demás se pisa entero — queda exactamente la fila que
+  // habría escrito un INSERT de hoy, porque la arma la misma función.
+  const { match_id: _mid, puuid: _p, ...updates } = built.row;
+  void _mid;
+  void _p;
+  const { error } = await supabase
+    .from("matches")
+    .update({ ...updates, repaired_at: new Date().toISOString() })
+    .eq("match_id", matchId)
+    .eq("puuid", puuid);
+  if (error) throw new Error(`No se pudo reparar match_id=${matchId}: ${error.message}`);
+  return { ok: true, timelineOk: built.timelineOk };
+}
+
+/**
+ * Una tanda de reparación. Volvé a llamarla mientras `remaining` sea mayor
+ * que cero — cada corrida arranca donde quedó la anterior sin pasarle ningún
+ * cursor, porque el propio `repaired_at` es el marcador.
+ */
+export async function repairMatches(supabase: SupabaseClient, batchSize = REPAIR_DEFAULT_BATCH): Promise<RepairResult> {
+  const limit = Math.min(Math.max(1, batchSize), REPAIR_HARD_CAP);
+
+  // Las más nuevas primero: son las que alguien va a mirar antes en el
+  // historial, así la reparación se nota desde la primera tanda y no recién
+  // cuando termina todo.
+  const {
+    data: pending,
+    error: pendingError,
+    count,
+  } = await supabase
+    .from("matches")
+    .select("match_id, puuid", { count: "exact" })
+    .is("repaired_at", null)
+    .order("played_at", { ascending: false })
+    .limit(limit);
+  if (pendingError) throw new Error(`No se pudieron leer las filas a reparar: ${pendingError.message}`);
+
+  const rows = pending ?? [];
+  const warnings: string[] = [];
+  let repaired = 0;
+  let partial = 0;
+
+  // Secuencial y con pausa, no en paralelo como backfillOne: acá el cuello de
+  // botella es el rate limit de Riot, no la latencia. Meter concurrencia solo
+  // adelanta el 429.
+  for (const row of rows) {
+    try {
+      const result = await repairMatchRow(supabase, row.puuid, row.match_id);
+      if (!result.ok) {
+        if (result.warning) warnings.push(result.warning);
+      } else if (result.timelineOk) {
+        repaired += 1;
+      } else {
+        partial += 1;
+      }
+    } catch (err) {
+      if (err instanceof RiotRateLimitError) {
+        warnings.push(`rate limit de Riot — se corta la tanda, reintentá en ${err.retryAfterS}s`);
+        break;
+      }
+      throw err;
+    }
+    await wait(REPAIR_PACE_MS);
+  }
+
+  return {
+    repaired,
+    partial,
+    // `count` es el total pendiente ANTES de esta tanda; lo que queda es eso
+    // menos todo lo que se marcó, completo o a medias.
+    remaining: Math.max(0, (count ?? rows.length) - repaired - partial),
+    warnings: warnings.slice(0, 20),
   };
 }
 

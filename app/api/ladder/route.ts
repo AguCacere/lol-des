@@ -8,6 +8,7 @@ import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { computeAegisStats } from "@/lib/aegis";
 import { computeRecentForm, type FormSample } from "@/lib/form";
 import { computeRadar, RADAR_METRICS, type MetricStats, type RadarMetric } from "@/lib/radar";
+import { computeMatchups, type MatchupSample } from "@/lib/matchups";
 import { computeMatchFlag, STATS_WINDOW_SIZE, type StatSample } from "@/lib/matchflags";
 import type { AegisStats, ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, DuoSharedMatch, FlexRank, LpHistoryPoint, MasteryEntry, Match, PersonalRecords, Player, RoleAverages, RoleKey } from "@/lib/types";
 
@@ -84,9 +85,17 @@ interface MatchRow {
   first_baron_time_s: number | null;
   first_baron_mine: boolean | null;
   team_position: string | null;
+  opponent_champion: string | null;
   game_duration_s: number;
   played_at: string;
 }
+
+/**
+ * Cuántos enfrentamientos se mandan al cliente. Van ordenados por cantidad
+ * de partidas, así que cortar acá deja afuera los pares de los que menos
+ * sabemos — que son justo los que menos hay que mostrar.
+ */
+const MATCHUPS_SHOWN = 10;
 
 /**
  * GET /api/ladder — reads the `ladder` view (summoners joined with their
@@ -125,7 +134,7 @@ export async function GET() {
     supabase
       .from("matches")
       .select(
-        "match_id, puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, damage_to_champs, gold_earned, vision_score, kill_participation, obj_share, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, champ_level, damage_taken, damage_mitigated, wards_placed, wards_killed, control_wards, turret_takedowns, dragon_takedowns, dragon_types, item_build, baron_takedowns, herald_takedowns, inhibitor_kills, first_blood, first_tower, summoner1, summoner2, solo_kills, skillshots_hit, damage_per_min, gold_diff_10, gold_diff_15, gold_diff_20, first_blood_time_s, first_tower_time_s, first_tower_mine, first_dragon_time_s, first_dragon_mine, first_baron_time_s, first_baron_mine, team_position, game_duration_s, played_at"
+        "match_id, puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, damage_to_champs, gold_earned, vision_score, kill_participation, obj_share, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, champ_level, damage_taken, damage_mitigated, wards_placed, wards_killed, control_wards, turret_takedowns, dragon_takedowns, dragon_types, item_build, baron_takedowns, herald_takedowns, inhibitor_kills, first_blood, first_tower, summoner1, summoner2, solo_kills, skillshots_hit, damage_per_min, gold_diff_10, gold_diff_15, gold_diff_20, first_blood_time_s, first_tower_time_s, first_tower_mine, first_dragon_time_s, first_dragon_mine, first_baron_time_s, first_baron_mine, team_position, opponent_champion, game_duration_s, played_at"
       )
       .in("puuid", puuids)
       // Ranked solo/duo only — this table also holds Clash games (queueId
@@ -216,6 +225,9 @@ export async function GET() {
   }
 
   const matchesByPuuid = new Map<string, Match[]>();
+  // Campeón propio vs. campeón del rival de línea, sobre TODO el historial
+  // (no solo las últimas 5 mostradas) — ver lib/matchups.ts.
+  const matchupSamplesByPuuid = new Map<string, MatchupSample[]>();
   // Every ranked match this player has stored, built straight from matchRows
   // (already queue_id=420-only per the query above) since the two consumers
   // need the FULL history, not just the last 5 kept in matchesByPuuid:
@@ -419,6 +431,15 @@ export async function GET() {
     });
     trackedByMatchId.set(row.match_id, tracked);
     trackRecords(row);
+
+    const matchupList = matchupSamplesByPuuid.get(row.puuid) ?? [];
+    matchupList.push({
+      champ: row.champion,
+      opponent: row.opponent_champion,
+      win: row.win,
+      goldDiff15: row.gold_diff_15,
+    });
+    matchupSamplesByPuuid.set(row.puuid, matchupList);
 
     const rankedList = rankedMatchesByPuuid.get(row.puuid) ?? [];
     rankedList.push({
@@ -917,6 +938,7 @@ export async function GET() {
       // ventana — al revés que computeAegisStats, que lo necesita ascendente.
       recentForm: computeRecentForm(rankedMatchesByPuuid.get(row.puuid) ?? []),
       radar: computeRadar(ownStatsFor(row.puuid, role), peerStatsFor(row.puuid, role)),
+      matchups: computeMatchups(matchupSamplesByPuuid.get(row.puuid) ?? []).slice(0, MATCHUPS_SHOWN),
     };
   });
 

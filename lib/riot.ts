@@ -23,6 +23,23 @@ function assertKey() {
   }
 }
 
+/**
+ * Un 429 de Riot con su Retry-After parseado, para que quien pueda esperar
+ * lo haga en vez de tener que adivinar por el texto del mensaje. Sigue
+ * siendo un Error común: todo lo que ya lo cazaba genérico no cambia.
+ */
+export class RiotRateLimitError extends Error {
+  readonly retryAfterS: number;
+  constructor(retryAfter: string | null) {
+    super(`Riot API rate limited — retry after ${retryAfter ?? "?"}s`);
+    this.name = "RiotRateLimitError";
+    // Sin cabecera, 10s: es el piso del rate limit por 2 minutos de una key
+    // personal, suficiente para no volver a chocar en el reintento.
+    const parsed = Number(retryAfter);
+    this.retryAfterS = Number.isFinite(parsed) && parsed > 0 ? parsed : 10;
+  }
+}
+
 async function riotFetch<T>(url: string): Promise<T> {
   assertKey();
   const res = await fetch(url, {
@@ -33,8 +50,7 @@ async function riotFetch<T>(url: string): Promise<T> {
   });
 
   if (res.status === 429) {
-    const retryAfter = res.headers.get("Retry-After");
-    throw new Error(`Riot API rate limited — retry after ${retryAfter ?? "?"}s`);
+    throw new RiotRateLimitError(res.headers.get("Retry-After"));
   }
   if (res.status === 404) {
     throw new Error("Riot API: not found (bad Riot ID, puuid, or match id)");
@@ -227,10 +243,7 @@ export async function getActiveGame(puuid: string): Promise<RiotActiveGame | nul
   const url = `https://${PLATFORM}.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/${puuid}`;
   const res = await fetch(url, { headers: { "X-Riot-Token": API_KEY! }, cache: "no-store" });
   if (res.status === 404) return null;
-  if (res.status === 429) {
-    const retryAfter = res.headers.get("Retry-After");
-    throw new Error(`Riot API rate limited — retry after ${retryAfter ?? "?"}s`);
-  }
+  if (res.status === 429) throw new RiotRateLimitError(res.headers.get("Retry-After"));
   if (!res.ok) throw new Error(`Riot API error ${res.status}: ${await res.text()}`);
   return res.json() as Promise<RiotActiveGame>;
 }

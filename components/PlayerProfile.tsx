@@ -19,6 +19,7 @@ import { ChampIcon } from "./ChampIcon";
 import { MatchDetail } from "./MatchDetail";
 import { ChampionPool } from "./ChampionPool";
 import { MasteryPool } from "./MasteryPool";
+import { Matchups } from "./Matchups";
 import { InsightsCard } from "./InsightsCard";
 import { RoleDistribution } from "./RoleDistribution";
 import { PersonalRecords } from "./PersonalRecords";
@@ -29,59 +30,6 @@ import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
 import { buildMetricInsights, splitStrengthsWeaknesses } from "@/lib/insights";
 import { ClockIcon, EyeIcon, ReviewIcon, TargetIcon, TrendUpIcon, TrophyIcon, ZapIcon } from "./StatIcons";
-
-function CmpBar({
-  label,
-  value,
-  avg,
-  max,
-  suffix = "",
-  tooltip,
-}: {
-  label: string;
-  value: number;
-  avg: number | null;
-  max: number;
-  suffix?: string;
-  tooltip?: string;
-}) {
-  const pct = Math.max(2, Math.min(100, (value / max) * 100));
-  // Colors the fill by whether this beats the role average, same
-  // good/bad language as everywhere else in the app — a flat accent-gold
-  // bar regardless of performance read as a generic progress/slider
-  // control, not a comparison.
-  const aboveAvg = avg === null ? null : value >= avg;
-  return (
-    <div className="cmp-row">
-      <div className="cmp-row-top">
-        <span className="k">
-          {label}
-          {tooltip && <InfoTip text={tooltip} />}
-        </span>
-        <span className="v">
-          <span className="cmp-value">
-            {value}
-            {suffix}
-          </span>
-          {avg !== null ? (
-            <span className="cmp-avg-chip">
-              prom. rol {avg}
-              {suffix}
-            </span>
-          ) : (
-            <span className="cmp-no-data">sin datos del rol todavía</span>
-          )}
-        </span>
-      </div>
-      <div className="cmp-bar-track">
-        <div className={`cmp-bar-fill${aboveAvg === null ? "" : aboveAvg ? " good" : " bad"}`} style={{ width: `${pct}%` }} />
-        {avg !== null && (
-          <div className="cmp-bar-avg" style={{ left: `${Math.max(0, Math.min(100, (avg / max) * 100))}%` }} />
-        )}
-      </div>
-    </div>
-  );
-}
 
 /**
  * Sub-navegación del perfil. Reemplaza al toggle Macro/Micro, que solo
@@ -491,31 +439,6 @@ export function PlayerProfile({
               </div>
 
               <div>
-                <h4 className="subsection-label">Comparación con tu rol</h4>
-                <div className="cmp-card">
-                  <CmpBar
-                    label="KDA promedio"
-                    value={Number(avgKDA.toFixed(2))}
-                    avg={roleAvg.kda !== null ? Number(roleAvg.kda.toFixed(2)) : null}
-                    max={6}
-                  />
-                  <CmpBar
-                    label="CS / min"
-                    value={Number(avgCS.toFixed(1))}
-                    avg={roleAvg.csPerMin !== null ? Number(roleAvg.csPerMin.toFixed(1)) : null}
-                    max={10}
-                    tooltip={METRIC_INFO.csPerMin}
-                  />
-                  <CmpBar
-                    label="% daño del equipo"
-                    value={Math.round(avgDmg)}
-                    avg={roleAvg.dmgShare !== null ? Math.round(roleAvg.dmgShare) : null}
-                    max={45}
-                    suffix="%"
-                    tooltip={METRIC_INFO.dmgShare}
-                  />
-                </div>
-
                 <h4 className="subsection-label">Fortalezas y debilidades</h4>
                 <InsightsCard strengths={strengths} weaknesses={weaknesses} sampleSize={roleAvg.sampleSize} />
                 {p.personalRecords && (
@@ -541,6 +464,17 @@ export function PlayerProfile({
               <ChampionPool pool={p.championPool} ddragonVersion={ddragonVersion} />
             </div>
           </div>
+        )}
+
+        {/* A lo ancho y debajo de las dos columnas: cada fila lleva dos
+            íconos, dos nombres, el oro a los 15 y el récord, y a media
+            columna eso se amontona. Además es otra unidad de análisis que
+            las listas de arriba — un par, no un campeón suelto. */}
+        {tab === "campeones" && (
+          <>
+            <h4 className="subsection-label">Enfrentamientos de línea</h4>
+            <Matchups matchups={p.matchups} ddragonVersion={ddragonVersion} />
+          </>
         )}
       </div>
     </section>

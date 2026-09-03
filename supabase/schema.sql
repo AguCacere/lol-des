@@ -106,6 +106,7 @@ create table if not exists matches (
   game_duration_s int not null,
   played_at     timestamptz not null,
   inserted_at   timestamptz not null default now(),
+  repaired_at   timestamptz,  -- marcador de POST /api/repair (ver repairMatches en lib/refresh.ts): null = a esta fila todavía le faltan columnas que se agregaron después de guardarla. Es el cursor de la reparación, por eso se puede llamar por tandas sin pasar nada.
   primary key (match_id, puuid)
 );
 create index if not exists matches_puuid_played_idx
