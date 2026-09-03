@@ -1,5 +1,6 @@
 import type { ChampionPoolEntry } from "@/lib/types";
 import { ChampIcon } from "./ChampIcon";
+import { championLabel } from "@/lib/champion-names";
 
 /**
  * "Campeones más jugados" — agregado sobre TODAS las partidas guardadas del
@@ -21,7 +22,7 @@ export function ChampionPool({ pool, ddragonVersion }: { pool: ChampionPoolEntry
         <div className="champ-pool-row" key={c.champ}>
           <ChampIcon champ={c.champ} version={ddragonVersion} className="champ-pool-avatar" />
           <div className="champ-pool-mid">
-            <span className="champ-pool-name">{c.champ}</span>
+            <span className="champ-pool-name">{championLabel(c.champ)}</span>
             <span className="champ-pool-games">{c.games} {c.games === 1 ? "partida" : "partidas"}</span>
           </div>
           <div className="champ-pool-stats">

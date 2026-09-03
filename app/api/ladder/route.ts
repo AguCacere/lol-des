@@ -91,11 +91,12 @@ interface MatchRow {
 }
 
 /**
- * Cuántos enfrentamientos se mandan al cliente. Van ordenados por cantidad
- * de partidas, así que cortar acá deja afuera los pares de los que menos
- * sabemos — que son justo los que menos hay que mostrar.
+ * Cuántos CAMPEONES propios se mandan con sus enfrentamientos. Van ordenados
+ * por cantidad de partidas, así que cortar acá deja afuera los campeones de
+ * los que menos sabemos — justo los que menos hay que mostrar. Ahora que
+ * cada uno colapsa a una fila, entran más que cuando era una lista plana.
  */
-const MATCHUPS_SHOWN = 10;
+const MATCHUPS_SHOWN = 8;
 
 /**
  * GET /api/ladder — reads the `ladder` view (summoners joined with their

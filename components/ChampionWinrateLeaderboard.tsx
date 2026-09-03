@@ -1,5 +1,6 @@
 import type { ChampionLeaderboardEntry } from "@/lib/types";
 import { ChampIcon } from "./ChampIcon";
+import { championLabel } from "@/lib/champion-names";
 
 /** Below this, a record on one specific champion is too short to mean much as a "best on X" claim. */
 const MIN_GAMES = 50;
@@ -50,7 +51,7 @@ export function ChampionWinrateLeaderboard({
                 <span className={`podium-medal ${MEDALS[i]}`}>{i + 1}</span>
                 <ChampIcon champ={e.champion} version={ddragonVersion} className="podium-avatar" />
                 <div className="podium-mid">
-                  <span className="podium-name">{e.champion}</span>
+                  <span className="podium-name">{championLabel(e.champion)}</span>
                   <span className="podium-meta">
                     {e.playerName} · {e.games} partidas
                   </span>
@@ -67,7 +68,7 @@ export function ChampionWinrateLeaderboard({
                   <span className="leaderboard-rank">{i + 4}</span>
                   <ChampIcon champ={e.champion} version={ddragonVersion} className="champ-pool-avatar" />
                   <div className="champ-pool-mid">
-                    <span className="champ-pool-name">{e.champion}</span>
+                    <span className="champ-pool-name">{championLabel(e.champion)}</span>
                     <span className="champ-pool-games">
                       {e.playerName} · {e.games} partidas
                     </span>

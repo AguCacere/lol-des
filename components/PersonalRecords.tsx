@@ -1,5 +1,6 @@
 import type { PersonalRecords as PersonalRecordsData } from "@/lib/types";
 import { ClockIcon, CoinIcon, TargetIcon, TrendUpIcon, TrophyIcon, ZapIcon } from "./StatIcons";
+import { championLabel } from "@/lib/champion-names";
 
 /**
  * "Récords personales" — el mejor/más extremo número de UNA partida puntual,
@@ -22,7 +23,7 @@ export function PersonalRecords({ records }: { records: PersonalRecordsData | nu
       <div className="stat-tile">
         <TrophyIcon />
         <div className="v">{records.bestKda.toFixed(2)}</div>
-        <div className="k">Mejor KDA · {records.bestKdaChamp}</div>
+        <div className="k">Mejor KDA · {championLabel(records.bestKdaChamp)}</div>
       </div>
       <div className="stat-tile">
         <ClockIcon />

@@ -747,12 +747,33 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .matchup-row{
   display:flex; align-items:center; gap:11px;
-  padding:10px 14px; border-bottom:1px solid var(--border-soft);
+  padding:8px 14px 8px 30px; border-bottom:1px solid var(--border-soft);
   transition:background .15s ease;
 }
 .matchup-row:last-child{border-bottom:none;}
 .matchup-row:hover{background:var(--surface-hover);}
-.matchup-pair{display:inline-flex; align-items:center; gap:5px; flex:none;}
+
+/* Un campeón propio y sus rivales. El grupo entero es la unidad visual, así
+   que la línea divisoria va entre grupos y no entre filas de rival — si no,
+   desplegado no se distingue dónde termina un campeón y empieza el otro. */
+.matchup-group{border-bottom:1px solid var(--border-soft);}
+.matchup-group:last-child{border-bottom:none;}
+.matchup-group-head{
+  display:flex; align-items:center; gap:11px; width:100%;
+  padding:11px 14px; border:none; background:transparent; color:inherit;
+  font-family:inherit; text-align:left; cursor:pointer;
+  transition:background .15s ease;
+}
+.matchup-group-head:hover{background:var(--surface-hover);}
+.matchup-group-head:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
+/* Los rivales sobre un fondo apenas más hundido: dice "esto está adentro de
+   la fila de arriba" sin necesidad de una caja con borde propio. */
+.matchup-opponents{background:var(--surface);}
+.matchup-chevron{
+  width:16px; height:16px; flex:none; color:var(--text-muted);
+  transition:transform .18s ease;
+}
+.matchup-group.is-open .matchup-chevron{transform:rotate(180deg);}
 /* Mismo patrón que .match-champ y .digest-match-champ, y no por prolijidad:
    ChampIcon renderiza un <span> con un <img> adentro, y el <img> no hereda
    el tamaño del span. Sin la regla de abajo el arte del campeón sale a su
@@ -766,6 +787,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   background:var(--surface-hover); color:var(--text-secondary);
 }
 .matchup-champ img{width:100%; height:100%; object-fit:cover; display:block;}
+/* El campeón propio manda sobre sus rivales: mismo tratamiento, un escalón
+   más grande, como el ícono de una fila de partida contra el de su detalle. */
+.matchup-champ.lg{width:34px; height:34px; border-radius:9px; font-size:11px;}
 .matchup-vs{font-size:9px; font-weight:700; color:var(--text-muted); letter-spacing:0.04em;}
 /* min-width:0 para que el nombre largo trunque en vez de empujar al récord
    fuera de la fila — un flex item arranca en min-width:auto y no achica. */
@@ -797,6 +821,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
      adornos: el oro a los 15 (dato de detalle) y la barra (redundante con
      el porcentaje), y el nombre entra entero. */
   .matchup-gd, .matchup-bar{display:none;}
+  /* Y la sangría de los rivales se achica: a 390px cada píxel de más a la
+     izquierda sale del nombre. */
+  .matchup-row{padding-left:20px;}
 }
 
 /* Radar de rendimiento (ver lib/radar.ts y components/RadarChart.tsx).

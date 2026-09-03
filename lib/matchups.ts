@@ -33,6 +33,17 @@ export interface Matchup {
   avgGoldDiff15: number | null;
 }
 
+/** Todos los enfrentamientos con UN campeón propio, con el total de ese campeón sobre los rivales listados. */
+export interface ChampionMatchups {
+  champ: string;
+  /** Partidas sumando solo los rivales de `opponents`, no todas las del campeón. */
+  games: number;
+  wins: number;
+  losses: number;
+  winrate: number;
+  opponents: Matchup[];
+}
+
 /**
  * Por debajo de esto ni se muestra.
  *
@@ -53,11 +64,19 @@ export const MATCHUP_MIN_GAMES = 2;
 
 /**
  * `matches` es el historial ranked completo de UN jugador, en cualquier
- * orden. Devuelve los pares campeón/rival con suficientes partidas,
- * ordenados por cantidad de partidas y, a igualdad, por peor winrate
- * primero: lo que más te cuesta es lo que querés ver arriba.
+ * orden. Devuelve los enfrentamientos AGRUPADOS POR CAMPEÓN PROPIO.
+ *
+ * Agrupado y no una lista plana porque la lista plana crece con cada rival:
+ * un jugador de un solo campeón con ocho rivales repetidos se comía diez
+ * filas y empujaba todo lo demás fuera de la pantalla. Agrupado son cuatro
+ * filas que se despliegan, y el total del campeón — que antes había que
+ * sumar a ojo — pasa a estar a la vista.
+ *
+ * Los totales de cada grupo suman SOLO los rivales que se listan, no todas
+ * las partidas del campeón: si no, al desplegarlo los números no cerrarían
+ * con lo que se ve. Por eso el grupo dice también cuántos rivales incluye.
  */
-export function computeMatchups(matches: MatchupSample[]): Matchup[] {
+export function computeMatchups(matches: MatchupSample[]): ChampionMatchups[] {
   interface Agg {
     champ: string;
     opponent: string;
@@ -84,10 +103,11 @@ export function computeMatchups(matches: MatchupSample[]): Matchup[] {
     byPair.set(key, agg);
   }
 
-  const out: Matchup[] = [];
+  const byChamp = new Map<string, Matchup[]>();
   for (const agg of byPair.values()) {
     if (agg.games < MATCHUP_MIN_GAMES) continue;
-    out.push({
+    const list = byChamp.get(agg.champ) ?? [];
+    list.push({
       champ: agg.champ,
       opponent: agg.opponent,
       games: agg.games,
@@ -96,8 +116,28 @@ export function computeMatchups(matches: MatchupSample[]): Matchup[] {
       winrate: Math.round((100 * agg.wins) / agg.games),
       avgGoldDiff15: agg.goldN > 0 ? Math.round(agg.goldSum / agg.goldN) : null,
     });
+    byChamp.set(agg.champ, list);
   }
 
+  const out: ChampionMatchups[] = [];
+  for (const [champ, opponents] of byChamp) {
+    // Dentro del campeón: primero los rivales más jugados y, a igualdad, el
+    // peor winrate arriba — lo que más te cuesta es lo que querés ver.
+    opponents.sort((a, b) => b.games - a.games || a.winrate - b.winrate);
+    const games = opponents.reduce((n, o) => n + o.games, 0);
+    const wins = opponents.reduce((n, o) => n + o.wins, 0);
+    out.push({
+      champ,
+      games,
+      wins,
+      losses: games - wins,
+      winrate: Math.round((100 * wins) / games),
+      opponents,
+    });
+  }
+
+  // Entre campeones manda la cantidad de partidas: el campeón del que más
+  // sabemos va arriba, y es el que conviene que quede abierto por defecto.
   out.sort((a, b) => b.games - a.games || a.winrate - b.winrate);
   return out;
 }

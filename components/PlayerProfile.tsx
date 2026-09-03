@@ -30,6 +30,7 @@ import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
 import { buildMetricInsights, splitStrengthsWeaknesses } from "@/lib/insights";
 import { ClockIcon, EyeIcon, ReviewIcon, TargetIcon, TrendUpIcon, TrophyIcon, ZapIcon } from "./StatIcons";
+import { championLabel } from "@/lib/champion-names";
 
 /**
  * Sub-navegación del perfil. Reemplaza al toggle Macro/Micro, que solo
@@ -208,12 +209,12 @@ export function PlayerProfile({
                 {p.you && <span className="you-badge">VOS</span>}
               </p>
               <p className="profile-sub">
-                {ROLES[p.role].label} · main {p.mainChamp} · {p.wins + p.losses} partidas esta season
+                {ROLES[p.role].label} · main {championLabel(p.mainChamp)} · {p.wins + p.losses} partidas esta season
               </p>
               {p.liveGame && (
                 <div className="profile-live-banner">
                   <span className="live-dot" />
-                  En vivo ahora · {p.liveGame.champion} · {p.liveGame.queueLabel} · {liveGameTimeLabel(p.liveGame.startedMinutesAgo)}
+                  En vivo ahora · {championLabel(p.liveGame.champion)} · {p.liveGame.queueLabel} · {liveGameTimeLabel(p.liveGame.startedMinutesAgo)}
                 </div>
               )}
             </div>
@@ -379,7 +380,7 @@ export function PlayerProfile({
                         <ChampIcon champ={m.champ} version={ddragonVersion} className="match-champ" />
                         <div className="match-mid">
                           <div className="match-top-line">
-                            <span className="match-champ-name">{m.champ}</span>
+                            <span className="match-champ-name">{championLabel(m.champ)}</span>
                             {m.flag && (
                               <span className="review-badge" title={m.flag.reasons.join(" · ")}>
                                 <ReviewIcon />

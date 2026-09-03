@@ -7,6 +7,7 @@ import { PlayerAvatar } from "./PlayerAvatar";
 import { ChampIcon } from "./ChampIcon";
 import { SparkChart } from "./SparkChart";
 import { CheckIcon, CopyIcon, TrendDownIcon, TrendUpIcon, TrophyIcon, ZapIcon } from "./StatIcons";
+import { championLabel } from "@/lib/champion-names";
 
 function formatWindowRange(startIso: string, endIso: string): string {
   const fmt = (iso: string) => new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
@@ -59,7 +60,7 @@ function ChampionCard({ champion, ddragonVersion }: { champion: NonNullable<Team
       >
         <ChampIcon champ={champion.champion} version={ddragonVersion} className="duo-avatar" />
         <div className="digest-card-mid">
-          <span className="digest-card-name">{champion.champion}</span>
+          <span className="digest-card-name">{championLabel(champion.champion)}</span>
           <span className="digest-card-sub">{champion.games} partidas</span>
         </div>
         <span className="digest-card-value">
@@ -167,7 +168,7 @@ function DigestBody({
                 </span>
                 <span className="digest-card-match">
                   <ChampIcon champ={digest.bestKda.champion} version={ddragonVersion} className="digest-match-champ" />
-                  <span className="digest-match-name">{digest.bestKda.champion}</span>
+                  <span className="digest-match-name">{championLabel(digest.bestKda.champion)}</span>
                   <BoxScore k={digest.bestKda.k} d={digest.bestKda.d} a={digest.bestKda.a} />
                 </span>
               </div>
@@ -191,7 +192,7 @@ function DigestBody({
                 </span>
                 <span className="digest-card-match">
                   <ChampIcon champ={digest.worstLoss.champion} version={ddragonVersion} className="digest-match-champ" />
-                  <span className="digest-match-name">{digest.worstLoss.champion}</span>
+                  <span className="digest-match-name">{championLabel(digest.worstLoss.champion)}</span>
                   <BoxScore k={digest.worstLoss.k} d={digest.worstLoss.d} a={digest.worstLoss.a} />
                 </span>
               </div>

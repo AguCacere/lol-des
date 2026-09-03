@@ -1,4 +1,4 @@
-import type { Matchup } from "./matchups";
+import type { ChampionMatchups } from "./matchups";
 import type { RadarProfile } from "./radar";
 
 export type RoleKey = "top" | "jungle" | "mid" | "adc" | "support";
@@ -449,8 +449,8 @@ export interface Player {
   recentForm: RecentForm | null;
   /** Perfil de siete ejes contra el resto del grupo en el mismo rol (ver lib/radar.ts) — null si no hay muestra suficiente propia o ajena. */
   radar: RadarProfile | null;
-  /** Enfrentamientos de línea con al menos MATCHUP_MIN_GAMES partidas (ver lib/matchups.ts), los más jugados primero. Vacío hasta que se acumulen partidas con opponent_champion. */
-  matchups: Matchup[];
+  /** Enfrentamientos de línea agrupados por campeón propio (ver lib/matchups.ts), los campeones más jugados primero. Vacío hasta que un cruce se repita al menos MATCHUP_MIN_GAMES veces. */
+  matchups: ChampionMatchups[];
 }
 
 /**

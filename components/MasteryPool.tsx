@@ -1,5 +1,6 @@
 import type { MasteryEntry } from "@/lib/types";
 import { ChampIcon } from "./ChampIcon";
+import { championLabel } from "@/lib/champion-names";
 
 /**
  * Riot's mastery system has no level cap anymore (used to top out at M7) —
@@ -34,7 +35,7 @@ export function MasteryPool({ pool, ddragonVersion }: { pool: MasteryEntry[]; dd
         <div className="champ-pool-row" key={m.champ}>
           <ChampIcon champ={m.champ} version={ddragonVersion} className="champ-pool-avatar" />
           <div className="champ-pool-mid">
-            <span className="champ-pool-name">{m.champ}</span>
+            <span className="champ-pool-name">{championLabel(m.champ)}</span>
             <span className="champ-pool-games">{m.points.toLocaleString("es-AR")} pts</span>
           </div>
           <span className={`mastery-badge ${masteryTier(m.level)}`}>M{m.level}</span>

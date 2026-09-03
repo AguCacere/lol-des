@@ -5,6 +5,7 @@ import { StreakIcon } from "./StreakIcon";
 import { SparkChart } from "./SparkChart";
 import { ChampIcon } from "./ChampIcon";
 import { TierEmblem } from "./TierEmblem";
+import { championLabel } from "@/lib/champion-names";
 
 export type SortKey = "ladder" | "winrate" | "wins" | "streak" | "recent";
 
@@ -204,14 +205,14 @@ export function LadderTable({
                         {p.liveGame && (
                           <span
                             className="live-badge"
-                            aria-label={`En vivo: ${p.liveGame.champion}, ${p.liveGame.queueLabel}, ${liveGameTimeLabel(p.liveGame.startedMinutesAgo)}`}
+                            aria-label={`En vivo: ${championLabel(p.liveGame.champion)}, ${p.liveGame.queueLabel}, ${liveGameTimeLabel(p.liveGame.startedMinutesAgo)}`}
                           >
                             <span className="live-dot" />
-                            En vivo · {p.liveGame.champion}
+                            En vivo · {championLabel(p.liveGame.champion)}
                           </span>
                         )}
                       </span>
-                      <span className="player-champ">Main: {p.mainChamp}</span>
+                      <span className="player-champ">Main: {championLabel(p.mainChamp)}</span>
                       {/*
                         Rendered as a sibling of player-name (not nested inside
                         the live-badge) on purpose: player-name has its own
@@ -238,7 +239,7 @@ export function LadderTable({
                           </span>
                           <span className="live-popup-champ">
                             <ChampIcon champ={p.liveGame.champion} version={ddragonVersion} className="live-popup-champ-avatar" />
-                            {p.liveGame.champion}
+                            {championLabel(p.liveGame.champion)}
                           </span>
                           <span className="live-popup-meta">
                             {p.liveGame.queueLabel} · {liveGameTimeLabel(p.liveGame.startedMinutesAgo)}

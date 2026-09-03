@@ -6,6 +6,7 @@ import { ChampIcon } from "./ChampIcon";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { UsersIcon } from "./StatIcons";
 import { playerKey } from "./LadderTable";
+import { championLabel } from "@/lib/champion-names";
 
 interface LiveGroup {
   key: string;
@@ -76,7 +77,7 @@ function SoloRow({ p, ddragonVersion }: { p: Player; ddragonVersion: string | nu
           {p.name} <span className="player-tag">#{p.tag}</span>
         </span>
         <span className="live-tray-meta">
-          {game.champion} · {game.queueLabel} · {liveGameTimeLabel(game.startedMinutesAgo)}
+          {championLabel(game.champion)} · {game.queueLabel} · {liveGameTimeLabel(game.startedMinutesAgo)}
         </span>
       </span>
     </div>
