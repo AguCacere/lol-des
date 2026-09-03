@@ -157,9 +157,24 @@ left join lateral (
   limit 1
 ) ls on true;
 
+-- El último análisis del pool generado por Claude para cada jugador (ver
+-- lib/coach.ts y POST /api/coach). Se cachea acá y no se regenera en cada
+-- carga del perfil por dos razones: cuesta plata por llamada, y el análisis
+-- solo cambia de verdad cuando cambian los datos de abajo — no cada vez que
+-- alguien abre la pestaña. `matches_at_generation` es lo que permite saber si
+-- vale la pena regenerarlo: si el jugador sumó pocas partidas desde la última
+-- vez, el informe sigue siendo el mismo.
+create table if not exists coach_reports (
+  puuid                text primary key references summoners(puuid) on delete cascade,
+  payload              jsonb not null,   -- CoachReport ya validado contra el schema de lib/coach.ts
+  matches_at_generation int not null,
+  generated_at         timestamptz not null default now()
+);
+
 -- RLS: estas tablas se leen/escriben solo desde el backend (service role),
 -- nunca directo desde el browser, así que se deja cerrado por defecto.
 alter table summoners enable row level security;
 alter table lp_snapshots enable row level security;
 alter table matches enable row level security;
 alter table champion_mastery enable row level security;
+alter table coach_reports enable row level security;

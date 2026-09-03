@@ -806,6 +806,70 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   content:""; flex:1; height:1px; margin-left:4px; background:rgba(255,255,255,0.08);
 }
 
+/* "Análisis del pool" — el informe del modelo (ver lib/coach.ts). Card propia
+   y no una lista más: es texto argumentado, no datos alineados en columnas. */
+.coach-cta{
+  display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  background:var(--surface-raised); border-radius:var(--radius-md); box-shadow:var(--shadow-sm);
+  padding:14px 16px;
+}
+.coach-cta-text{margin:0; font-size:11.5px; line-height:1.5; color:var(--text-muted); flex:1 1 260px;}
+.coach-btn{
+  flex:none; padding:8px 16px; border-radius:999px; border:none; cursor:pointer;
+  background:var(--accent); color:var(--accent-ink);
+  font-family:var(--font-body); font-size:12px; font-weight:700;
+  transition:filter .15s ease;
+}
+.coach-btn:hover{filter:brightness(1.08);}
+.coach-btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+/* El de regenerar es deliberadamente más apagado que el de pedir: gasta plata
+   igual, pero es una acción secundaria y no debería invitar al click. */
+.coach-btn.sm{
+  padding:5px 11px; font-size:11px; font-weight:600;
+  background:transparent; color:var(--text-secondary); box-shadow:inset 0 0 0 1px var(--border-soft);
+}
+.coach-btn.sm:hover{background:var(--surface-hover); filter:none;}
+
+.coach-report{
+  background:var(--surface-raised); border-radius:var(--radius-md); box-shadow:var(--shadow-sm);
+  padding:15px 16px;
+}
+.coach-resumen{margin:0 0 14px; font-size:12.5px; line-height:1.6; color:var(--text-secondary);}
+.coach-block{margin-bottom:14px;}
+.coach-block-label{
+  font-family:var(--font-display); font-weight:700; font-size:10px; letter-spacing:0.09em;
+  text-transform:uppercase; margin:0 0 8px;
+}
+.coach-block-label.good{color:var(--good);}
+.coach-block-label.bad{color:var(--critical);}
+.coach-item{display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-top:1px solid var(--border-soft);}
+.coach-item-icon{
+  width:28px; height:28px; border-radius:8px; flex:none; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--surface-hover); color:var(--text-secondary);
+  font-family:var(--font-display); font-weight:700; font-size:10px;
+}
+.coach-item-icon img{width:100%; height:100%; object-fit:cover; display:block;}
+.coach-item-text{display:flex; flex-direction:column; gap:3px; min-width:0;}
+.coach-item-head{
+  display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;
+  font-size:12.5px; font-weight:700; color:var(--text-primary);
+}
+/* En mono y con fondo propio: es el número del historial que sostiene la
+   recomendación, y separarlo del consejo es lo que deja ver de un vistazo si
+   el modelo se apoyó en un dato real o se lo inventó. */
+.coach-item-dato{
+  font-family:var(--font-mono); font-size:10.5px; font-weight:600; color:var(--text-secondary);
+  background:var(--surface); padding:2px 7px; border-radius:5px; white-space:nowrap;
+}
+.coach-item-body{font-size:11.5px; line-height:1.5; color:var(--text-muted);}
+.coach-foot{
+  display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  margin-top:14px; padding-top:12px; border-top:1px solid var(--border-soft);
+  font-size:10.5px; color:var(--text-muted);
+}
+.coach-foot > span{display:inline-flex; align-items:center; gap:5px;}
+
 /* El cruce maestría x historial. Tres tarjetas cortas, no una lista más:
    cada una es una CONCLUSIÓN, no un dato, y por eso lleva título y explicación
    en vez de un número alineado a la derecha como las listas de arriba. */

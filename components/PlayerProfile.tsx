@@ -21,6 +21,7 @@ import { MatchDetail } from "./MatchDetail";
 import { ChampionPool } from "./ChampionPool";
 import { MasteryPool } from "./MasteryPool";
 import { ChampionInsights } from "./ChampionInsights";
+import { CoachPanel } from "./CoachPanel";
 import { Matchups } from "./Matchups";
 import { InsightsCard } from "./InsightsCard";
 import { RoleDistribution } from "./RoleDistribution";
@@ -536,6 +537,12 @@ export function PlayerProfile({
                 las listas de arriba — un par, no un campeón suelto. */}
             <h4 className="subsection-label">Enfrentamientos de línea</h4>
             <Matchups matchups={p.matchups} ddragonVersion={ddragonVersion} />
+
+            {/* Al final de la pestaña a propósito: lee todo lo de arriba (pool,
+                maestría, enfrentamientos) y lo interpreta, así que llega
+                después de que el jugador ya vio los datos crudos. */}
+            <h4 className="subsection-label">Análisis del pool</h4>
+            <CoachPanel gameName={p.name} tagLine={p.tag} ddragonVersion={ddragonVersion} />
           </>
         )}
       </div>
