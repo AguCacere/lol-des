@@ -500,11 +500,17 @@ export function PlayerProfile({
         {tab === "campeones" && (
           <div className="stack-cols even">
             <div>
-              <h4 className="subsection-label">Maestría de campeón</h4>
+              <h4 className="subsection-label">
+                Maestría de campeón
+                <InfoTip text="Champion Mastery de Riot: puntos acumulados en toda tu carrera y en TODAS las colas (ranked, normales, ARAM). No sale de las partidas que guarda la app, por eso el orden puede no coincidir con el de al lado. Riot solo expone puntos y nivel acá — no hay victorias ni KDA en este dato." />
+              </h4>
               <MasteryPool pool={p.masteryPool} ddragonVersion={ddragonVersion} />
             </div>
             <div>
-              <h4 className="subsection-label">Campeones más jugados</h4>
+              <h4 className="subsection-label">
+                Campeones más jugados
+                <InfoTip text="Sale de tus partidas de ranked solo/dúo guardadas por la app, no de tu carrera completa: el winrate y el KDA son reales, calculados de esas partidas. Por eso el orden puede no coincidir con el de maestría, que cuenta todas las colas de siempre. El winrate se muestra en gris cuando hay menos de 5 partidas: con tan poca muestra el porcentaje todavía no significa nada." />
+              </h4>
               <ChampionPool pool={p.championPool} ddragonVersion={ddragonVersion} />
             </div>
           </div>

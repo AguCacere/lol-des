@@ -1057,6 +1057,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .champ-pool-wr{font-family:var(--font-stat); font-weight:800; font-size:15px; font-variant-numeric:tabular-nums;}
 .champ-pool-wr.good{color:var(--good);}
 .champ-pool-wr.bad{color:var(--critical);}
+/* Pocas partidas: el número queda, el color se va. Ver CONFIDENT_GAMES. */
+.champ-pool-wr.thin{color:var(--text-muted);}
 /* Fixed character width so every winrate in the list lands on the SAME
    vertical axis. Without it the group is right-aligned as a block, so a
    shorter record ("60V 80D") pushed its percentage 13px right of the one
@@ -1065,6 +1067,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .champ-pool-kda{
   font-family:var(--font-mono); font-size:11px; color:var(--text-muted); white-space:nowrap;
   min-width:9ch; text-align:right;
+}
+.champ-pool-cs{
+  font-family:var(--font-mono); font-size:11px; color:var(--text-muted); white-space:nowrap;
+  min-width:7ch; text-align:right;
+}
+@media (max-width:520px){
+  /* Tres números no entran en la fila de un teléfono, y el CS es el más
+     prescindible de los tres — para un support directamente no dice nada. */
+  .champ-pool-cs{display:none;}
 }
 /* Leaderboard-style champ-pool-row usages (Mayor winrate, Mayor winrate por
    campeón) prepend a rank number before the avatar(s) — same treatment as
