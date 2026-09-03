@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { TeamDigest as TeamDigestData } from "@/lib/types";
-import { trendColor } from "@/lib/ladder";
+import { tierFor, trendColor } from "@/lib/ladder";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { ChampIcon } from "./ChampIcon";
 import { SparkChart } from "./SparkChart";
@@ -11,6 +11,32 @@ import { CheckIcon, CopyIcon, TrendDownIcon, TrendUpIcon, TrophyIcon, ZapIcon } 
 function formatWindowRange(startIso: string, endIso: string): string {
   const fmt = (iso: string) => new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
   return `${fmt(startIso)} – ${fmt(endIso)}`;
+}
+
+/** One end of the week's rank move, tinted with that tier's own colour — same language as the profile's LP chart endpoints. */
+function RankEnd({ point }: { point: { tier: Parameters<typeof tierFor>[0]; division: number; lp: number } }) {
+  const t = tierFor(point.tier);
+  return (
+    <span className="digest-rank-end">
+      <span style={{ color: t.fg }}>
+        {t.name} {point.division}
+      </span>
+      <span className="digest-rank-lp">· {point.lp} LP</span>
+    </span>
+  );
+}
+
+/** K/D/A as a real box score instead of a run-on "9/2/16" string — muted separators, deaths tinted, same reading as the match history. */
+function BoxScore({ k, d, a }: { k: number; d: number; a: number }) {
+  return (
+    <span className="digest-kda">
+      {k}
+      <span className="neu">/</span>
+      <span className="deaths">{d}</span>
+      <span className="neu">/</span>
+      {a}
+    </span>
+  );
 }
 
 function ChampionCard({ champion, ddragonVersion }: { champion: NonNullable<TeamDigestData["mostPlayedChampion"]>; ddragonVersion: string | null }) {
@@ -102,6 +128,11 @@ function DigestBody({
                 <span className="digest-card-name">
                   {digest.biggestLpGain.name} <span className="player-tag">#{digest.biggestLpGain.tag}</span>
                 </span>
+                <span className="digest-card-sub digest-rank-move">
+                  <RankEnd point={digest.biggestLpGain.from} />
+                  <span className="digest-rank-arrow">→</span>
+                  <RankEnd point={digest.biggestLpGain.to} />
+                </span>
               </div>
               <span className="digest-card-value gd-pos">
                 +{digest.biggestLpGain.delta} {digest.biggestLpGain.unit}
@@ -109,7 +140,13 @@ function DigestBody({
             </div>
             {digest.biggestLpGain.lpScores.length >= 2 && (
               <div className="digest-card-chart">
-                <SparkChart values={digest.biggestLpGain.lpScores} width={280} height={30} pad={3} color={trendColor(digest.biggestLpGain.lpScores)} variant="mini" />
+                {/* viewBox sized close to how wide this actually renders (~520px
+                    in a two-up grid): with preserveAspectRatio="none" the drawing
+                    is stretched to fit, so a 280-wide box was being pulled ~1.9x
+                    horizontally against ~1.3x vertically — which is what flattened
+                    the curve into a smear. Matching the proportions keeps the
+                    shape it was drawn with. */}
+                <SparkChart values={digest.biggestLpGain.lpScores} width={520} height={44} pad={4} color={trendColor(digest.biggestLpGain.lpScores)} variant="mini" />
               </div>
             )}
           </div>
@@ -128,8 +165,10 @@ function DigestBody({
                 <span className="digest-card-name">
                   {digest.bestKda.name} <span className="player-tag">#{digest.bestKda.tag}</span>
                 </span>
-                <span className="digest-card-sub">
-                  {digest.bestKda.champion} · {digest.bestKda.k}/{digest.bestKda.d}/{digest.bestKda.a}
+                <span className="digest-card-match">
+                  <ChampIcon champ={digest.bestKda.champion} version={ddragonVersion} className="digest-match-champ" />
+                  <span className="digest-match-name">{digest.bestKda.champion}</span>
+                  <BoxScore k={digest.bestKda.k} d={digest.bestKda.d} a={digest.bestKda.a} />
                 </span>
               </div>
               <span className="digest-card-value">{digest.bestKda.kda.toFixed(2)}</span>
@@ -150,8 +189,10 @@ function DigestBody({
                 <span className="digest-card-name">
                   {digest.worstLoss.name} <span className="player-tag">#{digest.worstLoss.tag}</span>
                 </span>
-                <span className="digest-card-sub">
-                  {digest.worstLoss.champion} · {digest.worstLoss.k}/{digest.worstLoss.d}/{digest.worstLoss.a}
+                <span className="digest-card-match">
+                  <ChampIcon champ={digest.worstLoss.champion} version={ddragonVersion} className="digest-match-champ" />
+                  <span className="digest-match-name">{digest.worstLoss.champion}</span>
+                  <BoxScore k={digest.worstLoss.k} d={digest.worstLoss.d} a={digest.worstLoss.a} />
                 </span>
               </div>
               {digest.worstLoss.goldDiffAtEnd != null && (

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
-import { rankScore } from "@/lib/ladder";
+import { rankScore, tierFor } from "@/lib/ladder";
 import { tierKeyFromRiot, divisionFromRiot } from "@/lib/mapping";
 import { profileIconUrl, getLatestVersion } from "@/lib/ddragon";
 import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
@@ -110,7 +110,14 @@ export async function GET() {
     if (biggestLpGain === null || delta > biggestLpGain.delta) {
       const crossedBoundary = first.tier !== last.tier || first.division !== last.division;
       const lpScores = rows.map((r) => rankScore(tierKeyFromRiot(r.tier), divisionFromRiot(r.division), r.lp));
-      biggestLpGain = { ...playerRef(puuid), delta, unit: crossedBoundary ? "pts" : "LP", lpScores };
+      biggestLpGain = {
+        ...playerRef(puuid),
+        delta,
+        unit: crossedBoundary ? "pts" : "LP",
+        lpScores,
+        from: { tier: tierKeyFromRiot(first.tier), division: divisionFromRiot(first.division), lp: first.lp },
+        to: { tier: tierKeyFromRiot(last.tier), division: divisionFromRiot(last.division), lp: last.lp },
+      };
     }
   }
 
@@ -203,7 +210,12 @@ export async function GET() {
 function buildPlainText(d: Omit<TeamDigest, "windowStart" | "windowEnd" | "plainText">): string {
   const lines = ["📊 Resumen semanal — Grieta Central"];
   if (d.biggestLpGain) {
-    lines.push(`🔺 Mayor subida de LP: ${d.biggestLpGain.name} +${d.biggestLpGain.delta} ${d.biggestLpGain.unit}`);
+    const g = d.biggestLpGain;
+    const rank = (p: typeof g.from) => `${tierFor(p.tier).name} ${p.division}`;
+    // Only worth spelling out when they actually changed division — otherwise
+    // it reads "Platino 1 → Platino 1", which says nothing the LP didn't.
+    const moved = rank(g.from) !== rank(g.to) ? ` (${rank(g.from)} → ${rank(g.to)})` : "";
+    lines.push(`🔺 Mayor subida de LP: ${g.name} +${g.delta} ${g.unit}${moved}`);
   }
   if (d.bestKda) {
     lines.push(`⚔️ Mejor KDA: ${d.bestKda.name} (${d.bestKda.champion}) ${d.bestKda.k}/${d.bestKda.d}/${d.bestKda.a} — ${d.bestKda.kda.toFixed(2)} KDA`);

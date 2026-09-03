@@ -104,6 +104,13 @@ interface TeamDigestPlayerRef {
   profileIconUrl: string | null;
 }
 
+/** One end of a rank progression — same shape the profile's LP chart labels use. */
+interface RankPoint {
+  tier: TierKey;
+  division: number;
+  lp: number;
+}
+
 /**
  * "Equipo" tab — a weekly (rolling last 7 days, not calendar Mon-Sun) group
  * digest computed entirely from already-stored matches/lp_snapshots, no new
@@ -119,6 +126,9 @@ export interface TeamDigest {
         unit: "LP" | "pts";
         /** rankScore per lp_snapshot this player got THIS week, ascending — feeds a mini sparkline so the card isn't just a bare number next to the others' champion art. */
         lpScores: number[];
+        /** Where the week started and ended for them — what "+225 pts" actually bought. */
+        from: RankPoint;
+        to: RankPoint;
       })
     | null;
   bestKda: (TeamDigestPlayerRef & { champion: string; kda: number; k: number; d: number; a: number }) | null;
