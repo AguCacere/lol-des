@@ -353,7 +353,25 @@ async function fetchAndStoreMatch(supabase: SupabaseClient, puuid: string, match
   const built = await buildMatchRow(puuid, matchId, match);
   if (!built) return null;
 
-  const { error: insertError } = await supabase.from("matches").insert(built.row);
+  // `repaired_at` marca "esta fila tiene todas las columnas que el código de
+  // hoy sabe llenar", y una recién insertada obviamente las tiene. Sin esto
+  // toda partida nueva nace pendiente de reparación y la próxima corrida de
+  // /api/repair se la vuelve a pedir a Riot al pedo — de hecho ya pasó: una
+  // partida entró por el cron en medio de la reparación y el loop la levantó
+  // como si le faltara algo. Cuando en el futuro se agregue una columna
+  // nueva, el reset sigue siendo el mismo UPDATE de siempre sobre las filas
+  // viejas.
+  //
+  // Acá SÍ se condiciona al timeline, al revés que en repairMatchRow: una
+  // partida recién jugada cuyo timeline falló se arregla reintentándola (es
+  // un fallo transitorio o un endpoint roto, no una partida vieja que Riot
+  // ya no tiene), y dejarla sin marcar la pone sola en la cola de la próxima
+  // reparación. Si el timeline se vuelve a romper como con el 403, las
+  // partidas nuevas se van encolando y una corrida de /api/repair las
+  // completa a todas cuando el endpoint vuelva.
+  const { error: insertError } = await supabase
+    .from("matches")
+    .insert({ ...built.row, repaired_at: built.timelineOk ? new Date().toISOString() : null });
   // Fail loud instead of silently dropping the match — if this is a schema
   // mismatch (e.g. a migration that hasn't run yet), every remaining
   // matchId in the caller's loop would fail identically anyway, so stop here
