@@ -863,6 +863,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   background:var(--surface); padding:2px 7px; border-radius:5px; white-space:nowrap;
 }
 .coach-item-body{font-size:11.5px; line-height:1.5; color:var(--text-muted);}
+.coach-nota{
+  margin:0 0 4px; padding:9px 12px; border-radius:var(--radius-sm);
+  background:var(--surface); font-size:11px; line-height:1.5; color:var(--text-muted);
+}
 .coach-foot{
   display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
   margin-top:14px; padding-top:12px; border-top:1px solid var(--border-soft);

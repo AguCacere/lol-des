@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
-import { generateCoachReport, type CoachDossier, type CoachReport } from "@/lib/coach";
+import { dossierHash, generateCoachReport, type CoachDossier, type CoachReport } from "@/lib/coach";
 import { computeMatchups, type MatchupSample } from "@/lib/matchups";
 import { roleFromTeamPosition } from "@/lib/mapping";
 import { ROLES, tierFor } from "@/lib/ladder";
@@ -37,13 +37,13 @@ interface MatchRow {
  * (ver supabase/schema.sql).
  */
 export async function POST(req: Request) {
-  let body: { gameName?: string; tagLine?: string; force?: boolean };
+  let body: { gameName?: string; tagLine?: string; force?: boolean; peek?: boolean };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Body inválido — mandá JSON." }, { status: 400 });
   }
-  const { gameName, tagLine, force } = body;
+  const { gameName, tagLine, force, peek } = body;
   if (!gameName || !tagLine) {
     return NextResponse.json({ error: "Faltan gameName y/o tagLine." }, { status: 400 });
   }
@@ -81,16 +81,17 @@ export async function POST(req: Request) {
 
   const { data: cached } = await supabase
     .from("coach_reports")
-    .select("payload, matches_at_generation, generated_at")
+    .select("payload, matches_at_generation, generated_at, dossier_hash")
     .eq("puuid", summoner.puuid)
     .maybeSingle();
 
-  if (cached && !force) {
-    const dias = (Date.now() - new Date(cached.generated_at).getTime()) / 86_400_000;
-    const nuevas = rows.length - cached.matches_at_generation;
-    if (nuevas < STALE_MATCHES && dias < STALE_DAYS) {
-      return NextResponse.json({ report: cached.payload as CoachReport, generatedAt: cached.generated_at, cached: true });
-    }
+  // `peek` solo mira el caché y NUNCA llama al modelo. Lo usa el panel al
+  // montarse para mostrar un informe que ya existe sin que abrir la pestaña
+  // sea una llamada paga.
+  if (peek) {
+    return cached
+      ? NextResponse.json({ report: cached.payload as CoachReport, generatedAt: cached.generated_at, cached: true })
+      : NextResponse.json({ report: null });
   }
 
   // Pool por campeón. Se agrega acá y no se reusa el de /api/ladder porque
@@ -148,6 +149,32 @@ export async function POST(req: Request) {
     maestria: (masteryRows ?? []).map((m) => ({ champ: m.champion, level: m.level })),
   };
 
+  // El corte que hace que regenerar sin haber jugado no cueste nada: si el
+  // dossier es idéntico al de la última vez, la entrada del modelo sería la
+  // misma byte por byte y la salida no puede aportar nada nuevo. Se devuelve
+  // lo cacheado sin llamar, incluso con force. (La API no tiene memoria entre
+  // llamadas: el modelo no "recuerda" el informe anterior, así que la única
+  // forma de no pagar de nuevo es no llamar.)
+  const hash = dossierHash(dossier);
+  if (cached && cached.dossier_hash === hash) {
+    return NextResponse.json({
+      report: cached.payload as CoachReport,
+      generatedAt: cached.generated_at,
+      cached: true,
+      unchanged: true,
+    });
+  }
+
+  // Cambió algo, pero si cambió poco no vale regenerar solo: los umbrales
+  // gobiernan la regeneración automática, no la que pide el usuario a mano.
+  if (cached && !force) {
+    const dias = (Date.now() - new Date(cached.generated_at).getTime()) / 86_400_000;
+    const nuevas = rows.length - cached.matches_at_generation;
+    if (nuevas < STALE_MATCHES && dias < STALE_DAYS) {
+      return NextResponse.json({ report: cached.payload as CoachReport, generatedAt: cached.generated_at, cached: true });
+    }
+  }
+
   let report: CoachReport;
   try {
     report = await generateCoachReport(dossier);
@@ -160,7 +187,13 @@ export async function POST(req: Request) {
   const generatedAt = new Date().toISOString();
   const { error: saveError } = await supabase
     .from("coach_reports")
-    .upsert({ puuid: summoner.puuid, payload: report, matches_at_generation: rows.length, generated_at: generatedAt });
+    .upsert({
+      puuid: summoner.puuid,
+      payload: report,
+      matches_at_generation: rows.length,
+      dossier_hash: hash,
+      generated_at: generatedAt,
+    });
   // Un fallo al guardar no invalida el informe: ya está generado y pagado,
   // así que se devuelve igual y a lo sumo la próxima vez se regenera.
   if (saveError) console.error("coach: no se pudo cachear el informe —", saveError.message);

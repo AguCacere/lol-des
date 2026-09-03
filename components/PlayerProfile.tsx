@@ -61,8 +61,31 @@ export function PlayerProfile({
   const [expandedMatch, setExpandedMatch] = useState<number | null>(null);
   const [tab, setTab] = useState<ProfileTabKey>("resumen");
 
+  // Identidad del jugador, estable entre refetches. El OBJETO no lo es: el
+  // poll de "en vivo" corre cada 60s y reconstruye la lista entera
+  // (`prev.map(p => ({...p}))`), así que `player` es un objeto nuevo cada
+  // minuto aunque no haya cambiado un solo dato.
+  const targetKey = player ? `${player.name}#${player.tag}` : null;
+  const shownKey = displayed ? `${displayed.name}#${displayed.tag}` : null;
+
+  // Mismo jugador con datos frescos: se cambia el objeto en su lugar, sin
+  // crossfade y sin tocar la pestaña ni la partida abierta. Va durante el
+  // render y no en un efecto porque es un AJUSTE de estado derivado — el
+  // patrón que documenta React y el mismo que usa useImageFallback acá al
+  // lado; en un efecto dispara un render en cascada.
+  //
+  // Acá estaba el bug: la guarda comparaba `player === displayed` por
+  // REFERENCIA, y el poll de "en vivo" reconstruye la lista entera cada 60s,
+  // así que fallaba siempre y disparaba el reset completo — te sacaba de
+  // "Campeones" a "Resumen" cada minuto. Peor con el análisis del pool, que
+  // vive dentro de esa pestaña: al resetear se desmontaba y perdías el
+  // informe recién generado.
+  if (player !== displayed && targetKey === shownKey) {
+    setDisplayed(player);
+  }
+
   useEffect(() => {
-    if (player === displayed) return;
+    if (targetKey === shownKey) return;
     // Crossfade on selection change, not a fetch — nothing to await before this.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFading(true);
@@ -73,7 +96,7 @@ export function PlayerProfile({
       setTab("resumen");
     }, 160);
     return () => clearTimeout(t);
-  }, [player, displayed]);
+  }, [player, targetKey, shownKey]);
 
   if (!displayed) {
     return (

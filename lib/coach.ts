@@ -12,6 +12,7 @@
  * `dato` obligatorio con el número del historial que lo justifica — si el
  * modelo no puede llenarlo, la recomendación no debería existir.
  */
+import { createHash } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
@@ -97,6 +98,22 @@ export function renderDossier(d: CoachDossier): string {
   }
 
   return lineas.join("\n");
+}
+
+/**
+ * Huella del dossier: se hashea el TEXTO exacto que va al modelo, no los
+ * datos sueltos. Si este hash no cambió, la entrada del modelo sería
+ * idéntica byte por byte.
+ *
+ * Sirve para no gastar en una regeneración que no puede dar nada nuevo. Y
+ * conviene ser explícito sobre por qué hace falta: la API no tiene memoria
+ * entre llamadas — el modelo no "se acuerda" del informe anterior ni aprendió
+ * nada de él. Cada llamada manda el dossier entero de nuevo y se paga entero
+ * de nuevo. Lo único que se puede hacer es no llamar, y eso es exactamente lo
+ * que habilita comparar este hash.
+ */
+export function dossierHash(dossier: CoachDossier): string {
+  return createHash("sha256").update(renderDossier(dossier)).digest("hex");
 }
 
 /**

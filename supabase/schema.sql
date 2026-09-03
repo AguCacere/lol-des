@@ -168,6 +168,12 @@ create table if not exists coach_reports (
   puuid                text primary key references summoners(puuid) on delete cascade,
   payload              jsonb not null,   -- CoachReport ya validado contra el schema de lib/coach.ts
   matches_at_generation int not null,
+  -- Hash del dossier EXACTO que se le mandó al modelo (ver renderDossier).
+  -- Si el hash de hoy es idéntico, la entrada del modelo sería byte por byte
+  -- la misma y la salida no aportaría nada nuevo: se devuelve lo cacheado sin
+  -- llamar, incluso cuando el usuario aprieta "Regenerar". Es lo único que
+  -- hace que regenerar sin haber jugado no cueste plata.
+  dossier_hash         text,
   generated_at         timestamptz not null default now()
 );
 

@@ -19,6 +19,12 @@ function parseRiotId(raw: string): { gameName: string; tagLine: string } | null 
   return { gameName: raw.slice(0, i).trim(), tagLine: raw.slice(i + 1).trim() };
 }
 
+/** Dos estados "en vivo" son el mismo si es la misma partida y lleva el mismo tiempo corriendo. */
+function sameLiveGame(a: LiveGame | null, b: LiveGame | null): boolean {
+  if (a === null || b === null) return a === b;
+  return a.gameId === b.gameId && a.champion === b.champion && a.startedMinutesAgo === b.startedMinutesAgo;
+}
+
 export default function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [duoSynergy, setDuoSynergy] = useState<DuoPair[]>([]);
@@ -81,7 +87,21 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) return;
       const live = (data.live as Record<string, LiveGame>) ?? {};
-      setPlayers((prev) => prev.map((p) => ({ ...p, liveGame: live[playerKey(p)] ?? null })));
+      // Se conserva el objeto anterior cuando el estado en vivo no cambió.
+      // Antes se reconstruía la lista entera cada 60s aunque nadie hubiera
+      // empezado ni terminado una partida, y esa identidad nueva hacía
+      // re-renderizar media app por nada. Un jugador realmente en partida sí
+      // cambia cada minuto (avanza `startedMinutesAgo`), y ahí corresponde.
+      setPlayers((prev) => {
+        let cambio = false;
+        const next = prev.map((p) => {
+          const nuevo = live[playerKey(p)] ?? null;
+          if (sameLiveGame(p.liveGame, nuevo)) return p;
+          cambio = true;
+          return { ...p, liveGame: nuevo };
+        });
+        return cambio ? next : prev;
+      });
     } catch {
       // best-effort — a failed poll just means the banner stays as it was until the next tick
     }
