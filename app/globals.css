@@ -753,7 +753,19 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .matchup-row:last-child{border-bottom:none;}
 .matchup-row:hover{background:var(--surface-hover);}
 .matchup-pair{display:inline-flex; align-items:center; gap:5px; flex:none;}
-.matchup-champ{width:26px; height:26px; border-radius:var(--radius-sm); flex:none;}
+/* Mismo patrón que .match-champ y .digest-match-champ, y no por prolijidad:
+   ChampIcon renderiza un <span> con un <img> adentro, y el <img> no hereda
+   el tamaño del span. Sin la regla de abajo el arte del campeón sale a su
+   tamaño natural y se desborda por encima de toda la fila. El span además
+   necesita ser flex con fondo propio porque cuando el ícono no carga
+   ChampIcon lo reemplaza por las iniciales del campeón, que van centradas. */
+.matchup-champ{
+  width:26px; height:26px; border-radius:var(--radius-sm); flex:none; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:700; font-size:9.5px;
+  background:var(--surface-hover); color:var(--text-secondary);
+}
+.matchup-champ img{width:100%; height:100%; object-fit:cover; display:block;}
 .matchup-vs{font-size:9px; font-weight:700; color:var(--text-muted); letter-spacing:0.04em;}
 /* min-width:0 para que el nombre largo trunque en vez de empujar al récord
    fuera de la fila — un flex item arranca en min-width:auto y no achica. */
