@@ -589,22 +589,33 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .role-dist-item.is-current .role-dist-pct{color:var(--accent); font-weight:700;}
 
 .stack-cols{display:grid; grid-template-columns:1.3fr 1fr; gap:24px;}
-@media (max-width:760px){.stack-cols{grid-template-columns:1fr;}}
+/* Dos listas del mismo peso (maestría / campeones más jugados) no tienen por
+   qué repartirse 1.3 a 1 — esa proporción existe para el par gráfico+grilla
+   contra historial, donde la izquierda sí manda. */
+.stack-cols.even{grid-template-columns:1fr 1fr;}
+@media (max-width:760px){.stack-cols, .stack-cols.even{grid-template-columns:1fr;}}
 
-.mobile-tabs{display:none;}
-@media (max-width:760px){
-  .mobile-tabs{display:flex; gap:8px; margin-bottom:16px;}
-  .mobile-tab{
-    flex:1; padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--border-soft);
-    background:transparent; color:var(--text-secondary); font-family:var(--font-body);
-    font-size:13px; font-weight:600; cursor:pointer;
-  }
-  .mobile-tab.is-active{background:var(--accent-wash); color:var(--accent); border-color:var(--accent);}
-  /* Ambas columnas siguen en el DOM (sin remount al cambiar de tab) — solo se
-     ocultan visualmente, y solo bajo este mismo breakpoint. En desktop
-     .stack-cols nunca lleva data-active-tab en cuenta, quedan las dos side by side. */
-  .stack-cols[data-active-tab="macro"] [data-tab-panel="micro"]{display:none;}
-  .stack-cols[data-active-tab="micro"] [data-tab-panel="macro"]{display:none;}
+/* Sub-navegación del perfil (Resumen / Rendimiento / Campeones). Misma
+   familia visual que .tabnav de arriba pero un escalón más abajo en
+   jerarquía: es navegación DENTRO de una card, no entre secciones de la
+   página, así que va sobre un track propio en vez de suelta sobre el fondo.
+   Sustituye al viejo toggle Macro/Micro, que solo existía en mobile. */
+.profile-tabs{
+  display:inline-flex; gap:2px; padding:3px; margin-bottom:18px;
+  background:var(--surface); border:1px solid var(--border-soft); border-radius:999px;
+}
+.profile-tab{
+  padding:7px 15px; border-radius:999px; border:none; background:transparent;
+  font-family:var(--font-body); font-size:12.5px; font-weight:600; color:var(--text-muted);
+  cursor:pointer; white-space:nowrap; transition:background .15s ease, color .15s ease;
+}
+.profile-tab:hover{color:var(--text-primary);}
+.profile-tab.is-active{background:var(--accent); color:var(--accent-ink); font-weight:700;}
+.profile-tab:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+@media (max-width:520px){
+  /* Que las tres entren sin scroll horizontal en un teléfono angosto. */
+  .profile-tabs{display:flex; width:100%;}
+  .profile-tab{flex:1; padding:8px 6px; font-size:12px; text-align:center;}
 }
 
 .subhead{

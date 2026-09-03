@@ -81,6 +81,20 @@ function CmpBar({
   );
 }
 
+/**
+ * Sub-navegación del perfil. Reemplaza al toggle Macro/Micro, que solo
+ * existía por debajo de 760px: el perfil ya venía largo con dos columnas
+ * apiladas, y con radar, métricas y matchups en camino un scroll único deja
+ * de ser usable en cualquier tamaño. Cada bloque nuevo entra en su pestaña
+ * en vez de estirar la página.
+ */
+type ProfileTabKey = "resumen" | "rendimiento" | "campeones";
+const PROFILE_TABS: { key: ProfileTabKey; label: string }[] = [
+  { key: "resumen", label: "Resumen" },
+  { key: "rendimiento", label: "Rendimiento" },
+  { key: "campeones", label: "Campeones" },
+];
+
 export function PlayerProfile({
   player,
   ddragonVersion,
@@ -91,11 +105,7 @@ export function PlayerProfile({
   const [displayed, setDisplayed] = useState(player);
   const [fading, setFading] = useState(false);
   const [expandedMatch, setExpandedMatch] = useState<number | null>(null);
-  // Macro/Micro se muestran lado a lado en desktop, pero apiladas se hacen
-  // eternas para scrollear en mobile (ver .stack-cols en globals.css) — este
-  // toggle solo hace algo por debajo de ese mismo breakpoint (760px), en
-  // desktop ambas columnas siguen visibles siempre.
-  const [mobileTab, setMobileTab] = useState<"macro" | "micro">("macro");
+  const [tab, setTab] = useState<ProfileTabKey>("resumen");
 
   useEffect(() => {
     if (player === displayed) return;
@@ -106,7 +116,7 @@ export function PlayerProfile({
       setDisplayed(player);
       setFading(false);
       setExpandedMatch(null);
-      setMobileTab("macro");
+      setTab("resumen");
     }, 160);
     return () => clearTimeout(t);
   }, [player, displayed]);
@@ -315,207 +325,213 @@ export function PlayerProfile({
           </div>
         )}
 
-        <div className="mobile-tabs" role="tablist">
-          <button
-            type="button"
-            className={`mobile-tab${mobileTab === "macro" ? " is-active" : ""}`}
-            role="tab"
-            aria-selected={mobileTab === "macro"}
-            onClick={() => setMobileTab("macro")}
-          >
-            Macro
-          </button>
-          <button
-            type="button"
-            className={`mobile-tab${mobileTab === "micro" ? " is-active" : ""}`}
-            role="tab"
-            aria-selected={mobileTab === "micro"}
-            onClick={() => setMobileTab("micro")}
-          >
-            Micro
-          </button>
+        <div className="profile-tabs" role="tablist">
+          {PROFILE_TABS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              className={`profile-tab${tab === t.key ? " is-active" : ""}`}
+              role="tab"
+              aria-selected={tab === t.key}
+              onClick={() => setTab(t.key)}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
 
-        <div className="stack-cols" data-active-tab={mobileTab}>
-          <div data-tab-panel="macro">
-            <h3 className="subhead">
-              <span className="tag macro">Macro</span>Progresión y mapa
-            </h3>
-            <div className="lp-chart-card">
-              <div className="lp-chart-top">
-                <div>
-                  <span className="label">
-                    LP · progresión reciente <InfoTip text={METRIC_INFO.lpProgression} />
+        {tab === "resumen" && (
+          <div className="stack-cols">
+            <div>
+              <div className="lp-chart-card">
+                <div className="lp-chart-top">
+                  <div>
+                    <span className="label">
+                      LP · progresión reciente <InfoTip text={METRIC_INFO.lpProgression} />
+                    </span>
+                    <div className="lp-chart-range">
+                      {lpEndpointLabel(lpStartPoint)}
+                      <span className="lp-chart-arrow">→</span>
+                      {lpEndpointLabel(lpCurrentPoint)}
+                    </div>
+                  </div>
+                  <span className={`lp-chart-delta ${lpDelta >= 0 ? "up" : "down"}`}>
+                    {lpDelta >= 0 ? "▲" : "▼"} {Math.abs(lpDelta)}
+                    <span className="lp-chart-delta-unit">{lpDeltaUnit}</span>
                   </span>
-                  <div className="lp-chart-range">
-                    {lpEndpointLabel(lpStartPoint)}
-                    <span className="lp-chart-arrow">→</span>
-                    {lpEndpointLabel(lpCurrentPoint)}
+                </div>
+                <div className="lp-svg">
+                  <SparkChart
+                    values={lpScores}
+                    width={520}
+                    height={118}
+                    pad={8}
+                    color={lpChartColor}
+                    variant="detailed"
+                    pointLabels={lpPointLabels}
+                  />
+                </div>
+                {p.lpHistory.length < 3 && (
+                  <p className="chart-note">
+                    Todavía hay poco historial guardado — la curva real va a aparecer a medida que se acumulen más
+                    actualizaciones de LP.
+                  </p>
+                )}
+              </div>
+              <div className="stat-grid">
+                <div className="stat-tile"><TrophyIcon /><div className="v">{p.winrate}%</div><div className="k">Winrate season</div></div>
+                <div className="stat-tile">
+                  <TargetIcon />
+                  <div className="v">{objPart}%</div>
+                  <div className="k">
+                    Participación objetivos <InfoTip text={METRIC_INFO.objShare} />
                   </div>
                 </div>
-                <span className={`lp-chart-delta ${lpDelta >= 0 ? "up" : "down"}`}>
-                  {lpDelta >= 0 ? "▲" : "▼"} {Math.abs(lpDelta)}
-                  <span className="lp-chart-delta-unit">{lpDeltaUnit}</span>
-                </span>
+                <div className="stat-tile">
+                  <ZapIcon />
+                  <div className="v">{killPart}%</div>
+                  <div className="k">
+                    Kill participation <InfoTip text={METRIC_INFO.killParticipation} />
+                  </div>
+                </div>
+                <div className="stat-tile">
+                  <EyeIcon />
+                  <div className="v">{avgVision}</div>
+                  <div className="k">
+                    Visión / min <InfoTip text={METRIC_INFO.visionScore} />
+                  </div>
+                </div>
+                <div className="stat-tile"><ClockIcon /><div className="v">{avgDur} min</div><div className="k">Duración prom.</div></div>
+                <div className="stat-tile"><TrendUpIcon /><div className="v">{wins}/{p.matches.length}</div><div className="k">Forma reciente</div></div>
               </div>
-              <div className="lp-svg">
-                <SparkChart
-                  values={lpScores}
-                  width={520}
-                  height={118}
-                  pad={8}
-                  color={lpChartColor}
-                  variant="detailed"
-                  pointLabels={lpPointLabels}
+            </div>
+
+            <div>
+              <h4 className="subsection-label">Últimas partidas</h4>
+              <div className="matches">
+                {!hasMatches && (
+                  <div className="empty-state">
+                    <strong>Sin partidas guardadas todavía</strong>
+                    Van a aparecer acá solas después del próximo refresh automático (corre cada 15 minutos).
+                  </div>
+                )}
+                {p.matches.map((m, i) => {
+                  const isExpanded = expandedMatch === i;
+                  return (
+                    <div className="match-item" key={i}>
+                      <button
+                        type="button"
+                        className={`match-row${isExpanded ? " is-expanded" : ""}`}
+                        onClick={() => setExpandedMatch((cur) => (cur === i ? null : i))}
+                        aria-expanded={isExpanded}
+                      >
+                        <div className={`match-stripe ${m.win ? "w" : "l"}`} />
+                        <ChampIcon champ={m.champ} version={ddragonVersion} className="match-champ" />
+                        <div className="match-mid">
+                          <div className="match-top-line">
+                            <span className="match-champ-name">{m.champ}</span>
+                            {m.flag && (
+                              <span className="review-badge" title={m.flag.reasons.join(" · ")}>
+                                <ReviewIcon />
+                                Para repasar
+                              </span>
+                            )}
+                            <span className={`match-result ${m.win ? "w" : "l"}`}>
+                              {m.win ? "VICTORIA" : "DERROTA"}
+                            </span>
+                          </div>
+                          <div className="match-sub">
+                            {m.dur} min · {m.cs} CS ({m.csmin}/min) · daño {m.dmgShare}%
+                          </div>
+                        </div>
+                        <div className="match-stats">
+                          <div className="kda">
+                            {m.k}
+                            <span className="neu">/</span>
+                            {m.d}
+                            <span className="neu">/</span>
+                            {m.a}
+                          </div>
+                          <span className="extra">{m.gold} oro/min</span>
+                          <span className="extra match-date">{formatRelativeDate(m.playedAt)}</span>
+                        </div>
+                        <svg
+                          className="match-chevron"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      </button>
+                      {isExpanded && <MatchDetail match={m} ddragonVersion={ddragonVersion} />}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === "rendimiento" && (
+          <div className="stack-cols">
+            <div>
+              <h4 className="subsection-label">Comparación con tu rol</h4>
+              <div className="cmp-card">
+                <CmpBar
+                  label="KDA promedio"
+                  value={Number(avgKDA.toFixed(2))}
+                  avg={roleAvg.kda !== null ? Number(roleAvg.kda.toFixed(2)) : null}
+                  max={6}
+                />
+                <CmpBar
+                  label="CS / min"
+                  value={Number(avgCS.toFixed(1))}
+                  avg={roleAvg.csPerMin !== null ? Number(roleAvg.csPerMin.toFixed(1)) : null}
+                  max={10}
+                  tooltip={METRIC_INFO.csPerMin}
+                />
+                <CmpBar
+                  label="% daño del equipo"
+                  value={Math.round(avgDmg)}
+                  avg={roleAvg.dmgShare !== null ? Math.round(roleAvg.dmgShare) : null}
+                  max={45}
+                  suffix="%"
+                  tooltip={METRIC_INFO.dmgShare}
                 />
               </div>
-              {p.lpHistory.length < 3 && (
-                <p className="chart-note">
-                  Todavía hay poco historial guardado — la curva real va a aparecer a medida que se acumulen más
-                  actualizaciones de LP.
-                </p>
+
+              <h4 className="subsection-label">Fortalezas y debilidades</h4>
+              <InsightsCard strengths={strengths} weaknesses={weaknesses} sampleSize={roleAvg.sampleSize} />
+            </div>
+
+            <div>
+              {p.personalRecords && (
+                <>
+                  <h4 className="subsection-label">Récords personales</h4>
+                  <PersonalRecords records={p.personalRecords} />
+                </>
               )}
-            </div>
-            <div className="stat-grid">
-              <div className="stat-tile"><TrophyIcon /><div className="v">{p.winrate}%</div><div className="k">Winrate season</div></div>
-              <div className="stat-tile">
-                <TargetIcon />
-                <div className="v">{objPart}%</div>
-                <div className="k">
-                  Participación objetivos <InfoTip text={METRIC_INFO.objShare} />
-                </div>
-              </div>
-              <div className="stat-tile">
-                <ZapIcon />
-                <div className="v">{killPart}%</div>
-                <div className="k">
-                  Kill participation <InfoTip text={METRIC_INFO.killParticipation} />
-                </div>
-              </div>
-              <div className="stat-tile">
-                <EyeIcon />
-                <div className="v">{avgVision}</div>
-                <div className="k">
-                  Visión / min <InfoTip text={METRIC_INFO.visionScore} />
-                </div>
-              </div>
-              <div className="stat-tile"><ClockIcon /><div className="v">{avgDur} min</div><div className="k">Duración prom.</div></div>
-              <div className="stat-tile"><TrendUpIcon /><div className="v">{wins}/{p.matches.length}</div><div className="k">Forma reciente</div></div>
-            </div>
-
-            <h4 className="subsection-label">Maestría de campeón</h4>
-            <MasteryPool pool={p.masteryPool} ddragonVersion={ddragonVersion} />
-
-            <h4 className="subsection-label">Campeones más jugados</h4>
-            <ChampionPool pool={p.championPool} ddragonVersion={ddragonVersion} />
-
-            {p.personalRecords && (
-              <>
-                <h4 className="subsection-label">Récords personales</h4>
-                <PersonalRecords records={p.personalRecords} />
-              </>
-            )}
-
-            <AegisStats stats={p.aegisStats} />
-          </div>
-
-          <div data-tab-panel="micro">
-            <h3 className="subhead">
-              <span className="tag micro">Micro</span>Últimas partidas
-            </h3>
-            <div className="cmp-card">
-              <CmpBar
-                label="KDA promedio"
-                value={Number(avgKDA.toFixed(2))}
-                avg={roleAvg.kda !== null ? Number(roleAvg.kda.toFixed(2)) : null}
-                max={6}
-              />
-              <CmpBar
-                label="CS / min"
-                value={Number(avgCS.toFixed(1))}
-                avg={roleAvg.csPerMin !== null ? Number(roleAvg.csPerMin.toFixed(1)) : null}
-                max={10}
-                tooltip={METRIC_INFO.csPerMin}
-              />
-              <CmpBar
-                label="% daño del equipo"
-                value={Math.round(avgDmg)}
-                avg={roleAvg.dmgShare !== null ? Math.round(roleAvg.dmgShare) : null}
-                max={45}
-                suffix="%"
-                tooltip={METRIC_INFO.dmgShare}
-              />
-            </div>
-
-            <h4 className="subsection-label">Fortalezas y debilidades</h4>
-            <InsightsCard strengths={strengths} weaknesses={weaknesses} sampleSize={roleAvg.sampleSize} />
-
-            <div className="matches">
-              {!hasMatches && (
-                <div className="empty-state">
-                  <strong>Sin partidas guardadas todavía</strong>
-                  Van a aparecer acá solas después del próximo refresh automático (corre cada 15 minutos).
-                </div>
-              )}
-              {p.matches.map((m, i) => {
-                const isExpanded = expandedMatch === i;
-                return (
-                  <div className="match-item" key={i}>
-                    <button
-                      type="button"
-                      className={`match-row${isExpanded ? " is-expanded" : ""}`}
-                      onClick={() => setExpandedMatch((cur) => (cur === i ? null : i))}
-                      aria-expanded={isExpanded}
-                    >
-                      <div className={`match-stripe ${m.win ? "w" : "l"}`} />
-                      <ChampIcon champ={m.champ} version={ddragonVersion} className="match-champ" />
-                      <div className="match-mid">
-                        <div className="match-top-line">
-                          <span className="match-champ-name">{m.champ}</span>
-                          {m.flag && (
-                            <span className="review-badge" title={m.flag.reasons.join(" · ")}>
-                              <ReviewIcon />
-                              Para repasar
-                            </span>
-                          )}
-                          <span className={`match-result ${m.win ? "w" : "l"}`}>
-                            {m.win ? "VICTORIA" : "DERROTA"}
-                          </span>
-                        </div>
-                        <div className="match-sub">
-                          {m.dur} min · {m.cs} CS ({m.csmin}/min) · daño {m.dmgShare}%
-                        </div>
-                      </div>
-                      <div className="match-stats">
-                        <div className="kda">
-                          {m.k}
-                          <span className="neu">/</span>
-                          {m.d}
-                          <span className="neu">/</span>
-                          {m.a}
-                        </div>
-                        <span className="extra">{m.gold} oro/min</span>
-                        <span className="extra match-date">{formatRelativeDate(m.playedAt)}</span>
-                      </div>
-                      <svg
-                        className="match-chevron"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="6 9 12 15 18 9" />
-                      </svg>
-                    </button>
-                    {isExpanded && <MatchDetail match={m} ddragonVersion={ddragonVersion} />}
-                  </div>
-                );
-              })}
+              <AegisStats stats={p.aegisStats} />
             </div>
           </div>
-        </div>
+        )}
+
+        {tab === "campeones" && (
+          <div className="stack-cols even">
+            <div>
+              <h4 className="subsection-label">Maestría de campeón</h4>
+              <MasteryPool pool={p.masteryPool} ddragonVersion={ddragonVersion} />
+            </div>
+            <div>
+              <h4 className="subsection-label">Campeones más jugados</h4>
+              <ChampionPool pool={p.championPool} ddragonVersion={ddragonVersion} />
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
