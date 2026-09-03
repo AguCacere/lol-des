@@ -28,7 +28,7 @@ async function latestVersion(): Promise<string> {
 
 interface DDragonChampionEntry {
   key: string; // numeric championId, as a string
-  name: string;
+  name: string; // nombre para mostrar, ej. "Kai'Sa" — NO sirve para armar URLs, ver fetchChampionMap
 }
 
 interface DDragonChampionResponse {
@@ -44,13 +44,24 @@ async function fetchChampionMap(): Promise<Map<number, string>> {
   const champData: DDragonChampionResponse = await res.json();
 
   const byId = new Map<number, string>();
-  for (const entry of Object.values(champData.data)) {
-    byId.set(Number(entry.key), entry.name);
+  // La CLAVE del objeto `data`, no `entry.name`. Las dos identifican al mismo
+  // campeón pero solo una sirve: la clave es el id de Data Dragon ("Kaisa",
+  // "MonkeyKing", "KSante") y es lo que championIconUrl necesita para armar
+  // la URL del arte; `name` es el nombre para mostrar ("Kai'Sa", "Wukong",
+  // "K'Sante") y con apóstrofos o espacios la URL da 404.
+  //
+  // Es exactamente el mismo identificador que Match-V5 devuelve en
+  // `championName` y que guardamos en matches.champion, así que además de
+  // arreglar el ícono deja de haber dos strings distintos para el mismo
+  // campeón en dos listas pegadas ("Kai'Sa" en maestría contra "Kaisa" en
+  // campeones más jugados).
+  for (const [ddragonId, entry] of Object.entries(champData.data)) {
+    byId.set(Number(entry.key), ddragonId);
   }
   return byId;
 }
 
-/** Resolves a Champion Mastery `championId` to its display name, or null if the lookup fails. */
+/** Resolves a Champion Mastery `championId` to Riot's champion id — el mismo string que Match-V5 pone en `championName`, listo para usar como nombre y como URL. Null si falla el lookup. */
 export async function championNameById(championId: number): Promise<string | null> {
   const now = Date.now();
   if (!championCache || now - championCache.fetchedAt > CACHE_TTL_MS) {

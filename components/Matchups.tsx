@@ -19,9 +19,9 @@ export function Matchups({ matchups, ddragonVersion }: { matchups: Matchup[]; dd
   if (matchups.length === 0) {
     return (
       <div className="empty-state">
-        <strong>Todavía no hay enfrentamientos con partidas suficientes</strong>
-        Hacen falta al menos {MATCHUP_MIN_GAMES} partidas con el mismo campeón contra el mismo rival de línea. El
-        campeón rival se empezó a guardar hace poco, así que esto se va a llenar solo a medida que jueguen.
+        <strong>Todavía no hay enfrentamientos repetidos</strong>
+        Hacen falta al menos {MATCHUP_MIN_GAMES} partidas con el mismo campeón contra el mismo rival de línea. Si rotás
+        mucho de campeón, tarda en llenarse: se necesita que el cruce se repita, no solo jugar seguido.
       </div>
     );
   }

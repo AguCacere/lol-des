@@ -34,12 +34,22 @@ export interface Matchup {
 }
 
 /**
- * Por debajo de esto ni se muestra. Tres tampoco es una muestra seria, pero
- * es el piso donde un resultado deja de ser "jugué una vez y perdí": ya hay
- * una tendencia que mirar, con la cantidad de partidas al lado para que se
- * lea con la desconfianza que merece.
+ * Por debajo de esto ni se muestra.
+ *
+ * Empezó en 3, que como piso estadístico es más defendible. El problema es
+ * que la realidad de los datos no lo banca: con 548 partidas repartidas
+ * entre siete jugadores, el grupo ENTERO tiene nueve pares que llegan a 3, y
+ * todos son de jugadores que hacen one-trick. Al que rota campeones la
+ * sección le quedaba vacía, que es peor que una fila con poca muestra:
+ * "todavía no hay nada" no le enseña nada a nadie.
+ *
+ * Con 2 la fila aparece, y lo que la hace honesta no es el umbral sino la
+ * presentación: el récord ("2V-0D") va SIEMPRE pegado al porcentaje, y el
+ * orden pone primero los pares mejor muestreados. Al que tiene un par de 7
+ * partidas no lo empuja hacia abajo ninguna fila de 2, y al que no tiene
+ * nada mejor por lo menos le muestra con qué viene chocando.
  */
-export const MATCHUP_MIN_GAMES = 3;
+export const MATCHUP_MIN_GAMES = 2;
 
 /**
  * `matches` es el historial ranked completo de UN jugador, en cualquier
