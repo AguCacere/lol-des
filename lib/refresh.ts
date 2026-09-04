@@ -109,7 +109,7 @@ async function checkStreakAndNotify(supabase: SupabaseClient, puuid: string) {
 async function checkDisasterAndNotify(supabase: SupabaseClient, puuid: string, nuevos: string[]) {
   const { data: rows } = await supabase
     .from("matches")
-    .select("match_id, champion, win, kills, deaths, assists")
+    .select("match_id, champion, win, kills, deaths, assists, dmg_share, cs, cs_per_min")
     .eq("puuid", puuid)
     .eq("queue_id", RANKED_SOLO_QUEUE_ID)
     .in("match_id", nuevos);
@@ -123,6 +123,9 @@ async function checkDisasterAndNotify(supabase: SupabaseClient, puuid: string, n
       kills: r.kills,
       deaths: r.deaths,
       assists: r.assists,
+      dmgShare: r.dmg_share,
+      cs: r.cs,
+      csPerMin: r.cs_per_min,
     }))
   );
   if (!peor) return;

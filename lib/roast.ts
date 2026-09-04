@@ -7,8 +7,9 @@
  * querer tocar, y conviene que estén en un archivo que se pueda leer y
  * probar sin levantar nada.
  */
+import { championLabel } from "./champion-names";
 
-/** Lo mínimo de una partida que hace falta para juzgarla. */
+/** Lo mínimo de una partida que hace falta para juzgarla. Los opcionales solo suman filo al remate. */
 export interface RoastCandidate {
   matchId: string;
   champion: string;
@@ -16,35 +17,53 @@ export interface RoastCandidate {
   kills: number;
   deaths: number;
   assists: number;
+  /** % del daño del equipo. Null en partidas guardadas antes de que existiera la columna. */
+  dmgShare?: number | null;
+  csPerMin?: number | null;
+  cs?: number | null;
 }
 
 /**
- * Muertes mínimas para que califique. Con menos que esto no es un desastre,
- * es una partida mala y todos tenemos.
+ * Muertes mínimas para el camino del ratio. Con menos que esto no es un
+ * desastre, es una partida mala y todos tenemos.
  */
 const MIN_DEATHS = 7;
 /**
- * Y el umbral que de verdad decide: (kills + asistencias) / muertes.
+ * El umbral del primer camino: (kills + asistencias) / muertes.
  *
  * Solo contar muertes no alcanza y sería injusto con los supports. Un 3/9/20
  * es alguien que murió mucho pero estuvo en todas las peleas — eso no es un
- * desastre. Un 0/13/5 es otra cosa. La proporción separa las dos sin tener
- * que mirar el rol.
+ * desastre. Un 0/13/5 es otra cosa.
  */
 const MAX_RATIO = 0.6;
+/**
+ * Y el segundo camino, que existe porque el primero se comía casos obvios:
+ * un 1/14/11 da ratio 0.857 y zafaba, cuando morir 14 veces es exactamente
+ * lo que la gente quiere ver cargado. Las 11 asistencias tapan las 14
+ * muertes en la división y el ratio solo no lo ve.
+ *
+ * La regla acá es más simple de defender que cualquier umbral fino: moriste
+ * más veces de las que participaste en una kill. No importa el rol — si las
+ * muertes le ganan a los takedowns, el aporte fue negativo.
+ */
+const MUERTES_ABSURDAS = 12;
 
-/** Qué tan mal salió, más bajo es peor. Sirve para elegir la peor cuando hay varias. */
+/**
+ * Qué tan mal salió, más bajo es peor. Sirve para elegir la peor cuando hay
+ * varias en la misma corrida.
+ */
 export function disasterScore(m: RoastCandidate): number {
   return (m.kills + m.assists) / Math.max(1, m.deaths);
 }
 
-/** Una derrota con una línea de KDA lo bastante mala como para merecer una cargada. */
+/** Una derrota lo bastante mala como para merecer una cargada. */
 export function isDisaster(m: RoastCandidate): boolean {
   // Solo derrotas: hacer 0/13 y GANAR es gracioso por otro motivo y merece
   // otra burla, no esta.
   if (m.win) return false;
-  if (m.deaths < MIN_DEATHS) return false;
-  return disasterScore(m) < MAX_RATIO;
+  if (m.deaths >= MIN_DEATHS && disasterScore(m) < MAX_RATIO) return true;
+  if (m.deaths >= MUERTES_ABSURDAS && m.deaths > m.kills + m.assists) return true;
+  return false;
 }
 
 /**
@@ -53,18 +72,40 @@ export function isDisaster(m: RoastCandidate): boolean {
  * depurar por qué salió tal texto, es reproducible.
  *
  * Todas meten el KDA real adentro. Una burla genérica es un chiste; una que
- * te dice "13 muertes" es el chiste Y el dato.
+ * te dice "14 muertes" es el chiste Y el dato.
  */
 const CARGADAS: ((label: string, champ: string, k: number, d: number, a: number) => string)[] = [
-  (l, c, k, d, a) => `**${l}** salió a pasear con **${c}** y volvió **${k}/${d}/${a}**. ${d} muertes. ${d}.`,
+  (l, c, k, d, a) => `**${l}** agarró a **${c}** y lo devolvió usado: **${k}/${d}/${a}**. ${d} muertes. ${d}.`,
+  (l, c, k, d, a) => `**${l}** hizo **${k}/${d}/${a}** con **${c}**. Eso no es una partida, es una donación.`,
+  (l, c, k, d, a) => `**${k}/${d}/${a}** con **${c}**. **${l}** fue el mejor jugador del equipo rival.`,
+  (l, c, k, d, a) => `**${l}** repartió ${d} muertes gratis con **${c}** (**${k}/${d}/${a}**). Ya lo tienen agendado para el cumpleaños.`,
+  (l, c, k, d, a) => `**${c}** en manos de **${l}**: **${k}/${d}/${a}**. El bot de práctica rendía más y no se quejaba.`,
+  (l, c, k, d, a) => `${d} muertes, **${l}**. ${d}. Cerró **${k}/${d}/${a}** con **${c}** y salió a buscar otra.`,
+  (l, c, k, d, a) => `**${l}** pasó más tiempo en la fuente que en el mapa: **${k}/${d}/${a}** con **${c}**.`,
+  (l, c, k, d, a) => `**${k}/${d}/${a}**. **${l}** no jugó **${c}**, lo hizo pasar vergüenza en público.`,
+  (l, c, k, d, a) => `**${l}** con **${c}**: **${k}/${d}/${a}**. Si el rival tenía una misión de matarlo ${d} veces, la completó solo.`,
   (l, c, k, d, a) => `Alguien avísele a **${l}** que con **${c}** también se puede no morir. Terminó **${k}/${d}/${a}**.`,
-  (l, c, k, d, a) => `**${k}/${d}/${a}** con **${c}**. **${l}**, ¿estabas jugando o mirando el celular?`,
-  (l, c, k, d, a) => `**${l}** repartió ${d} vidas gratis con **${c}**. Cerró en **${k}/${d}/${a}**.`,
-  (l, c, k, d, a) => `**${c}** de **${l}**: **${k}/${d}/${a}**. El equipo rival le mandó una tarjeta de agradecimiento.`,
-  (l, c, k, d, a) => `**${l}** hizo **${k}/${d}/${a}** con **${c}** y encima perdió. Doble mérito.`,
-  (l, c, k, d, a) => `${d} muertes con **${c}**. **${l}** terminó **${k}/${d}/${a}** y sigue como si nada.`,
-  (l, c, k, d, a) => `**${l}** convirtió a **${c}** en una oleada de minions: **${k}/${d}/${a}**.`,
 ];
+
+/**
+ * El remate: una segunda línea con el número que más duele, si lo tenemos
+ * guardado. Es opcional a propósito — las partidas viejas no tienen estas
+ * columnas y una cargada sin remate funciona igual.
+ *
+ * El umbral del daño es bajo (8%) para que un support enchanter no entre por
+ * jugar como se juega su rol; el de CS es bajísimo (1.5/min) por lo mismo.
+ * Acá no se busca un análisis, se busca el dato que remata el chiste.
+ */
+function remate(m: RoastCandidate): string | null {
+  if (m.dmgShare != null && m.dmgShare > 0 && m.dmgShare < 8) {
+    return `Aportó el ${m.dmgShare}% del daño del equipo. Las torres hicieron más.`;
+  }
+  if (m.csPerMin != null && m.csPerMin > 0 && m.csPerMin < 1.5) {
+    const farm = m.cs != null ? `${m.cs} de CS, ` : "";
+    return `${farm}${m.csPerMin} por minuto. Los minions murieron de viejos.`;
+  }
+  return null;
+}
 
 /** Suma de caracteres del matchId. No necesita ser un buen hash, solo repartir parejo y ser estable. */
 function indiceEstable(matchId: string, total: number): number {
@@ -76,7 +117,11 @@ function indiceEstable(matchId: string, total: number): number {
 /** El mensaje listo para mandar a Discord. Los tres emojis van siempre adelante — es la firma del formato. */
 export function roastMessage(label: string, m: RoastCandidate): string {
   const cargada = CARGADAS[indiceEstable(m.matchId, CARGADAS.length)];
-  return `😂😂😂 ${cargada(label, m.champion, m.kills, m.deaths, m.assists)}`;
+  // championLabel y no el nombre crudo de Riot: "MonkeyKing" o "Kaisa" en
+  // medio de una cargada la desinflan.
+  const texto = cargada(label, championLabel(m.champion), m.kills, m.deaths, m.assists);
+  const extra = remate(m);
+  return extra ? `😂😂😂 ${texto}\n${extra}` : `😂😂😂 ${texto}`;
 }
 
 /**
@@ -84,9 +129,17 @@ export function roastMessage(label: string, m: RoastCandidate): string {
  * corrida del cron y no una por partida: dos mensajes seguidos diluyen el
  * chiste, y con varias partidas nuevas en el mismo ciclo la peor es la que
  * vale la pena contar.
+ *
+ * Ordena por el ratio y, si empatan, gana la que tiene más muertes: entre dos
+ * igual de improductivas, la más espectacular es la que se cuenta.
  */
 export function worstDisaster(matches: RoastCandidate[]): RoastCandidate | null {
   const malas = matches.filter(isDisaster);
   if (malas.length === 0) return null;
-  return malas.reduce((peor, m) => (disasterScore(m) < disasterScore(peor) ? m : peor));
+  return malas.reduce((peor, m) => {
+    const dm = disasterScore(m);
+    const dp = disasterScore(peor);
+    if (dm !== dp) return dm < dp ? m : peor;
+    return m.deaths > peor.deaths ? m : peor;
+  });
 }
