@@ -12,6 +12,7 @@ import {
 import { championNameById, runeNameById, summonerSpellNameById } from "./ddragon";
 import { extractTimelineStats } from "./timeline";
 import { sendDiscordNotification } from "./discord";
+import { roastMessage, worstDisaster } from "./roast";
 import { tierFor } from "./ladder";
 import { divisionFromRiot, tierKeyFromRiot } from "./mapping";
 
@@ -93,6 +94,42 @@ async function checkStreakAndNotify(supabase: SupabaseClient, puuid: string) {
   const emoji = result ? "🔥" : "💀";
   const word = result ? "victorias" : "derrotas";
   await sendDiscordNotification(`${emoji} **${label}** está en racha de **${count} ${word}** seguidas.`);
+}
+
+/**
+ * La cargada por partida desastrosa (ver lib/roast.ts para el criterio y el
+ * tono). Mira SOLO los match_id que este ciclo acaba de insertar: sobre el
+ * historial entero volvería a encontrar el mismo 0/13 de hace tres días y lo
+ * publicaría de nuevo cada quince minutos.
+ *
+ * Se relee de la base en vez de recordar lo que se insertó en memoria por la
+ * misma razón que checkStreakAndNotify: así lo que se juzga es exactamente lo
+ * que quedó guardado, no lo que creíamos haber guardado.
+ */
+async function checkDisasterAndNotify(supabase: SupabaseClient, puuid: string, nuevos: string[]) {
+  const { data: rows } = await supabase
+    .from("matches")
+    .select("match_id, champion, win, kills, deaths, assists")
+    .eq("puuid", puuid)
+    .eq("queue_id", RANKED_SOLO_QUEUE_ID)
+    .in("match_id", nuevos);
+  if (!rows || rows.length === 0) return;
+
+  const peor = worstDisaster(
+    rows.map((r) => ({
+      matchId: r.match_id,
+      champion: r.champion,
+      win: r.win,
+      kills: r.kills,
+      deaths: r.deaths,
+      assists: r.assists,
+    }))
+  );
+  if (!peor) return;
+
+  const label = await summonerLabel(supabase, puuid);
+  if (!label) return;
+  await sendDiscordNotification(roastMessage(label, peor));
 }
 
 /**
@@ -400,18 +437,25 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string): Promi
   const known = new Set((existing ?? []).map((m) => m.match_id));
 
   const matchIds = await getMatchIdsByPuuid(puuid, 20);
-  let newRankedMatches = false;
+  // Los match_id que ESTE ciclo insertó. Se acumulan para que la cargada de
+  // Discord mire solo lo nuevo: si mirara el historial entero, cada corrida
+  // del cron volvería a encontrar el mismo desastre de hace tres días y lo
+  // volvería a publicar cada quince minutos.
+  const insertados: string[] = [];
   for (const matchId of matchIds) {
     if (known.has(matchId)) continue;
     const warning = await fetchAndStoreMatch(supabase, puuid, matchId);
     if (warning) warnings.push(warning);
-    else newRankedMatches = true;
+    else insertados.push(matchId);
   }
   // Once per refresh cycle, after everything new is already stored — not
   // once per match inside the loop above, which (with several new ranked
   // games in the same cycle) would fire one Discord message per game, each
   // describing an earlier/smaller streak than the one before it.
-  if (newRankedMatches) await checkStreakAndNotify(supabase, puuid);
+  if (insertados.length > 0) {
+    await checkStreakAndNotify(supabase, puuid);
+    await checkDisasterAndNotify(supabase, puuid, insertados);
+  }
 
   // Clash games are rare (a handful of days a year, at most), so this almost
   // always comes back empty — but checking the last 20 ids every ~15min
