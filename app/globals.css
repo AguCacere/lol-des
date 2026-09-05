@@ -1535,23 +1535,30 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .match-detail-group-label::after{content:""; flex:1; height:1px; background:rgba(255,255,255,0.08);}
 .match-detail-group-icon{width:13px; height:13px; flex:none; display:flex;}
 .match-detail-group-icon svg{width:100%; height:100%;}
-.match-detail-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:11px 16px;}
-/* El número arriba y el título abajo (column-reverse, el orden del DOM sigue
-   siendo título → valor). Con el título arriba cada celda se leía como el
-   campo de un formulario; al revés se lee como una ficha de estadísticas, que
-   es lo que es: el dato manda y la etiqueta lo explica. */
-.match-detail-stat{display:flex; flex-direction:column-reverse; gap:1px; min-width:0;}
+/* Filas etiqueta → valor en dos columnas, en vez de una grilla de tarjetitas.
+   El problema de las tarjetitas no era el espaciado: era que cada una se
+   alineaba sola. Con valores que a veces ocupan dos líneas ("9.680 (4.975
+   mitigado)"), las etiquetas quedaban a alturas distintas y el bloque se leía
+   como números desparramados. En filas, todos los valores caen sobre la misma
+   guía a la derecha y el ojo los recorre de una. */
+.match-detail-grid{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:0 34px;}
+.match-detail-stat{
+  display:flex; align-items:baseline; justify-content:space-between; gap:14px; min-width:0;
+  padding:7px 0; border-bottom:1px solid var(--border-soft);
+}
+/* Las dos últimas (una sola en mobile) cierran el bloque sin línea: si no,
+   la última fila queda subrayada contra el título del grupo siguiente. */
+.match-detail-stat:nth-last-child(-n+2){border-bottom:none;}
 .match-detail-stat .k{
-  display:flex; align-items:center; gap:3px;
-  font-size:9.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;
+  display:flex; align-items:center; gap:4px; min-width:0;
+  font-size:12px; color:var(--text-muted); line-height:1.35;
 }
 .match-detail-stat .v{
   font-family:var(--font-stat); font-size:14px; font-weight:700; color:var(--text-primary);
-  letter-spacing:0.01em; font-variant-numeric:tabular-nums;
+  font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap; flex:none;
 }
 .match-detail-stat .v .unit{
-  display:inline;
-  margin-left:4px;
+  margin-left:5px;
   font-family:var(--font-mono); font-weight:400; color:var(--text-muted); font-size:10.5px; letter-spacing:0;
 }
 /* min-width:0 so this spanning cell's own content (mini-breakdown below)
@@ -1560,6 +1567,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    grid item's min-width defaults to auto (= its content's natural size),
    which silently overflowed the card before this. */
 .match-detail-stat.wide{grid-column:1 / -1; min-width:0;}
+/* Un desglose de varios chips no entra en la guía de la derecha: se le deja
+   envolver debajo de la etiqueta en vez de comprimir la fila. */
+.match-detail-stat.wide .v{white-space:normal; text-align:left; flex:1 1 auto; min-width:0;}
+@media (max-width:640px){
+  .match-detail-grid{grid-template-columns:1fr; gap:0;}
+  .match-detail-stat:nth-last-child(-n+2){border-bottom:1px solid var(--border-soft);}
+  .match-detail-stat:last-child{border-bottom:none;}
+}
 /* Real rune/summoner-spell art in the Build section, instead of plain
    names — same Data Dragon CDN as champion/profile icons, just resolved by
    name instead of id (see lib/ddragon.ts). */

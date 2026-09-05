@@ -241,7 +241,7 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
         <Stat label="Participación objetivos" tooltip={METRIC_INFO.objShare}>
           {m.objShare}%
         </Stat>
-        <Stat label="Wards">
+        <Stat label="Wards" wide>
           <MiniBreakdown
             items={[
               { value: m.wardsPlaced, label: "puestas" },
@@ -302,18 +302,18 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
                 )}
                 {m.primaryRune ?? "—"}
               </span>
+              {/* Con íconos van los dos pegados; sin íconos hace falta el
+                  separador o se lee "FlashTeleport". */}
               <span className="build-chip">
-                {m.summoner1IconUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- ícono chico de tamaño fijo
-                  <img className="build-icon" src={m.summoner1IconUrl} alt={m.summoner1 ?? ""} title={m.summoner1 ?? undefined} />
+                {m.summoner1IconUrl && m.summoner2IconUrl ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- ícono chico de tamaño fijo */}
+                    <img className="build-icon" src={m.summoner1IconUrl} alt={m.summoner1 ?? ""} title={m.summoner1 ?? undefined} />
+                    {/* eslint-disable-next-line @next/next/no-img-element -- ícono chico de tamaño fijo */}
+                    <img className="build-icon" src={m.summoner2IconUrl} alt={m.summoner2 ?? ""} title={m.summoner2 ?? undefined} />
+                  </>
                 ) : (
-                  m.summoner1 ?? "—"
-                )}
-                {m.summoner2IconUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- ícono chico de tamaño fijo
-                  <img className="build-icon" src={m.summoner2IconUrl} alt={m.summoner2 ?? ""} title={m.summoner2 ?? undefined} />
-                ) : (
-                  m.summoner2 ?? "—"
+                  `${m.summoner1 ?? "—"} / ${m.summoner2 ?? "—"}`
                 )}
               </span>
             </div>
