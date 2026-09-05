@@ -70,13 +70,17 @@ export function ChampionWinrateLeaderboard({
                     <span className="podium-name">{championLabel(e.champion)}</span>
                     <span className="podium-meta">
                       {e.playerName}
-                      <span className="tw-dot">·</span>
-                      {e.games} partidas
+                      <span className="seg">· {e.games} partidas</span>
                     </span>
                   </div>
                   <span className={`podium-wr ${tonoDe(e)}`}>{formatWr(e)}</span>
                   <span className="podium-record">
-                    <span className="podium-vd">KDA {e.avgKda}</span>
+                    {/* El récord crudo al lado del porcentaje, igual que en el
+                        podio de invocadores: un 52% en 71 partidas y uno en 51
+                        no son lo mismo y el porcentaje solo no lo dice. */}
+                    <span className="podium-vd">
+                      {e.wins}V-{e.losses}D · KDA {e.avgKda}
+                    </span>
                     {/* En la tarjeta no hay encabezado que explique la
                         columna, así que el "=" del caso sin diferencia sería
                         un signo suelto sin contexto: ahí directamente no se

@@ -1274,6 +1274,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   }
   .podium-medal{position:static; transform:none;}
   .podium-mid{align-items:flex-start; flex:1; min-width:0;}
+  /* La tarjeta pasa a horizontal y el texto se alinea a la izquierda, pero la
+     línea de contexto seguía centrada: con dos o tres datos que envuelven,
+     quedaba escalonada contra el nombre de arriba. */
+  .podium-meta{justify-content:flex-start;}
   .podium-avatar, .podium-card.rank-1 .podium-avatar{width:40px; height:40px;}
   .podium-wr, .podium-card.rank-1 .podium-wr{font-size:16px; margin-top:0; margin-left:auto;}
   /* En la tarjeta horizontal no entra el récord entero, pero el balance sí:
@@ -2295,6 +2299,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .tw-netas.good{color:var(--good);}
 .tw-netas.bad{color:var(--critical);}
 .podium-meta{display:flex; align-items:center; gap:5px; flex-wrap:wrap; justify-content:center;}
+.podium-meta .seg{white-space:nowrap;}
 @media (max-width:760px){
   /* La barra pasa a una segunda línea a todo el ancho con el total de
      partidas a su izquierda: apretada en una sola fila quedaba de 40px y

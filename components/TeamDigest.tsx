@@ -250,7 +250,7 @@ function DigestBody({
                     de oro al minuto {digest.worstLoss.goldDiffMinute}
                     <InfoTip
                       align="end"
-                      text="Cuánto oro tenía de menos que el rival de SU MISMO carril en ese minuto — no contra el equipo entero. Es el criterio con el que se elige la peor derrota de la semana: no la del peor KDA, sino la partida donde la línea se rompió más."
+                      text="Cuánto oro tenía de menos que el rival de SU MISMA línea en ese minuto — no contra el equipo entero. Es el criterio con el que se elige la peor derrota de la semana: no la del peor KDA, sino la partida donde la línea se rompió más."
                     />
                   </span>
                 </span>

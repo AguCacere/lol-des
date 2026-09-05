@@ -17,11 +17,11 @@ import type { Match } from "./types";
 
 /** Debajo de esto la línea está pareja: 300 de oro es menos de un ítem chico. */
 const PAREJA = 300;
-/** Y esto es una diferencia que ya decide el carril. */
+/** Y esto es una diferencia que ya decide la línea. */
 const DECISIVA = 1500;
 
 export interface MatchStory {
-  /** La frase principal, sobre el carril. */
+  /** La frase principal, sobre la línea. */
   linea: string;
   /** El contexto: dónde estuvo el quiebre, o qué objetivo pesó. Puede faltar. */
   contexto: string | null;
@@ -75,21 +75,21 @@ export function buildMatchStory(m: Match): MatchStory | null {
   let tono: MatchStory["tono"];
 
   if (arrancoArriba && terminoAbajo) {
-    linea = `Ibas ganando el carril (${oro(primera.valor)} a los ${primera.min}\u2032) y se te dio vuelta: ${oro(ultima.valor)} a los ${ultima.min}\u2032.`;
+    linea = `Ibas ganando la línea (${oro(primera.valor)} a los ${primera.min}\u2032) y se te dio vuelta: ${oro(ultima.valor)} a los ${ultima.min}\u2032.`;
     tono = "bad";
   } else if (arrancoAbajo && terminoArriba) {
     linea = `Arrancaste abajo (${oro(primera.valor)} a los ${primera.min}\u2032) y lo diste vuelta: ${oro(ultima.valor)} a los ${ultima.min}\u2032.`;
     tono = "good";
   } else if (terminoArriba) {
     const estiro = ultima.valor > primera.valor;
-    linea = `${estiro ? "Ganaste el carril y lo seguiste estirando" : "Ganaste el carril"}: ${oro(ultima.valor)} a los ${ultima.min}\u2032.`;
+    linea = `${estiro ? "Ganaste la línea y la seguiste estirando" : "Ganaste la línea"}: ${oro(ultima.valor)} a los ${ultima.min}\u2032.`;
     tono = "good";
   } else if (terminoAbajo) {
     const seHundio = ultima.valor < primera.valor;
-    linea = `${seHundio ? "Perdiste el carril y siguió abriéndose" : "Perdiste el carril"}: ${oro(ultima.valor)} a los ${ultima.min}\u2032.`;
+    linea = `${seHundio ? "Perdiste la línea y siguió abriéndose" : "Perdiste la línea"}: ${oro(ultima.valor)} a los ${ultima.min}\u2032.`;
     tono = "bad";
   } else {
-    linea = `El carril quedó parejo: ${oro(ultima.valor)} a los ${ultima.min}\u2032.`;
+    linea = `La línea quedó pareja: ${oro(ultima.valor)} a los ${ultima.min}\u2032.`;
     tono = "neutral";
   }
 
@@ -104,13 +104,13 @@ export function buildMatchStory(m: Match): MatchStory | null {
     partes.push(`La primera torre fue ${m.firstTowerMine ? "de tu equipo" : "del rival"} a los ${mmss(m.firstTowerTimeS)}.`);
   }
 
-  // Y lo que de verdad vale la pena marcar: cuando tu carril y el resultado no
+  // Y lo que de verdad vale la pena marcar: cuando tu línea y el resultado no
   // cuentan la misma historia. Es lo único que esta función puede afirmar
   // sobre el resto del mapa — que algo pasó afuera de tu línea.
   if (m.win && terminoAbajo) {
     partes.push("Se ganó igual, así que la partida se definió en otro lado.");
   } else if (!m.win && terminoArriba) {
-    partes.push("Se perdió igual: tu carril no fue donde se decidió.");
+    partes.push("Se perdió igual: tu línea no fue donde se decidió.");
   }
 
   return { linea, contexto: partes.length > 0 ? partes.join(" ") : null, tono };

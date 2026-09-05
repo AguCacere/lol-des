@@ -86,7 +86,7 @@ export function renderDossier(d: CoachDossier): string {
   for (const m of d.maestria) lineas.push(`- ${championLabel(m.champ)}: nivel ${m.level}`);
 
   if (d.matchups.length > 0) {
-    lineas.push("", "ENFRENTAMIENTOS DE LÍNEA (su campeón contra el rival del mismo carril):");
+    lineas.push("", "ENFRENTAMIENTOS DE LÍNEA (su campeón contra el rival de la misma línea):");
     for (const g of d.matchups) {
       for (const o of g.opponents) {
         const oro = o.avgGoldDiff15 === null ? "sin dato de oro" : `${o.avgGoldDiff15 > 0 ? "+" : ""}${o.avgGoldDiff15} de oro a los 15`;

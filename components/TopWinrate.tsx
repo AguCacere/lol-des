@@ -101,14 +101,15 @@ export function TopWinrate({ players }: { players: Player[] }) {
                     <span className="podium-name">
                       {p.name} <span className="player-tag">#{p.tag}</span>
                     </span>
+                    {/* Cada segmento se lleva su propio separador y no se
+                        parte: con el "·" suelto, al envolver quedaba colgando
+                        al final de la línea de arriba. */}
                     <span className="podium-meta">
                       <span style={{ color: t.fg }}>
                         {t.name} {p.division}
                       </span>
-                      <span className="tw-dot">·</span>
-                      {ROLES[p.role].label}
-                      <span className="tw-dot">·</span>
-                      {p.wins + p.losses} partidas
+                      <span className="seg">· {ROLES[p.role].label}</span>
+                      <span className="seg">· {p.wins + p.losses} partidas</span>
                     </span>
                   </div>
                   <span className={`podium-wr ${tonoDe(p.wins, p.losses)}`}>{formatWinrate(p.wins, p.losses)}</span>

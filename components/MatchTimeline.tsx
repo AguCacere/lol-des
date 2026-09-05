@@ -10,7 +10,7 @@ import { InfoTip } from "./InfoTip";
  * "Timeline" de MatchDetail — la diferencia es que ahí había que leer siete
  * celdas y reconstruir mentalmente el orden de los hechos. Acá se ve de un
  * vistazo dónde se ganó o se perdió la línea: la curva es la diferencia de
- * oro contra el rival de TU carril (no contra el equipo entero), y las marcas
+ * oro contra el rival de TU línea (no contra el equipo entero), y las marcas
  * de arriba son los hitos ubicados en el minuto real en que pasaron.
  *
  * Sobre cómo está armado: el SVG estira SOLO a lo ancho
@@ -243,12 +243,12 @@ export function MatchTimeline({ match }: { match: Match }) {
         <p className={`match-story ${historia.tono}`}>
           <span className="match-story-linea">{historia.linea}</span>
           {historia.contexto && <span className="match-story-contexto">{historia.contexto}</span>}
-          <InfoTip text="Se arma con la diferencia de oro contra tu rival de carril y los tiempos de los objetivos, que es lo que tenemos guardado. Lee TU línea, no el mapa entero: de las otras dos líneas y de la jungla no sabemos nada, así que cuando el resultado no cierra con tu carril lo único que puede decir es que se definió en otro lado." />
+          <InfoTip text="Se arma con la diferencia de oro contra tu rival de línea y los tiempos de los objetivos, que es lo que tenemos guardado. Lee TU línea, no el mapa entero: de las otras dos líneas y de la jungla no sabemos nada, así que cuando el resultado no cierra con tu línea lo único que puede decir es que se definió en otro lado." />
         </p>
       )}
 
       <p className="match-timeline-pie">
-        <span>Diferencia de oro contra tu rival de carril</span>
+        <span>Diferencia de oro contra tu rival de línea</span>
         {medidas.length > 0 ? (
           <span className="match-timeline-golds">
             {medidas.map((p) => (
