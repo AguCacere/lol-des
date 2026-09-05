@@ -3,6 +3,7 @@ import type { ChampionMatchups } from "./matchups";
 import type { MetricaPropia, RadarProfile } from "./radar";
 import type { TiltState } from "./tilt";
 import type { ChampionBuildStats, CompraItem } from "./builds";
+import type { HistorialLineas } from "./lineas";
 
 export type RoleKey = "top" | "jungle" | "mid" | "adc" | "support";
 
@@ -495,7 +496,15 @@ export interface Player {
    * behind one "main". Empty array means no stored matches with a resolved
    * role yet.
    */
+  /**
+   * % de partidas en cada rol. Ya no lo dibuja nadie —lo reemplazó `lineas`,
+   * que dice lo mismo y además cómo le fue— pero se sigue mandando: durante
+   * unos minutos después de cada deploy el CDN le entrega el JSON nuevo a
+   * pestañas que todavía corren el bundle viejo, y ese bundle lo lee.
+   */
   roleDistribution: { role: RoleKey; pct: number }[];
+  /** Cómo le fue en cada línea y si lo están sacando de la suya (ver lib/lineas.ts). Null si no hay ninguna partida con línea resuelta. */
+  lineas: HistorialLineas | null;
   /** Best/most-extreme single-game numbers across EVERY stored match (not just the last 5 shown) — null if there are no stored matches yet. */
   personalRecords: PersonalRecords | null;
   /** Inferred "Aegis of Valor" count (Riot exposes nothing about it — see lib/aegis.ts) — null if there isn't enough clean, isolated LP-delta data yet to infer anything. */

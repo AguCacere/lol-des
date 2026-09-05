@@ -5,6 +5,7 @@ import { agruparCompra, computeBuildStats, recorridoCore, type BuildSample } fro
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { peakFromHistory, ROLES, tierScore } from "@/lib/ladder";
 import { divisionFromRiot, normalizeRole, roleFromTeamPosition, tierKeyFromRiot } from "@/lib/mapping";
+import { historialDeLineas, type PartidaConLinea } from "@/lib/lineas";
 import { getLiveGamesByPuuid } from "@/lib/live";
 import { getLatestVersion, profileIconUrl, runeIconUrlByName, summonerSpellIconUrlByName } from "@/lib/ddragon";
 import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
@@ -259,6 +260,8 @@ export async function GET() {
   // this IS the role source — team_position comes straight from Riot.
   const champFreqByPuuid = new Map<string, Map<string, number>>();
   const roleFreqByPuuid = new Map<string, Map<RoleKey, number>>();
+  /** Cada partida con línea resuelta, más nueva primero — la entrada de historialDeLineas. */
+  const partidasConLineaByPuuid = new Map<string, PartidaConLinea[]>();
   // Per-ROLE totals (kda/cs/dmg/killPart/objShare), tagged by each match's OWN
   // real team_position — not by any player's single declared/majority role.
   // `roleAggByRole` pools every tracked player's matches actually played in
@@ -513,6 +516,14 @@ export async function GET() {
 
     const role = roleFromTeamPosition(row.team_position);
     if (role) {
+      // Para el historial por línea. matchRows viene played_at DESC a nivel
+      // global, así que la subsecuencia de cada jugador queda igual de
+      // ordenada — y ese orden es lo que hace que "las últimas 20" sean de
+      // verdad las últimas 20 (ver lib/lineas.ts).
+      const conLinea = partidasConLineaByPuuid.get(row.puuid) ?? [];
+      conLinea.push({ role, win: row.win, kills: row.kills, deaths: row.deaths, assists: row.assists });
+      partidasConLineaByPuuid.set(row.puuid, conLinea);
+
       const roleFreq = roleFreqByPuuid.get(row.puuid) ?? new Map<RoleKey, number>();
       roleFreq.set(role, (roleFreq.get(role) ?? 0) + 1);
       roleFreqByPuuid.set(row.puuid, roleFreq);
@@ -995,6 +1006,7 @@ export async function GET() {
       winrate: wins + losses > 0 ? Math.round((100 * wins) / (wins + losses)) : 0,
       roleAverages: roleAveragesFor(row.puuid, role),
       roleDistribution: roleDistributionFor(row.puuid),
+      lineas: historialDeLineas(partidasConLineaByPuuid.get(row.puuid) ?? []),
       personalRecords: personalRecordsFor(row.puuid),
       aegisStats: aegisStatsFor(row.puuid),
       // rankedMatchesByPuuid ya viene played_at DESC (más nueva primero),

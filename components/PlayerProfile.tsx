@@ -28,7 +28,7 @@ import { ChampionInsights } from "./ChampionInsights";
 import { CoachPanel } from "./CoachPanel";
 import { Matchups } from "./Matchups";
 import { InsightsCard } from "./InsightsCard";
-import { RoleDistribution } from "./RoleDistribution";
+import { LineHistory } from "./LineHistory";
 import { PersonalRecords } from "./PersonalRecords";
 import { RadarChart } from "./RadarChart";
 import { RecentForm } from "./RecentForm";
@@ -320,19 +320,11 @@ export function PlayerProfile({
             </div>
           </div>
 
-          {/* El reparto de roles pasa de una franja propia a la zona del
-              medio del header: llena el hueco que quedaba entre el nombre y
-              el rango con algo que ya existía, y le saca al perfil una fila
-              entera de alto — que en mobile es donde más molesta. */}
-          {p.roleDistribution.length > 0 && (
-            <div className="profile-roles">
-              <span className="role-dist-label">
-                Reparto de roles
-                <InfoTip text="% de todas tus partidas guardadas jugadas en cada rol — no solo la línea que se muestra como main arriba." />
-              </span>
-              <RoleDistribution distribution={p.roleDistribution} currentRole={p.role} />
-            </div>
-          )}
+          {/* El reparto de roles del header se fue a "Sus líneas", en la
+              pestaña de estadísticas: decía el porcentaje por rol y nada más,
+              y ahí abajo está lo mismo con el winrate y el KDA de cada una.
+              Tenerlo en los dos lados era el mismo dato dos veces, con el
+              bueno escondido. */}
 
           <div className="profile-tier">
             <div className="profile-tier-top">
@@ -614,6 +606,15 @@ export function PlayerProfile({
                 esta pestaña ("¿voy mejorando?"), y las dos columnas de abajo
                 son el detalle de por qué. */}
             <RecentForm form={p.recentForm} />
+            {p.lineas && (
+              <div>
+                <h4 className="subsection-label">
+                  Sus líneas
+                  <InfoTip text="Sale de la posición REAL que Riot le asignó en cada partida guardada, no del rol que figura arriba. La barra clara de atrás es cuánto jugó esa línea comparada con la que más juega; la de color, el winrate." />
+                </h4>
+                <LineHistory h={p.lineas} />
+              </div>
+            )}
             <div className="stack-cols">
               <div>
                 <RadarChart radar={p.radar} role={p.role} />

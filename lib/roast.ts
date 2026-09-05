@@ -86,6 +86,10 @@ const CARGADAS: ((label: string, champ: string, k: number, d: number, a: number)
   (l, c, k, d, a) => `**${l}** es un condón usado con **${c}** y terminó **${k}/${d}/${a}**.`,
   (l, c, k, d, a) => `A **${l}** no le da la cabeza para jugar con **${c}** y fue full pantalla gris: **${k}/${d}/${a}**.`,
   (l, c, k, d, a) => `**${l}** está re viejo gaga y tiene que borrarlo, cómo va a terminar **${k}/${d}/${a}** con **${c}**. Borralo gugu`,
+  (l, c, k, d, a) =>
+    `BRUTAL! Miren esta partida de **${l}** 🔥🔥🔥 fue un depósito de leche del equipo rival con **${c}** y terminó **${k}/${d}/${a}**, increíble!`,
+  (l, c, k, d, a) =>
+    `Me da vergüenza mostrar esta partida... Pero **${l}** terminó **${k}/${d}/${a}** con **${c}**, no se rescata más de troll.`,
 ];
 
 /**

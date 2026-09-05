@@ -556,7 +556,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 /* No crece (flex-grow 0): si se lo dejaba crecer, con pocos roles quedaba
    estirado y volvía a abrirse el hueco que este bloque vino a llenar. */
-.profile-roles{display:flex; flex-direction:column; gap:9px; flex:0 1 auto;}
 /* min-width:0 on the flex chain + overflow-wrap so a long Riot ID wraps
    instead of pushing the whole header (and the page) past the viewport on
    mobile — flex items default to min-width:auto, which lets a nowrap-ish
@@ -664,22 +663,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* "Reparto de roles" — full-width strip between the profile header and the
    Macro/Micro columns, not squeezed into either side of the header (which is
    already busy with name/rank/streak/peak-LP chips). */
-.role-dist-label{flex:none;}
-.role-dist{display:flex; gap:8px;}
-.role-dist-item{display:flex; flex-direction:column; align-items:center; gap:4px;}
-.role-dist-icon{
-  width:24px; height:24px; border-radius:7px; flex:none; overflow:hidden;
-  background:var(--surface-hover); box-shadow:0 0 0 1px var(--border-soft);
-  display:flex; align-items:center; justify-content:center;
-}
-.role-dist-icon img{width:100%; height:100%; object-fit:contain; display:block;}
-.role-dist-pct{font-family:var(--font-mono); font-size:9.5px; font-weight:600; color:var(--text-muted);}
 /* The role currently shown as this player's "main" elsewhere in the profile
    (p.role — still the single most-played overall) gets a highlight ring, as
    a reference point among the 5 — not because it's the only one that counts,
    which is the exact assumption this whole widget exists to push back on. */
-.role-dist-item.is-current .role-dist-icon{box-shadow:0 0 0 2px var(--accent);}
-.role-dist-item.is-current .role-dist-pct{color:var(--accent); font-weight:700;}
 
 .stack-cols{display:grid; grid-template-columns:1.3fr 1fr; gap:24px;}
 /* Dos listas del mismo peso (maestría / campeones más jugados) no tienen por
@@ -828,7 +815,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    than one designed system. Geometry and colour now come from here; only
    the trailing rule and the margins vary, by layout (the roles label sits
    inline beside its icons, so it takes neither). */
-.subsection-label, .role-dist-label, .aegis-label{
+.subsection-label, .aegis-label{
   font-family:var(--font-display); font-weight:700; font-size:10px; letter-spacing:0.09em;
   text-transform:uppercase; color:var(--accent); opacity:0.85;
   display:flex; align-items:center; gap:6px;
@@ -2810,3 +2797,54 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   color:var(--text-secondary); font-variant-numeric:tabular-nums; white-space:nowrap;
 }
 .lp-chart-pie-nota{flex:1 1 auto; text-align:center; align-self:center;}
+
+/* ── Sus líneas (components/LineHistory.tsx) ──────────────────────────────
+   Cuánto jugó cada línea, cómo le fue, y si lo están sacando de la suya.
+   La barra de atrás es el volumen y la de adelante el winrate: sin la de
+   atrás, una línea de 3 partidas al 67% se ve igual que una de 112 al 61%. */
+.lineas{
+  background:var(--surface-raised); border:1px solid var(--border-soft);
+  border-radius:var(--radius-md); padding:12px 14px;
+}
+.lineas-filas{display:flex; flex-direction:column;}
+.lineas-fila{
+  display:grid; grid-template-columns:22px 62px minmax(0,1fr) 40px auto;
+  align-items:center; gap:10px; padding:7px 0;
+  border-bottom:1px solid var(--border-soft);
+}
+.lineas-fila:last-child{border-bottom:none;}
+.lineas-rol{
+  width:22px; height:22px; border-radius:5px; flex:none; overflow:hidden;
+  display:flex; align-items:center; justify-content:center; background:var(--track);
+}
+.lineas-rol img{width:100%; height:100%; object-fit:contain; display:block;}
+.lineas-nombre{font-size:12.5px; font-weight:600; color:var(--text-secondary); white-space:nowrap;}
+.lineas-barra{height:14px;}
+/* El largo total dice cuánto jugó esa línea; adentro, verde y rojo dicen cómo
+   le fue. Un mínimo de 3px para que una línea de una sola partida se vea. */
+.lineas-barra-total{display:flex; height:100%; min-width:3px; border-radius:4px; overflow:hidden;}
+.lineas-barra-v{background:var(--good); opacity:0.8; flex:none;}
+.lineas-barra-d{background:var(--critical); opacity:0.55; flex:1 1 auto;}
+.lineas-wr{
+  font-family:var(--font-stat); font-size:13px; font-weight:700;
+  font-variant-numeric:tabular-nums; text-align:right;
+}
+.lineas-wr.good{color:var(--good);}
+.lineas-wr.bad{color:var(--critical);}
+.lineas-detalle{
+  display:flex; align-items:baseline; gap:8px; white-space:nowrap;
+  font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted);
+}
+.lineas-kda{opacity:0.8;}
+.lineas-conclusion{
+  margin:10px 0 0; padding-top:10px; border-top:1px solid var(--border-soft);
+  font-size:12px; line-height:1.55; color:var(--text-secondary);
+}
+.lineas-conclusion strong{font-weight:700;}
+@media (max-width:560px){
+  /* El nombre de la línea se va: el ícono ya lo dice y en 390px esos 62px
+     son la diferencia entre que la barra se lea y que no. */
+  .lineas-fila{grid-template-columns:22px minmax(0,1fr) 38px; gap:8px;}
+  .lineas-nombre{display:none;}
+  .lineas-detalle{grid-column:2 / -1; padding-left:0;}
+}
