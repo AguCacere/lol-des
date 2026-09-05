@@ -5,6 +5,9 @@ import type { ChampionLeaderboardEntry, ClashPlayerStats, ClashTournament, DuoPa
 import { TopBar, type AddStatus } from "@/components/TopBar";
 import { TabNav, type TabKey } from "@/components/TabNav";
 import { HeadToHead } from "@/components/HeadToHead";
+import { CommandPalette } from "@/components/CommandPalette";
+import { PwaRegister } from "@/components/PwaRegister";
+import { conTransicion } from "@/lib/view-transition";
 import { LadderTable, playerKey, type SortKey } from "@/components/LadderTable";
 import { PlayerProfile } from "@/components/PlayerProfile";
 import { DuoSynergy } from "@/components/DuoSynergy";
@@ -236,7 +239,27 @@ export default function Home() {
         canAdd={canAdd}
         addStatus={addStatus}
       />
-      <TabNav active={tab} onChange={setTab} />
+      {/* El cambio de pestaña pasa por una view transition: sin ella el
+          contenido se reemplaza de golpe y en una app de una sola página eso
+          se lee como un salto, no como una navegación. */}
+      <PwaRegister />
+      <CommandPalette
+        players={players}
+        onTab={(t) => conTransicion(() => setTab(t))}
+        onPlayer={(key) => {
+          conTransicion(() => {
+            setTab("ranking");
+            setActiveKey(key);
+          });
+          // Después del cambio: el perfil se dibuja debajo de la tabla, así
+          // que sin esto elegir a alguien desde la paleta te deja mirando el
+          // ladder sin ninguna señal de que pasó algo.
+          requestAnimationFrame(() => {
+            document.querySelector(".profile")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        }}
+      />
+      <TabNav active={tab} onChange={(t) => conTransicion(() => setTab(t))} />
 
       {tab === "ranking" ? (
         <div id="view-ranking">

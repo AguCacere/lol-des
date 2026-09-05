@@ -2270,3 +2270,74 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .tw-c-net{grid-area:net;}
   .tw-avatar{width:30px; height:30px;}
 }
+
+/* ── Capa de oficio: paleta ⌘K, transiciones y esqueletos ─────────────────── */
+
+/* Transición entre pestañas. El navegador ya hace un cross-fade por defecto;
+   acá solo se ajusta el tiempo, porque el default (250ms) en una app que se
+   usa a los saltos se siente lento. */
+::view-transition-old(root), ::view-transition-new(root){animation-duration:.16s; animation-timing-function:ease;}
+@media (prefers-reduced-motion:reduce){
+  ::view-transition-old(root), ::view-transition-new(root){animation:none;}
+}
+
+.cmdk-backdrop{
+  position:fixed; inset:0; z-index:100;
+  background:rgba(0,0,0,0.62); backdrop-filter:blur(2px);
+  display:flex; align-items:flex-start; justify-content:center;
+  padding:12vh 16px 16px;
+}
+.cmdk{
+  width:100%; max-width:560px; max-height:70vh; display:flex; flex-direction:column;
+  background:var(--surface); border:1px solid var(--accent-dim-border); border-radius:var(--radius-lg);
+  box-shadow:0 20px 60px rgba(0,0,0,0.6); overflow:hidden;
+}
+.cmdk-input-row{display:flex; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid var(--border-soft);}
+.cmdk-input{
+  flex:1 1 auto; min-width:0; background:none; border:none; outline:none;
+  color:var(--text-primary); font:inherit; font-size:15px;
+}
+.cmdk-input::placeholder{color:var(--text-muted);}
+.cmdk-list{overflow-y:auto; padding:6px;}
+.cmdk-item{
+  display:flex; align-items:baseline; gap:10px; width:100%; text-align:left;
+  background:none; border:none; cursor:pointer;
+  padding:9px 11px; border-radius:var(--radius-sm); color:var(--text-primary);
+}
+/* Marcada = donde está el cursor del teclado. Es la misma clase para mouse y
+   teclado a propósito: dos resaltados distintos compitiendo en la misma lista
+   confunden más de lo que ayudan. */
+.cmdk-item.marcada{background:var(--accent-wash-soft);}
+.cmdk-item-titulo{font-size:14px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.cmdk-item-detalle{font-size:11.5px; color:var(--text-muted); margin-left:auto; white-space:nowrap; flex:none;}
+.cmdk-vacio{padding:22px 12px; text-align:center; color:var(--text-muted); font-size:13px;}
+.cmdk-pie{
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  padding:9px 14px; border-top:1px solid var(--border-soft);
+  font-size:11px; color:var(--text-muted);
+}
+.cmdk-pie > span{display:inline-flex; align-items:center; gap:4px;}
+.cmdk-pie-atajo{margin-left:auto;}
+.cmdk-kbd{
+  font-family:var(--font-mono); font-size:10px; line-height:1;
+  background:var(--surface-raised); color:var(--text-secondary);
+  border-radius:4px; padding:3px 5px;
+}
+
+/* Esqueletos: mismo alto y misma grilla que la fila real, para que cuando
+   lleguen los datos no se mueva nada de lugar. */
+.ladder-row.is-skeleton{cursor:default; pointer-events:none;}
+.sk{
+  display:block; border-radius:6px;
+  background:linear-gradient(90deg, var(--surface-raised) 25%, var(--surface-hover) 37%, var(--surface-raised) 63%);
+  background-size:400% 100%;
+  animation:sk-brillo 1.4s ease-in-out infinite;
+}
+@keyframes sk-brillo{0%{background-position:100% 0;} 100%{background-position:0 0;}}
+@media (prefers-reduced-motion:reduce){.sk{animation:none;}}
+.sk-rank{width:14px; height:12px; margin:0 auto;}
+.sk-avatar{width:34px; height:34px; border-radius:50%;}
+.sk-nombre{width:130px; max-width:60%; height:13px; margin-left:10px;}
+.sk-tier{width:96px; height:13px;}
+.sk-wr{width:56px; height:13px;}
+.sk-spark{width:100%; max-width:120px; height:22px;}

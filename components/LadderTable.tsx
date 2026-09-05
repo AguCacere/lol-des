@@ -144,9 +144,32 @@ export function LadderTable({
         </div>
         <div>
           {loading ? (
-            <div className="empty-state">
-              <strong>Cargando…</strong>
-              Consultando el ladder.
+            // Esqueletos con la forma de las filas reales y no un "Cargando…":
+            // el cartel de texto ocupa un alto distinto al de la tabla, así
+            // que cuando llegan los datos la página entera pega un salto y lo
+            // que estabas por tocar se te corre de abajo del dedo.
+            <div aria-busy="true" aria-label="Cargando el ladder">
+              {Array.from({ length: 6 }, (_, i) => (
+                <div className="ladder-row is-skeleton" key={i} aria-hidden="true">
+                  <span className="col-rank">
+                    <span className="sk sk-rank" />
+                  </span>
+                  <span className="col-player">
+                    <span className="sk sk-avatar" />
+                    <span className="sk sk-nombre" />
+                  </span>
+                  <span className="col-tier">
+                    <span className="sk sk-tier" />
+                  </span>
+                  <span className="col-winrate">
+                    <span className="sk sk-wr" />
+                  </span>
+                  <span className="col-spark">
+                    <span className="sk sk-spark" />
+                  </span>
+                  <span className="col-chevron" />
+                </div>
+              ))}
             </div>
           ) : error ? (
             <div className="empty-state">
