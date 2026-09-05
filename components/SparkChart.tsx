@@ -45,7 +45,15 @@ export function SparkChart({
   // than using the same pad on both axes like the detailed profile chart does.
   // Mini spans the card's full inner width instead, so it reads as a base rule
   // under the card's content rather than a floating inset graphic.
-  const padX = detailed || mini ? pad : pad + 3;
+  // El detallado necesita bastante más aire a los costados que el resto: es un
+  // gráfico grande dentro de una tarjeta, y con el mismo pad que una
+  // sparkline de 28px la curva arranca y termina pegada a las paredes. Eso es
+  // la mitad de la sensación de "todo apretado".
+  const padX = detailed ? pad + 14 : mini ? pad : pad + 3;
+  // Techo y piso de la ventana: los únicos dos puntos, además del arranque,
+  // que vale la pena marcar en un gráfico de veinte.
+  const indiceMax = values.indexOf(Math.max(...values));
+  const indiceMin = values.indexOf(Math.min(...values));
   const { line, area, last, points, yOf } = lineAreaGeometry(values, width, height, padX, 10, pad, !detailed);
   const gid = "spark-" + useId().replace(/[:]/g, "");
   // Compact's endpoint marker used to feel like a separate button stuck onto
@@ -56,11 +64,14 @@ export function SparkChart({
   const haloOpacity = detailed ? 0.35 : mini ? 0.22 : 0.3;
   const haloStrokeWidth = detailed ? 1.5 : 1;
   const strokeWidth = detailed ? 2.5 : mini ? 1.75 : 2;
-  const lineJoin = detailed ? "miter" : "round";
+  // Antes el detallado usaba juntas en punta. Con veinte snapshots en pocos
+  // días, cada pico es un ángulo agudo y la línea entera se lee como una
+  // sierra. Redondear las juntas no cambia un solo valor y saca el ruido.
+  const lineJoin = "round";
   // Area fill: mini's is deliberately the faintest of the three. At compact's
   // 0.45 the wash under a wide card-width curve turned into a solid green
   // block that outweighed the "+260 pts" it's supposed to support.
-  const areaTopOpacity = detailed ? "0.35" : mini ? "0.18" : "0.45";
+  const areaTopOpacity = detailed ? "0.22" : mini ? "0.18" : "0.45";
   // Compact's line+dot go translucent rather than flat-solid — a softer,
   // more refined feel for the dense "últimos 20" column specifically;
   // detailed (the profile's own big LP chart) keeps full-strength color.
@@ -179,8 +190,18 @@ export function SparkChart({
             if (y < pad + 6 || y > height - pad - 6) return null;
             return (
               <g key={g.label}>
-                <line x1={pad} y1={y} x2={width - pad} y2={y} className="spark-guide-line" />
-                <text x={width - pad - 2} y={y - 4} className="spark-guide-label" textAnchor="end">
+                <line x1={padX} y1={y} x2={width - padX} y2={y} className="spark-guide-line" />
+                {/* Fondo propio detrás del texto: la etiqueta cae sobre el
+                    área rellena y sin esto se lee sobre el color de la curva. */}
+                <rect
+                  x={padX + 1}
+                  y={y - 11}
+                  width={g.label.length * 4.9 + 8}
+                  height={11}
+                  rx={3}
+                  className="spark-guide-chip"
+                />
+                <text x={padX + 5} y={y - 3} className="spark-guide-label">
                   {g.label}
                 </text>
               </g>
@@ -223,9 +244,17 @@ export function SparkChart({
           20-point trend) and only marks its endpoint.
         */}
         {detailed &&
-          points.slice(0, -1).map(([x, y], i) => (
-            <circle key={i} cx={x} cy={y} r={2.5} fill="var(--bg)" stroke={color} strokeWidth={1.5} />
-          ))}
+          points.slice(0, -1).map(([x, y], i) => {
+            // Un punto en CADA snapshot era veinte círculos sobre una línea de
+            // veinte segmentos: la marca perdía sentido de tanto repetirse y
+            // el gráfico se llenaba de ruido. Se marcan solo el arranque y los
+            // dos extremos —el techo y el piso de la ventana—, que son los que
+            // uno busca con el ojo. El resto sigue estando: el hover marca
+            // cualquiera de los veinte.
+            const esClave = i === 0 || i === indiceMax || i === indiceMin;
+            if (!esClave) return null;
+            return <circle key={i} cx={x} cy={y} r={2.5} fill="var(--bg)" stroke={color} strokeWidth={1.5} />;
+          })}
         {hover !== null && (
           <line
             x1={points[hover][0]}

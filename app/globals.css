@@ -2701,7 +2701,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    Platino 4. Apagadas a propósito — son la regla contra la que se lee la
    curva, no un dato que compita con ella. */
 .spark-guide-line{stroke:var(--text-muted); stroke-width:1; stroke-dasharray:2 5; opacity:0.45;}
-.spark-guide-label{font-size:8.5px; fill:var(--text-muted); opacity:0.8; letter-spacing:0.02em;}
+.spark-guide-label{font-size:9px; fill:var(--text-muted); opacity:0.9; letter-spacing:0.02em;}
+.spark-guide-chip{fill:var(--surface); opacity:0.85;}
 
 /* El pie del gráfico de LP: las dos fechas de la ventana y, en el medio, el
    récord que la explica. */

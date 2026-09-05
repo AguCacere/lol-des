@@ -458,9 +458,13 @@ export function PlayerProfile({
                 <div className="lp-svg">
                   <SparkChart
                     values={lpScores}
-                    width={520}
-                    height={118}
-                    pad={8}
+                    // El viewBox tiene que quedar cerca del ancho real en el
+                    // que se dibuja: el SVG usa preserveAspectRatio="none", así
+                    // que cuanto más lejos esté, más se estira todo a lo ancho
+                    // (el trazo se aplasta y los puntos salen elípticos).
+                    width={620}
+                    height={132}
+                    pad={10}
                     color={lpChartColor}
                     variant="detailed"
                     pointLabels={lpPointLabels}
