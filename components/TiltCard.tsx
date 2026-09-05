@@ -19,7 +19,7 @@ function texto(s: SenalTilt, t: TiltState): string {
     return `morís ${t.muertesRacha.toFixed(1)} veces por partida contra ${t.muertesBase.toFixed(1)} de tu promedio`;
   }
   const min = t.descansoMin ?? 0;
-  return `estás entrando a la siguiente ${min < 1 ? "sin ni siquiera levantarte" : `a los ${Math.round(min)} minutos`}`;
+  return `estás entrando a la siguiente partida ${min < 1 ? "sin ni siquiera levantarte" : `a los ${Math.round(min)} minutos`}`;
 }
 
 export function TiltCard({ tilt }: { tilt: TiltState }) {

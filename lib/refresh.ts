@@ -133,7 +133,9 @@ async function checkStreakAndNotify(supabase: SupabaseClient, puuid: string) {
           return `muere ${tilt.muertesRacha.toFixed(1)} veces por partida contra ${tilt.muertesBase.toFixed(1)} de su promedio`;
         }
         const min = tilt.descansoMin ?? 0;
-        return min < 1 ? "entra a la siguiente sin levantarse de la silla" : `entra a la siguiente a los ${Math.round(min)} minutos`;
+        return min < 1
+          ? "entra a la siguiente partida sin levantarse de la silla"
+          : `entra a la siguiente partida a los ${Math.round(min)} minutos`;
       });
       // Con " y " y no con comas: son dos como mucho, y una lista separada por
       // comas en una frase de una línea se lee como enumeración de informe.
