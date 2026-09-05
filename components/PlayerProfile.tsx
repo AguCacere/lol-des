@@ -16,6 +16,7 @@ import {
 } from "@/lib/ladder";
 import { championSplashUrl } from "@/lib/ddragon";
 import { TiltCard } from "./TiltCard";
+import { BuildStarts } from "./BuildStarts";
 import { SparkChart } from "./SparkChart";
 import { StreakIcon } from "./StreakIcon";
 import { ChampIcon } from "./ChampIcon";
@@ -584,6 +585,11 @@ export function PlayerProfile({
                 las listas de arriba — un par, no un campeón suelto. */}
             <h4 className="subsection-label">Enfrentamientos de línea</h4>
             <Matchups matchups={p.matchups} ddragonVersion={ddragonVersion} />
+
+            {/* Después de los enfrentamientos: los dos son "cómo jugás a este
+                campeón", pero el arranque es una decisión que se toma antes de
+                la partida y el matchup es contra quién te tocó. */}
+            <BuildStarts stats={p.buildStats} ddragonVersion={ddragonVersion} />
 
             {/* Al final de la pestaña a propósito: lee todo lo de arriba (pool,
                 maestría, enfrentamientos) y lo interpreta, así que llega

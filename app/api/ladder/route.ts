@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { detectTilt } from "@/lib/tilt";
+import { itemMap } from "@/lib/ddragon";
+import { computeBuildStats, recorridoCore, type BuildSample } from "@/lib/builds";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { peakFromHistory, ROLES, tierScore } from "@/lib/ladder";
 import { divisionFromRiot, normalizeRole, roleFromTeamPosition, tierKeyFromRiot } from "@/lib/mapping";
@@ -170,6 +172,10 @@ export async function GET() {
   // rune/summoner-spell icon URLs, and that runs well before the point this
   // used to be declared at.
   const ddragonVersionPromise = getLatestVersion();
+  // El mapa de ítems (nombres + cuáles son "core") para el recorrido de build
+  // y las estadísticas de arranque. Si Data Dragon falla se sigue sin eso: es
+  // una sección del perfil, no el ladder.
+  const itemsPromise = itemMap().catch(() => new Map());
 
   const [
     [
@@ -179,7 +185,10 @@ export async function GET() {
     ],
     liveGameByPuuid,
     ddragonVersion,
-  ] = await Promise.all([dbQueries, activeGames, ddragonVersionPromise]);
+    items,
+  ] = await Promise.all([dbQueries, activeGames, ddragonVersionPromise, itemsPromise]);
+  const esCore = (id: number) => items.get(id)?.core ?? false;
+  const nombreDeItem = (id: number) => items.get(id)?.name ?? `Ítem ${id}`;
 
   // A query error here (e.g. a migration that hasn't run yet — missing
   // column/table) must NOT be treated the same as "no rows" — silently
@@ -228,6 +237,7 @@ export async function GET() {
   }
 
   const matchesByPuuid = new Map<string, Match[]>();
+  const buildSamplesByPuuid = new Map<string, BuildSample[]>();
   // Campeón propio vs. campeón del rival de línea, sobre TODO el historial
   // (no solo las últimas 5 mostradas) — ver lib/matchups.ts.
   const matchupSamplesByPuuid = new Map<string, MatchupSample[]>();
@@ -435,6 +445,15 @@ export async function GET() {
     trackedByMatchId.set(row.match_id, tracked);
     trackRecords(row);
 
+    // Sobre todas las partidas y no solo las cinco que se muestran: la
+    // estadística de arranques necesita la muestra entera para significar
+    // algo.
+    if (row.item_build && row.item_build.length > 0) {
+      const muestras = buildSamplesByPuuid.get(row.puuid) ?? [];
+      muestras.push({ champion: row.champion, win: row.win, itemBuild: row.item_build });
+      buildSamplesByPuuid.set(row.puuid, muestras);
+    }
+
     const matchupList = matchupSamplesByPuuid.get(row.puuid) ?? [];
     matchupList.push({
       champ: row.champion,
@@ -549,6 +568,7 @@ export async function GET() {
       dragonTakedowns: row.dragon_takedowns ?? 0,
       dragonTypes: row.dragon_types ?? [],
       itemBuild: row.item_build ?? [],
+      coreBuild: recorridoCore(row.item_build ?? [], esCore).map((id) => ({ id, nombre: nombreDeItem(id) })),
       baronTakedowns: row.baron_takedowns ?? 0,
       heraldTakedowns: row.herald_takedowns ?? 0,
       inhibitorKills: row.inhibitor_kills ?? 0,
@@ -956,6 +976,7 @@ export async function GET() {
       // capado en 5 (es lo que se muestra) y el tilt necesita ver las de antes
       // de la racha para tener contra qué comparar las muertes. Ya viene de la
       // más nueva a la más vieja, que es el orden que detectTilt espera.
+      buildStats: computeBuildStats(buildSamplesByPuuid.get(row.puuid) ?? [], esCore, nombreDeItem),
       tilt: detectTilt(
         (rankedMatchesByPuuid.get(row.puuid) ?? []).map((m) => ({
           win: m.win,

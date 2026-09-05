@@ -1,3 +1,5 @@
+import { METRIC_INFO } from "./metric-info";
+
 /**
  * Radar de rendimiento — las siete dimensiones del juego de un jugador en su
  * rol, cada una medida contra lo que hace el RESTO del grupo en ese mismo rol.
@@ -118,3 +120,21 @@ export function computeRadar(
   if (axes.length < MIN_AXES) return null;
   return { ownGames, peerGames, axes };
 }
+
+/**
+ * Cómo se llama y cómo se escribe cada eje. Vive acá y no en el componente
+ * del radar porque lo usan los dos que comparan estas métricas: el radar
+ * contra el grupo y el cara a cara entre dos jugadores.
+ *
+ * `short` es la etiqueta que entra alrededor del polígono; `long` la que se
+ * puede leer sola en una fila.
+ */
+export const RADAR_AXIS: Record<RadarMetric, { short: string; long: string; decimals: number; suffix?: string; tooltip?: string }> = {
+  kda: { short: "KDA", long: "KDA", decimals: 2 },
+  killParticipation: { short: "Particip.", long: "Participación en kills", decimals: 0, suffix: "%", tooltip: METRIC_INFO.killParticipation },
+  dmgShare: { short: "Daño", long: "% del daño del equipo", decimals: 0, suffix: "%", tooltip: METRIC_INFO.dmgShare },
+  objShare: { short: "Objetivos", long: "Participación en objetivos", decimals: 0, suffix: "%", tooltip: METRIC_INFO.objShare },
+  goldPerMin: { short: "Oro", long: "Oro por minuto", decimals: 0, tooltip: METRIC_INFO.goldPerMin },
+  csPerMin: { short: "CS", long: "CS por minuto", decimals: 1, tooltip: METRIC_INFO.csPerMin },
+  visionPerMin: { short: "Visión", long: "Visión por minuto", decimals: 2, tooltip: METRIC_INFO.visionScore },
+};

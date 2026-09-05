@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { ChampionLeaderboardEntry, ClashPlayerStats, ClashTournament, DuoPair, LiveGame, Player, RoleKey, TeamDigest as TeamDigestData } from "@/lib/types";
 import { TopBar, type AddStatus } from "@/components/TopBar";
 import { TabNav, type TabKey } from "@/components/TabNav";
+import { HeadToHead } from "@/components/HeadToHead";
 import { LadderTable, playerKey, type SortKey } from "@/components/LadderTable";
 import { PlayerProfile } from "@/components/PlayerProfile";
 import { DuoSynergy } from "@/components/DuoSynergy";
@@ -260,6 +261,12 @@ export default function Home() {
           <TopWinrate players={players} />
           <ChampionWinrateLeaderboard entries={championLeaderboard} ddragonVersion={ddragonVersion} />
           <DuoSynergy pairs={duoSynergy} loading={loading} ddragonVersion={ddragonVersion} />
+        </div>
+      ) : tab === "versus" ? (
+        <div id="view-versus">
+          {/* No pide nada al servidor: los Player ya vienen completos del
+              ladder, con radar, pool y rango. */}
+          <HeadToHead players={players} ddragonVersion={ddragonVersion} />
         </div>
       ) : tab === "clash" ? (
         <div id="view-clash">

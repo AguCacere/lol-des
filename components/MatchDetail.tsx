@@ -65,11 +65,43 @@ function MiniBreakdown({ items }: { items: { value: number; label: string; icons
 }
 
 /**
- * Real purchase order (Match-V5 timeline ITEM_PURCHASED), not a "final build"
- * summary — an item bought then later sold/undone still shows here, because
- * it WAS really bought at that point (see TimelineStats.itemBuild). Empty on
- * matches stored before this field existed, or if the timeline call failed
- * for this specific match (best-effort, see lib/refresh.ts).
+ * El recorrido de la build: solo los ítems completos, en el orden real en que
+ * los terminó (ver recorridoCore en lib/builds.ts). Es la lectura que sirve
+ * para entender la partida — "arrancó con esto y después fue para acá" — y
+ * que quedaba enterrada en la fila de veinte íconos donde una poción pesaba
+ * lo mismo que un legendario.
+ */
+function BuildPath({ items, version }: { items: { id: number; nombre: string }[]; version: string | null }) {
+  if (items.length === 0) {
+    return <span className="build-line-empty">No llegó a completar ningún ítem.</span>;
+  }
+  return (
+    <span className="build-path">
+      {items.map((it, i) => (
+        <span className="build-path-step" key={`${it.id}-${i}`}>
+          {i > 0 && <span className="build-path-arrow">→</span>}
+          <span className="build-path-item" title={it.nombre}>
+            {version && (
+              // eslint-disable-next-line @next/next/no-img-element -- ícono chico de tamaño fijo, no vale la config de next/image
+              <img src={itemIconUrl(version, it.id)} alt={it.nombre} />
+            )}
+          </span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/**
+ * Y la compra completa, tal cual salió del timeline: pociones, wards,
+ * componentes y lo que se vendió después. Va apagada y en chico porque es el
+ * respaldo del recorrido de arriba, no el titular — pero se muestra igual,
+ * que es lo que permite ver que alguien compró tres pociones antes del
+ * primer componente.
+ *
+ * No está reconciliada contra ventas ni undos: un ítem comprado y vendido
+ * aparece, porque SE compró en ese momento. Vacía en partidas guardadas
+ * antes de que existiera este campo, o si el timeline de esa partida falló.
  */
 function ItemBuildRow({ items, version }: { items: number[]; version: string | null }) {
   if (items.length === 0) {
@@ -256,7 +288,10 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
             </span>
           </span>
         </Stat>
-        <Stat label="Orden de compra" wide>
+        <Stat label="Recorrido" tooltip="Solo los ítems completos, en el orden en que los terminó. La compra entera (pociones, wards, componentes) está abajo." wide>
+          <BuildPath items={m.coreBuild} version={ddragonVersion} />
+        </Stat>
+        <Stat label="Compra completa" wide>
           <ItemBuildRow items={m.itemBuild} version={ddragonVersion} />
         </Stat>
       </Group>

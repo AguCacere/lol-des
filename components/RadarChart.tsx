@@ -1,19 +1,8 @@
-import type { RadarMetric, RadarProfile } from "@/lib/radar";
+import { RADAR_AXIS, type RadarProfile } from "@/lib/radar";
 import type { RoleKey } from "@/lib/types";
 import { ROLES } from "@/lib/ladder";
-import { METRIC_INFO } from "@/lib/metric-info";
 import { InfoTip } from "./InfoTip";
 
-/** Etiqueta corta (la que va alrededor del polígono) y cómo se escribe el número al pie. */
-const AXIS: Record<RadarMetric, { short: string; long: string; decimals: number; suffix?: string; tooltip?: string }> = {
-  kda: { short: "KDA", long: "KDA", decimals: 2 },
-  killParticipation: { short: "Particip.", long: "Participación en kills", decimals: 0, suffix: "%", tooltip: METRIC_INFO.killParticipation },
-  dmgShare: { short: "Daño", long: "% del daño del equipo", decimals: 0, suffix: "%", tooltip: METRIC_INFO.dmgShare },
-  objShare: { short: "Objetivos", long: "Participación en objetivos", decimals: 0, suffix: "%", tooltip: METRIC_INFO.objShare },
-  goldPerMin: { short: "Oro", long: "Oro por minuto", decimals: 0, tooltip: METRIC_INFO.goldPerMin },
-  csPerMin: { short: "CS", long: "CS por minuto", decimals: 1, tooltip: METRIC_INFO.csPerMin },
-  visionPerMin: { short: "Visión", long: "Visión por minuto", decimals: 2, tooltip: METRIC_INFO.visionScore },
-};
 
 /**
  * viewBox más ancho que alto a propósito: las etiquetas se dibujan por fuera
@@ -105,7 +94,7 @@ export function RadarChart({ radar, role }: { radar: RadarProfile | null; role: 
               textAnchor={x < CX - 4 ? "end" : x > CX + 4 ? "start" : "middle"}
               dominantBaseline={y < CY - 40 ? "auto" : y > CY + 40 ? "hanging" : "middle"}
             >
-              {AXIS[a.key].short}
+              {RADAR_AXIS[a.key].short}
             </text>
           );
         })}
@@ -124,7 +113,7 @@ export function RadarChart({ radar, role }: { radar: RadarProfile | null; role: 
 
       <div className="radar-table">
         {radar.axes.map((a) => {
-          const spec = AXIS[a.key];
+          const spec = RADAR_AXIS[a.key];
           // El signo del z es la lectura, no el tamaño: media décima de
           // desvío es indistinguible de estar en el promedio, y pintarla
           // de color le daría un peso que no tiene.

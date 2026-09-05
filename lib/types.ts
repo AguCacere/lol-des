@@ -2,6 +2,7 @@ import type { ChampionInsight } from "./champion-insights";
 import type { ChampionMatchups } from "./matchups";
 import type { RadarProfile } from "./radar";
 import type { TiltState } from "./tilt";
+import type { ChampionBuildStats } from "./builds";
 
 export type RoleKey = "top" | "jungle" | "mid" | "adc" | "support";
 
@@ -94,6 +95,8 @@ export interface Match {
   firstBaronMine: boolean | null;
   /** Real purchase order (Match-V5 timeline ITEM_PURCHASED), itemIds in the order actually bought — not reconciled against later sells/undos. Empty on matches stored before this field existed. */
   itemBuild: number[];
+  /** Solo los ítems completos de esa misma compra, en orden y sin repetir (ver lib/builds.ts): el recorrido de la build sin las pociones ni los componentes. */
+  coreBuild: { id: number; nombre: string }[];
   /** "Para repasar" — this match swung hard vs. this player's OWN recent form (see lib/matchflags.ts). Null when nothing stood out, or too few recent matches to trust a baseline yet. */
   flag: MatchFlag | null;
 }
@@ -449,6 +452,8 @@ export interface Player {
   aegisStats: AegisStats | null;
   /** Últimas 20 partidas vs. todo el historial anterior de este mismo jugador (ver lib/form.ts) — null hasta tener al menos 30 partidas guardadas. */
   recentForm: RecentForm | null;
+  /** Con qué ítem arranca con cada campeón y cómo le va (ver lib/builds.ts) — vacío hasta tener muestra suficiente y al menos dos arranques distintos que comparar. */
+  buildStats: ChampionBuildStats[];
   /** Racha de derrotas CON señales de que se está jugando peor y sin parar (ver lib/tilt.ts) — null en el caso normal, que es no estar en tilt. */
   tilt: TiltState | null;
   /** Perfil de siete ejes contra el resto del grupo en el mismo rol (ver lib/radar.ts) — null si no hay muestra suficiente propia o ajena. */

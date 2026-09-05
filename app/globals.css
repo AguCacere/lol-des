@@ -38,6 +38,11 @@
      an entire row read as louder than "clearly active, but subtle". */
   --accent-wash-soft:rgba(212,175,55,0.07);
   --accent-ink:#241a05;
+  /* El segundo color del cara a cara. El primero es --accent (el dorado de
+     siempre); este es un acero frío que se distingue del dorado sin usar
+     verde ni rojo, que en esta app ya significan victoria y derrota. */
+  --versus-b:#7FA8C9;
+  --versus-b-wash:rgba(127,168,201,0.14);
   --gold:#F5B942;
   --gold-wash:rgba(245,185,66,0.12);
   /* Same hue as before, pulled back from neon-mint/neon-pink to something a
@@ -1958,3 +1963,136 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .tilt-card-list{margin:8px 0 0; padding-left:18px; display:flex; flex-direction:column; gap:3px;}
 .tilt-card-list li{font-size:13px; color:var(--text-secondary); line-height:1.45;}
 .tilt-card-foot{margin:9px 0 0; font-size:12px; color:var(--text-muted);}
+
+/* ── Cara a cara (components/HeadToHead.tsx) ──────────────────────────────
+   Dos jugadores enfrentados: A siempre en dorado a la izquierda, B en acero
+   a la derecha. Las barras salen del centro hacia el que gana el eje. */
+.h2h-selects{display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;}
+.h2h-select{
+  flex:1 1 200px; min-width:0;
+  background:var(--surface-raised); color:var(--text-primary);
+  border:1px solid var(--border-soft); border-radius:var(--radius-sm);
+  padding:9px 11px; font:inherit; font-size:14px; font-weight:600;
+}
+.h2h-vs{font-size:12px; font-weight:800; letter-spacing:0.08em; color:var(--text-muted); flex:none;}
+.h2h-fichas{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;}
+.h2h-ficha{background:var(--surface-raised); border-radius:var(--radius-md); padding:13px 14px; min-width:0;}
+.h2h-ficha.a{border-left:3px solid var(--accent);}
+.h2h-ficha.b{border-left:3px solid var(--versus-b);}
+.h2h-ficha-top{display:flex; align-items:center; gap:10px; min-width:0;}
+.h2h-avatar{width:38px; height:38px; border-radius:50%; flex:none; background:var(--track); object-fit:cover;}
+.h2h-ficha-id{display:flex; flex-direction:column; gap:2px; min-width:0;}
+.h2h-nombre{
+  font-size:15px; font-weight:700; color:var(--text-primary); letter-spacing:-0.01em;
+  display:flex; align-items:center; gap:7px; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.h2h-sub{font-size:12px; color:var(--text-muted);}
+.h2h-ficha-stats{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:10px; font-size:13px; font-weight:600; color:var(--text-secondary);}
+.h2h-sep{color:var(--text-muted);}
+.h2h-mini{font-size:11px; font-weight:500; color:var(--text-muted);}
+.h2h-ejes{background:var(--surface-raised); border-radius:var(--radius-md); padding:14px 16px; margin-bottom:20px;}
+.h2h-ejes-head{
+  display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted);
+  padding-bottom:11px; border-bottom:1px solid var(--border-soft); margin-bottom:11px;
+}
+.h2h-marcador{font-size:15px; letter-spacing:0; color:var(--text-muted);}
+.h2h-marcador .a{color:var(--accent);}
+.h2h-marcador .b{color:var(--versus-b);}
+.h2h-nota{margin:0 0 12px; font-size:12px; color:var(--text-muted); line-height:1.45;}
+.h2h-eje{display:grid; grid-template-columns:62px 1fr 62px; align-items:center; gap:10px; padding:5px 0;}
+.h2h-val{font-size:13px; font-weight:600; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+.h2h-val.a{text-align:right;}
+.h2h-val.b{text-align:left;}
+.h2h-val.a.gana{color:var(--accent);}
+.h2h-val.b.gana{color:var(--versus-b);}
+/* La barra es una sola pista con el cero en el medio: el relleno arranca ahí
+   y crece hacia el que gana, así la longitud es la brecha y no dos valores
+   sueltos que hay que restar con la vista. */
+.h2h-barra{position:relative; height:24px; background:var(--track); border-radius:var(--radius-sm); overflow:hidden;}
+.h2h-fill{position:absolute; top:0; bottom:0;}
+.h2h-fill.a{background:var(--accent-wash); border-right:2px solid var(--accent);}
+.h2h-fill.b{background:var(--versus-b-wash); border-left:2px solid var(--versus-b);}
+/* La etiqueta va centrada sobre la barra, y con fondo propio: sin él, el
+   relleno le pasa por debajo y el texto queda ilegible justo en las filas
+   más peleadas, que son las que más se miran. */
+.h2h-eje-label{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:600; color:var(--text-secondary); pointer-events:none;
+}
+.h2h-eje-label span{background:var(--surface-raised); padding:2px 8px; border-radius:999px; white-space:nowrap;}
+.h2h-pools{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
+.h2h-pool{min-width:0;}
+.h2h-champ{display:flex; align-items:center; gap:9px; padding:6px 8px; border-radius:var(--radius-sm); min-width:0;}
+/* Los que juegan los dos van resaltados: es donde la comparación es directa. */
+.h2h-champ.compartido{background:var(--accent-wash-soft);}
+/* El <img> de adentro necesita su propia regla: ChampIcon devuelve un <span>
+   con la imagen adentro, y sin esto la imagen sale en su tamaño natural
+   (120px de Data Dragon) y revienta la fila. */
+.h2h-champ-icon{
+  width:26px; height:26px; border-radius:var(--radius-sm); flex:none; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--track); font-size:10px; font-weight:700; color:var(--text-muted);
+}
+.h2h-champ-icon img{width:100%; height:100%; object-fit:cover; display:block;}
+.h2h-champ-name{flex:1 1 auto; min-width:0; font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.h2h-champ-rec{font-size:12px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+.h2h-champ-wr{font-size:12px; font-weight:700; width:38px; text-align:right; font-variant-numeric:tabular-nums;}
+.h2h-champ-wr.good{color:var(--good);}
+.h2h-champ-wr.bad{color:var(--critical);}
+.h2h-vacio{font-size:12px; color:var(--text-muted); margin:6px 8px;}
+@media (max-width:640px){
+  /* Las fichas y los pools apilados; los ejes NO — la gracia del cara a cara
+     es que los dos números estén uno frente al otro, así que se achican las
+     columnas laterales en vez de romper la fila. */
+  .h2h-fichas, .h2h-pools{grid-template-columns:1fr;}
+  .h2h-eje{grid-template-columns:48px 1fr 48px; gap:7px;}
+  .h2h-val{font-size:12px;}
+  .h2h-eje-label{font-size:10px;}
+  .h2h-vs{display:none;}
+}
+
+/* ── Recorrido de build y arranques (MatchDetail / BuildStarts) ────────────
+   Los <img> llevan regla propia: los contenedores son <span> y sin un
+   width/height explícito la imagen sale en su tamaño natural de Data Dragon
+   (64px) y rompe la fila. */
+.build-path{display:flex; align-items:center; gap:4px; flex-wrap:wrap;}
+.build-path-step{display:flex; align-items:center; gap:4px;}
+.build-path-arrow{color:var(--text-muted); font-size:12px;}
+.build-path-item{
+  width:34px; height:34px; border-radius:var(--radius-sm); overflow:hidden; flex:none;
+  background:var(--track); display:block;
+}
+.build-path-item img{width:100%; height:100%; object-fit:cover; display:block;}
+.build-starts{margin-top:22px;}
+.build-champ{background:var(--surface-raised); border-radius:var(--radius-md); padding:12px 14px; margin-bottom:10px;}
+.build-champ-head{display:flex; align-items:center; gap:9px; margin-bottom:9px;}
+.build-champ-icon{
+  width:28px; height:28px; border-radius:var(--radius-sm); overflow:hidden; flex:none;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--track); font-size:10px; font-weight:700; color:var(--text-muted);
+}
+.build-champ-icon img{width:100%; height:100%; object-fit:cover; display:block;}
+.build-champ-name{font-size:14px; font-weight:700; color:var(--text-primary); flex:1 1 auto; min-width:0;}
+.build-champ-games{font-size:11px; color:var(--text-muted);}
+.build-champ-rows{display:flex; flex-direction:column; gap:6px;}
+.build-start{display:grid; grid-template-columns:26px minmax(0,1fr) 84px 40px 52px; align-items:center; gap:9px;}
+.build-start-item{width:26px; height:26px; border-radius:var(--radius-sm); overflow:hidden; background:var(--track); display:block;}
+.build-start-item img{width:100%; height:100%; object-fit:cover; display:block;}
+.build-start-name{font-size:13px; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.build-start-bar{height:7px; background:var(--track); border-radius:999px; overflow:hidden; display:block;}
+.build-start-fill{display:block; height:100%; border-radius:999px;}
+.build-start-fill.good{background:var(--good);}
+.build-start-fill.bad{background:var(--critical);}
+.build-start-wr{font-size:13px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums;}
+.build-start-wr.good{color:var(--good);}
+.build-start-wr.bad{color:var(--critical);}
+.build-start-rec{font-size:11px; color:var(--text-muted); text-align:right; font-variant-numeric:tabular-nums;}
+@media (max-width:560px){
+  /* La barra es lo primero que sobra: el % y el crudo al lado ya dicen todo,
+     y el nombre del ítem necesita el ancho más que el gráfico. */
+  .build-start{grid-template-columns:24px minmax(0,1fr) 38px 48px; gap:7px;}
+  .build-start-bar{display:none;}
+  .build-path-item{width:30px; height:30px;}
+}

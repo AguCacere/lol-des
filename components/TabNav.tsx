@@ -1,4 +1,4 @@
-export type TabKey = "ranking" | "stats" | "clash" | "team";
+export type TabKey = "ranking" | "stats" | "versus" | "clash" | "team";
 
 interface TabNavProps {
   active: TabKey;
@@ -8,6 +8,7 @@ interface TabNavProps {
 const TABS: { key: TabKey; label: string }[] = [
   { key: "ranking", label: "Ranking" },
   { key: "stats", label: "Estadísticas" },
+  { key: "versus", label: "Cara a cara" },
   { key: "clash", label: "Clash" },
   { key: "team", label: "Equipo" },
 ];

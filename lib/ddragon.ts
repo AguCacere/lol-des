@@ -253,3 +253,67 @@ export function itemIconUrl(version: string, itemId: number): string {
 export function championSplashUrl(championName: string): string {
   return `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${championName}_0.jpg`;
 }
+
+/** Lo que hace falta de un ítem para armar la build: cómo se llama y si es un ítem "de verdad" o un consumible. */
+export interface ItemInfo {
+  name: string;
+  /** Oro acumulado (lo que sale terminado, no el componente). */
+  gold: number;
+  /** Un ítem completo de los que definen la build, no una poción, un ward ni un componente. */
+  core: boolean;
+}
+
+interface DDragonItemEntry {
+  name: string;
+  gold?: { total: number; purchasable: boolean };
+  tags?: string[];
+  /** Los que se transforman en otra cosa tienen esto: un componente, no un ítem final. */
+  into?: string[];
+}
+
+/**
+ * A partir de cuánto oro un ítem cuenta como "core". Las botas están en ~1000
+ * y los componentes por debajo; los legendarios arrancan arriba de 2200. No
+ * hay un flag en Data Dragon que diga "legendario", así que el precio es el
+ * mejor proxy disponible y es estable entre parches.
+ */
+const ORO_CORE = 2200;
+
+let itemCache: { byId: Map<number, ItemInfo>; fetchedAt: number } | null = null;
+
+async function fetchItemMap(): Promise<Map<number, ItemInfo>> {
+  const version = await latestVersion();
+  const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/es_MX/item.json`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Data Dragon item list fetch failed: ${res.status}`);
+  const data: { data: Record<string, DDragonItemEntry> } = await res.json();
+
+  const byId = new Map<number, ItemInfo>();
+  for (const [id, entry] of Object.entries(data.data)) {
+    const gold = entry.gold?.total ?? 0;
+    const tags = entry.tags ?? [];
+    byId.set(Number(id), {
+      name: entry.name,
+      gold,
+      // `into` vacío es la señal de que el ítem no se transforma en nada, o
+      // sea que es un final. Junto con el precio deja afuera componentes
+      // caros (que sí tienen `into`) sin tener que listarlos a mano.
+      core: gold >= ORO_CORE && (entry.into?.length ?? 0) === 0 && !tags.includes("Consumable") && !tags.includes("Trinket"),
+    });
+  }
+  return byId;
+}
+
+/**
+ * El mapa de ítems completo, cacheado en memoria como el de campeones. Se
+ * pide una vez por proceso y no por partida: item.json es el archivo más
+ * grande de Data Dragon y bajarlo por request sería absurdo.
+ */
+export async function itemMap(): Promise<Map<number, ItemInfo>> {
+  const now = Date.now();
+  if (!itemCache || now - itemCache.fetchedAt > CACHE_TTL_MS) {
+    itemCache = { byId: await fetchItemMap(), fetchedAt: now };
+  }
+  return itemCache.byId;
+}
