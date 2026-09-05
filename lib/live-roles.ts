@@ -17,6 +17,13 @@ import type { RoleKey } from "./types";
  *    de la MISMA línea), así que cada fila son dos observaciones de
  *    "campeón → línea". Sobre cientos de partidas del grupo, eso cubre a la
  *    mayoría de los campeones que se ven en el LAS.
+ *
+ *    Las dos mitades NO valen lo mismo, y esto importa: el rival de la línea
+ *    es un tipo cualquiera del ladder, o sea una muestra de lo que hace la
+ *    gente; el nuestro son seis amigos con sus mañas. Que uno del grupo
+ *    juegue Tahm Kench arriba no significa que el Tahm Kench de enfrente
+ *    esté arriba. Por eso la observación del rival pesa el triple (ver la
+ *    ruta live-detail).
  * 3. Las etiquetas de Data Dragon. Para el campeón que nunca vimos: un
  *    Marksman está abajo, un Support acompaña. Es débil y solo desempata.
  *
@@ -33,9 +40,22 @@ const ROLES: RoleKey[] = ["top", "jungle", "mid", "adc", "support"];
 const CASTIGO = 11;
 /** El Barrera/Curar de abajo. Mucho más flojo que el Castigo: inclina, no decide. */
 const CURAR = 7;
+/** Teleport. Hoy es casi exclusivo del top; inclina bastante, pero no decide como el Castigo. */
+const TELEPORT = 12;
 
-/** Cuántas veces vimos a un campeón en cada línea. */
+/** Cuánto vimos a un campeón en cada línea. No son partidas contadas sino peso: ver la nota 2 de arriba. */
 export type ObservacionesPorRol = Map<string, Partial<Record<RoleKey, number>>>;
+
+/** Por qué le tocó esa línea. Se muestra en la app para que un error se pueda señalar. */
+export type MotivoRol = "castigo" | "vistas" | "clase" | "descarte";
+
+export interface RolEstimado {
+  rol: RoleKey | null;
+  motivo: MotivoRol;
+  /** Peso de las observaciones a favor de la línea elegida, y el total de ese campeón. Solo con motivo "vistas". */
+  aFavor?: number;
+  total?: number;
+}
 
 /** Lo mínimo que queremos saber de cada jugador para ubicarlo. */
 export interface JugadorEnVivo {
@@ -92,8 +112,29 @@ function puntajeDe(j: JugadorEnVivo, rol: RoleKey, obs: ObservacionesPorRol): nu
     base -= 0.9;
   }
   if (hechizos.includes(CURAR) && rol === "adc") base += 0.25;
+  if (hechizos.includes(TELEPORT)) {
+    if (rol === "top") base += 0.3;
+    else if (rol === "support" || rol === "adc") base -= 0.15;
+  }
 
   return base;
+}
+
+/** Con qué se decidió la línea que le tocó. Mismo orden de fuerza que puntajeDe. */
+function motivoDe(j: JugadorEnVivo, rol: RoleKey, obs: ObservacionesPorRol): RolEstimado {
+  if ([j.spell1Id, j.spell2Id].includes(CASTIGO) && rol === "jungle") {
+    return { rol, motivo: "castigo" };
+  }
+  const vistas = obs.get(j.champion);
+  const total = vistas ? ROLES.reduce((s, r) => s + (vistas[r] ?? 0), 0) : 0;
+  if (total > 0) {
+    const aFavor = vistas![rol] ?? 0;
+    // Solo cuenta como "lo vimos ahí" si de verdad la mayoría de lo que vimos
+    // apunta a esa línea. Si no, lo que decidió fue el reparto y la clase.
+    if (aFavor > total / 2) return { rol, motivo: "vistas", aFavor, total };
+  }
+  if ((j.tags ?? []).some((t) => POR_ETIQUETA[t]?.[rol])) return { rol, motivo: "clase" };
+  return { rol, motivo: "descarte" };
 }
 
 /** Todas las formas de repartir 5 posiciones entre 5 jugadores. Se arma una sola vez. */
@@ -112,7 +153,7 @@ const REPARTOS: RoleKey[][] = (function permutar(restantes: RoleKey[]): RoleKey[
  * en las posiciones que no se pudieron ubicar (equipo incompleto o campeón
  * sin resolver).
  */
-export function asignarRoles(equipo: JugadorEnVivo[], obs: ObservacionesPorRol): (RoleKey | null)[] {
+export function asignarRoles(equipo: JugadorEnVivo[], obs: ObservacionesPorRol): RolEstimado[] {
   // Con un equipo que no sea de cinco no hay reparto posible: cada uno se
   // queda con su mejor línea suelta, que para eso alcanza.
   if (equipo.length !== ROLES.length) {
@@ -126,7 +167,7 @@ export function asignarRoles(equipo: JugadorEnVivo[], obs: ObservacionesPorRol):
           mejor = rol;
         }
       }
-      return mejor;
+      return mejor ? motivoDe(j, mejor, obs) : { rol: null, motivo: "descarte" as const };
     });
   }
 
@@ -142,7 +183,7 @@ export function asignarRoles(equipo: JugadorEnVivo[], obs: ObservacionesPorRol):
       mejorReparto = reparto;
     }
   }
-  return mejorReparto;
+  return mejorReparto.map((rol, i) => motivoDe(equipo[i], rol, obs));
 }
 
 /** El orden en que se leen las líneas. Para que los dos equipos queden enfrentados fila a fila. */
@@ -150,4 +191,22 @@ export const ORDEN_ROLES: RoleKey[] = ROLES;
 
 export function ordenDeRol(rol: RoleKey | null): number {
   return rol ? ORDEN_ROLES.indexOf(rol) : ORDEN_ROLES.length;
+}
+
+/**
+ * Con qué se estimó la línea, en criollo. Va en el tooltip del ícono: si la
+ * estimación se equivoca, esto dice CUÁL de las tres fuentes falló, que es lo
+ * único que hace el error arreglable en vez de misterioso.
+ */
+export function explicarRol(e: { motivo: MotivoRol; aFavor?: number; total?: number }): string {
+  switch (e.motivo) {
+    case "castigo":
+      return "por el Castigo";
+    case "vistas":
+      return `lo vimos ahí en ${Math.round(e.aFavor ?? 0)} de ${Math.round(e.total ?? 0)} veces`;
+    case "clase":
+      return "estimado por el tipo de campeón";
+    default:
+      return "por descarte: no tenemos nada de este campeón";
+  }
 }

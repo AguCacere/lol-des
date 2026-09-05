@@ -36,12 +36,16 @@ function Maestria({ m }: { m: LiveParticipant["maestria"] }) {
   );
 }
 
-/** La línea, estimada. El title dice que lo es, para que no se lea como un dato de Riot. */
-function Linea({ rol }: { rol: LiveParticipant["rol"] }) {
-  if (!rol) return <span className="lg-linea vacia" />;
+/**
+ * La línea, estimada. El title dice que lo es y CON QUÉ se estimó: si sale
+ * mal, eso señala cuál de las tres fuentes falló, que es lo único que hace
+ * el error arreglable en vez de misterioso.
+ */
+function Linea({ p }: { p: LiveParticipant }) {
+  if (!p.rol) return <span className="lg-linea vacia" />;
   return (
-    <span className="lg-linea" title={`${ROLES[rol].label} (estimado)`}>
-      <RoleIcon role={rol} />
+    <span className="lg-linea" title={`${ROLES[p.rol].label} — estimado${p.rolMotivo ? `, ${p.rolMotivo}` : ""}`}>
+      <RoleIcon role={p.rol} />
     </span>
   );
 }
@@ -56,7 +60,7 @@ function Rival({ p, version }: { p: LiveParticipant; version: string | null }) {
     // campeones importa el campeón, y meterle el Riot ID abajo del rango
     // apretaba las tres cosas que sí se miran.
     <div className="lg-fila" title={p.riotId ?? undefined}>
-      <Linea rol={p.rol} />
+      <Linea p={p} />
       <ChampIcon champ={p.champion} version={version} className="lg-champ" />
       <span className="lg-id">
         <span className="lg-nombre">{championLabel(p.champion)}</span>
@@ -186,7 +190,7 @@ export function LiveGamePanel({
           </div>
           {detalle.aliados.map((p, i) => (
             <div className={`lg-fila aliado${p.esDelGrupo ? " del-grupo" : ""}`} key={`${p.champion}-${i}`}>
-              <Linea rol={p.rol} />
+              <Linea p={p} />
               <ChampIcon champ={p.champion} version={ddragonVersion} className="lg-champ" />
               <span className="lg-id">
                 <span className="lg-nombre">{championLabel(p.champion)}</span>
@@ -202,7 +206,8 @@ export function LiveGamePanel({
           al pie es más honesto que ponerle un asterisco a cada ícono. */}
       <p className="lg-pie">
         Las líneas están estimadas: Riot no las publica hasta que la partida termina, así que se deducen del Castigo y de
-        en qué línea vimos jugar a cada campeón en las partidas que ya tenemos guardadas.
+        en qué línea vimos jugar a cada campeón en las partidas que ya tenemos guardadas. Pasá el mouse por el ícono para
+        ver con qué se estimó cada una.
       </p>
     </div>
   );

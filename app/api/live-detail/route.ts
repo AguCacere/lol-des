@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { getActiveGame, getChampionMasteryOn, getLeagueEntriesByPuuid, type RiotActiveGame } from "@/lib/riot";
 import { championNameById, championTagsById } from "@/lib/ddragon";
-import { asignarRoles, ordenDeRol, type ObservacionesPorRol } from "@/lib/live-roles";
+import { asignarRoles, explicarRol, ordenDeRol, type ObservacionesPorRol, type RolEstimado } from "@/lib/live-roles";
 import { queueLabelFromId, divisionFromRiot, tierKeyFromRiot, roleFromTeamPosition } from "@/lib/mapping";
 import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import type { LiveDetail, LiveParticipant } from "@/lib/types";
@@ -83,7 +83,15 @@ export async function GET(req: Request) {
    * posición en la que jugó el nuestro (champion + team_position) y la del
    * rival de esa misma línea (opponent_champion + el mismo team_position).
    * Es la fuente principal de la estimación de líneas — ver lib/live-roles.ts.
+   *
+   * Y no pesan igual. El rival de la línea es un tipo cualquiera del ladder:
+   * cientos de esos son una muestra de lo que hace la gente. El nuestro son
+   * seis amigos con sus mañas, y una maña del grupo no dice nada del rival de
+   * enfrente — que uno juegue Tahm Kench arriba no pone arriba al Tahm Kench
+   * ajeno. Por eso el rival vale 1 y el propio 0,35.
    */
+  const PESO_LADDER = 1;
+  const PESO_PROPIO = 0.35;
   const enJuego = [...new Set(champDe.values())];
   const observaciones: ObservacionesPorRol = new Map();
   if (enJuego.length > 0) {
@@ -96,16 +104,16 @@ export async function GET(req: Request) {
       .select("champion, opponent_champion, team_position")
       .not("team_position", "is", null)
       .or(`champion.in.(${lista}),opponent_champion.in.(${lista})`);
-    const anotar = (champ: string | null, pos: string | null) => {
+    const anotar = (champ: string | null, pos: string | null, peso: number) => {
       const rol = roleFromTeamPosition(pos);
       if (!champ || !rol || !enJuego.includes(champ)) return;
       const acc = observaciones.get(champ) ?? {};
-      acc[rol] = (acc[rol] ?? 0) + 1;
+      acc[rol] = (acc[rol] ?? 0) + peso;
       observaciones.set(champ, acc);
     };
     for (const fila of vistas ?? []) {
-      anotar(fila.champion, fila.team_position);
-      anotar(fila.opponent_champion, fila.team_position);
+      anotar(fila.champion, fila.team_position, PESO_PROPIO);
+      anotar(fila.opponent_champion, fila.team_position, PESO_LADDER);
     }
   }
 
@@ -147,7 +155,7 @@ export async function GET(req: Request) {
   async function resolver(
     p: RiotActiveGame["participants"][number],
     conRiot: boolean,
-    rol: LiveParticipant["rol"],
+    estimado: RolEstimado,
   ): Promise<LiveParticipant | null> {
     const champion = champDe.get(p.championId);
     if (!champion) return null;
@@ -168,7 +176,8 @@ export async function GET(req: Request) {
 
     return {
       champion,
-      rol,
+      rol: estimado.rol,
+      rolMotivo: explicarRol(estimado),
       riotId: p.riotId ?? null,
       esDelGrupo: conocidos.has(p.puuid),
       rango,

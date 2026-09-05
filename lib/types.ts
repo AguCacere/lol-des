@@ -236,6 +236,8 @@ export interface LiveParticipant {
   champion: string;
   /** Línea ESTIMADA: Spectator no la dice, se deduce en lib/live-roles.ts. Null si no se pudo ubicar. */
   rol: RoleKey | null;
+  /** Con qué se estimó, en criollo ("por el Castigo", "lo vimos ahí en 9 de 11 veces"). Va en el tooltip del ícono. */
+  rolMotivo: string;
   /** "Nombre#TAG" si Spectator lo devuelve. */
   riotId: string | null;
   /** Si es uno de los invocadores que sigue la app. */
