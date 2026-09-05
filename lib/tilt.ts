@@ -30,10 +30,21 @@ export interface TiltState {
   muertesBase: number;
   /** Minutos promedio entre el final de una partida y el arranque de la siguiente. Null si la racha es de una sola partida. */
   descansoMin: number | null;
-  /** Las señales que efectivamente se dispararon, en texto listo para mostrar. */
-  senales: string[];
+  /**
+   * Qué señales se dispararon, como códigos y no como texto.
+   *
+   * El texto lo arma cada lugar donde se muestra, y no acá, porque no es el
+   * mismo: la app le habla al jugador ("morís 9.5 veces") y el bot habla DE
+   * él ("muere 9.5 veces"). Cuando el texto vivía acá, el mensaje de Discord
+   * mezclaba las dos personas en la misma oración —"está en racha de 3
+   * derrotas — estás entrando a la siguiente..."— y se leía mal.
+   */
+  senales: SenalTilt[];
   nivel: "aviso" | "fuerte";
 }
+
+/** `muertes`: muere más que su propio promedio. `sinParar`: vuelve a entrar enseguida. */
+export type SenalTilt = "muertes" | "sinParar";
 
 /** Menos de esto es una mala racha, no un pozo. */
 const MIN_DERROTAS = 3;
@@ -91,16 +102,9 @@ export function detectTilt(matches: TiltInput[]): TiltState | null {
   }
   const descansoMin = huecos.length > 0 ? promedio(huecos) : null;
 
-  const senales: string[] = [];
-  const muertesEnAlza = !Number.isNaN(muertesBase) && muertesRacha >= muertesBase * FACTOR_MUERTES;
-  if (muertesEnAlza) {
-    senales.push(`morís ${muertesRacha.toFixed(1)} veces por partida contra ${muertesBase.toFixed(1)} de tu promedio`);
-  }
-  const sinParar = descansoMin != null && descansoMin < DESCANSO_CORTO_MIN;
-  if (sinParar) {
-    const texto = descansoMin < 1 ? "menos de un minuto" : `${Math.round(descansoMin)} minutos`;
-    senales.push(`estás entrando a la siguiente ${texto} después de la anterior`);
-  }
+  const senales: SenalTilt[] = [];
+  if (!Number.isNaN(muertesBase) && muertesRacha >= muertesBase * FACTOR_MUERTES) senales.push("muertes");
+  if (descansoMin != null && descansoMin < DESCANSO_CORTO_MIN) senales.push("sinParar");
 
   // Sin ninguna de las dos señales esto es una racha de derrotas y nada más,
   // y de eso ya avisa el chip del header. Repetirlo acá sería ruido.

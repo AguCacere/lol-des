@@ -1,4 +1,4 @@
-import type { TiltState } from "@/lib/tilt";
+import type { SenalTilt, TiltState } from "@/lib/tilt";
 
 /**
  * El aviso de tilt (ver lib/tilt.ts para el criterio).
@@ -8,6 +8,20 @@ import type { TiltState } from "@/lib/tilt";
  * tilt" es una opinión; uno que dice "morís 10 por partida contra 4.2 de tu
  * promedio" es un dato que se puede mirar y discutir.
  */
+/**
+ * Acá se le habla al jugador de vos, que es de quién es el perfil. El bot de
+ * Discord arma las mismas señales en tercera persona (ver lib/refresh.ts):
+ * son dos textos distintos para los mismos datos, y por eso lib/tilt.ts
+ * devuelve códigos y no frases.
+ */
+function texto(s: SenalTilt, t: TiltState): string {
+  if (s === "muertes") {
+    return `morís ${t.muertesRacha.toFixed(1)} veces por partida contra ${t.muertesBase.toFixed(1)} de tu promedio`;
+  }
+  const min = t.descansoMin ?? 0;
+  return `estás entrando a la siguiente ${min < 1 ? "sin ni siquiera levantarte" : `a los ${Math.round(min)} minutos`}`;
+}
+
 export function TiltCard({ tilt }: { tilt: TiltState }) {
   const fuerte = tilt.nivel === "fuerte";
   return (
@@ -19,7 +33,7 @@ export function TiltCard({ tilt }: { tilt: TiltState }) {
       </div>
       <ul className="tilt-card-list">
         {tilt.senales.map((s) => (
-          <li key={s}>{s}</li>
+          <li key={s}>{texto(s, tilt)}</li>
         ))}
       </ul>
       <p className="tilt-card-foot">

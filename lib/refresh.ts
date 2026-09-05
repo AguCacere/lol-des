@@ -62,7 +62,7 @@ async function notifyPromotion(supabase: SupabaseClient, puuid: string, entry: R
   if (!label) return;
   const t = tierFor(tierKeyFromRiot(entry.tier));
   const division = divisionFromRiot(entry.rank);
-  await sendDiscordNotification(`📈 **${label}** subió a **${t.name} ${division}**!`);
+  await sendDiscordNotification(`📈 **${label}** subió a **${t.name} ${division}**. Bien ahí.`);
 }
 
 /** Only for a genuine LEAGUE drop (e.g. Esmeralda → Platino) — a division drop within the same tier (Platino 2 → Platino 3) never calls this, see the tier-rank-only check in upsertRankSnapshot. */
@@ -71,7 +71,7 @@ async function notifyDemotion(supabase: SupabaseClient, puuid: string, entry: Ri
   if (!label) return;
   const t = tierFor(tierKeyFromRiot(entry.tier));
   const division = divisionFromRiot(entry.rank);
-  await sendDiscordNotification(`😭 **${label}** bajó a **${t.name} ${division}**...`);
+  await sendDiscordNotification(`📉 **${label}** se fue a **${t.name} ${division}**. A remarla de nuevo.`);
 }
 
 /**
@@ -111,6 +111,12 @@ async function checkStreakAndNotify(supabase: SupabaseClient, puuid: string) {
   // seguidos diciendo casi lo mismo es la forma más rápida de que el canal
   // empiece a ignorar al bot. Ver lib/tilt.ts para cuándo hay algo que decir
   // (que no es "perdió tres", es "perdió tres jugando peor y sin parar").
+  //
+  // Las señales se escriben acá en TERCERA persona. El mensaje habla DE
+  // alguien al canal, así que meterle el texto de la app —que le habla a la
+  // persona— mezclaba las dos voces en la misma oración: "está en racha de 3
+  // derrotas — estás entrando a la siguiente...". Solo el cierre le habla
+  // directo, que es como se escribe en un grupo.
   let extra = "";
   if (!result) {
     const tilt = detectTilt(
@@ -122,10 +128,22 @@ async function checkStreakAndNotify(supabase: SupabaseClient, puuid: string) {
       }))
     );
     if (tilt) {
-      extra = ` — ${tilt.senales.join(" y ")}. ${tilt.nivel === "fuerte" ? "Andá a tomar aire." : "Aflojá un poco."}`;
+      const partes = tilt.senales.map((s) => {
+        if (s === "muertes") {
+          return `muere ${tilt.muertesRacha.toFixed(1)} veces por partida contra ${tilt.muertesBase.toFixed(1)} de su promedio`;
+        }
+        const min = tilt.descansoMin ?? 0;
+        return min < 1 ? "entra a la siguiente sin levantarse de la silla" : `entra a la siguiente a los ${Math.round(min)} minutos`;
+      });
+      // Con " y " y no con comas: son dos como mucho, y una lista separada por
+      // comas en una frase de una línea se lee como enumeración de informe.
+      extra = ` y encima ${partes.join(" y ")}. ${tilt.nivel === "fuerte" ? "Andá a tomar aire, campeón." : "Aflojá un poco."}`;
     }
   }
-  await sendDiscordNotification(`${emoji} **${label}** está en racha de **${count} ${word}** seguidas.${extra}`);
+  const cuerpo = result
+    ? `${emoji} **${label}** lleva **${count} ${word} al hilo**. Está prendido fuego.`
+    : `${emoji} **${label}** lleva **${count} ${word} al hilo**${extra || "."}`;
+  await sendDiscordNotification(cuerpo);
 }
 
 /**
