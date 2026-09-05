@@ -16,6 +16,7 @@ import {
 } from "@/lib/ladder";
 import { championSplashUrl } from "@/lib/ddragon";
 import { TiltCard } from "./TiltCard";
+import { LiveGamePanel } from "./LiveGamePanel";
 import { BuildStarts } from "./BuildStarts";
 import { SparkChart } from "./SparkChart";
 import { StreakIcon } from "./StreakIcon";
@@ -383,9 +384,18 @@ export function PlayerProfile({
 
         {tab === "resumen" && (
           <div className="stack-cols">
-            {/* Arriba de todo y a ancho completo: si el jugador está en tilt,
-                es lo más accionable que tiene el perfil en ese momento —
-                mirar el gráfico de LP mientras tanto no le sirve de nada. */}
+            {/* Si está jugando AHORA, eso primero: es lo único del perfil que
+                sirve mientras la partida está pasando, y en diez minutos deja
+                de existir. */}
+            {p.liveGame && (
+              <div className="live-panel-wrap">
+                <LiveGamePanel gameName={p.name} tagLine={p.tag} ddragonVersion={ddragonVersion} />
+              </div>
+            )}
+
+            {/* Después el tilt: si está en pozo, es lo más accionable que tiene
+                el perfil — mirar el gráfico de LP mientras tanto no le sirve
+                de nada. */}
             {p.tilt && <TiltCard tilt={p.tilt} />}
             <div>
               <div className="lp-chart-card">

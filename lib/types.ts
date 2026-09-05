@@ -230,6 +230,32 @@ export interface ChampionPoolEntry {
   avgCsPerMin: number;
 }
 
+/** Un jugador de la partida en curso, ya resuelto con todo lo que se pudo averiguar de él. */
+export interface LiveParticipant {
+  /** Clave de Data Dragon del campeón que está jugando. */
+  champion: string;
+  /** "Nombre#TAG" si Spectator lo devuelve. */
+  riotId: string | null;
+  /** Si es uno de los invocadores que sigue la app. */
+  esDelGrupo: boolean;
+  /** Rango de soloQ. Null si no tiene ranked esta season o si la consulta falló. */
+  rango: { tier: TierKey; division: number; lp: number } | null;
+  /** Maestría de ESE campeón. Null si nunca lo jugó — que también es un dato. */
+  maestria: { level: number; points: number } | null;
+  /** Tu récord contra ese campeón EN TU LÍNEA, sobre las partidas guardadas. Null si nunca te lo cruzaste. */
+  vsVos: { wins: number; losses: number } | null;
+}
+
+/** La partida en curso de un invocador, con los dos equipos. */
+export interface LiveDetail {
+  gameId: number;
+  queueLabel: string;
+  startedMinutesAgo: number;
+  /** El equipo del invocador que se está mirando, él incluido. */
+  aliados: LiveParticipant[];
+  rivales: LiveParticipant[];
+}
+
 /** Spectator V5 snapshot — checked live on every ladder read, never persisted (would be stale instantly). */
 export interface LiveGame {
   champion: string;

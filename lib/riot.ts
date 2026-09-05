@@ -236,7 +236,8 @@ export interface RiotActiveGame {
   gameId: number;
   gameQueueConfigId: number;
   gameLength: number; // seconds elapsed as of this response — a snapshot, not a live clock
-  participants: { puuid: string; championId: number; teamId: number }[];
+  /** `riotId` viene como "Nombre#TAG" en Spectator-V5. Opcional: no está en todas las regiones ni en partidas viejas del endpoint. */
+  participants: { puuid: string; championId: number; teamId: number; riotId?: string }[];
 }
 
 /**
@@ -273,6 +274,21 @@ export interface RiotChampionMastery {
   championId: number;
   championLevel: number;
   championPoints: number;
+}
+
+/**
+ * Champion Mastery V4 para UN campeón puntual. Devuelve null en 404, que es
+ * lo que Riot contesta cuando ese jugador nunca jugó ese campeón — un dato en
+ * sí mismo ("lo está probando por primera vez"), no un error.
+ */
+export async function getChampionMasteryOn(puuid: string, championId: number): Promise<RiotChampionMastery | null> {
+  assertKey();
+  const url = `https://${PLATFORM}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/by-champion/${championId}`;
+  const res = await fetch(url, { headers: { "X-Riot-Token": API_KEY! }, cache: "no-store" });
+  if (res.status === 404) return null;
+  if (res.status === 429) throw new RiotRateLimitError(res.headers.get("Retry-After"));
+  if (!res.ok) throw new Error(`Riot API error ${res.status}: ${await res.text()}`);
+  return res.json() as Promise<RiotChampionMastery>;
 }
 
 /** Champion Mastery V4 — top N champions by mastery points for a puuid. Platform-routed. */
