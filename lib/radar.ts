@@ -121,6 +121,33 @@ export function computeRadar(
   return { ownGames, peerGames, axes };
 }
 
+/** Un promedio propio del jugador en un eje, sin comparar contra nadie. */
+export interface MetricaPropia {
+  key: RadarMetric;
+  value: number;
+  /** Partidas que alimentaron ese promedio. */
+  n: number;
+}
+
+/**
+ * Los promedios propios del jugador, sin el grupo de por medio.
+ *
+ * El radar necesita muestra AJENA (el resto del grupo en el mismo rol) y por
+ * eso devuelve null seguido: si sos el único ADC del grupo, no hay contra
+ * quién sacar el z-score. Pero tus propios promedios existen igual, y hay
+ * vistas —el cara a cara entre dos personas— donde eso alcanza, porque la
+ * comparación es contra la otra persona y no contra el grupo.
+ */
+export function metricasPropias(own: Partial<Record<RadarMetric, MetricStats>>): MetricaPropia[] {
+  const salida: MetricaPropia[] = [];
+  for (const key of RADAR_METRICS) {
+    const o = own[key];
+    if (!o || o.n < MIN_OWN) continue;
+    salida.push({ key, value: o.mean, n: o.n });
+  }
+  return salida;
+}
+
 /**
  * Cómo se llama y cómo se escribe cada eje. Vive acá y no en el componente
  * del radar porque lo usan los dos que comparan estas métricas: el radar

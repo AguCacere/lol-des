@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import type { Player } from "@/lib/types";
-import { RADAR_AXIS, type RadarAxis, type RadarMetric } from "@/lib/radar";
-import { ROLES, tierFor } from "@/lib/ladder";
+import type { DuoPair, Player } from "@/lib/types";
+import { RADAR_AXIS, type RadarMetric } from "@/lib/radar";
+import { formatRelativeTime, ROLES, tierFor } from "@/lib/ladder";
 import { championLabel } from "@/lib/champion-names";
 import { ChampIcon } from "./ChampIcon";
 import { InfoTip } from "./InfoTip";
@@ -28,6 +28,15 @@ import { Select, type OpcionSelect } from "./Select";
 
 /** Diferencia de z a partir de la cual la barra llega al tope. Dos desvíos es una brecha enorme. */
 const BRECHA_MAX = 2;
+
+/** Un eje del cara a cara: el promedio de cada uno y, si existe, su z contra los pares de su rol. */
+interface Eje {
+  key: RadarMetric;
+  valorA: number;
+  valorB: number;
+  zA: number | null;
+  zB: number | null;
+}
 
 function claveDe(p: Player): string {
   return `${p.name}#${p.tag}`;
@@ -74,7 +83,16 @@ function Ficha({ p, lado }: { p: Player; lado: "a" | "b" }) {
   );
 }
 
-export function HeadToHead({ players, ddragonVersion }: { players: Player[]; ddragonVersion: string | null }) {
+export function HeadToHead({
+  players,
+  duos,
+  ddragonVersion,
+}: {
+  players: Player[];
+  /** La sinergia de dúo ya calculada (pestaña Estadísticas): acá se usa para el par elegido. */
+  duos: DuoPair[];
+  ddragonVersion: string | null;
+}) {
   // Por defecto: vos contra el primero del ladder que no seas vos. Es la
   // comparación que alguien abre esta pestaña para ver.
   const yo = players.find((p) => p.you) ?? players[0];
@@ -100,18 +118,46 @@ export function HeadToHead({ players, ddragonVersion }: { players: Player[]; ddr
   const b = players.find((p) => claveDe(p) === claveB) ?? players[1];
   const mismoRol = a.role === b.role;
 
-  // Solo los ejes que los DOS tienen: un eje se cae del radar cuando no hay
-  // muestra suficiente, y comparar contra un hueco no es comparar.
-  const radarB = b.radar;
-  const ejes: { key: RadarMetric; a: RadarAxis; b: RadarAxis }[] = [];
-  if (a.radar && radarB) {
-    for (const ejeA of a.radar.axes) {
-      const ejeB = radarB.axes.find((x) => x.key === ejeA.key);
-      if (ejeB) ejes.push({ key: ejeA.key, a: ejeA, b: ejeB });
-    }
+  // El par en la lista de dúos, en cualquiera de los dos órdenes. Va DESPUÉS
+  // de a y b: son const, así que leerlas antes de su declaración explota en
+  // runtime aunque el tipo cierre.
+  const juntos = duos.find(
+    (d) =>
+      (d.aName === a.name && d.aTag === a.tag && d.bName === b.name && d.bTag === b.tag) ||
+      (d.aName === b.name && d.aTag === b.tag && d.bName === a.name && d.bTag === a.tag)
+  );
+
+
+  // Los ejes salen de las MÉTRICAS PROPIAS, no del radar. El radar necesita
+  // muestra del resto del grupo en el mismo rol y se cae seguido —si sos el
+  // único ADC, no hay contra quién sacar el z-score—, y con él se caía toda
+  // la sección, que es el caso más común y el peor: dos jugadores completos
+  // en pantalla y un cartel de "no hay con qué compararlos".
+  //
+  // Cuando LOS DOS tienen radar se usa el z (cada uno contra los de su propio
+  // rol), que es la comparación justa entre roles distintos. Cuando no, se
+  // comparan los promedios directos y se avisa si los roles no coinciden.
+  const zDe = (p: Player, key: RadarMetric): number | null => p.radar?.axes.find((x) => x.key === key)?.z ?? null;
+  const ejes: Eje[] = [];
+  for (const mA of a.metricas) {
+    const mB = b.metricas.find((x) => x.key === mA.key);
+    if (!mB) continue;
+    const zA = zDe(a, mA.key);
+    const zB = zDe(b, mA.key);
+    ejes.push({ key: mA.key, valorA: mA.value, valorB: mB.value, zA, zB });
+  }
+  const hayZ = ejes.length > 0 && ejes.every((e) => e.zA !== null && e.zB !== null);
+
+  /** Cuánto le gana A a B en este eje, normalizado a -1..1. */
+  function ventaja(e: Eje): number {
+    if (hayZ) return Math.max(-1, Math.min(1, (e.zA! - e.zB!) / BRECHA_MAX));
+    // Sin z, la brecha se mide en proporción al mayor de los dos: es la única
+    // escala común entre ejes con unidades distintas (KDA 2,4 y oro 412).
+    const mayor = Math.max(Math.abs(e.valorA), Math.abs(e.valorB), 0.0001);
+    return Math.max(-1, Math.min(1, ((e.valorA - e.valorB) / mayor) * 2));
   }
 
-  const ganaA = ejes.filter((e) => e.a.z > e.b.z).length;
+  const ganaA = ejes.filter((e) => ventaja(e) > 0).length;
   const ganaB = ejes.length - ganaA;
 
   // Los dos pools completos, con los campeones compartidos marcados: la
@@ -145,17 +191,41 @@ export function HeadToHead({ players, ddragonVersion }: { players: Player[]; ddr
             <Ficha p={b} lado="b" />
           </div>
 
+          {juntos && (
+            // El dato que una vista "versus" pide sola y no estaba: cuánto
+            // juegan JUNTOS y cómo les va. Sale de la sinergia de dúo, que ya
+            // se calculaba para la pestaña de estadísticas.
+            <div className="h2h-juntos">
+              <span className="h2h-juntos-label">Cuando juegan juntos</span>
+              <span className="h2h-juntos-datos">
+                <strong>{juntos.games}</strong> partidas
+                <span className="tw-dot">·</span>
+                {juntos.wins}V-{juntos.games - juntos.wins}D
+                <span className="tw-dot">·</span>
+                <strong className={juntos.winrate >= 50 ? "gd-pos" : "gd-neg"}>{juntos.winrate}%</strong>
+                <span className="tw-dot">·</span>
+                <span className="h2h-juntos-ultima">última {formatRelativeTime(juntos.lastPlayedAt)}</span>
+              </span>
+            </div>
+          )}
+
           {ejes.length === 0 ? (
             <div className="empty-state">
               <strong>Todavía no hay con qué compararlos</strong>
-              Uno de los dos no tiene suficientes partidas en su rol para armar el perfil de siete ejes.
+              Hace falta que los dos tengan al menos diez partidas guardadas para que los promedios signifiquen algo.
             </div>
           ) : (
             <div className="h2h-ejes">
               <div className="h2h-ejes-head">
                 <span>
-                  Cuánto se despega cada uno de su rol
-                  <InfoTip text="Cada barra compara desvíos contra el promedio del grupo EN EL ROL DE CADA UNO, no los números crudos. Comparar el CS/min de un ADC contra el de un support diría que el support farmea mal, y no es lo que hace. Cuando los dos juegan el mismo rol comparten el promedio de referencia, así que el resultado coincide con comparar los números directamente." />
+                  {hayZ ? "Cuánto se despega cada uno de su rol" : "Promedio de cada uno"}
+                  <InfoTip
+                    text={
+                      hayZ
+                        ? "Cada barra compara desvíos contra el promedio del grupo EN EL ROL DE CADA UNO, no los números crudos. Comparar el CS/min de un ADC contra el de un support diría que el support farmea mal, y no es lo que hace. Cuando los dos juegan el mismo rol comparten el promedio de referencia, así que el resultado coincide con comparar los números directamente."
+                        : "Los promedios de cada uno sobre sus partidas guardadas. La comparación contra los pares de cada rol —que es la justa entre roles distintos— necesita que varios del grupo jueguen ese mismo rol, y todavía no hay muestra para eso."
+                    }
+                  />
                 </span>
                 <span className="h2h-marcador">
                   <strong className="a">{ganaA}</strong> — <strong className="b">{ganaB}</strong>
@@ -164,17 +234,27 @@ export function HeadToHead({ players, ddragonVersion }: { players: Player[]; ddr
 
               {!mismoRol && (
                 <p className="h2h-nota">
-                  Juegan roles distintos ({ROLES[a.role].label} y {ROLES[b.role].label}), así que se comparan contra sus
-                  propios pares y no entre ellos.
+                  {hayZ ? (
+                    <>
+                      Juegan roles distintos ({ROLES[a.role].label} y {ROLES[b.role].label}), así que se comparan contra
+                      sus propios pares y no entre ellos.
+                    </>
+                  ) : (
+                    <>
+                      Ojo: juegan roles distintos ({ROLES[a.role].label} y {ROLES[b.role].label}) y estos son los
+                      números crudos. El CS y el oro por minuto dependen mucho del rol — un support farmea menos porque
+                      así se juega, no porque le salga mal.
+                    </>
+                  )}
                 </p>
               )}
 
               {ejes.map((e) => {
-                const diff = Math.max(-1, Math.min(1, (e.a.z - e.b.z) / BRECHA_MAX));
+                const diff = ventaja(e);
                 const haciaA = diff > 0;
                 return (
                   <div className="h2h-eje" key={e.key}>
-                    <span className={`h2h-val a${haciaA ? " gana" : ""}`}>{formatear(e.key, e.a.value)}</span>
+                    <span className={`h2h-val a${haciaA ? " gana" : ""}`}>{formatear(e.key, e.valorA)}</span>
                     <div className="h2h-barra">
                       <div
                         className={`h2h-fill ${haciaA ? "a" : "b"}`}
@@ -187,7 +267,7 @@ export function HeadToHead({ players, ddragonVersion }: { players: Player[]; ddr
                         <span>{RADAR_AXIS[e.key].long}</span>
                       </span>
                     </div>
-                    <span className={`h2h-val b${!haciaA ? " gana" : ""}`}>{formatear(e.key, e.b.value)}</span>
+                    <span className={`h2h-val b${!haciaA ? " gana" : ""}`}>{formatear(e.key, e.valorB)}</span>
                   </div>
                 );
               })}
@@ -197,8 +277,8 @@ export function HeadToHead({ players, ddragonVersion }: { players: Player[]; ddr
           <div className="h2h-pools">
             {[a, b].map((p, i) => (
               <div className="h2h-pool" key={claveDe(p)}>
-                <h4 className="subsection-label">
-                  Pool de {p.name}
+                <h4 className={`h2h-pool-titulo ${i === 0 ? "a" : "b"}`}>
+                  Pool de <strong>{p.name}</strong>
                   {compartidos.length > 0 && i === 0 && (
                     <InfoTip text="Los campeones que juegan los dos quedan marcados en los dos lados — es donde la comparación es directa, mismo campeón contra el mismo campeón." />
                   )}
@@ -213,6 +293,7 @@ export function HeadToHead({ players, ddragonVersion }: { players: Player[]; ddr
                       <span className="h2h-champ-rec">
                         {c.wins}V-{c.losses}D
                       </span>
+                      <span className="h2h-champ-kda">{c.avgKda} KDA</span>
                       <span className={`h2h-champ-wr ${c.winrate >= 50 ? "good" : "bad"}`}>{c.winrate}%</span>
                     </div>
                   ))

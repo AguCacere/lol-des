@@ -42,7 +42,7 @@
      siempre); este es un acero frío que se distingue del dorado sin usar
      verde ni rojo, que en esta app ya significan victoria y derrota. */
   --versus-b:#7FA8C9;
-  --versus-b-wash:rgba(127,168,201,0.14);
+  --versus-b-wash:rgba(127,168,201,0.22);
   --gold:#F5B942;
   --gold-wash:rgba(245,185,66,0.12);
   /* Same hue as before, pulled back from neon-mint/neon-pink to something a
@@ -2061,7 +2061,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    sueltos que hay que restar con la vista. */
 .h2h-barra{position:relative; height:24px; background:var(--track); border-radius:var(--radius-sm); overflow:hidden;}
 .h2h-fill{position:absolute; top:0; bottom:0;}
-.h2h-fill.a{background:var(--accent-wash); border-right:2px solid var(--accent);}
+.h2h-fill.a{background:rgba(212,175,55,0.20); border-right:2px solid var(--accent);}
 .h2h-fill.b{background:var(--versus-b-wash); border-left:2px solid var(--versus-b);}
 /* La etiqueta va centrada sobre la barra, y con fondo propio: sin él, el
    relleno le pasa por debajo y el texto queda ilegible justo en las filas
@@ -2071,6 +2071,31 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-size:11px; font-weight:600; color:var(--text-secondary); pointer-events:none;
 }
 .h2h-eje-label span{background:var(--surface-raised); padding:2px 8px; border-radius:999px; white-space:nowrap;}
+/* La franja de "cuando juegan juntos": es el dato que una vista versus pide
+   sola, así que va con su propio fondo y no como una línea más de texto. */
+.h2h-juntos{
+  display:flex; align-items:center; justify-content:space-between; gap:10px 16px; flex-wrap:wrap;
+  background:var(--surface-raised); border-radius:var(--radius-md);
+  padding:11px 15px; margin-bottom:16px;
+}
+.h2h-juntos-label{
+  font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted);
+}
+.h2h-juntos-datos{display:flex; align-items:center; gap:7px; flex-wrap:wrap; font-size:13px; color:var(--text-secondary);}
+.h2h-juntos-datos strong{font-family:var(--font-stat); font-size:15px; font-weight:800; color:var(--text-primary);}
+.h2h-juntos-ultima{font-size:12px; color:var(--text-muted);}
+/* El título del pool NO va en mayúsculas: son nombres propios de Riot, y
+   "EtoN0EhCocaPapi" en mayúsculas queda ilegible. Lleva la marca de color del
+   lado al que corresponde, igual que la ficha de arriba. */
+.h2h-pool-titulo{
+  display:flex; align-items:center; gap:6px;
+  margin:0 0 9px; padding-left:9px; font-size:13px; font-weight:600; color:var(--text-muted);
+  border-left:3px solid transparent;
+}
+.h2h-pool-titulo strong{color:var(--text-primary); font-weight:700;}
+.h2h-pool-titulo.a{border-left-color:var(--accent);}
+.h2h-pool-titulo.b{border-left-color:var(--versus-b);}
+.h2h-champ-kda{font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums; width:56px; text-align:right;}
 .h2h-pools{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
 .h2h-pool{min-width:0;}
 .h2h-champ{display:flex; align-items:center; gap:9px; padding:6px 8px; border-radius:var(--radius-sm); min-width:0;}

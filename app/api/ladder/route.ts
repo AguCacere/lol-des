@@ -10,7 +10,7 @@ import { getLatestVersion, profileIconUrl, runeIconUrlByName, summonerSpellIconU
 import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { computeAegisStats } from "@/lib/aegis";
 import { computeRecentForm, type FormSample } from "@/lib/form";
-import { computeRadar, RADAR_METRICS, type MetricStats, type RadarMetric } from "@/lib/radar";
+import { computeRadar, metricasPropias, RADAR_METRICS, type MetricStats, type RadarMetric } from "@/lib/radar";
 import { computeMatchups, type MatchupSample } from "@/lib/matchups";
 import { computeChampionInsights } from "@/lib/champion-insights";
 import { computeMatchFlag, STATS_WINDOW_SIZE, type StatSample } from "@/lib/matchflags";
@@ -1002,6 +1002,10 @@ export async function GET() {
         }))
       ),
       radar: computeRadar(ownStatsFor(row.puuid, role), peerStatsFor(row.puuid, role)),
+      // Los mismos promedios sin el grupo de por medio: el radar se cae si
+      // nadie más juega ese rol, y el cara a cara no tiene por qué caerse con
+      // él — ahí la comparación es contra la otra persona.
+      metricas: metricasPropias(ownStatsFor(row.puuid, role)),
       matchups: computeMatchups(matchupSamplesByPuuid.get(row.puuid) ?? []).slice(0, MATCHUPS_SHOWN),
     };
   });

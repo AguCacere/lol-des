@@ -1,6 +1,6 @@
 import type { ChampionInsight } from "./champion-insights";
 import type { ChampionMatchups } from "./matchups";
-import type { RadarProfile } from "./radar";
+import type { MetricaPropia, RadarProfile } from "./radar";
 import type { TiltState } from "./tilt";
 import type { ChampionBuildStats, CompraItem } from "./builds";
 
@@ -474,6 +474,8 @@ export interface Player {
   tilt: TiltState | null;
   /** Perfil de siete ejes contra el resto del grupo en el mismo rol (ver lib/radar.ts) — null si no hay muestra suficiente propia o ajena. */
   radar: RadarProfile | null;
+  /** Los mismos siete promedios pero SIN comparar contra el grupo. Existen aunque el radar sea null (que pasa cuando nadie más juega ese rol), y son la base del cara a cara. */
+  metricas: MetricaPropia[];
   /** Enfrentamientos de línea agrupados por campeón propio (ver lib/matchups.ts), los campeones más jugados primero. Vacío hasta que un cruce se repita al menos MATCHUP_MIN_GAMES veces. */
   matchups: ChampionMatchups[];
   /** El cruce entre maestría e historial real (ver lib/champion-insights.ts) — como mucho una observación de cada tipo. Vacío si ninguna se sostiene con los datos. */

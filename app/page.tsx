@@ -289,7 +289,7 @@ export default function Home() {
         <div id="view-versus">
           {/* No pide nada al servidor: los Player ya vienen completos del
               ladder, con radar, pool y rango. */}
-          <HeadToHead players={players} ddragonVersion={ddragonVersion} />
+          <HeadToHead players={players} duos={duoSynergy} ddragonVersion={ddragonVersion} />
         </div>
       ) : tab === "clash" ? (
         <div id="view-clash">
