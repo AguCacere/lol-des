@@ -39,12 +39,22 @@ interface LpRow {
 }
 
 /**
- * GET /api/team-digest — "Equipo" tab. Rolling last 7 days (not calendar
- * Mon-Sun — simpler, no timezone/boundary logic, and "last week" reads fine
- * either way), computed entirely from matches/lp_snapshots already in the
- * DB. Zero new Riot calls, unlike everything else the cron does.
+ * GET /api/team-digest?semana=N — "Equipo" tab. Ventana de 7 días,
+ * calculada enteramente sobre matches/lp_snapshots que ya están en la base.
+ * Cero llamadas nuevas a Riot, al revés que todo lo demás que hace el cron.
+ *
+ * `semana=0` (el default) son los últimos 7 días; `semana=1`, los 7
+ * anteriores, y así. No es semana de calendario (lunes a domingo) a propósito:
+ * sin husos horarios ni bordes, y el encabezado imprime el rango exacto igual.
+ *
+ * Sobre por qué NO se guarda cada resumen en una tabla: los datos crudos ya
+ * están guardados, así que cualquier semana se puede recalcular cuando se
+ * pide. Snapshotear lo derivado agregaría una tabla que puede quedar
+ * desincronizada de su propia fuente, y solo serviría desde el día que se
+ * active — así, en cambio, el historial funciona hacia atrás hasta la partida
+ * más vieja que tengamos.
  */
-export async function GET() {
+export async function GET(req: Request) {
   let supabase;
   try {
     supabase = getSupabaseServerClient();
@@ -53,8 +63,15 @@ export async function GET() {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 
-  const windowEnd = new Date();
-  const windowStart = new Date(windowEnd.getTime() - WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  // Cuántas semanas hacia atrás. Se acota para que un ?semana=99999 no arme
+  // una fecha absurda: 260 son cinco años, más que el historial que Riot
+  // devuelve.
+  const pedida = Number(new URL(req.url).searchParams.get("semana") ?? 0);
+  const semana = Number.isFinite(pedida) ? Math.min(260, Math.max(0, Math.floor(pedida))) : 0;
+  const MS_SEMANA = WINDOW_DAYS * 24 * 60 * 60 * 1000;
+
+  const windowEnd = new Date(Date.now() - semana * MS_SEMANA);
+  const windowStart = new Date(windowEnd.getTime() - MS_SEMANA);
 
   const [summonersRes, matchesRes, lpRes, ddragonVersion] = await Promise.all([
     supabase.from("summoners").select("puuid, game_name, tag_line, profile_icon_id").returns<SummonerRow[]>(),
@@ -63,12 +80,14 @@ export async function GET() {
       .select("puuid, champion, win, kills, deaths, assists, gold_diff_10, gold_diff_15, gold_diff_20, played_at")
       .eq("queue_id", RANKED_SOLO_QUEUE_ID)
       .gte("played_at", windowStart.toISOString())
+      .lt("played_at", windowEnd.toISOString())
       .returns<MatchRow[]>(),
     supabase
       .from("lp_snapshots")
       .select("puuid, tier, division, lp, captured_at")
       .eq("queue_type", "RANKED_SOLO_5x5")
       .gte("captured_at", windowStart.toISOString())
+      .lt("captured_at", windowEnd.toISOString())
       .order("captured_at", { ascending: true })
       .returns<LpRow[]>(),
     getLatestVersion(),
@@ -219,11 +238,20 @@ export async function GET() {
     masActivo,
   };
 
+  // Si no hay ninguna partida anterior a esta ventana, no tiene sentido
+  // ofrecer "semana anterior": el navegador de semanas se corta acá.
+  const { count: anteriores } = await supabase
+    .from("matches")
+    .select("match_id", { count: "exact", head: true })
+    .lt("played_at", windowStart.toISOString());
+
   const plainText = buildPlainText({ resumen, biggestLpGain, bestKda, worstLoss, mostPlayedChampion });
 
   const digest: TeamDigest = {
     windowStart: windowStart.toISOString(),
     windowEnd: windowEnd.toISOString(),
+    semana,
+    hayAnterior: (anteriores ?? 0) > 0,
     resumen,
     biggestLpGain,
     bestKda,
@@ -236,11 +264,15 @@ export async function GET() {
   // reason to recompute per visitor. s-maxage is honored by Vercel's CDN even
   // with force-dynamic (that flag only disables Next's own data cache).
   return NextResponse.json(digest, {
-    headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
+    headers: {
+      // Una semana cerrada ya no se mueve —esas partidas no cambian más—, así
+      // que se cachea una hora. La semana en curso sí, y sigue en 5 minutos.
+      "Cache-Control": semana === 0 ? "public, s-maxage=300, stale-while-revalidate=600" : "public, s-maxage=3600, stale-while-revalidate=86400",
+    },
   });
 }
 
-function buildPlainText(d: Omit<TeamDigest, "windowStart" | "windowEnd" | "plainText">): string {
+function buildPlainText(d: Omit<TeamDigest, "windowStart" | "windowEnd" | "plainText" | "semana" | "hayAnterior">): string {
   const lines = ["📊 Resumen semanal — Grieta Central"];
   const r = d.resumen;
   if (r.partidas > 0) {

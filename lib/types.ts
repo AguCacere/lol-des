@@ -140,6 +140,10 @@ export interface TeamDigestResumen {
 export interface TeamDigest {
   windowStart: string; // ISO
   windowEnd: string; // ISO
+  /** Cuántas semanas hacia atrás es esta ventana: 0 son los últimos 7 días. */
+  semana: number;
+  /** Si hay alguna partida guardada anterior a esta ventana — o sea, si tiene sentido ofrecer "semana anterior". */
+  hayAnterior: boolean;
   /** El encabezado: cuánto jugó el grupo y cómo le fue en conjunto. */
   resumen: TeamDigestResumen;
   biggestLpGain:

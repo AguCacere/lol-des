@@ -2596,3 +2596,22 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .match-story.bad{border-left-color:var(--critical);}
 .match-story-linea{color:var(--text-primary); font-weight:600;}
 .match-story-contexto{color:var(--text-muted);}
+
+/* Navegador de semanas del resumen. Las flechas van a los costados del rango
+   y no debajo: es el mismo gesto que pasar de página, y el rango es la
+   etiqueta de dónde estás parado. */
+.digest-semanas{display:flex; align-items:center; gap:4px; flex-wrap:wrap;}
+.digest-semana-btn{
+  display:inline-flex; align-items:center; justify-content:center; flex:none;
+  width:26px; height:26px; padding:0; border:none; border-radius:var(--radius-sm);
+  background:var(--surface); color:var(--text-secondary); cursor:pointer;
+  transition:background .12s ease, color .12s ease;
+}
+.digest-semana-btn svg{width:14px; height:14px;}
+.digest-semana-btn:hover:not(:disabled){background:var(--surface-hover); color:var(--text-primary);}
+/* Deshabilitada y no escondida: que se vea que ahí se termina el historial
+   es información, y un botón que aparece y desaparece mueve el rango de
+   lugar cada vez que cambiás de semana. */
+.digest-semana-btn:disabled{opacity:0.3; cursor:default;}
+.digest-rango{display:inline-flex; align-items:baseline; gap:7px; white-space:nowrap;}
+.digest-hace{font-size:11px; color:var(--accent-dim); font-weight:600;}

@@ -171,10 +171,10 @@ export default function Home() {
     }
   }, [tab, clashLoaded, clashLoading, loadClash]);
 
-  const loadTeamDigest = useCallback(async () => {
+  const loadTeamDigest = useCallback(async (semana = 0) => {
     setTeamDigestLoading(true);
     try {
-      const res = await fetch("/api/team-digest");
+      const res = await fetch(`/api/team-digest?semana=${semana}`);
       const data = await res.json();
       if (res.ok) setTeamDigest(data as TeamDigestData);
     } catch {
@@ -319,7 +319,12 @@ export default function Home() {
         </div>
       ) : (
         <div id="view-team">
-          <TeamDigest digest={teamDigest} loading={teamDigestLoading} ddragonVersion={ddragonVersion} />
+          <TeamDigest
+            digest={teamDigest}
+            loading={teamDigestLoading}
+            ddragonVersion={ddragonVersion}
+            onSemana={loadTeamDigest}
+          />
         </div>
       )}
 

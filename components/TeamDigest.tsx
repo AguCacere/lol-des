@@ -107,8 +107,10 @@ function DigestBody({
   if (!hasAnything) {
     return (
       <div className="empty-state">
-        <strong>Sin partidas guardadas esta semana</strong>
-        Se llena solo a medida que el grupo juegue ranked — no hace falta hacer nada.
+        <strong>Sin partidas guardadas en esta semana</strong>
+        {digest.semana > 0
+          ? "Esa semana nadie del grupo jugó ranked, o todavía no teníamos guardadas sus partidas."
+          : "Se llena solo a medida que el grupo juegue ranked — no hace falta hacer nada."}
       </div>
     );
   }
@@ -279,10 +281,13 @@ export function TeamDigest({
   digest,
   loading,
   ddragonVersion,
+  onSemana,
 }: {
   digest: TeamDigestData | null;
   loading: boolean;
   ddragonVersion: string | null;
+  /** Cargar otra ventana de 7 días: 0 es la actual, 1 la anterior, y así. */
+  onSemana: (semana: number) => void;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -304,7 +309,43 @@ export function TeamDigest({
           <span className="live-dot accent" />
           Resumen semanal
         </h2>
-        <span className="meta">{digest ? formatWindowRange(digest.windowStart, digest.windowEnd) : "Últimos 7 días"}</span>
+        {/* Navegador de semanas. No hace falta guardar nada para que exista:
+            las partidas y los snapshots de LP ya están, así que cualquier
+            semana se recalcula cuando se pide (ver la ruta). */}
+        <div className="digest-semanas">
+          <button
+            type="button"
+            className="digest-semana-btn"
+            onClick={() => onSemana((digest?.semana ?? 0) + 1)}
+            disabled={loading || !digest?.hayAnterior}
+            title="Semana anterior"
+            aria-label="Semana anterior"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <span className="meta digest-rango">
+            {digest ? formatWindowRange(digest.windowStart, digest.windowEnd) : "Últimos 7 días"}
+            {digest != null && digest.semana > 0 && (
+              <span className="digest-hace">
+                hace {digest.semana} {digest.semana === 1 ? "semana" : "semanas"}
+              </span>
+            )}
+          </span>
+          <button
+            type="button"
+            className="digest-semana-btn"
+            onClick={() => onSemana(Math.max(0, (digest?.semana ?? 0) - 1))}
+            disabled={loading || (digest?.semana ?? 0) === 0}
+            title="Semana siguiente"
+            aria-label="Semana siguiente"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        </div>
       </div>
       {loading && (
         <div className="empty-state">
