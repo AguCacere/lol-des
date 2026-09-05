@@ -20,6 +20,8 @@ export function ChampionPool({ pool, ddragonVersion }: { pool: ChampionPoolEntry
       </div>
     );
   }
+  // Para escalar las barras: la más jugada ocupa todo, el resto en proporción.
+  const maxPartidas = Math.max(...pool.map((c) => c.games));
   return (
     <div className="champ-pool">
       {pool.map((c) => (
@@ -29,6 +31,18 @@ export function ChampionPool({ pool, ddragonVersion }: { pool: ChampionPoolEntry
             <span className="champ-pool-name">{championLabel(c.champ)}</span>
             <span className="champ-pool-games">{c.games} {c.games === 1 ? "partida" : "partidas"}</span>
           </div>
+          {/* El mismo lenguaje de barra que "Sus líneas" y "Cómo arrancás": el
+              largo dice cuánto lo jugó comparado con su campeón más jugado, y
+              adentro el verde y el rojo dicen cómo le fue. Va acá porque entre
+              el nombre y los números había medio ancho de fila vacío, y porque
+              un 100% en 3 partidas al lado de un 50% en 8 necesita que se vea
+              de un vistazo cuál de los dos pesa. */}
+          <span className="champ-pool-barra" aria-hidden>
+            <span className="champ-pool-total" style={{ width: `${(100 * c.games) / maxPartidas}%` }}>
+              <span className="champ-pool-v" style={{ width: `${(100 * c.wins) / c.games}%` }} />
+              <span className="champ-pool-d" />
+            </span>
+          </span>
           <div className="champ-pool-stats">
             <span className={`champ-pool-wr ${c.games < CONFIDENT_GAMES ? "thin" : c.winrate >= 50 ? "good" : "bad"}`}>
               {c.winrate}%

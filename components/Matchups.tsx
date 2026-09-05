@@ -22,18 +22,24 @@ function OpponentRow({ m, ddragonVersion }: { m: Matchup; ddragonVersion: string
         <span className="wr-seg win" style={{ flex: m.wins }} />
         <span className="wr-seg loss" style={{ flex: m.losses }} />
       </span>
-      {m.avgGoldDiff15 !== null && (
-        <span className={`matchup-gd ${m.avgGoldDiff15 >= 0 ? "gd-pos" : "gd-neg"}`}>
-          {m.avgGoldDiff15 > 0 ? "+" : ""}
-          {m.avgGoldDiff15.toLocaleString("es-AR")} oro @15&apos;
-        </span>
-      )}
+      {/* La celda del oro se ocupa siempre, aunque esté vacía: si desapareciera
+          cuando no hay dato, el récord de esta fila se correría y dejaría de
+          estar debajo del del campeón. */}
+      <span className={`matchup-gd ${m.avgGoldDiff15 === null ? "" : m.avgGoldDiff15 >= 0 ? "gd-pos" : "gd-neg"}`}>
+        {m.avgGoldDiff15 !== null && (
+          <>
+            {m.avgGoldDiff15 > 0 ? "+" : ""}
+            {m.avgGoldDiff15.toLocaleString("es-AR")} oro @15&apos;
+          </>
+        )}
+      </span>
       <span className="matchup-record">
         <span className={`matchup-wr ${m.winrate >= 50 ? "good" : "bad"}`}>{m.winrate}%</span>
         <span className="matchup-games">
           {m.wins}V-{m.losses}D
         </span>
       </span>
+      <span className="matchup-hueco-chevron" aria-hidden />
     </div>
   );
 }
@@ -63,6 +69,7 @@ function ChampionGroup({
           <span className="wr-seg win" style={{ flex: group.wins }} />
           <span className="wr-seg loss" style={{ flex: group.losses }} />
         </span>
+        <span className="matchup-gd matchup-hueco-oro" aria-hidden />
         <span className="matchup-record">
           <span className={`matchup-wr ${group.winrate >= 50 ? "good" : "bad"}`}>{group.winrate}%</span>
           <span className="matchup-games">

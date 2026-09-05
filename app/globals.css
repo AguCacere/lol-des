@@ -930,11 +930,20 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   background:var(--surface-raised); border-radius:var(--radius-sm); box-shadow:var(--shadow-sm);
   overflow:hidden;
 }
+/* Padre e hija comparten la MISMA grilla. Antes eran dos flex distintos —la
+   hija tenía una celda de oro que la del campeón no, y la del campeón un
+   chevron que la hija no— así que la barra y el récord de cada una caían en
+   una x distinta y desplegado quedaba todo corrido. Con columnas fijas, cada
+   cosa cae debajo de su equivalente aunque la celda esté vacía. */
+.matchup-group-head,
 .matchup-row{
-  display:flex; align-items:center; gap:11px;
-  padding:8px 14px 8px 30px; border-bottom:1px solid var(--border-soft);
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr) 200px 96px 96px 16px;
+  align-items:center; gap:11px; width:100%;
+  border-bottom:1px solid var(--border-soft);
   transition:background .15s ease;
 }
+.matchup-row{padding:8px 14px 8px 30px;}
 .matchup-row:last-child{border-bottom:none;}
 .matchup-row:hover{background:var(--surface-hover);}
 
@@ -944,11 +953,16 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .matchup-group{border-bottom:1px solid var(--border-soft);}
 .matchup-group:last-child{border-bottom:none;}
 .matchup-group-head{
-  display:flex; align-items:center; gap:11px; width:100%;
-  padding:11px 14px; border:none; background:transparent; color:inherit;
+  padding:11px 14px; border-width:0 0 1px; background:transparent; color:inherit;
   font-family:inherit; text-align:left; cursor:pointer;
-  transition:background .15s ease;
 }
+/* La sangría de los rivales sale del ícono, no de un padding extra: así el
+   nombre y todo lo que sigue quedan alineados con los del campeón de arriba. */
+.matchup-row .matchup-champ{margin-left:8px;}
+/* Celdas que solo tiene una de las dos filas. Ocupan su columna igual para
+   que no se corra nada. */
+.matchup-row .matchup-hueco-chevron,
+.matchup-group-head .matchup-hueco-oro{visibility:hidden;}
 .matchup-group-head:hover{background:var(--surface-hover);}
 .matchup-group-head:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
 /* Los rivales sobre un fondo apenas más hundido: dice "esto está adentro de
@@ -978,11 +992,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .matchup-vs{font-size:9px; font-weight:700; color:var(--text-muted); letter-spacing:0.04em;}
 /* min-width:0 para que el nombre largo trunque en vez de empujar al récord
    fuera de la fila — un flex item arranca en min-width:auto y no achica. */
-.matchup-names{display:flex; flex-direction:column; gap:1px; min-width:0; flex:1 1 auto;}
+.matchup-names{display:flex; flex-direction:column; gap:1px; min-width:0;}
 /* Tope de 200px: a lo ancho, una barra de 600px deja de leerse como una
    proporción y pasa a parecer una barra de progreso a medio cargar. El resto
    del sobrante se lo queda el nombre. */
-.matchup-bar{flex:0 1 200px; min-width:64px;}
+.matchup-bar{min-width:0;}
 .matchup-name{
   font-size:12.5px; font-weight:700; color:var(--text-primary);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
@@ -991,8 +1005,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-size:10.5px; color:var(--text-muted);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.matchup-gd{font-size:10.5px; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; flex:none;}
-.matchup-record{display:flex; align-items:baseline; gap:7px; flex:none;}
+.matchup-gd{font-size:10.5px; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; text-align:right;}
+.matchup-record{display:flex; align-items:baseline; justify-content:flex-end; gap:7px;}
 .matchup-wr{font-family:var(--font-stat); font-size:14px; font-weight:800; font-variant-numeric:tabular-nums;}
 .matchup-wr.good{color:var(--good);}
 .matchup-wr.bad{color:var(--critical);}
@@ -1005,10 +1019,13 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
      dice exactamente lo mismo que el "73%" de al lado. Se van los dos
      adornos: el oro a los 15 (dato de detalle) y la barra (redundante con
      el porcentaje), y el nombre entra entero. */
+  .matchup-group-head,
+  .matchup-row{grid-template-columns:34px minmax(0,1fr) 88px 16px;}
   .matchup-gd, .matchup-bar{display:none;}
   /* Y la sangría de los rivales se achica: a 390px cada píxel de más a la
      izquierda sale del nombre. */
   .matchup-row{padding-left:20px;}
+  .matchup-row .matchup-champ{margin-left:0;}
 }
 
 /* Radar de rendimiento (ver lib/radar.ts y components/RadarChart.tsx).
@@ -1155,6 +1172,13 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .champ-pool-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
 .champ-pool-mid{display:flex; flex-direction:column; min-width:0; flex:1; gap:2px;}
+/* Mismo lenguaje que .lineas-barra y .build-start-bar: largo = volumen,
+   verde/rojo = récord. Con tope, porque estirada a media pantalla una barra
+   de proporción deja de leerse como proporción. */
+.champ-pool-barra{flex:0 1 190px; min-width:0; height:8px;}
+.champ-pool-total{display:flex; height:100%; min-width:3px; border-radius:999px; overflow:hidden;}
+.champ-pool-v{background:var(--good); opacity:0.8; flex:none;}
+.champ-pool-d{background:var(--critical); opacity:0.55; flex:1 1 auto;}
 .champ-pool-name{
   font-weight:600; font-size:13px; color:var(--text-primary);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
@@ -1171,7 +1195,13 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    were 14px/11px with a 10px gap, close enough to read as a single compound
    figure — a size step plus more air separates the two roles. */
 .champ-pool-stats{display:flex; align-items:baseline; gap:12px; flex:none;}
-.champ-pool-wr{font-family:var(--font-stat); font-weight:800; font-size:15px; font-variant-numeric:tabular-nums;}
+/* Ancho fijo, como el KDA y el CS de al lado: sin esto un "100%" es más
+   ancho que un "50%" y, como el grupo se alinea a la derecha en bloque,
+   corre toda la fila unos píxeles. Cinco filas, cinco posiciones distintas. */
+.champ-pool-wr{
+  font-family:var(--font-stat); font-weight:800; font-size:15px; font-variant-numeric:tabular-nums;
+  min-width:4ch; text-align:right;
+}
 .champ-pool-wr.good{color:var(--good);}
 .champ-pool-wr.bad{color:var(--critical);}
 /* Pocas partidas: el número queda, el color se va. Ver CONFIDENT_GAMES. */
@@ -1191,8 +1221,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 @media (max-width:520px){
   /* Tres números no entran en la fila de un teléfono, y el CS es el más
-     prescindible de los tres — para un support directamente no dice nada. */
-  .champ-pool-cs{display:none;}
+     prescindible de los tres — para un support directamente no dice nada.
+     La barra tampoco: dice lo mismo que el porcentaje y las partidas que ya
+     están escritos al lado, y ese ancho lo necesita el nombre. */
+  .champ-pool-cs, .champ-pool-barra{display:none;}
 }
 /* Leaderboard-style champ-pool-row usages (Mayor winrate, Mayor winrate por
    campeón) prepend a rank number before the avatar(s) — same treatment as
@@ -2234,10 +2266,12 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .build-start-item{width:26px; height:26px; border-radius:var(--radius-sm); overflow:hidden; background:var(--track); display:block;}
 .build-start-item img{width:100%; height:100%; object-fit:cover; display:block;}
 .build-start-name{font-size:13px; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.build-start-bar{height:7px; background:var(--track); border-radius:999px; overflow:hidden; display:block;}
-.build-start-fill{display:block; height:100%; border-radius:999px;}
-.build-start-fill.good{background:var(--good);}
-.build-start-fill.bad{background:var(--critical);}
+/* Mismo lenguaje que la barra de "Sus líneas": el largo dice cuánto se usó
+   ese arranque, y adentro el verde y el rojo dicen cómo salió. */
+.build-start-bar{height:8px; display:block;}
+.build-start-total{display:flex; height:100%; min-width:3px; border-radius:999px; overflow:hidden;}
+.build-start-v{background:var(--good); opacity:0.8; flex:none;}
+.build-start-d{background:var(--critical); opacity:0.55; flex:1 1 auto;}
 .build-start-wr{font-size:13px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums;}
 .build-start-wr.good{color:var(--good);}
 .build-start-wr.bad{color:var(--critical);}

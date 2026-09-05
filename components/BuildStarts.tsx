@@ -37,7 +37,9 @@ export function BuildStarts({
         <InfoTip text="El primer ítem COMPLETO de cada partida (no el primer componente ni la poción) cruzado con el resultado, sobre tus partidas guardadas. Solo aparecen los campeones que jugaste bastante y con al menos dos arranques distintos: con uno solo no hay nada que comparar." />
       </h4>
 
-      {stats.map((c) => (
+      {stats.map((c) => {
+        const maxPartidas = Math.max(...c.arranques.map((a) => a.games));
+        return (
         <div className="build-champ" key={c.champ}>
           <div className="build-champ-head">
             <ChampIcon champ={c.champ} version={ddragonVersion} className="build-champ-icon" />
@@ -54,11 +56,17 @@ export function BuildStarts({
                   )}
                 </span>
                 <span className="build-start-name">{a.nombre}</span>
-                <span className="build-start-bar">
-                  <span
-                    className={`build-start-fill ${a.winrate >= 50 ? "good" : "bad"}`}
-                    style={{ width: `${Math.max(3, a.winrate)}%` }}
-                  />
+                {/* Victorias y derrotas apiladas, y el largo total según cuánto
+                    se usó ese arranque comparado con el más usado del campeón
+                    — el mismo lenguaje que la barra de "Sus líneas".
+                    Antes era una sola barra del ancho del winrate con un piso
+                    de 3%, así que un 0% dibujaba una astilla roja suelta en el
+                    medio de la fila que no significaba nada y parecía rota. */}
+                <span className="build-start-bar" aria-hidden>
+                  <span className="build-start-total" style={{ width: `${(100 * a.games) / maxPartidas}%` }}>
+                    <span className="build-start-v" style={{ width: `${(100 * a.wins) / a.games}%` }} />
+                    <span className="build-start-d" />
+                  </span>
                 </span>
                 <span className={`build-start-wr ${a.winrate >= 50 ? "good" : "bad"}`}>{a.winrate}%</span>
                 <span className="build-start-rec">
@@ -68,7 +76,8 @@ export function BuildStarts({
             ))}
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
