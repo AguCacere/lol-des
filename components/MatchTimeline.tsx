@@ -1,4 +1,6 @@
 import type { Match } from "@/lib/types";
+import { buildMatchStory } from "@/lib/match-story";
+import { InfoTip } from "./InfoTip";
 
 /**
  * La partida contada como una línea de tiempo en vez de como una lista de
@@ -81,6 +83,7 @@ function pathSuave(pts: { x: number; y: number }[]): string {
 
 export function MatchTimeline({ match }: { match: Match }) {
   const m = match;
+  const historia = buildMatchStory(m);
 
   const medidas: Punto[] = [
     { min: 10, valor: m.goldDiff10 },
@@ -224,8 +227,11 @@ export function MatchTimeline({ match }: { match: Match }) {
         <span className="mt-min start" style={{ top: `${EJE_Y + 5}px` }}>
           Inicio
         </span>
+        {/* "Final" y no la duración: el minuto ya está en la fila de contexto
+            de arriba y repetirlo dos veces a diez píxeles de distancia se lee
+            como un error. */}
         <span className="mt-min end" style={{ top: `${EJE_Y + 5}px` }}>
-          {m.dur} min
+          Final
         </span>
       </div>
 
@@ -233,6 +239,14 @@ export function MatchTimeline({ match }: { match: Match }) {
           mismos puntos que ya están dibujados, y repetirlos en tres celdas con
           su propio título cada una era la mitad del alto del bloque para
           decir lo mismo dos veces. */}
+      {historia && (
+        <p className={`match-story ${historia.tono}`}>
+          <span className="match-story-linea">{historia.linea}</span>
+          {historia.contexto && <span className="match-story-contexto">{historia.contexto}</span>}
+          <InfoTip text="Se arma con la diferencia de oro contra tu rival de carril y los tiempos de los objetivos, que es lo que tenemos guardado. Lee TU línea, no el mapa entero: de las otras dos líneas y de la jungla no sabemos nada, así que cuando el resultado no cierra con tu carril lo único que puede decir es que se definió en otro lado." />
+        </p>
+      )}
+
       <p className="match-timeline-pie">
         <span>Diferencia de oro contra tu rival de carril</span>
         {medidas.length > 0 ? (

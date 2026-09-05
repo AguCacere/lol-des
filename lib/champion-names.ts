@@ -47,7 +47,14 @@ function separarCamelCase(id: string): string {
   return id.replace(/([a-z])([A-Z])/g, "$1 $2");
 }
 
-/** El nombre como lo escribe Riot, a partir del id que guardamos nosotros. */
-export function championLabel(championId: string): string {
+/**
+ * El nombre como lo escribe Riot, a partir del id que guardamos nosotros.
+ *
+ * Tolera el vacío a propósito: esta función la llama medio componente de la
+ * app, y un campeón que llega sin nombre —una fila vieja, un JSON cacheado sin
+ * el campo— no puede tirar abajo la pantalla entera. Mejor un guión.
+ */
+export function championLabel(championId: string | null | undefined): string {
+  if (!championId) return "—";
   return IRREGULARES[championId] ?? separarCamelCase(championId);
 }

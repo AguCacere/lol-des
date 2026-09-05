@@ -1592,12 +1592,23 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    The tradeoff is back to uneven wrapping (an item with 2-3 dragon icons
    is wider, so it may break the row sooner) — cosmetic raggedness beats
    overlapping or clipped text every time. */
-.mini-breakdown{display:flex; flex-wrap:wrap; gap:4px 16px;}
-.mini-breakdown-item{font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted); white-space:nowrap; display:inline-flex; align-items:center;}
-.mini-breakdown-icon{width:12px; height:12px; margin-right:3px; flex:none;}
+/* Cada ítem del desglose es una píldora y no texto corrido: cinco pares
+   número+palabra separados solo por espacio se leían como una frase larga que
+   se corta en cualquier lado al envolver. Con fondo propio, cada uno es una
+   unidad y el corte cae siempre entre píldoras. */
+.mini-breakdown{display:flex; flex-wrap:wrap; gap:5px;}
+.mini-breakdown-item{
+  display:inline-flex; align-items:center; gap:4px; white-space:nowrap;
+  background:var(--surface-raised); border-radius:999px; padding:3px 9px;
+  font-size:11px; color:var(--text-muted);
+}
+/* Un cero no es un dato que valga una píldora prendida: se apaga para que las
+   que sí pasaron algo salten a la vista. */
+.mini-breakdown-item.en-cero{opacity:0.45;}
+.mini-breakdown-icon{width:12px; height:12px; flex:none;}
 .mini-breakdown-item strong{
-  font-family:var(--font-stat); color:var(--text-primary); font-weight:700; font-size:13px;
-  font-variant-numeric:tabular-nums; margin-right:3px;
+  font-family:var(--font-stat); color:var(--text-primary); font-weight:700; font-size:12.5px;
+  font-variant-numeric:tabular-nums;
 }
 .gd-pos{color:var(--good);}
 .gd-neg{color:var(--critical);}
@@ -2206,13 +2217,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .match-meta .unit{font-size:11px; color:var(--text-muted);}
 .match-meta svg{width:13px; height:13px; opacity:0.7;}
-.match-meta-fecha{margin-left:auto; font-size:11.5px;}
-@media (max-width:560px){
-  /* Sin margin-left:auto: en dos líneas la fecha quedaba sola y descolgada a
-     la derecha, que se lee como un error de alineación y no como una
-     decisión. */
-  .match-meta-fecha{margin-left:0;}
-}
+.match-meta-fecha{font-size:11.5px;}
 
 /* ── Mayor winrate (components/TopWinrate.tsx) ────────────────────────────
    Tabla con barra divergente anclada en el 50%. La barra crece desde el
@@ -2571,3 +2576,18 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   background:var(--surface-raised); color:var(--accent); font-weight:700;
   box-shadow:inset 0 0 0 1px var(--accent-dim-border);
 }
+
+/* La lectura de la partida, debajo del gráfico. Barra de color a la izquierda
+   según si la línea salió a favor o en contra — es una conclusión, no un dato
+   más, y tiene que distinguirse de las cifras de al lado. */
+.match-story{
+  display:flex; align-items:baseline; flex-wrap:wrap; gap:5px 8px;
+  margin:12px 0 0; padding:10px 13px;
+  background:var(--surface-raised); border-radius:var(--radius-sm);
+  border-left:3px solid var(--text-muted);
+  font-size:13px; line-height:1.5; color:var(--text-secondary);
+}
+.match-story.good{border-left-color:var(--good);}
+.match-story.bad{border-left-color:var(--critical);}
+.match-story-linea{color:var(--text-primary); font-weight:600;}
+.match-story-contexto{color:var(--text-muted);}

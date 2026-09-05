@@ -44,11 +44,16 @@ const DRAGON_ICON_BY_SUBTYPE: Record<string, string> = {
 };
 
 /** Compact "12 puestas · 3 sacadas" style breakdown — replaces a run-on sentence with scannable chips. */
+/** "1 dragones" no existe. Cada ítem del desglose trae su singular y su plural. */
+function plural(n: number, singular: string, plural: string): string {
+  return n === 1 ? singular : plural;
+}
+
 function MiniBreakdown({ items }: { items: { value: number; label: string; icons?: string[] }[] }) {
   return (
     <span className="v mini-breakdown">
       {items.map((it) => (
-        <span className="mini-breakdown-item" key={it.label}>
+        <span className={`mini-breakdown-item${it.value === 0 ? " en-cero" : ""}`} key={it.label}>
           {it.icons?.map((src, i) => (
             // eslint-disable-next-line @next/next/no-img-element -- fixed tiny inline glyphs, not a page asset
             <img className="mini-breakdown-icon" src={src} alt="" key={i} />
@@ -244,9 +249,9 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
         <Stat label="Wards" wide>
           <MiniBreakdown
             items={[
-              { value: m.wardsPlaced, label: "puestas" },
-              { value: m.wardsKilled, label: "limpiados" },
-              { value: m.controlWards, label: "control" },
+              { value: m.wardsPlaced, label: plural(m.wardsPlaced, "puesto", "puestos") },
+              { value: m.wardsKilled, label: plural(m.wardsKilled, "limpiado", "limpiados") },
+              { value: m.controlWards, label: "de control" },
             ]}
           />
         </Stat>
@@ -257,10 +262,10 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
         >
           <MiniBreakdown
             items={[
-              { value: m.turretTakedowns, label: "torres" },
+              { value: m.turretTakedowns, label: plural(m.turretTakedowns, "torre", "torres") },
               {
                 value: m.dragonTakedowns,
-                label: "dragones",
+                label: plural(m.dragonTakedowns, "dragón", "dragones"),
                 // Un ícono real por dragón que efectivamente mató este jugador
                 // (Match-V5 timeline, monsterSubType) — Hextech/Chemtech/Elder
                 // no tienen arte propio así que esos kills quedan sin ícono,
@@ -274,9 +279,9 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
                       ? ["/icons/dragons/infernal-48.png"]
                       : [],
               },
-              { value: m.baronTakedowns, label: "barones" },
-              { value: m.heraldTakedowns, label: "heraldo" },
-              { value: m.inhibitorKills, label: "inhib." },
+              { value: m.baronTakedowns, label: plural(m.baronTakedowns, "barón", "barones") },
+              { value: m.heraldTakedowns, label: plural(m.heraldTakedowns, "heraldo", "heraldos") },
+              { value: m.inhibitorKills, label: plural(m.inhibitorKills, "inhibidor", "inhibidores") },
             ]}
           />
         </Stat>
