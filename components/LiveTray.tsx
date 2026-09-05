@@ -40,7 +40,16 @@ function groupLive(players: Player[]): LiveGroup[] {
  * hover popup in LadderTable keeps doing that job (see the max-width:680px
  * guard in globals.css around both this and that rule).
  */
-export function LiveTray({ players, ddragonVersion }: { players: Player[]; ddragonVersion: string | null }) {
+export function LiveTray({
+  players,
+  ddragonVersion,
+  onPlayer,
+}: {
+  players: Player[];
+  ddragonVersion: string | null;
+  /** Abrir el perfil de ese invocador — donde está el panel de la partida en vivo. */
+  onPlayer: (key: string) => void;
+}) {
   const groups = groupLive(players);
   if (groups.length === 0) return null;
   const total = groups.reduce((s, g) => s + g.players.length, 0);
@@ -54,9 +63,9 @@ export function LiveTray({ players, ddragonVersion }: { players: Player[]; ddrag
       <div className="live-tray-list">
         {groups.map((g) =>
           g.players.length > 1 ? (
-            <TogetherRow group={g} ddragonVersion={ddragonVersion} key={g.key} />
+            <TogetherRow group={g} ddragonVersion={ddragonVersion} onPlayer={onPlayer} key={g.key} />
           ) : (
-            <SoloRow p={g.players[0]} ddragonVersion={ddragonVersion} key={g.key} />
+            <SoloRow p={g.players[0]} ddragonVersion={ddragonVersion} onPlayer={onPlayer} key={g.key} />
           )
         )}
       </div>
@@ -64,10 +73,21 @@ export function LiveTray({ players, ddragonVersion }: { players: Player[]; ddrag
   );
 }
 
-function SoloRow({ p, ddragonVersion }: { p: Player; ddragonVersion: string | null }) {
+function SoloRow({
+  p,
+  ddragonVersion,
+  onPlayer,
+}: {
+  p: Player;
+  ddragonVersion: string | null;
+  onPlayer: (key: string) => void;
+}) {
   const game = p.liveGame!;
   return (
-    <div className="live-tray-row">
+    // La fila es un botón y no un div: desde acá se llega al panel con los
+    // rivales, que es lo que uno quiere ver mientras la partida está pasando.
+    // Antes había que saber que estaba en el perfil y buscarlo a mano.
+    <button type="button" className="live-tray-row" onClick={() => onPlayer(playerKey(p))} title="Ver la partida y los rivales">
       <span className="live-tray-avatar-wrap">
         <PlayerAvatar name={p.name} iconUrl={p.profileIconUrl} className="live-tray-avatar" />
         <ChampIcon champ={game.champion} version={ddragonVersion} className="live-tray-champ-badge" />
@@ -80,15 +100,31 @@ function SoloRow({ p, ddragonVersion }: { p: Player; ddragonVersion: string | nu
           {championLabel(game.champion)} · {game.queueLabel} · {liveGameTimeLabel(game.startedMinutesAgo)}
         </span>
       </span>
-    </div>
+      <ChevronVer />
+    </button>
   );
 }
 
-function TogetherRow({ group, ddragonVersion }: { group: LiveGroup; ddragonVersion: string | null }) {
+function TogetherRow({
+  group,
+  ddragonVersion,
+  onPlayer,
+}: {
+  group: LiveGroup;
+  ddragonVersion: string | null;
+  onPlayer: (key: string) => void;
+}) {
   const { players } = group;
   const game = players[0].liveGame!;
   return (
-    <div className="live-tray-row">
+    // Están en la MISMA partida, así que abrir el perfil de cualquiera de los
+    // dos muestra exactamente los mismos diez jugadores.
+    <button
+      type="button"
+      className="live-tray-row"
+      onClick={() => onPlayer(playerKey(players[0]))}
+      title="Ver la partida y los rivales"
+    >
       <span className="live-tray-stack">
         {players.map((p) => (
           <span className="live-tray-avatar-wrap sm" key={playerKey(p)}>
@@ -107,6 +143,16 @@ function TogetherRow({ group, ddragonVersion }: { group: LiveGroup; ddragonVersi
           {game.queueLabel} · {liveGameTimeLabel(game.startedMinutesAgo)}
         </span>
       </span>
-    </div>
+      <ChevronVer />
+    </button>
+  );
+}
+
+/** La señal de que la fila lleva a algún lado. Sin esto no se lee como clickeable. */
+function ChevronVer() {
+  return (
+    <svg className="live-tray-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
   );
 }

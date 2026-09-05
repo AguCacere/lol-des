@@ -194,6 +194,22 @@ export default function Home() {
     }
   }, [tab, teamDigestLoaded, teamDigestLoading, loadTeamDigest]);
 
+  /**
+   * Abrir el perfil de alguien desde cualquier parte (la paleta ⌘K, la
+   * bandeja de "en vivo"). Scrollea hasta el perfil porque se dibuja debajo
+   * de la tabla: sin eso, elegir a alguien te deja mirando el ladder sin
+   * ninguna señal de que pasó algo.
+   */
+  const abrirPerfil = useCallback((key: string) => {
+    conTransicion(() => {
+      setTab("ranking");
+      setActiveKey(key);
+    });
+    requestAnimationFrame(() => {
+      document.querySelector(".profile")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, []);
+
   const activePlayer = players.find((p) => playerKey(p) === activeKey) ?? null;
 
   const q = filterText.trim().toLowerCase();
@@ -334,7 +350,7 @@ export default function Home() {
           : `${players.length} invocador${players.length === 1 ? "" : "es"} trackeados.`}
       </p>
 
-      <LiveTray players={players} ddragonVersion={ddragonVersion} />
+      <LiveTray players={players} ddragonVersion={ddragonVersion} onPlayer={abrirPerfil} />
     </div>
   );
 }

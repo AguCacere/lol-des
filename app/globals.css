@@ -313,13 +313,20 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   padding:11px 13px 9px; border-bottom:1px solid var(--border-soft);
 }
 .live-tray-list{display:flex; flex-direction:column;}
+/* Ahora es un <button>: hay que resetear lo que el navegador le pone de
+   fábrica (fondo, borde, tipografía, alineación) o la fila se deforma. */
 .live-tray-row{
-  display:flex; align-items:center; gap:10px;
-  padding:10px 13px; border-bottom:1px solid var(--border-soft);
+  display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+  background:none; border:none; border-bottom:1px solid var(--border-soft); cursor:pointer;
+  font:inherit; color:inherit;
+  padding:10px 13px;
   transition:background-color .12s ease;
 }
 .live-tray-row:last-child{border-bottom:none;}
 .live-tray-row:hover{background:rgba(255,255,255,0.03);}
+.live-tray-row:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
+.live-tray-chevron{width:15px; height:15px; flex:none; color:var(--text-muted); margin-left:auto;}
+.live-tray-row:hover .live-tray-chevron{color:var(--accent);}
 
 /* Profile photo + a small champion-art badge cut into its bottom-right
    corner (the ring is just the tray's own background color, so it reads as
