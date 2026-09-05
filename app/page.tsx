@@ -295,6 +295,7 @@ export default function Home() {
         <div id="view-clash">
           <ClashHistory
             tournaments={clashTournaments}
+            players={players}
             playerStats={clashPlayerStats}
             loading={clashLoading}
             ddragonVersion={ddragonVersion}

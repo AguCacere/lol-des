@@ -2368,3 +2368,21 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .duo-chip-row::-webkit-scrollbar{display:none;}
   .duo-chip{flex:none;}
 }
+
+/* ── Clash: secuencia de partidas del día ─────────────────────────────────
+   Una casilla por partida en orden cronológico. Ocupa lo mismo que la barra
+   proporcional que había antes y dice algo que la proporción no puede: si
+   ganaron las primeras y se cayeron al final, o si remontaron. */
+.clash-secuencia{display:flex; align-items:center; gap:3px; flex-wrap:wrap; justify-content:flex-end;}
+.clash-casilla{width:11px; height:11px; border-radius:3px; flex:none;}
+.clash-casilla.w{background:var(--good);}
+/* La derrota va hueca y no rellena: en un día de nueve partidas, nueve
+   bloques rojos sólidos gritan más de lo que informan. */
+.clash-casilla.l{background:var(--critical-wash); box-shadow:inset 0 0 0 1.5px var(--critical);}
+
+/* Separación entre subsecciones cuando vienen pegadas a una tabla o un panel
+   (Clash: "Winrate por invocador" y abajo "Historial por día"). */
+.tw-table + .subsection-label,
+.panel-list + .subsection-label{
+  margin-top:34px; padding-top:26px; border-top:1px solid var(--border-soft);
+}

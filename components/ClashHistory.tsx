@@ -1,16 +1,42 @@
 "use client";
 
 import { useState } from "react";
-import type { ClashMatch, ClashMatchPlayer, ClashPlayerStats, ClashTournament } from "@/lib/types";
+import type { ClashMatch, ClashMatchPlayer, ClashPlayerStats, ClashTournament, Player } from "@/lib/types";
 import { ChampIcon } from "./ChampIcon";
 import { PlayerAvatar } from "./PlayerAvatar";
+import { InfoTip } from "./InfoTip";
+import { wilsonLower } from "@/lib/wilson";
 
 const MEDALS = ["gold", "silver", "bronze"];
 
-/** "Winrate por invocador" — cada tracked player's lifetime Clash record. Top 3 en podio (medalla + avatar grande, #1 destacado), el resto en la lista compacta — mismo tratamiento que "Mayor winrate" (Estadísticas). */
-function ClashPlayerStatsList({ stats }: { stats: ClashPlayerStats[] }) {
-  const podium = stats.slice(0, 3);
-  const rest = stats.slice(3);
+/** Piso de la escala de la barra, igual que en los otros rankings. */
+const ESCALA_MINIMA = 10;
+
+/**
+ * "Winrate por invocador" en Clash.
+ *
+ * Ordenado por el límite inferior de Wilson (ver lib/wilson.ts) y no por el
+ * winrate crudo: con 38 partidas de Clash repartidas entre once personas, el
+ * orden por porcentaje ponía un 3-de-3 arriba de un 7-de-10, que es premiar
+ * al que menos jugó. La tabla muestra igual el winrate real — lo que cambia
+ * es el ORDEN, y el InfoTip lo dice.
+ *
+ * El cruce que agrega la última columna: cómo le va en Clash comparado con su
+ * SoloQ. Es la pregunta que la sección invitaba a hacer y no contestaba —
+ * Clash se juega en equipo armado y con comunicación, así que rendir muy por
+ * encima o muy por debajo de la propia SoloQ dice algo.
+ */
+function ClashPlayerStatsList({ stats, players }: { stats: ClashPlayerStats[]; players: Player[] }) {
+  const soloQPorJugador = new Map(players.map((p) => [`${p.name}#${p.tag}`, p.winrate]));
+  const ordenadas = [...stats].sort((a, b) => wilsonLower(b.wins, b.games) - wilsonLower(a.wins, a.games));
+  const podium = ordenadas.slice(0, 3);
+  const rest = ordenadas.slice(3);
+  const escala = Math.max(ESCALA_MINIMA, ...ordenadas.map((s) => Math.abs(s.winrate - 50)));
+
+  function soloQDe(s: ClashPlayerStats): number | undefined {
+    return soloQPorJugador.get(`${s.playerName}#${s.playerTag}`);
+  }
+
   return (
     <>
       <div className="podium">
@@ -26,38 +52,87 @@ function ClashPlayerStatsList({ stats }: { stats: ClashPlayerStats[] }) {
                 {s.games} {s.games === 1 ? "partida de Clash" : "partidas de Clash"}
               </span>
             </div>
-            <span className={`podium-wr ${s.winrate >= 50 ? "good" : "bad"}`}>{s.winrate}%</span>
+            <span className={`podium-wr ${s.wins === s.losses ? "neutral" : s.wins > s.losses ? "good" : "bad"}`}>
+              {s.winrate}%
+            </span>
             <span className="podium-record">
-              {s.wins}V {s.losses}D
+              <span className="podium-vd">
+                {s.wins}V {s.losses}D
+              </span>
+              <DeltaSoloQ clash={s.winrate} solo={soloQDe(s)} />
             </span>
           </div>
         ))}
       </div>
       {rest.length > 0 && (
-        <div className="champ-pool">
-          {rest.map((s, i) => (
-            <div className="champ-pool-row" key={`${s.playerName}#${s.playerTag}`}>
-              <span className="leaderboard-rank">{i + 4}</span>
-              <PlayerAvatar name={s.playerName} iconUrl={s.profileIconUrl} className="duo-avatar" />
-              <div className="champ-pool-mid">
-                <span className="champ-pool-name">
-                  {s.playerName} <span className="player-tag">#{s.playerTag}</span>
-                </span>
-                <span className="champ-pool-games">
-                  {s.games} {s.games === 1 ? "partida de Clash" : "partidas de Clash"}
+        <div className="tw-table">
+          <div className="tw-head">
+            <span className="tw-c-rank" />
+            <span className="tw-c-name">Invocador</span>
+            <span className="tw-c-games">Partidas</span>
+            <span className="tw-c-bar">
+              Distancia al 50%
+              <InfoTip text="La barra sale del 50%. El ORDEN de la tabla, en cambio, no es por winrate: se ordena descontando la incertidumbre de la muestra, porque con estas cantidades de partidas un 3-de-3 quedaría arriba de un 7-de-10 y eso premia al que menos jugó." />
+            </span>
+            <span className="tw-c-wr">WR</span>
+            <span className="tw-c-net">
+              vs. SoloQ
+              <InfoTip
+                align="end"
+                text="Diferencia entre su winrate de Clash y el de su SoloQ de esta season. Clash se juega con equipo armado y comunicación: rendir bastante por encima o por debajo de la propia SoloQ es el dato interesante de la sección."
+              />
+            </span>
+          </div>
+          {rest.map((s, i) => {
+            const tono = s.wins === s.losses ? "neutral" : s.wins > s.losses ? "good" : "bad";
+            const largo = Math.min(50, (Math.abs(s.winrate - 50) / escala) * 50);
+            return (
+              <div className="tw-row" key={`${s.playerName}#${s.playerTag}`}>
+                <span className="tw-c-rank">{i + 4}</span>
+                <div className="tw-c-name">
+                  <PlayerAvatar name={s.playerName} iconUrl={s.profileIconUrl} className="tw-avatar" />
+                  <span className="tw-id">
+                    <span className="tw-name">
+                      {s.playerName} <span className="player-tag">#{s.playerTag}</span>
+                    </span>
+                    <span className="tw-sub">
+                      {s.wins}V {s.losses}D
+                    </span>
+                  </span>
+                </div>
+                <span className="tw-c-games">{s.games}</span>
+                <div className="tw-c-bar" title={`${s.winrate}% en ${s.games} partidas de Clash`}>
+                  <span className="tw-track">
+                    <span className={`tw-fill ${tono}`} style={{ width: `${largo}%` }} />
+                    <span className="tw-zero" />
+                  </span>
+                </div>
+                <span className={`tw-c-wr ${tono}`}>{s.winrate}%</span>
+                <span className="tw-c-net">
+                  <DeltaSoloQ clash={s.winrate} solo={soloQDe(s)} />
                 </span>
               </div>
-              <div className="champ-pool-stats">
-                <span className={`champ-pool-wr ${s.winrate >= 50 ? "good" : "bad"}`}>{s.winrate}%</span>
-                <span className="champ-pool-kda">
-                  {s.wins}V {s.losses}D
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * Cuánto se despega su Clash de su SoloQ, en puntos. Debajo de cinco puntos
+ * se muestra "=": con seis o diez partidas de Clash, una sola victoria mueve
+ * diez puntos, así que una diferencia chica no es una diferencia.
+ */
+function DeltaSoloQ({ clash, solo }: { clash: number; solo: number | undefined }) {
+  if (solo === undefined) return <span className="tw-delta neutral">—</span>;
+  const d = clash - solo;
+  const tono = Math.abs(d) < 5 ? "neutral" : d > 0 ? "good" : "bad";
+  return (
+    <span className={`tw-delta ${tono}`} title={`Su SoloQ de esta season: ${solo}%`}>
+      {Math.abs(d) < 5 ? "=" : `${d > 0 ? "+" : "−"}${Math.abs(Math.round(d))}`}
+    </span>
   );
 }
 
@@ -127,6 +202,13 @@ function ClashMatchCard({ m, ddragonVersion }: { m: ClashMatch; ddragonVersion: 
   );
 }
 
+/** Cuántos del grupo aparecieron ese día — un Clash de cinco amigos no es lo mismo que uno donde fue uno solo con random. */
+function jugadoresDelDia(t: ClashTournament): number {
+  const nombres = new Set<string>();
+  for (const m of t.matches) for (const p of m.players) nombres.add(`${p.playerName}#${p.playerTag}`);
+  return nombres.size;
+}
+
 function ClashTournamentRow({ t, ddragonVersion }: { t: ClashTournament; ddragonVersion: string | null }) {
   const [expanded, setExpanded] = useState(false);
   return (
@@ -139,12 +221,24 @@ function ClashTournamentRow({ t, ddragonVersion }: { t: ClashTournament; ddragon
         <div className="panel-row-mid">
           <span className="panel-row-label">{t.label}</span>
           <span className="panel-row-meta">
-            {t.matches.length} partida{t.matches.length === 1 ? "" : "s"} de Clash
+            {t.matches.length} partida{t.matches.length === 1 ? "" : "s"} · {jugadoresDelDia(t)} del grupo
           </span>
         </div>
-        <div className="panel-row-bar">
-          <span className="duo-seg win" style={{ flex: t.wins }} />
-          <span className="duo-seg loss" style={{ flex: t.losses }} />
+        {/* Una casilla por partida, en orden cronológico, en vez de una barra
+            proporcional. Ocupa lo mismo y dice algo que la proporción no
+            puede: la SECUENCIA. "Ganaron las tres primeras y perdieron las
+            dos últimas" y "perdieron dos y remontaron tres" daban la misma
+            barra de 60%. */}
+        <div className="clash-secuencia">
+          {[...t.matches]
+            .sort((a, b) => new Date(a.playedAt).getTime() - new Date(b.playedAt).getTime())
+            .map((m, i) => (
+              <span
+                key={m.matchId}
+                className={`clash-casilla ${m.players[0]?.win ? "w" : "l"}`}
+                title={`Partida ${i + 1}: ${m.players[0]?.win ? "victoria" : "derrota"}`}
+              />
+            ))}
         </div>
         <div className="panel-row-stats">
           <span className={`panel-row-wr ${t.winrate >= 50 ? "good" : "bad"}`}>{t.winrate}%</span>
@@ -187,11 +281,13 @@ function ClashTournamentRow({ t, ddragonVersion }: { t: ClashTournament; ddragon
  */
 export function ClashHistory({
   tournaments,
+  players,
   playerStats,
   loading,
   ddragonVersion,
 }: {
   tournaments: ClashTournament[];
+  players: Player[];
   playerStats: ClashPlayerStats[];
   loading: boolean;
   ddragonVersion: string | null;
@@ -225,7 +321,7 @@ export function ClashHistory({
             Partidas de Clash individuales ganadas/perdidas por cada uno, sumando TODOS los torneos jugados — no el
             resultado de un torneo puntual.
           </p>
-          <ClashPlayerStatsList stats={playerStats} />
+          <ClashPlayerStatsList stats={playerStats} players={players} />
           <h4 className="subsection-label">Historial por día</h4>
         </>
       )}
