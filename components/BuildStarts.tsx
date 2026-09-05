@@ -18,10 +18,10 @@ export function BuildStarts({
   stats,
   ddragonVersion,
 }: {
-  stats: ChampionBuildStats[];
+  stats: ChampionBuildStats[] | undefined;
   ddragonVersion: string | null;
 }) {
-  if (stats.length === 0) {
+  if (!stats || stats.length === 0) {
     return (
       <div className="empty-state">
         <strong>Todavía no hay arranques que comparar</strong>

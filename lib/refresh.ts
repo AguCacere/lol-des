@@ -614,7 +614,20 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string): Promi
 
   // Y la de flex, que no guarda nada — de ahí que necesite el corte de tiempo
   // en vez de la lista de lo recién insertado.
-  await checkFlexDisasterAndNotify(supabase, puuid, refreshAnterior);
+  //
+  // En try/catch por la misma razón que la maestría de más abajo: es una
+  // llamada a Riot para una cargada de Discord, y si Riot devuelve 429 no
+  // puede llevarse puesto el resto del refresh — que incluye escribir
+  // last_refreshed_at. Sin esa escritura el invocador se vuelve a refrescar
+  // en cada ciclo Y la ventana de la cargada de flex se agranda sola, así que
+  // un rate limit pasajero se convertía en un problema que se realimenta.
+  try {
+    await checkFlexDisasterAndNotify(supabase, puuid, refreshAnterior);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`checkFlexDisasterAndNotify(${puuid}) falló —`, message);
+    warnings.push(`no se pudo revisar flex: ${message}`);
+  }
 
   // Clash games are rare (a handful of days a year, at most), so this almost
   // always comes back empty — but checking the last 20 ids every ~15min

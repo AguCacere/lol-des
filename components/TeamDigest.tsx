@@ -113,15 +113,17 @@ function DigestBody({
     );
   }
 
+  // Puede faltar si el CDN devuelve un JSON anterior al deploy (la ruta se
+  // cachea 5 minutos): sin la guarda, la pestaña entera queda en blanco.
   const r = digest.resumen;
-  const wr = r.partidas > 0 ? Math.round((100 * r.victorias) / r.partidas) : 0;
+  const wr = r && r.partidas > 0 ? Math.round((100 * r.victorias) / r.partidas) : 0;
 
   return (
     <>
       {/* La semana del grupo antes de los destacados individuales: sin esto,
           la pestaña arrancaba con "el que más subió" sin decir nunca si la
           semana fue buena o mala para el grupo, ni cuánto se jugó. */}
-      {r.partidas > 0 && (
+      {r && r.partidas > 0 && (
         <div className="digest-resumen">
           <div className="digest-kpi">
             <span className="digest-kpi-valor">{r.partidas}</span>

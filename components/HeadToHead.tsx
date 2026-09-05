@@ -138,9 +138,13 @@ export function HeadToHead({
   // rol), que es la comparación justa entre roles distintos. Cuando no, se
   // comparan los promedios directos y se avisa si los roles no coinciden.
   const zDe = (p: Player, key: RadarMetric): number | null => p.radar?.axes.find((x) => x.key === key)?.z ?? null;
+  // `?? []` y no `a.metricas` a secas: las respuestas de /api/ladder se
+  // cachean en el CDN, así que después de un deploy el código nuevo puede
+  // recibir un JSON viejo —sin este campo— durante un minuto largo. Iterar
+  // undefined ahí tira la pestaña entera abajo.
   const ejes: Eje[] = [];
-  for (const mA of a.metricas) {
-    const mB = b.metricas.find((x) => x.key === mA.key);
+  for (const mA of a.metricas ?? []) {
+    const mB = (b.metricas ?? []).find((x) => x.key === mA.key);
     if (!mB) continue;
     const zA = zDe(a, mA.key);
     const zB = zDe(b, mA.key);
@@ -174,12 +178,16 @@ export function HeadToHead({
       </div>
 
       <div className="h2h-selects">
-        <Select className="h2h-select" value={claveA} onChange={setClaveA} ariaLabel="Primer invocador" options={opciones} />
+        {/* El value sale de `a`/`b` y no del estado crudo: si el componente se
+            monta antes de que carguen los invocadores, el estado arranca
+            vacío y los dos selects mostraban al primero de la lista mientras
+            la comparación de abajo usaba al primero y al segundo. */}
+        <Select className="h2h-select" value={claveDe(a)} onChange={setClaveA} ariaLabel="Primer invocador" options={opciones} />
         <span className="h2h-vs">VS</span>
-        <Select className="h2h-select" value={claveB} onChange={setClaveB} ariaLabel="Segundo invocador" options={opciones} />
+        <Select className="h2h-select" value={claveDe(b)} onChange={setClaveB} ariaLabel="Segundo invocador" options={opciones} />
       </div>
 
-      {claveA === claveB ? (
+      {claveDe(a) === claveDe(b) ? (
         <div className="empty-state">
           <strong>Elegí dos distintos</strong>
           Compararlo con sí mismo siempre termina empatado.

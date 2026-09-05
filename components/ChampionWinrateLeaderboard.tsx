@@ -177,6 +177,9 @@ function deltaDe(e: ChampionLeaderboardEntry): number {
 }
 
 function Delta({ e }: { e: ChampionLeaderboardEntry }) {
+  // Sin promedio propio (JSON viejo del CDN) no hay diferencia que mostrar:
+  // mejor un guión que un "NaN".
+  if (!Number.isFinite(e.playerWinrate)) return <span className="tw-delta neutral">—</span>;
   const d = deltaDe(e);
   // Menos de un punto es ruido: con 50 partidas, una sola victoria mueve dos
   // puntos. Mostrarlo como "+0,4" invita a leer una diferencia que no existe.

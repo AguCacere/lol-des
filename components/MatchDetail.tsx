@@ -68,8 +68,8 @@ function MiniBreakdown({ items }: { items: { value: number; label: string; icons
  * que quedaba enterrada en la fila de veinte íconos donde una poción pesaba
  * lo mismo que un legendario.
  */
-function BuildPath({ items, version }: { items: { id: number; nombre: string }[]; version: string | null }) {
-  if (items.length === 0) {
+function BuildPath({ items, version }: { items: { id: number; nombre: string }[] | undefined; version: string | null }) {
+  if (!items || items.length === 0) {
     return <span className="build-line-empty">No llegó a completar ningún ítem.</span>;
   }
   return (
@@ -100,8 +100,9 @@ function BuildPath({ items, version }: { items: { id: number; nombre: string }[]
  * Sigue estando entera y sin reconciliar contra ventas: si compró un ítem y
  * lo vendió, aparece, porque lo compró.
  */
-function CompraCompleta({ compra, version }: { compra: CompraItem[]; version: string | null }) {
-  if (compra.length === 0) {
+function CompraCompleta({ compra, version }: { compra: CompraItem[] | undefined; version: string | null }) {
+  // Igual que en el cara a cara: un JSON viejo del CDN no trae este campo.
+  if (!compra || compra.length === 0) {
     return <span className="build-line-empty">Sin datos de compra guardados para esta partida.</span>;
   }
   const total = compra.reduce((n, c) => n + c.veces, 0);
