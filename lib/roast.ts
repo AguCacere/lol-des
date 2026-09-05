@@ -21,7 +21,17 @@ export interface RoastCandidate {
   dmgShare?: number | null;
   csPerMin?: number | null;
   cs?: number | null;
-  /** El campeón del rival de SU MISMA línea. Solo se usa para la cargada de Teemo. Null si Riot no resolvió posición. */
+  /**
+   * Los cinco campeones del equipo rival. Es lo que mira la cargada de Teemo:
+   * un Teemo arriba te llena el mapa de hongos aunque vos estés de support,
+   * así que atarla a tu línea la dejaba sin salir en la mayoría de los casos.
+   */
+  rivales?: string[] | null;
+  /**
+   * El campeón del rival de SU MISMA línea. Queda como respaldo de `rivales`
+   * para cuando no se tiene el equipo entero. Null si Riot no resolvió
+   * posición.
+   */
   opponentChampion?: string | null;
   /**
    * Flex en vez de soloQ. Solo cambia el mensaje: se aclara porque la app no
@@ -104,7 +114,9 @@ const TEEMO = "Teemo";
  * se escribe solo y sería una lástima dejarlo librado al azar entre otras
  * seis. Son dos casos distintos y no se pueden mezclar: perder JUGANDO Teemo
  * es traicionar a la marca; comérselo de rival es haber pisado todo lo que
- * había para pisar.
+ * había para pisar — y para eso alcanza con que HAYA un Teemo del otro lado,
+ * no que sea el de tu línea: si va arriba y vos estás de support, los hongos
+ * te los comés igual.
  *
  * Las dos frases son las suyas de verdad, pasadas al voseo — "pisas" no lo
  * dice nadie acá.
@@ -114,7 +126,8 @@ function cargadaDeTeemo(l: string, m: RoastCandidate): string | null {
   if (m.champion === TEEMO) {
     return `🍄 *Cuidado por dónde pisás...* Y **${l}** pisó los hongos que puso él mismo: ${kda} con **Teemo**. Devolvé el sombrero, no te lo merecés.`;
   }
-  if (m.opponentChampion === TEEMO) {
+  // El equipo entero, no tu línea: los hongos no respetan carriles.
+  if (m.rivales?.includes(TEEMO) || m.opponentChampion === TEEMO) {
     return `🍄 *Acá hay un hongo con tu nombre.* Y **${l}** los encontró todos: ${kda} con **${championLabel(m.champion)}** contra un Teemo. Andá a caminar a otro lado, campeón.`;
   }
   return null;

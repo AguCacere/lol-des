@@ -161,7 +161,12 @@ async function checkStreakAndNotify(supabase: SupabaseClient, puuid: string) {
  * misma razón que checkStreakAndNotify: así lo que se juzga es exactamente lo
  * que quedó guardado, no lo que creíamos haber guardado.
  */
-async function checkDisasterAndNotify(supabase: SupabaseClient, puuid: string, nuevos: string[]) {
+async function checkDisasterAndNotify(
+  supabase: SupabaseClient,
+  puuid: string,
+  nuevos: string[],
+  rivalesPorMatch?: Map<string, string[]>,
+) {
   const { data: rows } = await supabase
     .from("matches")
     .select("match_id, champion, win, kills, deaths, assists, dmg_share, cs, cs_per_min, opponent_champion")
@@ -182,6 +187,7 @@ async function checkDisasterAndNotify(supabase: SupabaseClient, puuid: string, n
       cs: r.cs,
       csPerMin: r.cs_per_min,
       opponentChampion: r.opponent_champion,
+      rivales: rivalesPorMatch?.get(r.match_id) ?? null,
     }))
   );
   if (!peor) return;
@@ -242,6 +248,7 @@ function candidataDeMatch(puuid: string, matchId: string, match: RiotMatch): Roa
     cs,
     csPerMin: durationMin > 0 ? Number((cs / durationMin).toFixed(1)) : null,
     opponentChampion: rivalDeLinea,
+    rivales: match.info.participants.filter((p) => p.teamId !== me.teamId).map((p) => p.championName),
     esFlex: true,
   };
 }
@@ -544,7 +551,20 @@ async function buildMatchRow(
  * itself couldn't be fetched (transient Riot hiccup — non-fatal, caller just
  * skips it and tries again next time), or null on success.
  */
-async function fetchAndStoreMatch(supabase: SupabaseClient, puuid: string, matchId: string): Promise<string | null> {
+async function fetchAndStoreMatch(
+  supabase: SupabaseClient,
+  puuid: string,
+  matchId: string,
+  /**
+   * Si viene, se le anotan los cinco campeones del equipo rival de cada
+   * partida. La base guarda solo opponent_champion (el rival de TU línea), y
+   * la cargada de Teemo necesita saber si había un Teemo en cualquier lado —
+   * si sos support y el Teemo va arriba, igual te comiste los hongos. Se saca
+   * del payload que esta función ya bajó: cero llamadas extra a Riot y cero
+   * columnas nuevas.
+   */
+  rivalesPorMatch?: Map<string, string[]>,
+): Promise<string | null> {
   let match: Awaited<ReturnType<typeof getMatchById>>;
   try {
     match = await getMatchById(matchId);
@@ -560,6 +580,16 @@ async function fetchAndStoreMatch(supabase: SupabaseClient, puuid: string, match
     const message = err instanceof Error ? err.message : String(err);
     console.error(`fetchAndStoreMatch(${puuid}): match ${matchId} fetch failed —`, message);
     return `match ${matchId}: ${message}`;
+  }
+
+  if (rivalesPorMatch) {
+    const yo = match.info.participants.find((p) => p.puuid === puuid);
+    if (yo) {
+      rivalesPorMatch.set(
+        matchId,
+        match.info.participants.filter((p) => p.teamId !== yo.teamId).map((p) => p.championName),
+      );
+    }
   }
 
   const built = await buildMatchRow(puuid, matchId, match);
@@ -626,9 +656,11 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string): Promi
   // del cron volvería a encontrar el mismo desastre de hace tres días y lo
   // volvería a publicar cada quince minutos.
   const insertados: string[] = [];
+  /** Los cinco rivales de cada partida recién bajada — solo para la cargada de Teemo. */
+  const rivalesPorMatch = new Map<string, string[]>();
   for (const matchId of matchIds) {
     if (known.has(matchId)) continue;
-    const warning = await fetchAndStoreMatch(supabase, puuid, matchId);
+    const warning = await fetchAndStoreMatch(supabase, puuid, matchId, rivalesPorMatch);
     if (warning) warnings.push(warning);
     else insertados.push(matchId);
   }
@@ -638,7 +670,7 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string): Promi
   // describing an earlier/smaller streak than the one before it.
   if (insertados.length > 0) {
     await checkStreakAndNotify(supabase, puuid);
-    await checkDisasterAndNotify(supabase, puuid, insertados);
+    await checkDisasterAndNotify(supabase, puuid, insertados, rivalesPorMatch);
   }
 
   // Y la de flex, que no guarda nada — de ahí que necesite el corte de tiempo
