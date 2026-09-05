@@ -104,31 +104,43 @@ const CARGADAS: ((label: string, champ: string, k: number, d: number, a: number)
     `Me da vergüenza mostrar esta partida... Pero **${l}** terminó **${k}/${d}/${a}** con **${c}**, no se rescata más de troll.`,
 ];
 
-/** La clave de Data Dragon. Es la misma que Match-V5 pone en championName y que guardamos. */
+/** Claves de Data Dragon. Son las mismas que Match-V5 pone en championName y que guardamos. */
 const TEEMO = "Teemo";
+const NASUS = "Nasus";
+
+/** Si ese campeón estaba en el equipo de enfrente. Mira los cinco, no el rival de tu línea: un Nasus que farmea arriba te gana la partida estés donde estés. */
+function habiaEnfrente(m: RoastCandidate, champion: string): boolean {
+  return m.rivales?.includes(champion) === true || m.opponentChampion === champion;
+}
 
 /**
- * La cargada de Teemo, que le gana al sorteo cuando corresponde.
+ * Las cargadas con nombre y apellido, que le ganan al sorteo cuando
+ * corresponde: cuando hay cierto campeón en la partida el chiste se escribe
+ * solo y sería una lástima dejarlo librado al azar entre las otras seis.
  *
- * El bot se llama Teemo, así que cuando hay un Teemo en la partida el chiste
- * se escribe solo y sería una lástima dejarlo librado al azar entre otras
- * seis. Son dos casos distintos y no se pueden mezclar: perder JUGANDO Teemo
- * es traicionar a la marca; comérselo de rival es haber pisado todo lo que
- * había para pisar — y para eso alcanza con que HAYA un Teemo del otro lado,
- * no que sea el de tu línea: si va arriba y vos estás de support, los hongos
- * te los comés igual.
+ * El orden importa porque puede haber más de una que aplique:
  *
- * Las dos frases son las suyas de verdad, pasadas al voseo — "pisas" no lo
- * dice nadie acá.
+ * 1. Jugando Teemo. El bot se llama Teemo, así que esta es la de la casa y va
+ *    primero — perder con su propio campeón es traicionar a la marca.
+ * 2. Perder contra un Nasus. Pide derrota de verdad: el texto dice "perdió
+ *    contra", así que ganando no puede salir.
+ * 3. Comerse un Teemo de rival.
+ *
+ * Las dos frases de Teemo son las suyas de verdad, pasadas al voseo — "pisas"
+ * no lo dice nadie acá.
  */
-function cargadaDeTeemo(l: string, m: RoastCandidate): string | null {
+function cargadaEspecial(l: string, m: RoastCandidate): string | null {
   const kda = `**${m.kills}/${m.deaths}/${m.assists}**`;
+  const champ = championLabel(m.champion);
+
   if (m.champion === TEEMO) {
     return `🍄 *Cuidado por dónde pisás...* Y **${l}** pisó los hongos que puso él mismo: ${kda} con **Teemo**. Devolvé el sombrero, no te lo merecés.`;
   }
-  // El equipo entero, no tu línea: los hongos no respetan carriles.
-  if (m.rivales?.includes(TEEMO) || m.opponentChampion === TEEMO) {
-    return `🍄 *Acá hay un hongo con tu nombre.* Y **${l}** los encontró todos: ${kda} con **${championLabel(m.champion)}** contra un Teemo. Andá a caminar a otro lado, campeón.`;
+  if (!m.win && habiaEnfrente(m, NASUS)) {
+    return `🐶 **${l}** perdió contra el perro rabioso de Nasus, quedó ${kda} con **${champ}** y le dejaron todos los cachorros dentro de la cucha. Guau guau 😂`;
+  }
+  if (habiaEnfrente(m, TEEMO)) {
+    return `🍄 *Acá hay un hongo con tu nombre.* Y **${l}** los encontró todos: ${kda} con **${champ}** contra un Teemo. Andá a caminar a otro lado, campeón.`;
   }
   return null;
 }
@@ -164,9 +176,9 @@ function indiceEstable(matchId: string, total: number): number {
 export function roastMessage(label: string, m: RoastCandidate): string {
   // championLabel y no el nombre crudo de Riot: "MonkeyKing" o "Kaisa" en
   // medio de una cargada la desinflan.
+  const especial = cargadaEspecial(label, m);
   const texto =
-    cargadaDeTeemo(label, m) ??
-    CARGADAS[indiceEstable(m.matchId, CARGADAS.length)](label, championLabel(m.champion), m.kills, m.deaths, m.assists);
+    especial ?? CARGADAS[indiceEstable(m.matchId, CARGADAS.length)](label, championLabel(m.champion), m.kills, m.deaths, m.assists);
   const cola = m.esFlex ? " *(flex)*" : "";
 
   // La segunda línea junta lo que no es la cargada en sí: que haya ganado
@@ -176,9 +188,9 @@ export function roastMessage(label: string, m: RoastCandidate): string {
   const dato = remate(m);
   if (dato) extras.push(dato);
 
-  // La de Teemo trae su propio emoji y su propio tono: meterle los tres de
-  // siempre adelante le pisa el chiste.
-  const primera = texto.startsWith("🍄") ? `${texto}${cola}` : `😂😂😂 ${texto}${cola}`;
+  // Las especiales traen su propio emoji y su propio tono: meterles los tres
+  // de siempre adelante les pisa el chiste.
+  const primera = especial ? `${texto}${cola}` : `😂😂😂 ${texto}${cola}`;
   return extras.length > 0 ? `${primera}\n${extras.join(" ")}` : primera;
 }
 
