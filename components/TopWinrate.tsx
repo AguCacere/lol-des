@@ -14,20 +14,29 @@ const MEDALS = ["gold", "silver", "bronze"];
  * puntos hasta que parezcan un abismo.
  */
 const ESCALA_MINIMA = 6;
-/**
- * Franja alrededor del 50% que se pinta neutra. Sin esto, 302V-307D (49,6%)
- * se muestra como "50%" en verde al lado de un balance de -5 en rojo: la fila
- * se contradice sola por un redondeo. El gris del medio es además lo que
- * corresponde en una escala divergente — el punto de quiebre no es ni un polo
- * ni el otro.
- */
-const FRANJA_NEUTRA = 0.5;
+/** El winrate exacto, sin redondear: es lo que decide color, orden y largo de barra. */
+function winrateExacto(wins: number, losses: number): number {
+  return (100 * wins) / Math.max(1, wins + losses);
+}
 
-/** El lado de la escala en el que cae, con el winrate SIN redondear. */
+/**
+ * El porcentaje como se muestra. Redondeado a entero salvo cuando el redondeo
+ * esconde de qué lado del 50 está: 302V-307D es 49,6% y mostrarlo como "50%"
+ * al lado de un balance de -5 hace que la fila se contradiga sola. En ese caso
+ * se muestra el decimal, que es lo que hace verdadero al número en vez de
+ * disimular el problema con un color neutro.
+ */
+function formatWinrate(wins: number, losses: number): string {
+  const wr = winrateExacto(wins, losses);
+  const entero = Math.round(wr);
+  if (entero === 50 && Math.abs(wr - 50) >= 0.05) return `${wr.toFixed(1)}%`;
+  return `${entero}%`;
+}
+
+/** Verde arriba de 50, rojo abajo. Gris solo en el empate exacto, que sí es el punto de quiebre. */
 function tonoDe(wins: number, losses: number): "good" | "bad" | "neutral" {
-  const delta = (100 * wins) / Math.max(1, wins + losses) - 50;
-  if (Math.abs(delta) < FRANJA_NEUTRA) return "neutral";
-  return delta > 0 ? "good" : "bad";
+  if (wins === losses) return "neutral";
+  return wins > losses ? "good" : "bad";
 }
 
 /**
@@ -53,7 +62,9 @@ function tonoDe(wins: number, losses: number): "good" | "bad" | "neutral" {
 export function TopWinrate({ players }: { players: Player[] }) {
   const qualified = [...players]
     .filter((p) => p.wins + p.losses >= MIN_GAMES)
-    .sort((a, b) => b.winrate - a.winrate);
+    // Por el winrate exacto y no por el redondeado: 49,6% y 50,1% redondean
+    // los dos a 50 y el orden entre ellos quedaba librado al azar del sort.
+    .sort((a, b) => winrateExacto(b.wins, b.losses) - winrateExacto(a.wins, a.losses));
   const podium = qualified.slice(0, 3);
   const rest = qualified.slice(3);
 
@@ -100,7 +111,7 @@ export function TopWinrate({ players }: { players: Player[] }) {
                       {p.wins + p.losses} partidas
                     </span>
                   </div>
-                  <span className={`podium-wr ${tonoDe(p.wins, p.losses)}`}>{p.winrate}%</span>
+                  <span className={`podium-wr ${tonoDe(p.wins, p.losses)}`}>{formatWinrate(p.wins, p.losses)}</span>
                   <span className="podium-record">
                     <span className="podium-vd">
                       {p.wins}V {p.losses}D
@@ -130,7 +141,7 @@ export function TopWinrate({ players }: { players: Player[] }) {
                 <span className="tw-c-wr">WR</span>
                 <span className="tw-c-net">
                   Balance
-                  <InfoTip text="Victorias menos derrotas en la season. Es el winrate traducido a partidas: un 51% en 724 partidas son +14 reales, y un 53% en 109 son +3." />
+                  <InfoTip align="end" text="Victorias menos derrotas en la season. Es el winrate traducido a partidas: un 51% en 724 partidas son +14 reales, y un 53% en 109 son +3." />
                 </span>
               </div>
 
@@ -141,7 +152,7 @@ export function TopWinrate({ players }: { players: Player[] }) {
                 // El largo sale del winrate sin redondear: con la escala del
                 // grupo en seis puntos, medio punto de redondeo son varios
                 // píxeles de barra.
-                const delta = (100 * p.wins) / (p.wins + p.losses) - 50;
+                const delta = winrateExacto(p.wins, p.losses) - 50;
                 const largo = Math.min(50, (Math.abs(delta) / escala) * 50);
                 return (
                   <div className="tw-row" key={`${p.name}#${p.tag}`}>
@@ -164,14 +175,14 @@ export function TopWinrate({ players }: { players: Player[] }) {
                     <span className="tw-c-games">{p.wins + p.losses}</span>
                     <div
                       className="tw-c-bar"
-                      title={`${p.winrate}% en ${p.wins + p.losses} partidas · ${p.wins}V ${p.losses}D · balance ${netas >= 0 ? "+" : ""}${netas}`}
+                      title={`${formatWinrate(p.wins, p.losses)} en ${p.wins + p.losses} partidas · ${p.wins}V ${p.losses}D · balance ${netas >= 0 ? "+" : ""}${netas}`}
                     >
                       <span className="tw-track">
                         <span className={`tw-fill ${tono}`} style={{ width: `${largo}%` }} />
                         <span className="tw-zero" />
                       </span>
                     </div>
-                    <span className={`tw-c-wr ${tono}`}>{p.winrate}%</span>
+                    <span className={`tw-c-wr ${tono}`}>{formatWinrate(p.wins, p.losses)}</span>
                     <span className={`tw-c-net ${netas > 0 ? "good" : netas < 0 ? "bad" : "neutral"}`}>
                       {netas >= 0 ? "+" : ""}
                       {netas}

@@ -1670,6 +1670,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   content:""; position:absolute; top:100%; left:50%; transform:translateX(-50%);
   border:5px solid transparent; border-top-color:var(--surface-hover);
 }
+/* Pegado al borde derecho: el globo mide 230px y centrado sobre el ícono se
+   sale de la pantalla. Anclado a la derecha crece hacia adentro (ver el prop
+   align en components/InfoTip.tsx). */
+.info-tip-bubble.end{left:auto; right:-6px; transform:translateY(4px);}
+.info-tip:hover .info-tip-bubble.end, .info-tip:focus-visible .info-tip-bubble.end{transform:translateY(0);}
 .info-tip:hover .info-tip-bubble, .info-tip:focus-visible .info-tip-bubble{
   display:block; opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(0);
 }
@@ -2176,10 +2181,17 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    centro, así que la dirección ya dice si está por encima o por debajo sin
    depender del color — que es lo que la hace legible en daltonismo (verde y
    rojo se separan poco: ΔE ~7 en deuteranopía). */
+/* Sin overflow:hidden aunque tenga esquinas redondeadas: los InfoTip del
+   encabezado abren un globo que se sale de la caja, y recortarlo lo deja
+   como una banda de texto cortada encima de la fila. Las esquinas se
+   redondean en la primera y la última fila, que es lo que el overflow venía
+   a resolver. */
 .tw-table{
   background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm);
-  overflow:hidden; margin-top:14px;
+  margin-top:14px;
 }
+.tw-head{border-radius:var(--radius-lg) var(--radius-lg) 0 0;}
+.tw-row:last-child{border-radius:0 0 var(--radius-lg) var(--radius-lg);}
 .tw-head, .tw-row{
   display:grid;
   grid-template-columns:30px minmax(0,1.5fr) 74px minmax(120px,1.6fr) 56px 62px;
