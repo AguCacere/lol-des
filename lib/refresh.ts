@@ -14,6 +14,7 @@ import { championNameById, runeNameById, summonerSpellNameById } from "./ddragon
 import { extractTimelineStats } from "./timeline";
 import { sendDiscordNotification } from "./discord";
 import { roastMessage, worstDisaster, type RoastCandidate } from "./roast";
+import { detectTilt } from "./tilt";
 import { tierFor } from "./ladder";
 import { divisionFromRiot, tierKeyFromRiot } from "./mapping";
 
@@ -85,7 +86,7 @@ async function notifyDemotion(supabase: SupabaseClient, puuid: string, entry: Ri
 async function checkStreakAndNotify(supabase: SupabaseClient, puuid: string) {
   const { data: recent } = await supabase
     .from("matches")
-    .select("win")
+    .select("win, deaths, played_at, game_duration_s")
     .eq("puuid", puuid)
     .eq("queue_id", RANKED_SOLO_QUEUE_ID)
     .order("played_at", { ascending: false })
@@ -104,7 +105,27 @@ async function checkStreakAndNotify(supabase: SupabaseClient, puuid: string) {
   if (!label) return;
   const emoji = result ? "🔥" : "💀";
   const word = result ? "victorias" : "derrotas";
-  await sendDiscordNotification(`${emoji} **${label}** está en racha de **${count} ${word}** seguidas.`);
+
+  // El tilt se cuelga de este mismo mensaje en vez de mandar uno propio: las
+  // dos cosas se disparan con la misma racha de derrotas, y dos avisos
+  // seguidos diciendo casi lo mismo es la forma más rápida de que el canal
+  // empiece a ignorar al bot. Ver lib/tilt.ts para cuándo hay algo que decir
+  // (que no es "perdió tres", es "perdió tres jugando peor y sin parar").
+  let extra = "";
+  if (!result) {
+    const tilt = detectTilt(
+      recent.map((r) => ({
+        win: r.win,
+        deaths: r.deaths,
+        playedAtMs: Date.parse(r.played_at),
+        durMin: r.game_duration_s / 60,
+      }))
+    );
+    if (tilt) {
+      extra = ` — ${tilt.senales.join(" y ")}. ${tilt.nivel === "fuerte" ? "Andá a tomar aire." : "Aflojá un poco."}`;
+    }
+  }
+  await sendDiscordNotification(`${emoji} **${label}** está en racha de **${count} ${word}** seguidas.${extra}`);
 }
 
 /**

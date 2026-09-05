@@ -239,3 +239,17 @@ export function championIconUrl(version: string, championName: string): string {
 export function itemIconUrl(version: string, itemId: number): string {
   return `https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${itemId}.png`;
 }
+
+/**
+ * El splash art del campeón — la ilustración ancha, la misma que se ve en la
+ * pantalla de carga. No lleva versión en la URL: Riot sirve estas imágenes
+ * fuera del CDN versionado, así que no hay que esperar a resolver la versión
+ * para poder pintarla.
+ *
+ * `championName` es la CLAVE de Data Dragon ("MonkeyKing", "KSante"), no el
+ * nombre lindo — igual que championIconUrl. Con el nombre para mostrar la URL
+ * da 404.
+ */
+export function championSplashUrl(championName: string): string {
+  return `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${championName}_0.jpg`;
+}

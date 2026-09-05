@@ -14,6 +14,8 @@ import {
   rankEmblemUrl,
   liveGameTimeLabel,
 } from "@/lib/ladder";
+import { championSplashUrl } from "@/lib/ddragon";
+import { TiltCard } from "./TiltCard";
 import { SparkChart } from "./SparkChart";
 import { StreakIcon } from "./StreakIcon";
 import { ChampIcon } from "./ChampIcon";
@@ -227,7 +229,17 @@ export function PlayerProfile({
         <span className="meta">Click en una fila del ladder para inspeccionar</span>
       </div>
 
-      <div className={`profile${fading ? " is-fading" : ""}`}>
+      <div className={`profile${fading ? " is-fading" : ""}`} style={{ borderTopColor: t.fg }}>
+        {/* El splash del campeón principal, apagado y desvanecido hacia la
+            izquierda: le da identidad al perfil sin pelearle legibilidad al
+            nombre ni al rango, que son los datos. Es un fondo CSS y no un
+            <img> a propósito — si la URL falla, no queda un ícono roto, no
+            queda nada. */}
+        <div
+          className="profile-hero-art"
+          style={{ backgroundImage: `url(${championSplashUrl(p.mainChamp)})` }}
+          aria-hidden="true"
+        />
         <div className="profile-header">
           <div className="profile-id">
             <div className="profile-avatar" style={{ background: t.bg, color: t.fg, borderColor: `${t.fg}44` }}>
@@ -370,6 +382,10 @@ export function PlayerProfile({
 
         {tab === "resumen" && (
           <div className="stack-cols">
+            {/* Arriba de todo y a ancho completo: si el jugador está en tilt,
+                es lo más accionable que tiene el perfil en ese momento —
+                mirar el gráfico de LP mientras tanto no le sirve de nada. */}
+            {p.tilt && <TiltCard tilt={p.tilt} />}
             <div>
               <div className="lp-chart-card">
                 <div className="lp-chart-top">

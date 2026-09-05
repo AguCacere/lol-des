@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { detectTilt } from "@/lib/tilt";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { peakFromHistory, ROLES, tierScore } from "@/lib/ladder";
 import { divisionFromRiot, normalizeRole, roleFromTeamPosition, tierKeyFromRiot } from "@/lib/mapping";
@@ -951,6 +952,18 @@ export async function GET() {
       // que es justo el orden que computeRecentForm espera para cortar la
       // ventana — al revés que computeAegisStats, que lo necesita ascendente.
       recentForm: computeRecentForm(rankedMatchesByPuuid.get(row.puuid) ?? []),
+      // Sobre rankedMatchesByPuuid y no sobre `matches`: este último está
+      // capado en 5 (es lo que se muestra) y el tilt necesita ver las de antes
+      // de la racha para tener contra qué comparar las muertes. Ya viene de la
+      // más nueva a la más vieja, que es el orden que detectTilt espera.
+      tilt: detectTilt(
+        (rankedMatchesByPuuid.get(row.puuid) ?? []).map((m) => ({
+          win: m.win,
+          deaths: m.deaths,
+          playedAtMs: Date.parse(m.playedAt),
+          durMin: m.durationS / 60,
+        }))
+      ),
       radar: computeRadar(ownStatsFor(row.puuid, role), peerStatsFor(row.puuid, role)),
       matchups: computeMatchups(matchupSamplesByPuuid.get(row.puuid) ?? []).slice(0, MATCHUPS_SHOWN),
     };

@@ -4,6 +4,7 @@ import { itemIconUrl } from "@/lib/ddragon";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
 import { ClockIcon, EyeIcon, ReviewIcon, ShieldIcon, TrendUpIcon, ZapIcon } from "./StatIcons";
+import { MatchTimeline } from "./MatchTimeline";
 
 /** Only pentakills get the celebratory banner — doubles/triples/quadras are common enough to skip. */
 function multikillLabel(m: Match): string | null {
@@ -12,22 +13,6 @@ function multikillLabel(m: Match): string | null {
 
 function GoldDiff({ diff }: { diff: number }) {
   return <span className={diff >= 0 ? "gd-pos" : "gd-neg"}>{diff >= 0 ? "+" : ""}{diff.toLocaleString("es-AR")}</span>;
-}
-
-function formatMmSs(totalSeconds: number): string {
-  const m = Math.floor(totalSeconds / 60);
-  const s = totalSeconds % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-/** "8:32 · tuya"/"rival" in green/red — null `mine` (missing teamId on an old match) just drops the tag, keeps the time. */
-function ObjectiveTiming({ timeS, mine }: { timeS: number; mine: boolean | null }) {
-  return (
-    <>
-      {formatMmSs(timeS)}
-      {mine != null && <span className={mine ? "gd-pos" : "gd-neg"}> · {mine ? "tuya" : "rival"}</span>}
-    </>
-  );
 }
 
 function Stat({
@@ -104,13 +89,25 @@ function ItemBuildRow({ items, version }: { items: number[]; version: string | n
   );
 }
 
-function Group({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
+function Group({
+  label,
+  icon,
+  ancho,
+  children,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  /** Bloque a todo el ancho ANTES de la grilla — para un gráfico, que en una celda de la grilla quedaría del ancho de una columna. */
+  ancho?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <div className="match-detail-group">
       <h4 className="match-detail-group-label">
         <span className="match-detail-group-icon">{icon}</span>
         {label}
       </h4>
+      {ancho}
       <div className="match-detail-grid">{children}</div>
     </div>
   );
@@ -265,7 +262,7 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
       </Group>
 
       {hasTimeline && (
-        <Group label="Timeline" icon={<TrendUpIcon />}>
+        <Group label="Cómo se dio la partida" icon={<TrendUpIcon />} ancho={<MatchTimeline match={m} />}>
           {m.goldDiff10 != null && (
             <Stat label="Gold diff @10'" tooltip={METRIC_INFO.goldDiffLane}>
               <GoldDiff diff={m.goldDiff10} />
@@ -279,22 +276,6 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
           {m.goldDiff20 != null && (
             <Stat label="Gold diff @20'" tooltip={METRIC_INFO.goldDiffLane}>
               <GoldDiff diff={m.goldDiff20} />
-            </Stat>
-          )}
-          {m.firstBloodTimeS != null && <Stat label="Primera sangre (partida)">{formatMmSs(m.firstBloodTimeS)}</Stat>}
-          {m.firstTowerTimeS != null && (
-            <Stat label="Primera torre">
-              <ObjectiveTiming timeS={m.firstTowerTimeS} mine={m.firstTowerMine} />
-            </Stat>
-          )}
-          {m.firstDragonTimeS != null && (
-            <Stat label="Primer dragón">
-              <ObjectiveTiming timeS={m.firstDragonTimeS} mine={m.firstDragonMine} />
-            </Stat>
-          )}
-          {m.firstBaronTimeS != null && (
-            <Stat label="Primer barón">
-              <ObjectiveTiming timeS={m.firstBaronTimeS} mine={m.firstBaronMine} />
             </Stat>
           )}
         </Group>

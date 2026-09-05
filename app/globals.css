@@ -1867,3 +1867,94 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .stat-tile:nth-last-child(-n+2){border-bottom:none;}
   .empty-state{background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm);}
 }
+
+/* ── Línea de tiempo de la partida (components/MatchTimeline.tsx) ──────────
+   El SVG estira solo a lo ancho: la altura del viewBox es la misma que la
+   altura real en px, así que el eje vertical es 1:1 y los textos y puntos
+   (que son HTML, no SVG) se posicionan con el mismo número que usa el
+   gráfico. Los colores salen de los tokens para que siga al tema. */
+.match-timeline{margin:2px 0 14px;}
+.mt-plot{position:relative;}
+.mt-plot svg{display:block; width:100%; height:100%;}
+.mt-area.good{fill:var(--good); opacity:0.18;}
+.mt-area.bad{fill:var(--critical); opacity:0.18;}
+.mt-linea{fill:none; stroke:var(--text-secondary); stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
+/* La línea del cero es la referencia que da sentido a todo el gráfico (arriba
+   ibas ganando la línea, abajo perdiéndola), por eso es punteada y visible en
+   vez de un gris apenas insinuado. */
+.mt-cero{stroke:var(--text-muted); stroke-width:1; stroke-dasharray:3 4; opacity:0.7;}
+.mt-eje{stroke:var(--border-soft); stroke-width:1;}
+.mt-hito-linea{stroke:var(--border-soft); stroke-width:1; stroke-dasharray:2 3;}
+.mt-hito{
+  position:absolute; transform:translateX(-50%); white-space:nowrap; pointer-events:none;
+  font-size:12px; font-weight:600; letter-spacing:-0.01em; line-height:1;
+}
+.mt-hito.start{transform:none;}
+.mt-hito.end{transform:translateX(-100%);}
+.mt-hito.good{color:var(--good);}
+.mt-hito.bad{color:var(--critical);}
+.mt-hito.muted{color:var(--text-muted);}
+.mt-punto{
+  position:absolute; width:9px; height:9px; border-radius:50%;
+  transform:translate(-50%,-50%); border:2px solid var(--surface); box-sizing:border-box;
+}
+.mt-punto.good{background:var(--good);}
+.mt-punto.bad{background:var(--critical);}
+.mt-min{position:absolute; font-size:11px; color:var(--text-muted); line-height:1;}
+.mt-min.start{left:0;}
+.mt-min.end{right:0;}
+.match-timeline-pie{margin:6px 2px 0; font-size:12px; color:var(--text-muted); line-height:1.4;}
+@media (max-width:560px){
+  /* Mismo alto, menos ancho: las etiquetas se achican para que tres hitos
+     seguidos sigan entrando sin pisarse. */
+  .mt-hito{font-size:10.5px;}
+}
+
+/* ── Cabecera del perfil con arte (components/PlayerProfile.tsx) ───────────
+   La franja de identidad del perfil: el splash del campeón principal detrás,
+   y una línea del color del rango arriba de todo. */
+.profile{position:relative; border-top:2px solid transparent;}
+.profile-hero-art{
+  position:absolute; top:0; right:0; left:0; height:250px; z-index:0;
+  background-size:cover; background-position:right 22%;
+  opacity:0.24; pointer-events:none;
+  /* Redondeado propio en vez de overflow:hidden en .profile — el perfil
+     tiene InfoTips que se salen de su caja, y recortarlos los rompería. */
+  border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+  /* Un solo gradiente radial anclado arriba a la derecha desvanece a la vez
+     hacia la izquierda (donde va el nombre) y hacia abajo (donde arrancan las
+     pestañas), sin tener que componer dos máscaras. */
+  -webkit-mask-image:radial-gradient(115% 100% at 100% 0%, #000 0%, transparent 72%);
+  mask-image:radial-gradient(115% 100% at 100% 0%, #000 0%, transparent 72%);
+}
+/* Todo el contenido del perfil va por encima del arte. */
+.profile > *:not(.profile-hero-art){position:relative; z-index:1;}
+@media (max-width:720px){
+  /* En mobile el header es mucho más alto (todo apilado) y el arte llegaba
+     hasta la mitad del bloque de rango, ensuciando los números. */
+  .profile-hero-art{height:170px; opacity:0.18; background-position:right 18%;}
+}
+
+/* ── Aviso de tilt (components/TiltCard.tsx) ──────────────────────────────
+   Va a ancho completo dentro de .stack-cols: es un aviso, no una de las dos
+   columnas de contenido. */
+.tilt-card{
+  grid-column:1 / -1;
+  background:var(--surface-raised); border-radius:var(--radius-md);
+  border-left:3px solid var(--warn);
+  padding:14px 16px;
+}
+.tilt-card.fuerte{border-left-color:var(--critical); background:var(--critical-wash);}
+.tilt-card-head{
+  display:flex; align-items:center; gap:9px; flex-wrap:wrap;
+  font-size:14px; font-weight:700; color:var(--text-primary); letter-spacing:-0.01em;
+}
+.tilt-card-dot{width:8px; height:8px; border-radius:50%; background:var(--warn); flex:none;}
+.tilt-card.fuerte .tilt-card-dot{background:var(--critical);}
+.tilt-card-streak{
+  font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em;
+  color:var(--text-muted); background:var(--track); border-radius:999px; padding:3px 9px;
+}
+.tilt-card-list{margin:8px 0 0; padding-left:18px; display:flex; flex-direction:column; gap:3px;}
+.tilt-card-list li{font-size:13px; color:var(--text-secondary); line-height:1.45;}
+.tilt-card-foot{margin:9px 0 0; font-size:12px; color:var(--text-muted);}

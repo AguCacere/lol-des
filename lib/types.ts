@@ -1,6 +1,7 @@
 import type { ChampionInsight } from "./champion-insights";
 import type { ChampionMatchups } from "./matchups";
 import type { RadarProfile } from "./radar";
+import type { TiltState } from "./tilt";
 
 export type RoleKey = "top" | "jungle" | "mid" | "adc" | "support";
 
@@ -448,6 +449,8 @@ export interface Player {
   aegisStats: AegisStats | null;
   /** Últimas 20 partidas vs. todo el historial anterior de este mismo jugador (ver lib/form.ts) — null hasta tener al menos 30 partidas guardadas. */
   recentForm: RecentForm | null;
+  /** Racha de derrotas CON señales de que se está jugando peor y sin parar (ver lib/tilt.ts) — null en el caso normal, que es no estar en tilt. */
+  tilt: TiltState | null;
   /** Perfil de siete ejes contra el resto del grupo en el mismo rol (ver lib/radar.ts) — null si no hay muestra suficiente propia o ajena. */
   radar: RadarProfile | null;
   /** Enfrentamientos de línea agrupados por campeón propio (ver lib/matchups.ts), los campeones más jugados primero. Vacío hasta que un cruce se repita al menos MATCHUP_MIN_GAMES veces. */
