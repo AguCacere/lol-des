@@ -725,28 +725,35 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .lp-chart-card{
   background:rgba(255,255,255,0.018);
   border:1px solid var(--accent-dim-border); border-radius:var(--radius-md);
-  padding:16px 16px 8px; margin-bottom:16px;
+  padding:16px 16px 12px; margin-bottom:16px;
+  /* El mismo margen lateral que la curva deja adentro del SVG: padX (pad+14 =
+     24) sobre un viewBox de 620. Lo que cuelga del gráfico se mete hasta acá
+     y cae debajo del primer y del último punto, no contra el borde. */
+  --lp-inset:3.87%;
 }
-.lp-chart-top{display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:10px;}
+.lp-chart-top{display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:6px;}
 .lp-chart-top .label{font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em;}
-/* The tier→tier sentence is CONTEXT, not the headline — at the old 24px/800
-   weight it read as the single loudest thing in the whole profile, drowning
-   out everything around it for what's really just "here's what this number
-   means". The actual number that matters (the delta) gets that treatment
-   instead; the range stays legible but calm. */
-.lp-chart-range{
-  margin-top:4px; font-family:var(--font-stat); font-size:14.5px; font-weight:700;
-  color:var(--text-secondary); font-variant-numeric:tabular-nums; line-height:1.4;
+/* Delta y récord son la misma frase partida en dos renglones ("se movió esto,
+   jugando esto"), así que van apilados y alineados a la derecha en vez de
+   sueltos en dos esquinas distintas de la tarjeta. */
+.lp-chart-resumen{
+  display:flex; flex-direction:column; align-items:flex-end; gap:1px; flex:none; text-align:right;
 }
-.lp-chart-arrow{color:var(--text-muted); font-weight:400; margin:0 6px;}
+.lp-chart-record{font-size:11px; color:var(--text-muted); white-space:nowrap;}
+.lp-chart-record strong{font-family:var(--font-stat); font-size:12px; font-variant-numeric:tabular-nums;}
 .lp-chart-delta{
-  font-family:var(--font-stat); font-size:14px; font-weight:700; font-variant-numeric:tabular-nums;
+  font-family:var(--font-stat); font-size:16px; font-weight:700; font-variant-numeric:tabular-nums;
   flex:none; white-space:nowrap; display:flex; align-items:baseline; gap:3px;
 }
 .lp-chart-delta.up{color:var(--good);}
 .lp-chart-delta.down{color:var(--critical);}
 .lp-chart-delta-unit{font-family:var(--font-mono); font-size:9.5px; font-weight:500; opacity:0.75;}
-.lp-svg{display:block; width:100%; height:118px;}
+/* Sin alto fijo: el SVG se dimensiona solo por la proporción de su viewBox y
+   antes la caja medía menos que él (118px contra los ~136px reales), así que
+   el pie del gráfico se le subía encima. Ahora la caja es exactamente el
+   gráfico. */
+.lp-svg{display:block; width:100%;}
+.lp-svg svg{display:block; width:100%; height:auto;}
 .chart-note{margin:8px 2px 0; font-size:11px; color:var(--text-muted); line-height:1.5;}
 
 .spark-tooltip{
@@ -2701,14 +2708,27 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    Platino 4. Apagadas a propósito — son la regla contra la que se lee la
    curva, no un dato que compita con ella. */
 .spark-guide-line{stroke:var(--text-muted); stroke-width:1; stroke-dasharray:2 5; opacity:0.45;}
-.spark-guide-label{font-size:9px; fill:var(--text-muted); opacity:0.9; letter-spacing:0.02em;}
-.spark-guide-chip{fill:var(--surface); opacity:0.85;}
-
-/* El pie del gráfico de LP: las dos fechas de la ventana y, en el medio, el
-   récord que la explica. */
-.lp-chart-pie{
-  display:flex; align-items:baseline; justify-content:space-between; gap:10px;
-  margin-top:8px; font-size:11px; color:var(--text-muted);
+/* Va en HTML por encima del SVG, no adentro: un <text> escala con la caja y
+   en pantalla de celular quedaba en 4px. El fondo propio es porque la
+   etiqueta cae sobre el área rellena y sin él se lee sobre el color. */
+.spark-guide-label{
+  position:absolute; transform:translateY(-100%); margin-top:-3px;
+  font-size:9.5px; line-height:1.35; color:var(--text-muted); letter-spacing:0.02em;
+  background:var(--bg); padding:0 4px; border-radius:3px; white-space:nowrap;
+  pointer-events:none;
 }
-.lp-chart-pie-centro{text-align:center; flex:1 1 auto;}
-.lp-chart-pie strong{font-family:var(--font-stat); font-size:12.5px; font-variant-numeric:tabular-nums;}
+
+/* El pie del gráfico de LP: cada extremo de la curva con su fecha y su elo,
+   metidos hasta donde arranca y termina la línea. */
+.lp-chart-pie{
+  display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+  margin-top:2px; padding:0 var(--lp-inset); font-size:11px; color:var(--text-muted);
+}
+.lp-chart-extremo{display:flex; flex-direction:column; gap:1px; min-width:0;}
+.lp-chart-extremo.a-la-derecha{align-items:flex-end; text-align:right;}
+.lp-chart-extremo .fecha{font-size:10.5px; letter-spacing:0.02em;}
+.lp-chart-extremo .elo{
+  font-family:var(--font-stat); font-size:12.5px; font-weight:700;
+  color:var(--text-secondary); font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+.lp-chart-pie-nota{flex:1 1 auto; text-align:center; align-self:center;}

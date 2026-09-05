@@ -206,7 +206,12 @@ export function PlayerProfile({
   // no division changed hands. Labeling it "LP" unconditionally used to show
   // e.g. "Platino 3 · 64 LP → Platino 2 · 36 LP  ▲72 LP", which reads as a
   // fabricated 72-LP gain when the real LP number visibly dropped 64→36.
-  const lpDeltaUnit = lpCrossedBoundary ? "pts" : "LP";
+  //
+  // "pts" evitaba eso pero inventaba una unidad: rankScore sube de a 100 por
+  // división y 400 por tier, o sea la MISMA escala que el LP. La diferencia
+  // son LP netos y punto — decirlo así se entiende sin dejar de distinguirlo
+  // del número crudo que se ve al lado.
+  const lpDeltaUnit = lpCrossedBoundary ? "LP netos" : "LP";
   const lpChartColor = trendColor(lpScores);
   const lpEndpointLabel = (point: { tier: Player["tierKey"]; division: number; lp: number }) =>
     lpCrossedBoundary ? `${tierFor(point.tier).name} ${point.division} · ${point.lp} LP` : `${point.lp} LP`;
@@ -439,21 +444,30 @@ export function PlayerProfile({
             {p.tilt && <TiltCard tilt={p.tilt} />}
             <div>
               <div className="lp-chart-card">
+                {/* Arriba va solo lo que resume TODA la ventana: cuánto se
+                    movió y con qué récord. El de dónde a dónde bajó al pie,
+                    pegado a los extremos de la curva que describe — antes
+                    estaba acá arriba y las fechas de esos mismos dos puntos
+                    abajo, o sea el mismo par de extremos contado dos veces con
+                    el gráfico en el medio. */}
                 <div className="lp-chart-top">
-                  <div>
-                    <span className="label">
-                      LP · progresión reciente <InfoTip text={METRIC_INFO.lpProgression} />
-                    </span>
-                    <div className="lp-chart-range">
-                      {lpEndpointLabel(lpStartPoint)}
-                      <span className="lp-chart-arrow">→</span>
-                      {lpEndpointLabel(lpCurrentPoint)}
-                    </div>
-                  </div>
-                  <span className={`lp-chart-delta ${lpDelta >= 0 ? "up" : "down"}`}>
-                    {lpDelta >= 0 ? "▲" : "▼"} {Math.abs(lpDelta)}
-                    <span className="lp-chart-delta-unit">{lpDeltaUnit}</span>
+                  <span className="label">
+                    LP · progresión reciente <InfoTip text={METRIC_INFO.lpProgression} />
                   </span>
+                  <div className="lp-chart-resumen">
+                    <span className={`lp-chart-delta ${lpDelta >= 0 ? "up" : "down"}`}>
+                      {lpDelta >= 0 ? "▲" : "▼"} {Math.abs(lpDelta)}
+                      <span className="lp-chart-delta-unit">{lpDeltaUnit}</span>
+                    </span>
+                    {lpVentana.v + lpVentana.d > 0 && (
+                      <span className="lp-chart-record">
+                        <strong className={lpVentana.v >= lpVentana.d ? "gd-pos" : "gd-neg"}>
+                          {lpVentana.v}V-{lpVentana.d}D
+                        </strong>
+                        {lpVentana.dias > 0 && ` en ${lpVentana.dias} ${lpVentana.dias === 1 ? "día" : "días"}`}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="lp-svg">
                   <SparkChart
@@ -471,25 +485,23 @@ export function PlayerProfile({
                     guides={lpGuides}
                   />
                 </div>
-                {/* Debajo del gráfico, lo que la curva sola no puede decir:
-                    cuándo fue y cuántas partidas entraron. Una caída de 102
-                    puntos en tres días con 4V-14D y una en un mes con 30V-32D
-                    son dos cosas distintas dibujadas igual. */}
+                {/* Cada extremo con su fecha y su elo en la misma columna, y
+                    metidos hacia adentro lo mismo que la curva (padX/width del
+                    SparkChart, ver --lp-inset) para que caigan justo debajo
+                    del primer y del último punto en vez de contra el borde de
+                    la tarjeta. */}
                 <div className="lp-chart-pie">
-                  <span>{fechaCorta(lpVentana.desde)}</span>
-                  <span className="lp-chart-pie-centro">
-                    {lpVentana.v + lpVentana.d > 0 ? (
-                      <>
-                        <strong className={lpVentana.v >= lpVentana.d ? "gd-pos" : "gd-neg"}>
-                          {lpVentana.v}V-{lpVentana.d}D
-                        </strong>
-                        {lpVentana.dias > 0 && ` en ${lpVentana.dias} ${lpVentana.dias === 1 ? "día" : "días"}`}
-                      </>
-                    ) : (
-                      "sin partidas nuevas en la ventana"
-                    )}
+                  <span className="lp-chart-extremo">
+                    <span className="fecha">{fechaCorta(lpVentana.desde)}</span>
+                    <span className="elo">{lpEndpointLabel(lpStartPoint)}</span>
                   </span>
-                  <span>{fechaCorta(lpVentana.hasta)}</span>
+                  {lpVentana.v + lpVentana.d === 0 && (
+                    <span className="lp-chart-pie-nota">sin partidas nuevas todavía</span>
+                  )}
+                  <span className="lp-chart-extremo a-la-derecha">
+                    <span className="fecha">{fechaCorta(lpVentana.hasta)}</span>
+                    <span className="elo">{lpEndpointLabel(lpCurrentPoint)}</span>
+                  </span>
                 </div>
                 {p.lpHistory.length < 3 && (
                   <p className="chart-note">

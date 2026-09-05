@@ -56,6 +56,19 @@ export function SparkChart({
   const indiceMin = values.indexOf(Math.min(...values));
   const { line, area, last, points, yOf } = lineAreaGeometry(values, width, height, padX, 10, pad, !detailed);
   const gid = "spark-" + useId().replace(/[:]/g, "");
+  /**
+   * Las guías que realmente entran en la caja, ya pasadas a porcentaje: la
+   * línea se dibuja adentro del SVG (escala bien) y la etiqueta va en HTML
+   * encima (no escala, así que se lee igual en un monitor que en un celular).
+   * Una guía pegada al borde de arriba o de abajo se confunde con el marco,
+   * así que esa no se dibuja.
+   */
+  const guiasVisibles = !detailed
+    ? []
+    : (guides ?? [])
+        .map((g) => ({ ...g, y: yOf(g.value) }))
+        .filter((g) => g.y >= pad + 6 && g.y <= height - pad - 6)
+        .map((g) => ({ label: g.label, pct: (g.y / height) * 100, leftPct: (padX / width) * 100 }));
   // Compact's endpoint marker used to feel like a separate button stuck onto
   // the line (big halo ring) — shrunk so it reads as "last value, subtly
   // marked" instead of a UI element competing with the row's own chevron.
@@ -115,7 +128,7 @@ export function SparkChart({
   const arrowLeft = hover !== null ? Math.min(Math.max(pointPx - (tooltipLeft - TOOLTIP_WIDTH / 2), 14), TOOLTIP_WIDTH - 14) : TOOLTIP_WIDTH / 2;
 
   return (
-    <div style={canHover ? { position: "relative" } : undefined}>
+    <div style={canHover || guiasVisibles.length > 0 ? { position: "relative" } : undefined}>
       <svg
         ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
@@ -188,24 +201,11 @@ export function SparkChart({
             // Fuera de la caja no se dibuja: una guía pegada al borde superior
             // se confunde con el marco y ensucia en vez de informar.
             if (y < pad + 6 || y > height - pad - 6) return null;
-            return (
-              <g key={g.label}>
-                <line x1={padX} y1={y} x2={width - padX} y2={y} className="spark-guide-line" />
-                {/* Fondo propio detrás del texto: la etiqueta cae sobre el
-                    área rellena y sin esto se lee sobre el color de la curva. */}
-                <rect
-                  x={padX + 1}
-                  y={y - 11}
-                  width={g.label.length * 4.9 + 8}
-                  height={11}
-                  rx={3}
-                  className="spark-guide-chip"
-                />
-                <text x={padX + 5} y={y - 3} className="spark-guide-label">
-                  {g.label}
-                </text>
-              </g>
-            );
+            // La etiqueta NO va acá adentro: el <text> de un SVG escala con
+            // la caja, así que en el ancho de un celular "Esmeralda 4" caía a
+            // 4px. Se dibuja en HTML encima (ver guiasVisibles), que mide
+            // siempre lo mismo mida lo que mida el gráfico.
+            return <line key={g.label} x1={padX} y1={y} x2={width - padX} y2={y} className="spark-guide-line" />;
           })}
         {/*
           Now drawn for both variants — it used to be detailed-only because a
@@ -279,6 +279,11 @@ export function SparkChart({
           <circle cx={points[hover][0]} cy={points[hover][1]} r={dotRadius + 1.5} fill={color} stroke="var(--bg)" strokeWidth={2} />
         )}
       </svg>
+      {guiasVisibles.map((g) => (
+        <span key={g.label} className="spark-guide-label" style={{ top: `${g.pct}%`, left: `${g.leftPct}%` }}>
+          {g.label}
+        </span>
+      ))}
       {canHover && hover !== null && pointLabels && (
         <div
           className="spark-tooltip"
