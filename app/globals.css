@@ -1263,6 +1263,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .podium-card.rank-1 .podium-wr{font-size:22px;}
 .podium-wr.good{color:var(--good);}
 .podium-wr.bad{color:var(--critical);}
+.podium-wr.neutral{color:var(--text-secondary);}
 .podium-record{font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted);}
 @media (max-width:640px){
   .podium{grid-template-columns:1fr; gap:8px;}
@@ -1273,7 +1274,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .podium-mid{align-items:flex-start; flex:1; min-width:0;}
   .podium-avatar, .podium-card.rank-1 .podium-avatar{width:40px; height:40px;}
   .podium-wr, .podium-card.rank-1 .podium-wr{font-size:16px; margin-top:0; margin-left:auto;}
-  .podium-record{display:none;}
+  /* En la tarjeta horizontal no entra el récord entero, pero el balance sí:
+     es un dato corto y es el que traduce el porcentaje a partidas. */
+  .podium-record{font-size:12px;}
+  .podium-vd{display:none;}
+  .tw-netas{margin-left:0;}
 }
 
 /* A date range is numeric metadata — mono lines its digits up with the rest
@@ -2164,4 +2169,92 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
      la derecha, que se lee como un error de alineación y no como una
      decisión. */
   .match-meta-fecha{margin-left:0;}
+}
+
+/* ── Mayor winrate (components/TopWinrate.tsx) ────────────────────────────
+   Tabla con barra divergente anclada en el 50%. La barra crece desde el
+   centro, así que la dirección ya dice si está por encima o por debajo sin
+   depender del color — que es lo que la hace legible en daltonismo (verde y
+   rojo se separan poco: ΔE ~7 en deuteranopía). */
+.tw-table{
+  background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm);
+  overflow:hidden; margin-top:14px;
+}
+.tw-head, .tw-row{
+  display:grid;
+  grid-template-columns:30px minmax(0,1.5fr) 74px minmax(120px,1.6fr) 56px 62px;
+  align-items:center; gap:14px;
+  padding:11px 18px;
+}
+.tw-head{
+  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;
+  color:var(--text-muted); padding-top:13px; padding-bottom:9px;
+  border-bottom:1px solid var(--border-soft);
+}
+.tw-row{border-bottom:1px solid var(--border-soft); transition:background .12s ease;}
+.tw-row:last-child{border-bottom:none;}
+.tw-row:hover{background:var(--surface-hover);}
+.tw-c-rank{font-family:var(--font-mono); font-size:12px; color:var(--text-muted); text-align:center;}
+.tw-c-name{display:flex; align-items:center; gap:11px; min-width:0;}
+/* Mismo tratamiento que .duo-avatar: PlayerAvatar devuelve un <span> con la
+   imagen adentro, o las iniciales si no hay ícono — así que el contenedor
+   tiene que centrar texto además de recortar la imagen. */
+.tw-avatar{
+  width:34px; height:34px; border-radius:10px; flex:none; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:700; font-size:11px;
+  background:var(--surface-hover); color:var(--text-secondary);
+}
+.tw-id{display:flex; flex-direction:column; gap:2px; min-width:0;}
+.tw-name{font-size:14px; font-weight:700; color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.tw-sub{font-size:11.5px; color:var(--text-muted); display:flex; align-items:center; gap:5px; white-space:nowrap;}
+.tw-dot{color:var(--text-muted); opacity:0.5;}
+.tw-c-games{font-family:var(--font-stat); font-size:13px; color:var(--text-secondary); font-variant-numeric:tabular-nums; text-align:right;}
+.tw-head .tw-c-games{text-align:right;}
+.tw-c-bar{display:flex; align-items:center; min-width:0;}
+.tw-head .tw-c-bar{display:flex; align-items:center; gap:4px;}
+.tw-track{position:relative; width:100%; height:8px; background:var(--track); border-radius:999px; display:block;}
+/* La punta que crece va redondeada y la que apoya en el 50% queda recta: es
+   lo que hace leer la línea del centro como el origen y no como un corte. */
+.tw-fill{position:absolute; top:0; bottom:0; border-radius:0 4px 4px 0;}
+.tw-fill.good{left:50%; background:var(--good);}
+.tw-fill.bad{right:50%; background:var(--critical); border-radius:4px 0 0 4px;}
+/* El punto neutro de la escala: ni un polo ni el otro. Se pinta igual (con
+   largo casi cero) para que la fila no quede sin marca sobre la línea. */
+.tw-fill.neutral{left:50%; background:var(--text-muted);}
+/* La línea del 50% es el origen de todo el gráfico, así que se dibuja como
+   un eje (sobresale de la pista) y no como una marca más adentro de ella. */
+.tw-zero{
+  position:absolute; left:50%; top:-4px; bottom:-4px; width:1px;
+  background:var(--text-secondary); opacity:0.7; transform:translateX(-0.5px);
+}
+.tw-c-wr{font-family:var(--font-stat); font-size:15px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums;}
+.tw-c-net{font-family:var(--font-stat); font-size:13px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums;}
+.tw-c-wr.good, .tw-c-net.good{color:var(--good);}
+.tw-c-wr.bad, .tw-c-net.bad{color:var(--critical);}
+.tw-c-wr.neutral, .tw-c-net.neutral, .tw-netas.neutral{color:var(--text-secondary);}
+.tw-head .tw-c-wr, .tw-head .tw-c-net{font-family:inherit; font-size:10px; color:var(--text-muted);}
+/* El balance también en el podio: es el winrate traducido a partidas, y es
+   el número que más cambia entre alguien con 104 partidas y otro con 318. */
+.tw-netas{margin-left:7px; font-weight:700;}
+.tw-netas.good{color:var(--good);}
+.tw-netas.bad{color:var(--critical);}
+.podium-meta{display:flex; align-items:center; gap:5px; flex-wrap:wrap; justify-content:center;}
+@media (max-width:760px){
+  /* La barra pasa a una segunda línea a todo el ancho con el total de
+     partidas a su izquierda: apretada en una sola fila quedaba de 40px y
+     dejaba de mostrar la diferencia, que es todo lo que la barra aporta. */
+  .tw-head{display:none;}
+  .tw-row{
+    grid-template-columns:26px minmax(0,1fr) 48px 46px;
+    grid-template-areas:"rank name wr net" "games bar bar bar";
+    gap:6px 10px; padding:12px 14px;
+  }
+  .tw-c-rank{grid-area:rank;}
+  .tw-c-name{grid-area:name;}
+  .tw-c-games{grid-area:games; font-size:11px; color:var(--text-muted); text-align:center;}
+  .tw-c-bar{grid-area:bar;}
+  .tw-c-wr{grid-area:wr;}
+  .tw-c-net{grid-area:net;}
+  .tw-avatar{width:30px; height:30px;}
 }
