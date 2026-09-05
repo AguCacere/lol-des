@@ -1202,7 +1202,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* The header's own margin-bottom already sets the title→content distance;
    this used to add 18px on top of it, so the podium sat ~32px below its own
    title while the lists under it sat at 12px. */
-.podium{display:grid; grid-template-columns:1fr 1.15fr 1fr; gap:12px; align-items:end; margin:0 0 12px;}
+/* margin-top que deja pasar la medalla: está posicionada en top:-11px, o
+   sea que sobresale de la tarjeta, y sin aire arriba se le montaba encima al
+   texto de la subsección. */
+.podium{display:grid; grid-template-columns:1fr 1.15fr 1fr; gap:12px; align-items:end; margin:18px 0 12px;}
 /* A three-column podium only makes sense with three cards. With one (a
    champion leaderboard where a single champ clears the games threshold) the
    1fr 1.15fr 1fr track list still reserved all three columns, stranding a
@@ -2448,3 +2451,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .digest-kpi.ancho{flex:1 1 100%;}
   .digest-kpi-valor{font-size:19px;}
 }
+
+/* La unidad de la cifra grande de una tarjeta del resumen: "-5.781" solo
+   podría ser oro, daño o LP. */
+.digest-card-unidad{
+  display:flex; align-items:center; justify-content:flex-end; gap:3px;
+  font-family:var(--font-body); font-size:10.5px; font-weight:500;
+  color:var(--text-muted); letter-spacing:0; margin-top:2px; white-space:nowrap;
+}
+/* Las casillas de ejemplo dentro de la nota de la leyenda van en línea con el
+   texto, no como bloques sueltos. */
+.chart-note .clash-casilla{display:inline-block; vertical-align:-1px; margin:0 2px;}

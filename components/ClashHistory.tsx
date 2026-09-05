@@ -318,11 +318,18 @@ export function ClashHistory({
         <>
           <h4 className="subsection-label">Winrate por invocador</h4>
           <p className="chart-note">
-            Partidas de Clash individuales ganadas/perdidas por cada uno, sumando TODOS los torneos jugados — no el
-            resultado de un torneo puntual.
+            Partidas de Clash ganadas y perdidas por cada uno, sumando todos los torneos — no el resultado de un torneo
+            puntual. <strong>El orden no es por porcentaje:</strong> se descuenta la incertidumbre de la muestra, así un
+            7-de-10 queda arriba de un 3-de-3.
+            <InfoTip text="Con 38 partidas repartidas entre once personas, ordenar por porcentaje pone primero al que menos jugó: tres victorias en tres partidas es algo que pasa una de cada ocho veces por pura suerte. El orden usa el límite inferior del intervalo de Wilson, la fórmula estándar para rankear con pocos datos — el porcentaje que se muestra sigue siendo el real." />
           </p>
           <ClashPlayerStatsList stats={playerStats} players={players} />
           <h4 className="subsection-label">Historial por día</h4>
+          <p className="chart-note">
+            Cada casilla es una partida de ese día, en el orden en que se jugaron:{" "}
+            <span className="clash-casilla w" /> victoria, <span className="clash-casilla l" /> derrota. Tocá un día
+            para ver las partidas.
+          </p>
         </>
       )}
 

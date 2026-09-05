@@ -239,8 +239,18 @@ function DigestBody({
                 </span>
               </div>
               {digest.worstLoss.goldDiffAtEnd != null && (
+                // "-5.781 @20'" no se entiende sin saber qué se está midiendo:
+                // el número suelto podría ser oro total, daño o LP. La unidad
+                // y el "de atrás" lo dicen en el mismo espacio.
                 <span className="digest-card-value gd-neg">
-                  {digest.worstLoss.goldDiffAtEnd.toLocaleString("es-AR")} @{digest.worstLoss.goldDiffMinute}&apos;
+                  {digest.worstLoss.goldDiffAtEnd.toLocaleString("es-AR")}
+                  <span className="digest-card-unidad">
+                    de oro al minuto {digest.worstLoss.goldDiffMinute}
+                    <InfoTip
+                      align="end"
+                      text="Cuánto oro tenía de menos que el rival de SU MISMO carril en ese minuto — no contra el equipo entero. Es el criterio con el que se elige la peor derrota de la semana: no la del peor KDA, sino la partida donde la línea se rompió más."
+                    />
+                  </span>
                 </span>
               )}
             </div>
