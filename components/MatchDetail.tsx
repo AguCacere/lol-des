@@ -5,14 +5,11 @@ import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
 import { ClockIcon, EyeIcon, ReviewIcon, ShieldIcon, TrendUpIcon, ZapIcon } from "./StatIcons";
 import { MatchTimeline } from "./MatchTimeline";
+import type { CompraItem } from "@/lib/builds";
 
 /** Only pentakills get the celebratory banner — doubles/triples/quadras are common enough to skip. */
 function multikillLabel(m: Match): string | null {
   return m.pentaKills > 0 ? "¡PENTAKILL!" : null;
-}
-
-function GoldDiff({ diff }: { diff: number }) {
-  return <span className={diff >= 0 ? "gd-pos" : "gd-neg"}>{diff >= 0 ? "+" : ""}{diff.toLocaleString("es-AR")}</span>;
 }
 
 function Stat({
@@ -93,31 +90,41 @@ function BuildPath({ items, version }: { items: { id: number; nombre: string }[]
 }
 
 /**
- * Y la compra completa, tal cual salió del timeline: pociones, wards,
- * componentes y lo que se vendió después. Va apagada y en chico porque es el
- * respaldo del recorrido de arriba, no el titular — pero se muestra igual,
- * que es lo que permite ver que alguien compró tres pociones antes del
- * primer componente.
+ * La compra completa, agrupada por ítem y plegada.
  *
- * No está reconciliada contra ventas ni undos: un ítem comprado y vendido
- * aparece, porque SE compró en ese momento. Vacía en partidas guardadas
- * antes de que existiera este campo, o si el timeline de esa partida falló.
+ * Sin plegar son treinta íconos donde la mitad es la misma poción: en el
+ * celular ocupaba media pantalla para decir algo que casi nunca se mira. Ya
+ * agrupada (ver agruparCompra en lib/builds.ts) entra en dos líneas, y el
+ * contador dice algo que la fila larga escondía — cuántas pociones se tomó.
+ *
+ * Sigue estando entera y sin reconciliar contra ventas: si compró un ítem y
+ * lo vendió, aparece, porque lo compró.
  */
-function ItemBuildRow({ items, version }: { items: number[]; version: string | null }) {
-  if (items.length === 0) {
-    return <span className="build-line-empty">Sin datos de build guardados para esta partida.</span>;
+function CompraCompleta({ compra, version }: { compra: CompraItem[]; version: string | null }) {
+  if (compra.length === 0) {
+    return <span className="build-line-empty">Sin datos de compra guardados para esta partida.</span>;
   }
+  const total = compra.reduce((n, c) => n + c.veces, 0);
   return (
-    <span className="item-build-row">
-      {items.map((itemId, i) => (
-        <span className="item-build-icon" key={i}>
-          {version && (
-            // eslint-disable-next-line @next/next/no-img-element -- tiny fixed-size icon, not a page asset
-            <img src={itemIconUrl(version, itemId)} alt="" />
-          )}
+    <details className="compra">
+      <summary className="compra-summary">
+        Compra completa
+        <span className="compra-count">
+          {compra.length} ítems · {total} compras
         </span>
-      ))}
-    </span>
+      </summary>
+      <div className="compra-row">
+        {compra.map((c) => (
+          <span className={`compra-item${c.consumible ? " consumible" : ""}`} key={c.id} title={c.nombre}>
+            {version && (
+              // eslint-disable-next-line @next/next/no-img-element -- ícono chico de tamaño fijo
+              <img src={itemIconUrl(version, c.id)} alt={c.nombre} />
+            )}
+            {c.veces > 1 && <span className="compra-veces">{c.veces}</span>}
+          </span>
+        ))}
+      </div>
+    </details>
   );
 }
 
@@ -131,7 +138,7 @@ function Group({
   icon: React.ReactNode;
   /** Bloque a todo el ancho ANTES de la grilla — para un gráfico, que en una celda de la grilla quedaría del ancho de una columna. */
   ancho?: React.ReactNode;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   return (
     <div className="match-detail-group">
@@ -140,7 +147,7 @@ function Group({
         {label}
       </h4>
       {ancho}
-      <div className="match-detail-grid">{children}</div>
+      {children && <div className="match-detail-grid">{children}</div>}
     </div>
   );
 }
@@ -175,17 +182,37 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
         </div>
       )}
 
-      <Group label="Partida" icon={<ClockIcon />}>
-        <Stat label="Duración">{m.dur} min</Stat>
-        <Stat label="CS" tooltip={METRIC_INFO.csPerMin}>
-          {m.cs} <span className="unit">({m.csmin}/min)</span>
-        </Stat>
-        <Stat label="Oro total" tooltip={METRIC_INFO.goldPerMin}>
-          {m.goldTotal.toLocaleString("es-AR")} <span className="unit">({m.gold}/min)</span>
-        </Stat>
-        <Stat label="Nivel final">{m.champLevel || "—"}</Stat>
-        <Stat label="Jugada">{formatRelativeDate(m.playedAt)}</Stat>
-      </Group>
+      {/* Primero de todo: es lo que cuenta la partida. Los números de abajo
+          la describen, esto la narra. */}
+      {hasTimeline && (
+        <Group label="Cómo se dio la partida" icon={<TrendUpIcon />} ancho={<MatchTimeline match={m} />} />
+      )}
+
+      {/* Duración, CS, oro, nivel y fecha eran cinco celdas con su título
+          arriba: quince líneas de alto para cinco números que se leen mejor
+          seguidos, como el encabezado de una ficha y no como un formulario. */}
+      <div className="match-meta">
+        <span>
+          <ClockIcon />
+          {m.dur} min
+        </span>
+        <span>
+          <strong>{m.cs}</strong> CS
+          <span className="unit">({m.csmin}/min)</span>
+          <InfoTip text={METRIC_INFO.csPerMin} />
+        </span>
+        <span>
+          <strong>{m.goldTotal.toLocaleString("es-AR")}</strong> oro
+          <span className="unit">({m.gold}/min)</span>
+          <InfoTip text={METRIC_INFO.goldPerMin} />
+        </span>
+        {m.champLevel > 0 && (
+          <span>
+            nivel <strong>{m.champLevel}</strong>
+          </span>
+        )}
+        <span className="match-meta-fecha">{formatRelativeDate(m.playedAt)}</span>
+      </div>
 
       <Group label="Combate" icon={<ZapIcon />}>
         <Stat label="% daño del equipo" tooltip={METRIC_INFO.dmgShare}>
@@ -254,67 +281,46 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
         </Stat>
       </Group>
 
-      <Group label="Build" icon={<ShieldIcon />}>
-        <Stat label="Runas" wide>
-          <span className="build-line">
-            {m.primaryRuneIconUrl && (
-              // eslint-disable-next-line @next/next/no-img-element -- tiny fixed-size icon, not a page asset
-              <img className="build-icon" src={m.primaryRuneIconUrl} alt="" />
-            )}
-            {m.primaryRune ?? "—"}
-            {m.primaryStyle && m.secondaryStyle && (
-              <span className="unit">
-                ({m.primaryStyle}/{m.secondaryStyle})
+      <Group
+        label="Build"
+        icon={<ShieldIcon />}
+        ancho={
+          // Runas, hechizos y recorrido eran tres filas apiladas con su
+          // etiqueta cada una: media pantalla de celular para tres datos que
+          // se leen de un vistazo si están juntos. Acá van en una tira, con
+          // la compra completa plegada al final.
+          <div className="build-strip">
+            <div className="build-strip-top">
+              <span
+                className="build-chip"
+                title={m.primaryStyle && m.secondaryStyle ? `${m.primaryStyle} / ${m.secondaryStyle}` : undefined}
+              >
+                {m.primaryRuneIconUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element -- ícono chico de tamaño fijo
+                  <img className="build-icon" src={m.primaryRuneIconUrl} alt="" />
+                )}
+                {m.primaryRune ?? "—"}
               </span>
-            )}
-          </span>
-        </Stat>
-        <Stat label="Hechizos" wide>
-          <span className="build-line">
-            <span className="build-item">
-              {m.summoner1IconUrl && (
-                // eslint-disable-next-line @next/next/no-img-element -- tiny fixed-size icon, not a page asset
-                <img className="build-icon" src={m.summoner1IconUrl} alt="" />
-              )}
-              {m.summoner1 ?? "—"}
-            </span>
-            <span className="build-sep">/</span>
-            <span className="build-item">
-              {m.summoner2IconUrl && (
-                // eslint-disable-next-line @next/next/no-img-element -- tiny fixed-size icon, not a page asset
-                <img className="build-icon" src={m.summoner2IconUrl} alt="" />
-              )}
-              {m.summoner2 ?? "—"}
-            </span>
-          </span>
-        </Stat>
-        <Stat label="Recorrido" tooltip="Solo los ítems completos, en el orden en que los terminó. La compra entera (pociones, wards, componentes) está abajo." wide>
-          <BuildPath items={m.coreBuild} version={ddragonVersion} />
-        </Stat>
-        <Stat label="Compra completa" wide>
-          <ItemBuildRow items={m.itemBuild} version={ddragonVersion} />
-        </Stat>
-      </Group>
-
-      {hasTimeline && (
-        <Group label="Cómo se dio la partida" icon={<TrendUpIcon />} ancho={<MatchTimeline match={m} />}>
-          {m.goldDiff10 != null && (
-            <Stat label="Gold diff @10'" tooltip={METRIC_INFO.goldDiffLane}>
-              <GoldDiff diff={m.goldDiff10} />
-            </Stat>
-          )}
-          {m.goldDiff15 != null && (
-            <Stat label="Gold diff @15'" tooltip={METRIC_INFO.goldDiffLane}>
-              <GoldDiff diff={m.goldDiff15} />
-            </Stat>
-          )}
-          {m.goldDiff20 != null && (
-            <Stat label="Gold diff @20'" tooltip={METRIC_INFO.goldDiffLane}>
-              <GoldDiff diff={m.goldDiff20} />
-            </Stat>
-          )}
-        </Group>
-      )}
+              <span className="build-chip">
+                {m.summoner1IconUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- ícono chico de tamaño fijo
+                  <img className="build-icon" src={m.summoner1IconUrl} alt={m.summoner1 ?? ""} title={m.summoner1 ?? undefined} />
+                ) : (
+                  m.summoner1 ?? "—"
+                )}
+                {m.summoner2IconUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- ícono chico de tamaño fijo
+                  <img className="build-icon" src={m.summoner2IconUrl} alt={m.summoner2 ?? ""} title={m.summoner2 ?? undefined} />
+                ) : (
+                  m.summoner2 ?? "—"
+                )}
+              </span>
+            </div>
+            <BuildPath items={m.coreBuild} version={ddragonVersion} />
+            <CompraCompleta compra={m.compra} version={ddragonVersion} />
+          </div>
+        }
+      />
     </div>
   );
 }

@@ -261,6 +261,8 @@ export interface ItemInfo {
   gold: number;
   /** Un ítem completo de los que definen la build, no una poción, un ward ni un componente. */
   core: boolean;
+  /** Poción, ward o elixir: se compra muchas veces y no dice nada de la build. */
+  consumible: boolean;
 }
 
 interface DDragonItemEntry {
@@ -300,6 +302,7 @@ async function fetchItemMap(): Promise<Map<number, ItemInfo>> {
       // sea que es un final. Junto con el precio deja afuera componentes
       // caros (que sí tienen `into`) sin tener que listarlos a mano.
       core: gold >= ORO_CORE && (entry.into?.length ?? 0) === 0 && !tags.includes("Consumable") && !tags.includes("Trinket"),
+      consumible: tags.includes("Consumable") || tags.includes("Trinket"),
     });
   }
   return byId;

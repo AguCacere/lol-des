@@ -1528,8 +1528,12 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .match-detail-group-label::after{content:""; flex:1; height:1px; background:rgba(255,255,255,0.08);}
 .match-detail-group-icon{width:13px; height:13px; flex:none; display:flex;}
 .match-detail-group-icon svg{width:100%; height:100%;}
-.match-detail-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:9px 16px;}
-.match-detail-stat{display:flex; flex-direction:column; gap:3px; min-width:0;}
+.match-detail-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:11px 16px;}
+/* El número arriba y el título abajo (column-reverse, el orden del DOM sigue
+   siendo título → valor). Con el título arriba cada celda se leía como el
+   campo de un formulario; al revés se lee como una ficha de estadísticas, que
+   es lo que es: el dato manda y la etiqueta lo explica. */
+.match-detail-stat{display:flex; flex-direction:column-reverse; gap:1px; min-width:0;}
 .match-detail-stat .k{
   display:flex; align-items:center; gap:3px;
   font-size:9.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;
@@ -1539,7 +1543,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   letter-spacing:0.01em; font-variant-numeric:tabular-nums;
 }
 .match-detail-stat .v .unit{
-  display:block; margin-top:1px;
+  display:inline;
+  margin-left:4px;
   font-family:var(--font-mono); font-weight:400; color:var(--text-muted); font-size:10.5px; letter-spacing:0;
 }
 /* min-width:0 so this spanning cell's own content (mini-breakdown below)
@@ -1588,16 +1593,50 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .match-review-banner svg{width:14px; height:14px; flex:none;}
 .match-review-banner strong{font-weight:700;}
 .match-review-reasons{color:var(--text-secondary); font-weight:500;}
-/* Real purchase order (Match-V5 timeline) — same flex-wrap reasoning as
-   .mini-breakdown above (a fixed grid either overflows or overlaps for a
-   row of this many small same-size chips), just without the raggedness
-   concern since every item icon is the same fixed square. */
-.item-build-row{display:flex; flex-wrap:wrap; gap:4px;}
-.item-build-icon{
-  width:26px; height:26px; border-radius:5px; flex:none; overflow:hidden;
-  background:var(--surface-hover); box-shadow:var(--shadow-sm);
+/* La build del detalle de partida: una tira compacta (runas + hechizos en
+   chips, el recorrido de ítems, y la compra completa plegada) en lugar de las
+   cuatro filas apiladas con etiqueta propia que tenía antes — en el celular
+   ocupaban media pantalla para tres datos que se leen de un vistazo juntos.
+   Mismo razonamiento de flex-wrap que .mini-breakdown para las filas de
+   íconos: un grid fijo con tantos cuadraditos o desborda o los superpone. */
+.build-strip{display:flex; flex-direction:column; gap:9px;}
+.build-strip-top{display:flex; align-items:center; gap:7px; flex-wrap:wrap;}
+.build-chip{
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--surface-raised); border-radius:999px; padding:4px 11px 4px 5px;
+  font-size:12px; font-weight:600; color:var(--text-secondary); min-width:0;
 }
-.item-build-icon img{width:100%; height:100%; object-fit:cover; display:block;}
+.compra{margin-top:1px;}
+.compra-summary{
+  display:inline-flex; align-items:center; gap:7px; cursor:pointer; list-style:none;
+  font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;
+  color:var(--text-muted); padding:3px 0;
+}
+.compra-summary::-webkit-details-marker{display:none;}
+/* Triángulo propio (el nativo se saca arriba) que gira al abrir: sin una
+   señal de que esto se despliega, un resumen plegado se lee como un título
+   muerto y nadie lo toca. */
+.compra-summary::before{
+  content:"▸"; display:inline-block; font-size:10px; color:var(--text-muted);
+  transition:transform .15s ease;
+}
+.compra[open] .compra-summary::before{transform:rotate(90deg);}
+.compra-summary:hover{color:var(--text-secondary);}
+.compra-count{font-weight:600; text-transform:none; letter-spacing:0; color:var(--text-muted); opacity:0.8;}
+.compra-row{display:flex; flex-wrap:wrap; gap:4px; margin-top:8px;}
+.compra-item{
+  position:relative; width:26px; height:26px; border-radius:5px; flex:none; overflow:hidden;
+  background:var(--surface-hover); box-shadow:var(--shadow-sm); display:block;
+}
+.compra-item img{width:100%; height:100%; object-fit:cover; display:block;}
+/* Pociones, wards y elixires apagados: están para que la compra esté
+   completa, no para competir con los ítems que definen la build. */
+.compra-item.consumible{opacity:0.45;}
+.compra-veces{
+  position:absolute; right:0; bottom:0;
+  background:rgba(0,0,0,0.78); color:#fff;
+  font-size:9px; font-weight:700; line-height:1.3; padding:0 3px; border-radius:4px 0 0 0;
+}
 .build-line-empty{color:var(--text-muted); font-style:italic; font-size:11px;}
 
 .info-tip{
@@ -1908,7 +1947,12 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .mt-min{position:absolute; font-size:11px; color:var(--text-muted); line-height:1;}
 .mt-min.start{left:0;}
 .mt-min.end{right:0;}
-.match-timeline-pie{margin:6px 2px 0; font-size:12px; color:var(--text-muted); line-height:1.4;}
+.match-timeline-pie{
+  display:flex; align-items:baseline; justify-content:space-between; gap:8px 14px; flex-wrap:wrap;
+  margin:6px 2px 0; font-size:12px; color:var(--text-muted); line-height:1.4;
+}
+.match-timeline-golds{display:flex; gap:12px; font-weight:700; font-variant-numeric:tabular-nums;}
+.mtg-min{color:var(--text-muted); font-weight:600; margin-right:4px;}
 @media (max-width:560px){
   /* Mismo alto, menos ancho: las etiquetas se achican para que tres hitos
      seguidos sigan entrando sin pisarse. */
@@ -2095,4 +2139,29 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .build-start{grid-template-columns:24px minmax(0,1fr) 38px 48px; gap:7px;}
   .build-start-bar{display:none;}
   .build-path-item{width:30px; height:30px;}
+}
+
+/* Encabezado del detalle de partida: los datos de contexto (duración, CS,
+   oro, nivel, cuándo) en una línea corrida en vez de cinco celdas con título
+   propio. La fecha se empuja al final porque es lo único que no es del
+   partido en sí. */
+.match-meta{
+  display:flex; align-items:center; gap:6px 16px; flex-wrap:wrap;
+  padding:9px 0 11px; margin-bottom:11px;
+  border-bottom:1px solid var(--border-soft);
+  font-size:12.5px; color:var(--text-muted);
+}
+.match-meta > span{display:inline-flex; align-items:center; gap:5px;}
+.match-meta strong{
+  font-family:var(--font-stat); font-size:14px; font-weight:700; color:var(--text-primary);
+  font-variant-numeric:tabular-nums;
+}
+.match-meta .unit{font-size:11px; color:var(--text-muted);}
+.match-meta svg{width:13px; height:13px; opacity:0.7;}
+.match-meta-fecha{margin-left:auto; font-size:11.5px;}
+@media (max-width:560px){
+  /* Sin margin-left:auto: en dos líneas la fecha quedaba sola y descolgada a
+     la derecha, que se lee como un error de alineación y no como una
+     decisión. */
+  .match-meta-fecha{margin-left:0;}
 }

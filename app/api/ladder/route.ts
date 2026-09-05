@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { detectTilt } from "@/lib/tilt";
 import { itemMap } from "@/lib/ddragon";
-import { computeBuildStats, recorridoCore, type BuildSample } from "@/lib/builds";
+import { agruparCompra, computeBuildStats, recorridoCore, type BuildSample } from "@/lib/builds";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { peakFromHistory, ROLES, tierScore } from "@/lib/ladder";
 import { divisionFromRiot, normalizeRole, roleFromTeamPosition, tierKeyFromRiot } from "@/lib/mapping";
@@ -567,7 +567,7 @@ export async function GET() {
       turretTakedowns: row.turret_takedowns ?? 0,
       dragonTakedowns: row.dragon_takedowns ?? 0,
       dragonTypes: row.dragon_types ?? [],
-      itemBuild: row.item_build ?? [],
+      compra: agruparCompra(row.item_build ?? [], (id) => items.get(id)),
       coreBuild: recorridoCore(row.item_build ?? [], esCore).map((id) => ({ id, nombre: nombreDeItem(id) })),
       baronTakedowns: row.baron_takedowns ?? 0,
       heraldTakedowns: row.herald_takedowns ?? 0,

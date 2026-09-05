@@ -108,3 +108,49 @@ export function computeBuildStats(
 
   return salida.sort((a, b) => b.games - a.games);
 }
+
+/** Un ítem de la compra, ya agrupado: si compró doce pociones es UNA entrada con veces=12. */
+export interface CompraItem {
+  id: number;
+  nombre: string;
+  /** Cuántas veces lo compró en la partida. */
+  veces: number;
+  core: boolean;
+  consumible: boolean;
+}
+
+/**
+ * La compra completa agrupada por ítem, en el orden de la PRIMERA compra.
+ *
+ * El timeline devuelve un evento por compra, así que una partida normal son
+ * veinticinco o treinta ítems donde la mitad es la misma poción. Listados uno
+ * por uno eso es una pared de íconos repetidos que no se puede leer y que en
+ * el celular ocupa media pantalla. Agrupado con un contador dice lo mismo en
+ * un tercio del espacio, y encima dice algo que la lista larga escondía:
+ * cuántas pociones se tomó.
+ *
+ * Se agrupa por ítem y no por compras consecutivas a propósito: comprar una
+ * poción en el minuto 2 y otra en el 20 es el mismo hábito, y separarlas en
+ * dos entradas volvería a fragmentar la fila.
+ */
+export function agruparCompra(
+  itemBuild: number[],
+  info: (id: number) => { name: string; core: boolean; consumible: boolean } | undefined
+): CompraItem[] {
+  const orden: number[] = [];
+  const veces = new Map<number, number>();
+  for (const id of itemBuild) {
+    if (!veces.has(id)) orden.push(id);
+    veces.set(id, (veces.get(id) ?? 0) + 1);
+  }
+  return orden.map((id) => {
+    const meta = info(id);
+    return {
+      id,
+      nombre: meta?.name ?? `Ítem ${id}`,
+      veces: veces.get(id) ?? 1,
+      core: meta?.core ?? false,
+      consumible: meta?.consumible ?? false,
+    };
+  });
+}

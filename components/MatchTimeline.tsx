@@ -143,7 +143,6 @@ export function MatchTimeline({ match }: { match: Match }) {
   const finArea = puntos[puntos.length - 1].x;
   const area = medidas.length > 0 ? `${linea} L ${finArea} ${zeroY} L ${puntos[0].x} ${zeroY} Z` : "";
 
-  const ultimo = medidas.length > 0 ? medidas[medidas.length - 1] : null;
 
   return (
     <div className="match-timeline">
@@ -230,17 +229,26 @@ export function MatchTimeline({ match }: { match: Match }) {
         </span>
       </div>
 
+      {/* Los tres valores al pie y no como celdas aparte en la grilla: son los
+          mismos puntos que ya están dibujados, y repetirlos en tres celdas con
+          su propio título cada una era la mitad del alto del bloque para
+          decir lo mismo dos veces. */}
       <p className="match-timeline-pie">
-        {ultimo != null ? (
-          <>
-            Diferencia de oro contra tu rival de carril · al minuto {ultimo.min} ibas{" "}
-            <span className={ultimo.valor >= 0 ? "gd-pos" : "gd-neg"}>
-              {ultimo.valor >= 0 ? "+" : ""}
-              {ultimo.valor.toLocaleString("es-AR")}
-            </span>
-          </>
+        <span>Diferencia de oro contra tu rival de carril</span>
+        {medidas.length > 0 ? (
+          <span className="match-timeline-golds">
+            {medidas.map((p) => (
+              <span key={p.min}>
+                <span className="mtg-min">{p.min}&apos;</span>
+                <span className={p.valor >= 0 ? "gd-pos" : "gd-neg"}>
+                  {p.valor >= 0 ? "+" : ""}
+                  {p.valor.toLocaleString("es-AR")}
+                </span>
+              </span>
+            ))}
+          </span>
         ) : (
-          "Sin diferencia de oro guardada para esta partida — solo los hitos."
+          <span>— sin dato guardado, solo los hitos</span>
         )}
       </p>
     </div>

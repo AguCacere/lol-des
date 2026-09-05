@@ -2,7 +2,7 @@ import type { ChampionInsight } from "./champion-insights";
 import type { ChampionMatchups } from "./matchups";
 import type { RadarProfile } from "./radar";
 import type { TiltState } from "./tilt";
-import type { ChampionBuildStats } from "./builds";
+import type { ChampionBuildStats, CompraItem } from "./builds";
 
 export type RoleKey = "top" | "jungle" | "mid" | "adc" | "support";
 
@@ -93,8 +93,8 @@ export interface Match {
   firstDragonMine: boolean | null;
   firstBaronTimeS: number | null;
   firstBaronMine: boolean | null;
-  /** Real purchase order (Match-V5 timeline ITEM_PURCHASED), itemIds in the order actually bought — not reconciled against later sells/undos. Empty on matches stored before this field existed. */
-  itemBuild: number[];
+  /** La compra real (ITEM_PURCHASED del timeline) agrupada por ítem y en orden de primera compra (ver agruparCompra en lib/builds.ts). No está reconciliada contra ventas ni undos: un ítem comprado y vendido aparece igual, porque se compró. Vacía en partidas guardadas antes de que existiera este campo. */
+  compra: CompraItem[];
   /** Solo los ítems completos de esa misma compra, en orden y sin repetir (ver lib/builds.ts): el recorrido de la build sin las pociones ni los componentes. */
   coreBuild: { id: number; nombre: string }[];
   /** "Para repasar" — this match swung hard vs. this player's OWN recent form (see lib/matchflags.ts). Null when nothing stood out, or too few recent matches to trust a baseline yet. */
