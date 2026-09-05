@@ -2664,12 +2664,48 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .lg-head{display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:12px;}
 .lg-head-titulo{display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; color:var(--text-primary);}
 .lg-head-meta{font-size:12px; color:var(--text-muted);}
-.lg-cols{display:grid; grid-template-columns:1.35fr 1fr; gap:22px;}
+.lg-cols{display:grid; grid-template-columns:1.35fr 1fr; gap:26px;}
+/* Los encabezados de las dos columnas de la izquierda comparten renglón y se
+   apoyan en una línea, para que se lea que titulan lo de abajo y no que son
+   dos textos sueltos. */
+.lg-col-cabecera{
+  display:flex; align-items:flex-end; justify-content:space-between; gap:12px;
+  border-bottom:1px solid var(--border-soft); padding-bottom:6px; margin-bottom:2px;
+}
 .lg-col-label{
-  display:flex; align-items:center; gap:5px; margin:0 0 8px;
+  display:flex; align-items:center; gap:5px; margin:0;
   font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted);
 }
-.lg-fila{display:flex; align-items:center; gap:10px; padding:6px 0; min-width:0;}
+.lg-col-label-cruce{
+  text-transform:none; letter-spacing:0; font-weight:600; font-size:11px;
+  color:var(--text-muted); opacity:0.85; text-align:right;
+  /* row-reverse deja el ⓘ a la izquierda y el texto terminando justo sobre
+     el borde de la columna, alineado con los números que titula. Con el ⓘ
+     al final el encabezado quedaba 25px corrido de su propia columna. */
+  flex-direction:row-reverse;
+}
+/* Cada fila es una línea del mapa, y las de los dos equipos están ordenadas
+   igual: la primera de un lado enfrenta a la primera del otro. El separador
+   ayuda a seguir esa correspondencia cruzando el hueco del medio. */
+.lg-fila{
+  display:flex; align-items:center; gap:10px; padding:8px 0; min-width:0;
+  border-bottom:1px solid var(--border-soft);
+  /* Alto fijo para que las dos columnas avancen al mismo paso: la fila de un
+     rival trae un chip de maestría y la de un aliado no, así que sin esto la
+     quinta línea de un lado ya no estaba a la altura de la del otro y se
+     perdía la correspondencia. */
+  min-height:56px; box-sizing:border-box;
+}
+.lg-fila:last-child{border-bottom:none;}
+/* La línea estimada. Más apagada que el resto de la fila a propósito: es lo
+   único del panel que no sale de Riot. */
+.lg-linea{
+  width:22px; height:22px; border-radius:5px; flex:none; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--track); opacity:0.9;
+}
+.lg-linea img{width:100%; height:100%; object-fit:contain; display:block;}
+.lg-linea.vacia{background:none;}
 .lg-champ{
   width:34px; height:34px; border-radius:var(--radius-sm); flex:none; overflow:hidden;
   display:flex; align-items:center; justify-content:center;
@@ -2678,7 +2714,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .lg-champ img{width:100%; height:100%; object-fit:cover; display:block;}
 .lg-id{display:flex; flex-direction:column; gap:2px; min-width:0; flex:1 1 auto;}
 .lg-nombre{font-size:13.5px; font-weight:700; color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.lg-sub{display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--text-muted); min-width:0;}
+/* Envuelve de a bloques, nunca por la mitad de una palabra: en el celular
+   "Platino 4" se partía en dos renglones cuando al lado había un récord largo. */
+.lg-sub{display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--text-muted); min-width:0; flex-wrap:wrap;}
+.lg-sub > *{white-space:nowrap;}
 .lg-sinrango{color:var(--text-muted); opacity:0.7;}
 .lg-maestria{
   font-family:var(--font-mono); font-size:10px; font-weight:700;
@@ -2687,21 +2726,34 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* "Primera vez" es tan informativo como un M7: lo está estrenando. */
 .lg-maestria.nueva{color:var(--warn); background:var(--warn-wash); font-family:var(--font-body); font-weight:600;}
 .lg-cruce{display:flex; flex-direction:column; align-items:flex-end; gap:1px; flex:none; text-align:right;}
-.lg-cruce strong{font-family:var(--font-stat); font-size:13px; font-variant-numeric:tabular-nums;}
-.lg-cruce-wr{font-size:10.5px; opacity:0.75;}
-.lg-cruce.good{color:var(--good);}
-.lg-cruce.bad{color:var(--critical);}
-.lg-cruce.vacio{font-size:11px; color:var(--text-muted); max-width:96px; line-height:1.3;}
+.lg-cruce strong{font-family:var(--font-stat); font-size:13.5px; font-variant-numeric:tabular-nums;}
+/* El porcentaje va en gris y no en el color del récord: verde arriba y verde
+   abajo era el mismo dato dicho dos veces y gritado dos veces. */
+.lg-cruce-wr{font-size:10.5px; color:var(--text-muted); white-space:nowrap;}
+.lg-cruce.good strong{color:var(--good);}
+.lg-cruce.bad strong{color:var(--critical);}
+.lg-cruce.vacio{font-size:11px; color:var(--text-muted); max-width:104px; line-height:1.3; opacity:0.8;}
 .lg-fila.aliado{opacity:0.9;}
 .lg-fila.del-grupo{background:var(--accent-wash-soft); border-radius:var(--radius-sm); padding-left:6px; padding-right:6px;}
 .lg-tag-grupo{
   font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
   color:var(--accent); background:var(--accent-wash); border-radius:999px; padding:2px 7px; flex:none;
 }
+.lg-pie{
+  margin:14px 0 0; padding-top:10px; border-top:1px solid var(--border-soft);
+  font-size:10.5px; line-height:1.5; color:var(--text-muted); opacity:0.75;
+}
 @media (max-width:760px){
   /* Los rivales primero y a todo el ancho: en el celular, en champ select,
      nadie scrollea para ver contra quién juega. */
   .lg-cols{grid-template-columns:1fr; gap:16px;}
+  /* Apilado no hay dos columnas que emparejar, y el alto fijo solo dejaría
+     aire de más en filas que ya entran. */
+  .lg-fila{min-height:0;}
+  /* En dos columnas el "nunca te lo cruzaste" entra en un renglón; apilado y
+     en un celular, ese renglón le come el ancho al nombre y al rango, que
+     importan más. Se lo deja partir en dos. */
+  .lg-cruce.vacio{max-width:84px;}
 }
 
 /* Guías de división en el gráfico de LP: la línea que separa Platino 3 de

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { getActiveGame, getChampionMasteryOn, getLeagueEntriesByPuuid, type RiotActiveGame } from "@/lib/riot";
-import { championNameById } from "@/lib/ddragon";
-import { queueLabelFromId, divisionFromRiot, tierKeyFromRiot } from "@/lib/mapping";
+import { championNameById, championTagsById } from "@/lib/ddragon";
+import { asignarRoles, ordenDeRol, type ObservacionesPorRol } from "@/lib/live-roles";
+import { queueLabelFromId, divisionFromRiot, tierKeyFromRiot, roleFromTeamPosition } from "@/lib/mapping";
 import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import type { LiveDetail, LiveParticipant } from "@/lib/types";
 
@@ -68,11 +69,54 @@ export async function GET(req: Request) {
   // Los campeones primero: sin el nombre no hay nada que mostrar, y el mapa
   // de Data Dragon está cacheado en memoria (no cuesta llamadas).
   const champDe = new Map<number, string>();
+  const tagsDe = new Map<number, string[]>();
   for (const p of [...aliadosCrudos, ...rivalesCrudos]) {
     if (champDe.has(p.championId)) continue;
     const nombre = await championNameById(p.championId);
     if (nombre) champDe.set(p.championId, nombre);
+    tagsDe.set(p.championId, await championTagsById(p.championId));
   }
+
+  /**
+   * En qué línea suele verse cada uno de los diez campeones, según lo que ya
+   * vimos nosotros. Cada partida guardada aporta DOS observaciones: la
+   * posición en la que jugó el nuestro (champion + team_position) y la del
+   * rival de esa misma línea (opponent_champion + el mismo team_position).
+   * Es la fuente principal de la estimación de líneas — ver lib/live-roles.ts.
+   */
+  const enJuego = [...new Set(champDe.values())];
+  const observaciones: ObservacionesPorRol = new Map();
+  if (enJuego.length > 0) {
+    // Las claves de Data Dragon son alfanuméricas ("Kaisa", "MonkeyKing",
+    // "KSante"), pero esto se interpola dentro de un filtro de PostgREST:
+    // se limpia igual para que un nombre raro no rompa la consulta entera.
+    const lista = enJuego.map((c) => `"${c.replace(/[^A-Za-z0-9]/g, "")}"`).join(",");
+    const { data: vistas } = await supabase
+      .from("matches")
+      .select("champion, opponent_champion, team_position")
+      .not("team_position", "is", null)
+      .or(`champion.in.(${lista}),opponent_champion.in.(${lista})`);
+    const anotar = (champ: string | null, pos: string | null) => {
+      const rol = roleFromTeamPosition(pos);
+      if (!champ || !rol || !enJuego.includes(champ)) return;
+      const acc = observaciones.get(champ) ?? {};
+      acc[rol] = (acc[rol] ?? 0) + 1;
+      observaciones.set(champ, acc);
+    };
+    for (const fila of vistas ?? []) {
+      anotar(fila.champion, fila.team_position);
+      anotar(fila.opponent_champion, fila.team_position);
+    }
+  }
+
+  const rolesRivales = asignarRoles(
+    rivalesCrudos.map((p) => ({ champion: champDe.get(p.championId) ?? "", spell1Id: p.spell1Id, spell2Id: p.spell2Id, tags: tagsDe.get(p.championId) })),
+    observaciones,
+  );
+  const rolesAliados = asignarRoles(
+    aliadosCrudos.map((p) => ({ champion: champDe.get(p.championId) ?? "", spell1Id: p.spell1Id, spell2Id: p.spell2Id, tags: tagsDe.get(p.championId) })),
+    observaciones,
+  );
 
   // Tu historial contra CADA campeón rival, sobre tus partidas guardadas.
   // Es opponent_champion, o sea el rival de tu misma línea — que es
@@ -100,7 +144,11 @@ export async function GET(req: Request) {
    * error: que a un rival no se le pueda leer el rango no puede dejar sin
    * panel a los otros nueve.
    */
-  async function resolver(p: RiotActiveGame["participants"][number], conRiot: boolean): Promise<LiveParticipant | null> {
+  async function resolver(
+    p: RiotActiveGame["participants"][number],
+    conRiot: boolean,
+    rol: LiveParticipant["rol"],
+  ): Promise<LiveParticipant | null> {
     const champion = champDe.get(p.championId);
     if (!champion) return null;
 
@@ -120,6 +168,7 @@ export async function GET(req: Request) {
 
     return {
       champion,
+      rol,
       riotId: p.riotId ?? null,
       esDelGrupo: conocidos.has(p.puuid),
       rango,
@@ -132,17 +181,22 @@ export async function GET(req: Request) {
   // rango de los que son del grupo ya lo tiene la app, y el de los randoms no
   // le sirve a nadie en selección de campeones.
   const [rivales, aliados] = await Promise.all([
-    Promise.all(rivalesCrudos.map((p) => resolver(p, true))),
-    Promise.all(aliadosCrudos.map((p) => resolver(p, false))),
+    Promise.all(rivalesCrudos.map((p, i) => resolver(p, true, rolesRivales[i]))),
+    Promise.all(aliadosCrudos.map((p, i) => resolver(p, false, rolesAliados[i]))),
   ]);
+
+  // Los dos equipos salen ordenados por línea (top → jungla → mid → adc →
+  // support) para que en el panel la fila de cada lado sea el duelo de esa
+  // línea, y no dos listas en el orden arbitrario en que Riot las devuelve.
+  const porLinea = (a: LiveParticipant, b: LiveParticipant) => ordenDeRol(a.rol) - ordenDeRol(b.rol);
 
   const detalle: LiveDetail & { enPartida: true } = {
     enPartida: true,
     gameId: game.gameId,
     queueLabel: queueLabelFromId(game.gameQueueConfigId),
     startedMinutesAgo: Math.max(0, Math.floor(game.gameLength / 60)),
-    aliados: aliados.filter((p): p is LiveParticipant => p !== null),
-    rivales: rivales.filter((p): p is LiveParticipant => p !== null),
+    aliados: aliados.filter((p): p is LiveParticipant => p !== null).sort(porLinea),
+    rivales: rivales.filter((p): p is LiveParticipant => p !== null).sort(porLinea),
   };
 
   return NextResponse.json(detalle, {

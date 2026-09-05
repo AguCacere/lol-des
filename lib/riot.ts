@@ -237,7 +237,8 @@ export interface RiotActiveGame {
   gameQueueConfigId: number;
   gameLength: number; // seconds elapsed as of this response — a snapshot, not a live clock
   /** `riotId` viene como "Nombre#TAG" en Spectator-V5. Opcional: no está en todas las regiones ni en partidas viejas del endpoint. */
-  participants: { puuid: string; championId: number; teamId: number; riotId?: string }[];
+  /** `spell1Id`/`spell2Id` son ids de Data Dragon. El Castigo (11) es lo único que ubica a alguien en la jungla antes de que la partida termine — ver lib/live-roles.ts. */
+  participants: { puuid: string; championId: number; teamId: number; riotId?: string; spell1Id?: number; spell2Id?: number }[];
 }
 
 /**

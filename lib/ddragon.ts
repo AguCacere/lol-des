@@ -12,7 +12,7 @@
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 let versionCache: { version: string; fetchedAt: number } | null = null;
-let championCache: { byId: Map<number, string>; fetchedAt: number } | null = null;
+let championCache: { byId: Map<number, string>; tagsById: Map<number, string[]>; fetchedAt: number } | null = null;
 
 async function latestVersion(): Promise<string> {
   const now = Date.now();
@@ -29,13 +29,14 @@ async function latestVersion(): Promise<string> {
 interface DDragonChampionEntry {
   key: string; // numeric championId, as a string
   name: string; // nombre para mostrar, ej. "Kai'Sa" — NO sirve para armar URLs, ver fetchChampionMap
+  tags: string[]; // "Marksman", "Support", "Mage"… — la única pista de línea que hay sin haberlo visto jugar
 }
 
 interface DDragonChampionResponse {
   data: Record<string, DDragonChampionEntry>;
 }
 
-async function fetchChampionMap(): Promise<Map<number, string>> {
+async function fetchChampionMap(): Promise<{ byId: Map<number, string>; tagsById: Map<number, string[]> }> {
   const version = await latestVersion();
   const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/champion.json`, {
     cache: "no-store",
@@ -44,6 +45,7 @@ async function fetchChampionMap(): Promise<Map<number, string>> {
   const champData: DDragonChampionResponse = await res.json();
 
   const byId = new Map<number, string>();
+  const tagsById = new Map<number, string[]>();
   // La CLAVE del objeto `data`, no `entry.name`. Las dos identifican al mismo
   // campeón pero solo una sirve: la clave es el id de Data Dragon ("Kaisa",
   // "MonkeyKing", "KSante") y es lo que championIconUrl necesita para armar
@@ -57,17 +59,33 @@ async function fetchChampionMap(): Promise<Map<number, string>> {
   // campeones más jugados).
   for (const [ddragonId, entry] of Object.entries(champData.data)) {
     byId.set(Number(entry.key), ddragonId);
+    tagsById.set(Number(entry.key), entry.tags ?? []);
   }
-  return byId;
+  return { byId, tagsById };
+}
+
+/** Refresca el cache de campeones si hace falta. Nombre y etiquetas salen del mismo fetch. */
+async function championData() {
+  const now = Date.now();
+  if (!championCache || now - championCache.fetchedAt > CACHE_TTL_MS) {
+    championCache = { ...(await fetchChampionMap()), fetchedAt: now };
+  }
+  return championCache;
+}
+
+/**
+ * Las etiquetas de rol de Data Dragon ("Marksman", "Support"…) para un
+ * championId. Vienen del mismo JSON que los nombres, así que no cuestan una
+ * llamada aparte. Se usan solo para estimar la línea de un campeón que
+ * nunca vimos jugar — ver lib/live-roles.ts.
+ */
+export async function championTagsById(championId: number): Promise<string[]> {
+  return (await championData()).tagsById.get(championId) ?? [];
 }
 
 /** Resolves a Champion Mastery `championId` to Riot's champion id — el mismo string que Match-V5 pone en `championName`, listo para usar como nombre y como URL. Null si falla el lookup. */
 export async function championNameById(championId: number): Promise<string | null> {
-  const now = Date.now();
-  if (!championCache || now - championCache.fetchedAt > CACHE_TTL_MS) {
-    championCache = { byId: await fetchChampionMap(), fetchedAt: now };
-  }
-  return championCache.byId.get(championId) ?? null;
+  return (await championData()).byId.get(championId) ?? null;
 }
 
 interface DDragonRune {

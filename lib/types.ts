@@ -234,6 +234,8 @@ export interface ChampionPoolEntry {
 export interface LiveParticipant {
   /** Clave de Data Dragon del campeón que está jugando. */
   champion: string;
+  /** Línea ESTIMADA: Spectator no la dice, se deduce en lib/live-roles.ts. Null si no se pudo ubicar. */
+  rol: RoleKey | null;
   /** "Nombre#TAG" si Spectator lo devuelve. */
   riotId: string | null;
   /** Si es uno de los invocadores que sigue la app. */
