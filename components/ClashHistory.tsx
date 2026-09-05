@@ -72,7 +72,7 @@ function ClashPlayerStatsList({ stats, players }: { stats: ClashPlayerStats[]; p
             <span className="tw-c-games">Partidas</span>
             <span className="tw-c-bar">
               Distancia al 50%
-              <InfoTip text="La barra sale del 50%. El ORDEN de la tabla, en cambio, no es por winrate: se ordena descontando la incertidumbre de la muestra, porque con estas cantidades de partidas un 3-de-3 quedaría arriba de un 7-de-10 y eso premia al que menos jugó." />
+              <InfoTip text="La barra sale del 50%. El ORDEN de la tabla, en cambio, no es por porcentaje: se tiene en cuenta cuántas partidas jugó cada uno, porque si no un 3-de-3 queda arriba de un 7-de-10 y eso premia al que menos jugó." />
             </span>
             <span className="tw-c-wr">WR</span>
             <span className="tw-c-net">
@@ -319,9 +319,9 @@ export function ClashHistory({
           <h4 className="subsection-label">Winrate por invocador</h4>
           <p className="chart-note">
             Partidas de Clash ganadas y perdidas por cada uno, sumando todos los torneos — no el resultado de un torneo
-            puntual. <strong>El orden no es por porcentaje:</strong> se descuenta la incertidumbre de la muestra, así un
+            puntual. <strong>El orden no es por porcentaje:</strong> se tiene en cuenta cuántas partidas jugó cada uno, así un
             7-de-10 queda arriba de un 3-de-3.
-            <InfoTip text="Con 38 partidas repartidas entre once personas, ordenar por porcentaje pone primero al que menos jugó: tres victorias en tres partidas es algo que pasa una de cada ocho veces por pura suerte. El orden usa el límite inferior del intervalo de Wilson, la fórmula estándar para rankear con pocos datos — el porcentaje que se muestra sigue siendo el real." />
+            <InfoTip text="Ordenar por porcentaje pone primero al que menos jugó: ganar tres de tres es algo que pasa una de cada ocho veces por pura suerte, y con esa lógica cualquiera que juegue una sola partida y la gane queda de primero para siempre. Así que el orden le da más peso al que lo sostuvo en más partidas. Es la misma cuenta que usan los sitios de reseñas para no poner arriba al producto con una sola estrella de cinco. El porcentaje que ves sigue siendo el real." />
           </p>
           <ClashPlayerStatsList stats={playerStats} players={players} />
           <h4 className="subsection-label">Historial por día</h4>

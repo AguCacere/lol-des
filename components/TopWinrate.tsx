@@ -137,12 +137,12 @@ export function TopWinrate({ players }: { players: Player[] }) {
                 <span className="tw-c-games">Partidas</span>
                 <span className="tw-c-bar">
                   Distancia al 50%
-                  <InfoTip text="La barra sale del 50%, que es donde ganás tantas como perdés. A la derecha estás por encima, a la izquierda por debajo. La escala se ajusta al grupo: el que más se despega llega al borde." />
+                  <InfoTip text="La barra sale del 50%, que es donde ganás tantas como perdés. A la derecha estás arriba de eso, a la izquierda abajo. La escala se acomoda al grupo: el que más se despega llega al borde." />
                 </span>
                 <span className="tw-c-wr">WR</span>
                 <span className="tw-c-net">
                   Balance
-                  <InfoTip align="end" text="Victorias menos derrotas en la season. Es el winrate traducido a partidas: un 51% en 724 partidas son +14 reales, y un 53% en 109 son +3." />
+                  <InfoTip align="end" text="Victorias menos derrotas en la season. Es el winrate pasado a partidas: un 51% en 724 son +14 de verdad, y un 53% en 109 son +3." />
                 </span>
               </div>
 

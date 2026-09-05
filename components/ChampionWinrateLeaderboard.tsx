@@ -100,14 +100,14 @@ export function ChampionWinrateLeaderboard({
                 <span className="tw-c-games">Partidas</span>
                 <span className="tw-c-bar">
                   Distancia al 50%
-                  <InfoTip text="La barra sale del 50%, que es donde ese campeón le da tantas victorias como derrotas. La escala se ajusta al conjunto: el que más se despega llega al borde." />
+                  <InfoTip text="La barra sale del 50%, que es donde ese campeón le da tantas victorias como derrotas. La escala se acomoda al conjunto: el que más se despega llega al borde." />
                 </span>
                 <span className="tw-c-wr">WR</span>
                 <span className="tw-c-net">
                   vs. media
                   <InfoTip
                     align="end"
-                    text="Diferencia entre el winrate con ESE campeón y el winrate general de ese jugador en sus partidas guardadas. Es lo que separa un campeón que le rinde de uno que simplemente juega mucho: un 52% dice poco si en general anda en 55."
+                    text="Cuánto mejor (o peor) le va con ESE campeón que en general, sobre sus partidas guardadas. Es lo que separa un campeón que le rinde de uno que simplemente juega mucho: un 52% dice poco si en general anda en 55."
                   />
                 </span>
               </div>

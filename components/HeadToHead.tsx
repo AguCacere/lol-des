@@ -230,8 +230,8 @@ export function HeadToHead({
                   <InfoTip
                     text={
                       hayZ
-                        ? "Cada barra compara desvíos contra el promedio del grupo EN EL ROL DE CADA UNO, no los números crudos. Comparar el CS/min de un ADC contra el de un support diría que el support farmea mal, y no es lo que hace. Cuando los dos juegan el mismo rol comparten el promedio de referencia, así que el resultado coincide con comparar los números directamente."
-                        : "Los promedios de cada uno sobre sus partidas guardadas. La comparación contra los pares de cada rol —que es la justa entre roles distintos— necesita que varios del grupo jueguen ese mismo rol, y todavía no hay muestra para eso."
+                        ? "Cada barra compara cuánto se despega cada uno del promedio DE SU PROPIO ROL, y no los números pelados. Comparar el CS/min de un ADC contra el de un support diría que el support farmea mal, y no es lo que hace. Cuando los dos juegan el mismo rol la referencia es la misma, así que da igual que compararlos de una."
+                        : "Los promedios de cada uno sobre sus partidas guardadas. Para compararlos contra los que juegan su mismo rol —que es lo justo cuando juegan roles distintos— hacen falta varios del grupo jugando ese rol, y todavía no son suficientes."
                     }
                   />
                 </span>

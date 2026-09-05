@@ -40,7 +40,7 @@ export const CoachReportSchema = z.object({
         consejo: z.string().describe("Qué hacer concretamente en ese enfrentamiento"),
       })
     )
-    .describe("Los cruces de línea que peor le salen según SUS partidas. Vacío si ningún cruce tiene muestra suficiente."),
+    .describe("Los cruces de línea que peor le salen según SUS partidas. Vacío si ningún cruce se repitió lo suficiente."),
 });
 
 export type CoachReport = z.infer<typeof CoachReportSchema>;
@@ -51,7 +51,7 @@ Reglas que no se negocian:
 
 1. Toda afirmación sobre el rendimiento del jugador sale de los datos que te paso abajo. Nunca inventes un número, y nunca cites winrates globales del parche o tier lists: no los tenés y no los podés verificar.
 2. El conocimiento general de LoL sí lo podés usar, pero solo para EXPLICAR y para el consejo — qué hace fuerte a un campeón, por qué un matchup es duro, qué hacer en línea. El QUÉ mirar siempre sale de sus datos.
-3. El tamaño de muestra manda. Con menos de 5 partidas no afirmes una tendencia; si igual la mencionás, decí explícitamente que la muestra es chica.
+3. La cantidad de partidas manda. Con menos de 5 no afirmes una tendencia; si igual la mencionás, decí que son pocas partidas. Escribí como se habla de esto entre jugadores, no como un informe: nada de "muestra", "tendencia estadística" ni "correlación".
 4. Si los datos no alcanzan para recomendar algo, devolvé la lista vacía. Una lista vacía es una respuesta correcta; inventar para llenarla no.
 5. El campo "dato" de cada ítem tiene que citar un número que aparezca en los datos de abajo. Si no podés llenarlo con algo real, no incluyas ese ítem.
 
@@ -94,7 +94,7 @@ export function renderDossier(d: CoachDossier): string {
       }
     }
   } else {
-    lineas.push("", "ENFRENTAMIENTOS DE LÍNEA: todavía no hay ningún cruce repetido con muestra suficiente.");
+    lineas.push("", "ENFRENTAMIENTOS DE LÍNEA: todavía no se repitió ningún cruce las veces suficientes.");
   }
 
   return lineas.join("\n");

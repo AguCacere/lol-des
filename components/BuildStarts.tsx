@@ -34,7 +34,7 @@ export function BuildStarts({
     <div className="build-starts">
       <h4 className="subsection-label">
         Cómo arrancás
-        <InfoTip text="El primer ítem COMPLETO de cada partida (no el primer componente ni la poción) cruzado con el resultado, sobre tus partidas guardadas. Solo aparecen los campeones con muestra suficiente y al menos dos arranques distintos: con uno solo no hay nada que comparar." />
+        <InfoTip text="El primer ítem COMPLETO de cada partida (no el primer componente ni la poción) cruzado con el resultado, sobre tus partidas guardadas. Solo aparecen los campeones que jugaste bastante y con al menos dos arranques distintos: con uno solo no hay nada que comparar." />
       </h4>
 
       {stats.map((c) => (

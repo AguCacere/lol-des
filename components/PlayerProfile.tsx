@@ -569,7 +569,7 @@ export function PlayerProfile({
             <div>
               <h4 className="subsection-label">
                 Campeones más jugados
-                <InfoTip text="Sale de tus partidas de ranked solo/dúo guardadas por la app, no de tu carrera completa: el winrate y el KDA son reales, calculados de esas partidas. Por eso el orden puede no coincidir con el de maestría, que cuenta todas las colas de siempre. El winrate se muestra en gris cuando hay menos de 5 partidas: con tan poca muestra el porcentaje todavía no significa nada." />
+                <InfoTip text="Sale de tus partidas de ranked solo/dúo guardadas por la app, no de tu carrera completa: el winrate y el KDA son reales, calculados de esas partidas. Por eso el orden puede no coincidir con el de maestría, que cuenta todas las colas de siempre. El winrate va en gris cuando hay menos de 5 partidas: con tan pocas, el porcentaje todavía no dice nada." />
               </h4>
               <ChampionPool pool={p.championPool} ddragonVersion={ddragonVersion} />
             </div>

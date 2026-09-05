@@ -15,7 +15,7 @@ export function AegisStats({ stats }: { stats: AegisStatsData | null }) {
     <div className="aegis-wrap">
       <span className="aegis-label">
         Aegis of Valor (estimado)
-        <InfoTip text="Riot no expone este dato en su API — no aparece en ningún campo, lo chequeamos a fondo. Esto es una inferencia estadística: comparamos el LP real de cada partida que se puede aislar contra el promedio propio de este jugador, y marcamos como posible cuando se aleja bastante de lo normal. No es una confirmación oficial de Riot." />
+        <InfoTip text="Riot no publica este dato en ningún lado de su API, lo buscamos a fondo. Así que es una estimación: miramos el LP que dio cada partida que se puede aislar, lo comparamos con lo que le suele dar a este jugador, y marcamos las que se van bastante de lo normal. No es una confirmación de Riot." />
       </span>
       <div className="aegis-badges">
         <span className="aegis-badge">

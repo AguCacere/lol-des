@@ -21,7 +21,7 @@ function InsightRow({ m }: { m: MetricInsight }) {
 }
 
 /**
- * Comparativa contra el promedio real del rol — un "insight calculado", no un
+ * Comparación contra el promedio real del rol — algo calculado, no un
  * dato crudo. Si no hay suficientes compañeros trackeados en el mismo rol, o
  * si el jugador rinde parejo en todo, lo dice explícitamente en vez de forzar
  * una fortaleza/debilidad que los datos no respaldan.
