@@ -78,13 +78,13 @@ const CARGADAS: ((label: string, champ: string, k: number, d: number, a: number)
   (l, c, k, d, a) => `**${l}** agarró a **${c}** y lo devolvió usado: **${k}/${d}/${a}**. ${d} muertes. ${d}.`,
   (l, c, k, d, a) => `**${l}** hizo **${k}/${d}/${a}** con **${c}**. Eso no es una partida, es una donación.`,
   (l, c, k, d, a) => `**${k}/${d}/${a}** con **${c}**. **${l}** fue el mejor jugador del equipo rival.`,
-  (l, c, k, d, a) => `**${l}** repartió ${d} muertes gratis con **${c}** (**${k}/${d}/${a}**). Ya lo tienen agendado para el cumpleaños.`,
+  (l, c, k, d, a) => `**${l}** es un wachín de corso que terminó **${k}/${d}/${a}** todo reventado con **${c}**.`,
   (l, c, k, d, a) => `**${c}** en manos de **${l}**: **${k}/${d}/${a}**. El bot de práctica rendía más y no se quejaba.`,
-  (l, c, k, d, a) => `${d} muertes, **${l}**. ${d}. Cerró **${k}/${d}/${a}** con **${c}** y salió a buscar otra.`,
+  (l, c, k, d, a) => `**${l}** es un condón usado con **${c}** y terminó **${k}/${d}/${a}**.`,
   (l, c, k, d, a) => `**${l}** pasó más tiempo en la fuente que en el mapa: **${k}/${d}/${a}** con **${c}**.`,
   (l, c, k, d, a) => `**${k}/${d}/${a}**. **${l}** no jugó **${c}**, lo hizo pasar vergüenza en público.`,
   (l, c, k, d, a) => `**${l}** con **${c}**: **${k}/${d}/${a}**. Si el rival tenía una misión de matarlo ${d} veces, la completó solo.`,
-  (l, c, k, d, a) => `Alguien avísele a **${l}** que con **${c}** también se puede no morir. Terminó **${k}/${d}/${a}**.`,
+  (l, c, k, d, a) => `A **${l}** no le da la cabeza para jugar con **${c}** y fue full pantalla gris: **${k}/${d}/${a}**.`,
 ];
 
 /**
