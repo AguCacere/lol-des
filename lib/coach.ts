@@ -113,8 +113,23 @@ export function renderDossier(d: CoachDossier): string {
  * que habilita comparar este hash.
  */
 export function dossierHash(dossier: CoachDossier): string {
-  return createHash("sha256").update(renderDossier(dossier)).digest("hex");
+  return createHash("sha256").update(`v${PROMPT_VERSION}\n${renderDossier(dossier)}`).digest("hex");
 }
+
+/**
+ * Subir esto invalida todos los informes guardados y hace que el próximo
+ * "Regenerar" llame de verdad al modelo.
+ *
+ * Hace falta porque el hash es del DOSSIER, y el texto del informe no depende
+ * solo de los datos: también depende de las instrucciones. Cuando se cambia
+ * el prompt —como al sacarle las palabras de estadística— sin esto el caché
+ * sigue devolviendo el informe viejo y parece que el cambio no funcionó.
+ *
+ * 1: versión inicial.
+ * 2: el prompt le pide escribir como se habla entre jugadores, sin "muestra"
+ *    ni "tendencia estadística".
+ */
+const PROMPT_VERSION = 2;
 
 /**
  * Llama a la API de Claude y devuelve el informe ya validado contra el

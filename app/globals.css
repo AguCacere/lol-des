@@ -410,7 +410,21 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   width:100%;
 }
 .ladder-row:last-child{border-bottom:none;}
-.ladder-row:hover{background:var(--surface-hover);}
+/* El hover no es solo un cambio de fondo: la fila lleva a algún lado (abre el
+   perfil y baja hasta él), así que se anuncia con una línea dorada que crece
+   desde la izquierda y el chevron que se acerca. Sutil, pero suficiente para
+   que la fila se lea como una puerta y no como una celda de planilla. */
+.ladder-row:hover{background:var(--surface-hover); box-shadow:inset 3px 0 0 var(--accent-dim);}
+.ladder-row .col-chevron{transition:transform .15s ease, color .15s ease;}
+.ladder-row:hover .col-chevron{transform:translateX(3px); color:var(--accent);}
+/* La activa ya tiene su propia barra dorada y no debe moverse al pasarle por
+   encima: ya estás adentro de ese perfil. */
+.ladder-row.is-active:hover{box-shadow:inset 2px 0 0 var(--accent);}
+.ladder-row.is-you:hover{box-shadow:inset 3px 0 0 var(--gold);}
+@media (prefers-reduced-motion:reduce){
+  .ladder-row .col-chevron{transition:none;}
+  .ladder-row:hover .col-chevron{transform:none;}
+}
 .ladder-row:focus-visible{background:var(--surface-hover); box-shadow:inset 0 0 0 2px var(--accent);}
 .ladder-row.is-active{background:var(--accent-wash-soft); box-shadow:inset 2px 0 0 var(--accent);}
 .ladder-row.is-you{box-shadow:inset 2px 0 0 var(--gold);}
@@ -1694,6 +1708,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%) translateY(4px);
   width:230px; max-width:60vw; background:var(--surface-hover); color:var(--text-secondary);
   font-size:11px; font-weight:400; line-height:1.55; text-align:left; text-transform:none; letter-spacing:normal;
+  /* Y white-space normal: el globo se mete adentro de contextos que ponen
+     nowrap (la línea de unidad de una tarjeta, el subtítulo de una tabla) y
+     lo heredaba, así que el texto no envolvía y se estiraba a lo ancho de
+     toda la pantalla pisando lo de al lado. */
+  white-space:normal;
   padding:9px 11px; border-radius:8px; box-shadow:var(--shadow);
   /* display:none while hidden, NOT just opacity:0 — an invisible 230px box
      still counts toward the page's scrollable overflow, and the "Máximo ⓘ"

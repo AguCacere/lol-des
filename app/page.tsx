@@ -299,7 +299,13 @@ export default function Home() {
             players={players}
             filterText={filterText}
             activeKey={activeKey}
-            onSelect={(key) => setActiveKey((cur) => (cur === key ? null : key))}
+            onSelect={(key) => {
+              // Tocar la fila activa la cierra (y ahí NO se scrollea: el perfil
+              // se está yendo, llevar la vista hasta donde estaba es marear).
+              // Tocar cualquier otra abre ese perfil y baja hasta él.
+              if (activeKey === key) setActiveKey(null);
+              else abrirPerfil(key);
+            }}
             loading={loading}
             error={loadError}
             lastUpdated={lastUpdated}
