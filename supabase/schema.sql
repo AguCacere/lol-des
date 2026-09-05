@@ -102,7 +102,7 @@ create table if not exists matches (
   item_build    int[] not null default '{}', -- itemId de cada ITEM_PURCHASED (Match-V5 timeline) de este jugador, EN ORDEN de compra real — no reconciliado contra ventas/undo, incluye consumibles/trinket. Vacío en partidas guardadas antes de que este campo existiera.
   team_position text,          -- TOP/JUNGLE/MIDDLE/BOTTOM/UTILITY
   opponent_champion text,      -- campeón del rival del MISMO carril (mismo teamPosition, otro equipo). Sale del payload de Match-V5 que ya bajamos, sin llamada extra — es la base de los matchups ("con Caitlyn contra Jhin: 11V 8D"). Null si Riot no resolvió posición o nadie coincidió.
-  queue_id      int not null default 420, -- Match-V5 queueId: 420=ranked solo/duo, 440=flex, 700=Clash (ver lib/clash.ts). Las de flex se guardan pero NINGUNA vista las muestra: están solo para la cargada de Discord (ver RANKED_FLEX_QUEUE_ID en lib/refresh.ts). Toda consulta nueva sobre esta tabla tiene que filtrar por queue_id o se le cuelan.
+  queue_id      int not null default 420, -- Match-V5 queueId: 420=ranked solo/duo, 700=Clash (ver lib/clash.ts). Flex (440) NO se guarda: la cargada de Discord se la pregunta a Riot en vivo y la descarta (ver RANKED_FLEX_QUEUE_ID en lib/refresh.ts).
   game_duration_s int not null,
   played_at     timestamptz not null,
   inserted_at   timestamptz not null default now(),

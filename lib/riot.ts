@@ -90,8 +90,15 @@ export function getLeagueEntriesByPuuid(puuid: string) {
 }
 
 /** Match-V5 — match ids for a puuid, paginated via `start`/`count` (Riot caps `count` at 100 per call). `queue` defaults to ranked solo/duo (420) — pass 700 for Clash. Region-routed. Costs 0 extra calls per id. */
-export function getMatchIdsByPuuid(puuid: string, count = 20, start = 0, queue = 420) {
-  const url = `https://${REGION}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=${start}&count=${count}&queue=${queue}`;
+/**
+ * `startTime` (epoch en SEGUNDOS) filtra por cuándo EMPEZÓ la partida, no por
+ * cuándo terminó. Para "lo que se jugó desde tal momento" hay que restarle la
+ * duración de una partida larga, o se pierden las que arrancaron antes del
+ * corte y terminaron después.
+ */
+export function getMatchIdsByPuuid(puuid: string, count = 20, start = 0, queue = 420, startTime?: number) {
+  let url = `https://${REGION}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=${start}&count=${count}&queue=${queue}`;
+  if (startTime != null) url += `&startTime=${startTime}`;
   return riotFetch<string[]>(url);
 }
 
@@ -100,6 +107,8 @@ export interface RiotMatch {
   info: {
     gameDuration: number;
     gameCreation: number;
+    /** Fin real de la partida. Riot lo manda desde el parche 11.20; para lo anterior se reconstruye con gameCreation + gameDuration. */
+    gameEndTimestamp?: number;
     queueId: number; // 420=ranked solo/duo, 700=Clash — see lib/refresh.ts
     participants: RiotParticipant[];
   };

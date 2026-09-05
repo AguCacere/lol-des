@@ -62,11 +62,12 @@ export function disasterScore(m: RoastCandidate): number {
   return (m.kills + m.assists) / Math.max(1, m.deaths);
 }
 
-/** Una derrota lo bastante mala como para merecer una cargada. */
+/**
+ * Una partida lo bastante mala como para merecer una cargada. El resultado no
+ * la salva: hacer 1/14 y ganar igual es hacer 1/14, solo que con la suerte de
+ * tener cuatro compañeros que lo taparon. El mensaje lo aclara.
+ */
 export function isDisaster(m: RoastCandidate): boolean {
-  // Solo derrotas: hacer 0/13 y GANAR es gracioso por otro motivo y merece
-  // otra burla, no esta.
-  if (m.win) return false;
   if (m.deaths >= MIN_DEATHS && disasterScore(m) < MAX_RATIO) return true;
   if (m.deaths >= MUERTES_ABSURDAS && m.deaths > m.kills + m.assists) return true;
   return false;
@@ -120,8 +121,16 @@ export function roastMessage(label: string, m: RoastCandidate): string {
   // medio de una cargada la desinflan.
   const texto = cargada(label, championLabel(m.champion), m.kills, m.deaths, m.assists);
   const cola = m.esFlex ? " *(flex)*" : "";
-  const extra = remate(m);
-  return extra ? `😂😂😂 ${texto}${cola}\n${extra}` : `😂😂😂 ${texto}${cola}`;
+
+  // La segunda línea junta lo que no es la cargada en sí: que haya ganado
+  // igual (que no lo salva, lo empeora) y el número que remata.
+  const extras: string[] = [];
+  if (m.win) extras.push("Pero ganó, lamentablemente.");
+  const dato = remate(m);
+  if (dato) extras.push(dato);
+
+  const primera = `😂😂😂 ${texto}${cola}`;
+  return extras.length > 0 ? `${primera}\n${extras.join(" ")}` : primera;
 }
 
 /**

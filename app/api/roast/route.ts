@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { isDisaster, roastMessage, worstDisaster, type RoastCandidate } from "@/lib/roast";
-import { RANKED_FLEX_QUEUE_ID, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
+import { candidatasDeFlex, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 
 /** Cuántas partidas recientes se miran cuando no se pasa un matchId puntual. */
 const VENTANA = 20;
@@ -16,7 +16,6 @@ interface Fila {
   dmg_share: number | null;
   cs: number | null;
   cs_per_min: number | null;
-  queue_id: number;
 }
 
 function candidato(r: Fila): RoastCandidate {
@@ -30,7 +29,6 @@ function candidato(r: Fila): RoastCandidate {
     dmgShare: r.dmg_share,
     cs: r.cs,
     csPerMin: r.cs_per_min,
-    esFlex: r.queue_id === RANKED_FLEX_QUEUE_ID,
   };
 }
 
@@ -48,6 +46,9 @@ function candidato(r: Fila): RoastCandidate {
  *   fetch("/api/roast", { method: "POST", headers: { "Content-Type": "application/json" },
  *     body: JSON.stringify({ gameName: "Nombre", tagLine: "LAS", dryRun: true }) }).then(r => r.json())
  *
+ * `flex: true` mira las últimas de flex preguntándole a Riot en vivo, porque
+ * de esa cola no se guarda nada (ver RANKED_FLEX_QUEUE_ID en lib/refresh.ts).
+ *
  * `dryRun: true` devuelve el texto sin mandarlo — conviene verlo antes de
  * publicarlo en el canal, porque de Discord no se borra tan fácil.
  *
@@ -57,13 +58,13 @@ function candidato(r: Fila): RoastCandidate {
  * el criterio automático.
  */
 export async function POST(req: Request) {
-  let body: { gameName?: string; tagLine?: string; matchId?: string; dryRun?: boolean };
+  let body: { gameName?: string; tagLine?: string; matchId?: string; dryRun?: boolean; flex?: boolean };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Body inválido — mandá JSON." }, { status: 400 });
   }
-  const { gameName, tagLine, matchId, dryRun } = body;
+  const { gameName, tagLine, matchId, dryRun, flex } = body;
   if (!gameName || !tagLine) {
     return NextResponse.json({ error: "Faltan gameName y/o tagLine." }, { status: 400 });
   }
@@ -86,12 +87,26 @@ export async function POST(req: Request) {
   }
   const label = `${summoner.game_name}#${summoner.tag_line}`;
 
-  const columnas = "match_id, champion, win, kills, deaths, assists, dmg_share, cs, cs_per_min, queue_id";
+  // `flex: true` no toca la base porque de flex no se guarda nada: se le
+  // preguntan las últimas a Riot en el momento (ver candidatasDeFlex).
+  if (flex) {
+    const peorFlex = worstDisaster(await candidatasDeFlex(summoner.puuid, null));
+    if (!peorFlex) {
+      return NextResponse.json({ sent: false, reason: `Ninguna partida reciente de flex de ${label} califica.` });
+    }
+    const texto = roastMessage(label, peorFlex);
+    if (dryRun) return NextResponse.json({ sent: false, dryRun: true, matchId: peorFlex.matchId, message: texto });
+    const { sendDiscordNotification } = await import("@/lib/discord");
+    await sendDiscordNotification(texto);
+    return NextResponse.json({ sent: true, matchId: peorFlex.matchId, message: texto });
+  }
+
+  const columnas = "match_id, champion, win, kills, deaths, assists, dmg_share, cs, cs_per_min";
   let query = supabase
     .from("matches")
     .select(columnas)
     .eq("puuid", summoner.puuid)
-    .in("queue_id", [RANKED_SOLO_QUEUE_ID, RANKED_FLEX_QUEUE_ID]);
+    .eq("queue_id", RANKED_SOLO_QUEUE_ID);
   query = matchId
     ? query.eq("match_id", matchId)
     : query.order("played_at", { ascending: false }).limit(VENTANA);

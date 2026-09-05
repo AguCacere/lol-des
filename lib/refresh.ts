@@ -8,11 +8,12 @@ import {
   getTopChampionMasteries,
   RiotRateLimitError,
   type RiotLeagueEntry,
+  type RiotMatch,
 } from "./riot";
 import { championNameById, runeNameById, summonerSpellNameById } from "./ddragon";
 import { extractTimelineStats } from "./timeline";
 import { sendDiscordNotification } from "./discord";
-import { roastMessage, worstDisaster } from "./roast";
+import { roastMessage, worstDisaster, type RoastCandidate } from "./roast";
 import { tierFor } from "./ladder";
 import { divisionFromRiot, tierKeyFromRiot } from "./mapping";
 
@@ -25,15 +26,13 @@ export const RANKED_SOLO_QUEUE_ID = 420;
 /** Match-V5 queueId for Clash — see lib/clash.ts for how these get grouped into "tournaments" once stored. */
 export const CLASH_QUEUE_ID = 700;
 /**
- * Flex. Se guardan las partidas pero NINGUNA vista de la app las muestra:
- * todas las consultas de estadísticas filtran por 420 (o por 700 en la
- * pestaña de Clash), y así queda. Están acá por una sola razón — que la
- * cargada de Discord también agarre los desastres de flex, que son igual de
- * dignos de burla aunque no cuenten para nada más.
+ * Flex. De esta cola NO se guarda absolutamente nada: ni una fila en
+ * `matches`, ni un id, ni un timestamp. Se le pregunta a Riot en vivo si hubo
+ * un desastre nuevo, se manda la cargada y se descarta todo — flex no
+ * alimenta el ladder, ni el pool, ni los récords, ni nada de la app.
  *
- * Ojo si mañana se agrega una consulta nueva sobre `matches`: sin el filtro
- * de queue_id, estas filas se cuelan en el pool de campeones, en los récords
- * y en los promedios por rol.
+ * Ver checkFlexDisasterAndNotify para cómo se evita repetir la burla cada
+ * quince minutos sin guardar qué se cargó.
  */
 export const RANKED_FLEX_QUEUE_ID = 440;
 /** Below this, a win/loss streak doesn't get a Discord ping — see checkStreakAndNotify. */
@@ -110,8 +109,8 @@ async function checkStreakAndNotify(supabase: SupabaseClient, puuid: string) {
 
 /**
  * La cargada por partida desastrosa (ver lib/roast.ts para el criterio y el
- * tono). Mira soloQ Y flex — es lo único de flex que hace la app, y morir 14
- * veces es morir 14 veces sin importar la cola.
+ * tono). Esta es la de soloQ, sobre lo que quedó guardado; la de flex es
+ * checkFlexDisasterAndNotify, que no guarda nada.
  *
  * Mira SOLO los match_id que este ciclo acaba de insertar: sobre el
  * historial entero volvería a encontrar el mismo 0/13 de hace tres días y lo
@@ -124,9 +123,9 @@ async function checkStreakAndNotify(supabase: SupabaseClient, puuid: string) {
 async function checkDisasterAndNotify(supabase: SupabaseClient, puuid: string, nuevos: string[]) {
   const { data: rows } = await supabase
     .from("matches")
-    .select("match_id, champion, win, kills, deaths, assists, dmg_share, cs, cs_per_min, queue_id")
+    .select("match_id, champion, win, kills, deaths, assists, dmg_share, cs, cs_per_min")
     .eq("puuid", puuid)
-    .in("queue_id", [RANKED_SOLO_QUEUE_ID, RANKED_FLEX_QUEUE_ID])
+    .eq("queue_id", RANKED_SOLO_QUEUE_ID)
     .in("match_id", nuevos);
   if (!rows || rows.length === 0) return;
 
@@ -141,11 +140,118 @@ async function checkDisasterAndNotify(supabase: SupabaseClient, puuid: string, n
       dmgShare: r.dmg_share,
       cs: r.cs,
       csPerMin: r.cs_per_min,
-      esFlex: r.queue_id === RANKED_FLEX_QUEUE_ID,
     }))
   );
   if (!peor) return;
 
+  const label = await summonerLabel(supabase, puuid);
+  if (!label) return;
+  await sendDiscordNotification(roastMessage(label, peor));
+}
+
+/**
+ * Ventana máxima hacia atrás para la cargada de flex. Si el cron estuvo caído
+ * medio día, al volver no se carga una partida de la mañana como si fuera
+ * recién jugada.
+ */
+const FLEX_VENTANA_MS = 3 * 60 * 60 * 1000;
+/**
+ * Cuánto se le resta al corte al pedirle los ids a Riot. `startTime` filtra
+ * por el ARRANQUE de la partida, y una de flex de 35 minutos que empezó antes
+ * del refresh anterior y terminó después es exactamente el caso que hay que
+ * agarrar.
+ */
+const FLEX_PARTIDA_LARGA_MS = 90 * 60 * 1000;
+/** Cuántas partidas de flex se miran como máximo por ciclo. */
+const FLEX_MAX_CANDIDATAS = 3;
+
+/** La partida de Riot convertida en candidata a cargada, sin pasar por la base. */
+function candidataDeMatch(puuid: string, matchId: string, match: RiotMatch): RoastCandidate | null {
+  const me = match.info.participants.find((p) => p.puuid === puuid);
+  if (!me) return null;
+
+  const teammates = match.info.participants.filter((p) => p.teamId === me.teamId);
+  const teamDamage = teammates.reduce((sum, p) => sum + p.totalDamageDealtToChampions, 0);
+  const cs = me.totalMinionsKilled + me.neutralMinionsKilled;
+  const durationMin = match.info.gameDuration / 60;
+  // Mismo criterio que buildMatchRow: si Riot ya lo calculó, se usa el suyo.
+  const dmgShare =
+    me.challenges?.teamDamagePercentage != null
+      ? Number((me.challenges.teamDamagePercentage * 100).toFixed(1))
+      : teamDamage > 0
+        ? Number(((100 * me.totalDamageDealtToChampions) / teamDamage).toFixed(1))
+        : null;
+
+  return {
+    matchId,
+    champion: me.championName,
+    win: me.win,
+    kills: me.kills,
+    deaths: me.deaths,
+    assists: me.assists,
+    dmgShare,
+    cs,
+    csPerMin: durationMin > 0 ? Number((cs / durationMin).toFixed(1)) : null,
+    esFlex: true,
+  };
+}
+
+/** Cuándo terminó, en ms. Riot manda gameEndTimestamp desde el 11.20; para lo viejo se reconstruye. */
+function finDePartidaMs(match: RiotMatch): number {
+  return match.info.gameEndTimestamp ?? match.info.gameCreation + match.info.gameDuration * 1000;
+}
+
+/**
+ * Las últimas partidas de flex traídas de Riot y convertidas en candidatas,
+ * SIN tocar la base: no se guarda la partida, ni su id, ni un marcador de
+ * "esta ya la cargué". Flex no alimenta nada de la app.
+ *
+ * `corte` (epoch ms) deja solo las que TERMINARON después de ese momento, y
+ * null trae las últimas sin filtrar (el uso manual desde /api/roast).
+ *
+ * Costo: una llamada por la lista de ids, que vuelve vacía si no jugó flex en
+ * la ventana, más una por partida candidata. El break por fecha de fin corta
+ * el bucle apenas aparece una vieja.
+ */
+export async function candidatasDeFlex(puuid: string, corte: number | null): Promise<RoastCandidate[]> {
+  const ids = await getMatchIdsByPuuid(
+    puuid,
+    FLEX_MAX_CANDIDATAS,
+    0,
+    RANKED_FLEX_QUEUE_ID,
+    corte === null ? undefined : Math.floor((corte - FLEX_PARTIDA_LARGA_MS) / 1000)
+  );
+
+  const candidatas: RoastCandidate[] = [];
+  for (const matchId of ids) {
+    const match = await getMatchById(matchId);
+    // Los ids vienen de la más nueva a la más vieja: la primera que terminó
+    // antes del corte ya fue considerada en un ciclo anterior, y las que
+    // siguen también.
+    if (corte !== null && finDePartidaMs(match) <= corte) break;
+    const candidata = candidataDeMatch(puuid, matchId, match);
+    if (candidata) candidatas.push(candidata);
+  }
+  return candidatas;
+}
+
+/**
+ * La cargada de flex. Como no se guarda nada, el problema es cómo no repetir
+ * la misma burla cada quince minutos sin memoria de qué se publicó.
+ *
+ * La solución es no necesitar memoria nueva: se usa el `last_refreshed_at`
+ * que el refresh ya venía guardando y se carga solo lo que terminó entre ese
+ * momento y ahora. Cada partida cae en una sola ventana, así que se publica
+ * una vez y nunca más. Sin fila nueva, sin tabla nueva, sin columna nueva.
+ */
+async function checkFlexDisasterAndNotify(supabase: SupabaseClient, puuid: string, refreshAnterior: string | null) {
+  // Sin refresh previo no hay ventana: es un invocador recién agregado y su
+  // historial de flex entero sería "nuevo". Se espera al próximo ciclo.
+  if (!refreshAnterior) return;
+  const corte = Math.max(new Date(refreshAnterior).getTime(), Date.now() - FLEX_VENTANA_MS);
+
+  const peor = worstDisaster(await candidatasDeFlex(puuid, corte));
+  if (!peor) return;
   const label = await summonerLabel(supabase, puuid);
   if (!label) return;
   await sendDiscordNotification(roastMessage(label, peor));
@@ -439,6 +545,15 @@ async function fetchAndStoreMatch(supabase: SupabaseClient, puuid: string, match
 /** Pulls fresh LP + new ranked matches for one summoner and appends them to Supabase. Returns non-fatal warnings from steps that failed without aborting the refresh (so callers/logs can see WHY, instead of a silent no-op). */
 export async function refreshOne(supabase: SupabaseClient, puuid: string): Promise<string[]> {
   const warnings: string[] = [];
+  // Se lee ANTES de que el final de esta función lo pise: es el corte que usa
+  // la cargada de flex para saber qué partida es nueva sin guardar nada.
+  const { data: previo } = await supabase
+    .from("summoners")
+    .select("last_refreshed_at")
+    .eq("puuid", puuid)
+    .maybeSingle();
+  const refreshAnterior: string | null = previo?.last_refreshed_at ?? null;
+
   const entries = await getLeagueEntriesByPuuid(puuid);
   const solo = entries.find((e) => e.queueType === "RANKED_SOLO_5x5");
   if (solo) await upsertRankSnapshot(supabase, puuid, solo, "RANKED_SOLO_5x5");
@@ -467,32 +582,18 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string): Promi
     if (warning) warnings.push(warning);
     else insertados.push(matchId);
   }
-  // Flex. No alimenta ninguna vista de la app (ver RANKED_FLEX_QUEUE_ID):
-  // se baja solo para que la cargada de Discord también agarre los desastres
-  // de flex. Mismo costo que la vuelta de Clash de abajo — una llamada más a
-  // Riot por ciclo, y nada por partida salvo que haya algo nuevo.
-  const insertadosFlex: string[] = [];
-  const flexMatchIds = await getMatchIdsByPuuid(puuid, 20, 0, RANKED_FLEX_QUEUE_ID);
-  for (const matchId of flexMatchIds) {
-    if (known.has(matchId)) continue;
-    const warning = await fetchAndStoreMatch(supabase, puuid, matchId);
-    if (warning) warnings.push(warning);
-    else insertadosFlex.push(matchId);
-  }
-
   // Once per refresh cycle, after everything new is already stored — not
   // once per match inside the loop above, which (with several new ranked
   // games in the same cycle) would fire one Discord message per game, each
   // describing an earlier/smaller streak than the one before it.
-  //
-  // La racha sigue siendo solo de soloQ: es la que mueve el LP del ladder, y
-  // mezclarle flex haría que "5 victorias seguidas" no se corresponda con
-  // nada de lo que muestra la app. La cargada, en cambio, mira las dos.
-  if (insertados.length > 0) await checkStreakAndNotify(supabase, puuid);
-  const nuevasParaCargar = [...insertados, ...insertadosFlex];
-  if (nuevasParaCargar.length > 0) {
-    await checkDisasterAndNotify(supabase, puuid, nuevasParaCargar);
+  if (insertados.length > 0) {
+    await checkStreakAndNotify(supabase, puuid);
+    await checkDisasterAndNotify(supabase, puuid, insertados);
   }
+
+  // Y la de flex, que no guarda nada — de ahí que necesite el corte de tiempo
+  // en vez de la lista de lo recién insertado.
+  await checkFlexDisasterAndNotify(supabase, puuid, refreshAnterior);
 
   // Clash games are rare (a handful of days a year, at most), so this almost
   // always comes back empty — but checking the last 20 ids every ~15min
