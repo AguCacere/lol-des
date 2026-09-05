@@ -2194,7 +2194,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .tw-row:last-child{border-radius:0 0 var(--radius-lg) var(--radius-lg);}
 .tw-head, .tw-row{
   display:grid;
-  grid-template-columns:30px minmax(0,1.5fr) 74px minmax(120px,1.6fr) 56px 62px;
+  grid-template-columns:30px minmax(0,1.5fr) 74px minmax(120px,1.6fr) 56px 74px;
   align-items:center; gap:14px;
   padding:11px 18px;
 }
@@ -2341,3 +2341,30 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .sk-tier{width:96px; height:13px;}
 .sk-wr{width:56px; height:13px;}
 .sk-spark{width:100%; max-width:120px; height:22px;}
+
+/* El ranking por campeón reusa la tabla de "Mayor winrate" (clases tw-*): son
+   dos rankings hermanos en la misma pestaña y darles dos formas distintas los
+   hacía leer como cosas sin relación. Solo agrega la columna de diferencia
+   contra el promedio propio del jugador. */
+.tw-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
+.tw-delta{font-family:var(--font-stat); font-weight:700; font-variant-numeric:tabular-nums;}
+.tw-delta.good{color:var(--good);}
+.tw-delta.bad{color:var(--critical);}
+.tw-delta.neutral{color:var(--text-muted);}
+.podium-record .tw-delta{margin-left:7px;}
+
+/* Separación entre secciones de una misma pestaña. Antes venían pegadas y sin
+   ninguna línea que las cortara: se leían como una sola cosa larga con
+   títulos adentro, que es el "juntas y separadas al mismo tiempo". */
+#view-stats > section + section,
+#view-ranking > section + section{
+  margin-top:36px; padding-top:30px; border-top:1px solid var(--border-soft);
+}
+.duo-vacio{margin-top:14px;}
+@media (max-width:760px){
+  /* La fila de invocadores scrollea de costado en vez de envolverse en
+     cuatro líneas que empujan el panel fuera de la pantalla. */
+  .duo-chip-row{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; padding-bottom:4px;}
+  .duo-chip-row::-webkit-scrollbar{display:none;}
+  .duo-chip{flex:none;}
+}

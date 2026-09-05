@@ -297,6 +297,8 @@ export interface ChampionLeaderboardEntry {
   wins: number;
   losses: number;
   winrate: number;
+  /** El winrate general de ese jugador sobre sus partidas guardadas — la referencia contra la que se lee el del campeón. */
+  playerWinrate: number;
   avgKda: number;
 }
 

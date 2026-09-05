@@ -198,6 +198,16 @@ export function DuoSynergy({
             })}
           </div>
 
+          {!selectedPlayer && (
+            // Sin esto la sección terminaba en la fila de invocadores y
+            // abajo no había nada: se leía como algo a medio cargar en vez de
+            // como una sección esperando que elijas.
+            <div className="empty-state duo-vacio">
+              <strong>Elegí un invocador de arriba</strong>
+              Se arma la lista de con quién jugó, cuántas partidas hicieron juntos y qué winrate tienen como dúo.
+            </div>
+          )}
+
           {selectedPlayer && (
             <div className={`stack-cols duo-panel${fading ? " is-fading" : ""}`}>
               <div>

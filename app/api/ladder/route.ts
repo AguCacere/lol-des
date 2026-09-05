@@ -698,6 +698,17 @@ export async function GET() {
     for (const [puuid, champStats] of champStatsByPuuid) {
       const player = nameByPuuid.get(puuid);
       if (!player) continue;
+      // El promedio propio del jugador sobre el MISMO universo (sus partidas
+      // guardadas), que es contra lo que tiene sentido comparar el winrate de
+      // un campeón: "52% con Shen" dice poco hasta saber si en general está
+      // en 47 o en 55.
+      let totalGames = 0;
+      let totalWins = 0;
+      for (const s of champStats.values()) {
+        totalGames += s.games;
+        totalWins += s.wins;
+      }
+      const playerWinrate = totalGames > 0 ? Number(((100 * totalWins) / totalGames).toFixed(1)) : 0;
       for (const [champ, s] of champStats) {
         if (s.games < CHAMPION_LEADERBOARD_MIN_GAMES) continue;
         entries.push({
@@ -709,11 +720,16 @@ export async function GET() {
           wins: s.wins,
           losses: s.games - s.wins,
           winrate: Math.round((100 * s.wins) / s.games),
+          playerWinrate,
           avgKda: Number(((s.kSum + s.aSum) / Math.max(1, s.dSum)).toFixed(2)),
         });
       }
     }
-    return entries.sort((a, b) => b.winrate - a.winrate).slice(0, CHAMPION_LEADERBOARD_SIZE);
+    // Por el winrate exacto: 49,6% y 50,4% redondean los dos a 50 y el orden
+    // entre ellos quedaría librado al azar del sort.
+    return entries
+      .sort((a, b) => b.wins / b.games - a.wins / a.games)
+      .slice(0, CHAMPION_LEADERBOARD_SIZE);
   }
 
   /** Pairs of tracked players who were teammates in at least one stored match, ranked by games together. */
