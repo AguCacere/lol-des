@@ -5,7 +5,7 @@ import type { ChampionLeaderboardEntry, ClashPlayerStats, ClashTournament, DuoPa
 import { TopBar, type AddStatus } from "@/components/TopBar";
 import { TabNav, type TabKey } from "@/components/TabNav";
 import { HeadToHead } from "@/components/HeadToHead";
-import { CommandPalette } from "@/components/CommandPalette";
+import { CommandPalette, EVENTO_ABRIR } from "@/components/CommandPalette";
 import { PwaRegister } from "@/components/PwaRegister";
 import { conTransicion } from "@/lib/view-transition";
 import { LadderTable, playerKey, type SortKey } from "@/components/LadderTable";
@@ -238,6 +238,8 @@ export default function Home() {
         onSubmit={handleAdd}
         canAdd={canAdd}
         addStatus={addStatus}
+        invocadores={players.length}
+        enVivo={players.filter((p) => p.liveGame).length}
       />
       {/* El cambio de pestaña pasa por una view transition: sin ella el
           contenido se reemplaza de golpe y en una app de una sola página eso
@@ -259,7 +261,21 @@ export default function Home() {
           });
         }}
       />
-      <TabNav active={tab} onChange={(t) => conTransicion(() => setTab(t))} />
+      {/* La barra de secciones queda pegada arriba al scrollear: las pestañas
+          de estadísticas son largas y volver arriba para cambiar de sección era
+          la fricción más repetida de la app. */}
+      <div className="navbar">
+        <TabNav active={tab} onChange={(t) => conTransicion(() => setTab(t))} />
+        <button
+          type="button"
+          className="navbar-atajo"
+          onClick={() => window.dispatchEvent(new Event(EVENTO_ABRIR))}
+          title="Buscar invocador o sección"
+        >
+          <kbd>⌘</kbd>
+          <kbd>K</kbd>
+        </button>
+      </div>
 
       {tab === "ranking" ? (
         <div id="view-ranking">

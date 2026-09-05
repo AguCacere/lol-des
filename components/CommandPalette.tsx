@@ -20,6 +20,9 @@ import { championLabel } from "@/lib/champion-names";
  * Riot ID exacto.
  */
 
+/** Lo dispara el botón de la barra de secciones para abrir la paleta sin simular una tecla. */
+export const EVENTO_ABRIR = "grieta:abrir-paleta";
+
 interface Opcion {
   id: string;
   titulo: string;
@@ -101,8 +104,19 @@ export function CommandPalette({
       }
       if (e.key === "Escape") setAbierta(false);
     }
+    // Y un evento propio para el botón "⌘K" de la barra: es más honesto que
+    // fabricar un KeyboardEvent sintético para engañar al listener de arriba.
+    function abrirDesdeBoton() {
+      setAbierta(true);
+      setQ("");
+      setCursor(0);
+    }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener(EVENTO_ABRIR, abrirDesdeBoton);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener(EVENTO_ABRIR, abrirDesdeBoton);
+    };
   }, []);
 
   useEffect(() => {

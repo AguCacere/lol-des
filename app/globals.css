@@ -138,6 +138,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .tab-btn{
   appearance:none; -webkit-appearance:none;
+  /* Una etiqueta de pestaña no se parte nunca: "Cara a cara" apretado en el
+     celular se convertía en tres líneas y rompía la altura de toda la barra. */
+  white-space:nowrap; flex:none;
   border:none; background:transparent; color:var(--text-secondary);
   font-family:var(--font-body); font-weight:600; font-size:13px;
   padding:8px 18px; border-radius:999px; cursor:pointer;
@@ -2487,3 +2490,56 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* Las casillas de ejemplo dentro de la nota de la leyenda van en línea con el
    texto, no como bloques sueltos. */
 .chart-note .clash-casilla{display:inline-block; vertical-align:-1px; margin:0 2px;}
+
+/* ── Cabecera y barra de secciones ────────────────────────────────────────
+   La marca es la misma que el favicon y el ícono de la app instalada. */
+.brand-mark{width:29px; height:29px; flex:none; color:var(--accent);}
+.brand-meta{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+.brand-sep{opacity:0.45;}
+.brand-live{display:inline-flex; align-items:center; gap:5px; color:var(--good); font-weight:600;}
+.brand-live .live-dot{width:6px; height:6px; box-shadow:0 0 0 2.5px var(--good-wash);}
+
+/* Pegada arriba al scrollear: las pestañas largas obligaban a volver al
+   principio cada vez que se quería cambiar de sección. El fondo es opaco
+   además de borroso porque detrás pasan tarjetas con texto, y solo con blur
+   se leía la mezcla de las dos cosas. */
+.navbar{
+  position:sticky; top:0; z-index:40;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  margin:0 0 22px; padding:8px 0;
+  background:color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--border-soft);
+}
+/* Adentro de la barra, las pestañas pierden su propio contenedor: la barra ya
+   ES el contenedor, y una píldora dentro de otra franja se lee como dos cajas
+   discutiendo cuál manda. */
+.navbar .tabnav{margin-bottom:0; background:none; box-shadow:none; padding:0; gap:4px;}
+.navbar-atajo{
+  display:inline-flex; align-items:center; gap:4px; flex:none;
+  background:none; border:none; cursor:pointer; padding:6px 8px; border-radius:var(--radius-sm);
+  color:var(--text-muted); transition:color .12s ease, background .12s ease;
+}
+.navbar-atajo:hover{color:var(--text-secondary); background:var(--surface);}
+.navbar-atajo kbd{
+  font-family:var(--font-mono); font-size:10px; line-height:1;
+  background:var(--surface-raised); color:inherit; border-radius:4px; padding:4px 5px;
+}
+@media (max-width:640px){
+  /* En el celular el atajo de teclado no sirve para nada y la barra necesita
+     todo el ancho para las cinco secciones. */
+  .navbar-atajo{display:none;}
+  /* La fila entera scrollea de costado en vez de apretar las pestañas. */
+  .navbar{overflow-x:auto; scrollbar-width:none;}
+  .navbar .tabnav{flex:1 0 auto;}
+  .navbar::-webkit-scrollbar{display:none;}
+}
+
+/* El estado activo era un bloque dorado sólido con texto oscuro: el elemento
+   más fuerte de toda la pantalla para decir en qué pestaña estás. Ahora es
+   una superficie elevada con el texto dorado — se ve igual de claro y deja
+   que el dorado siga siendo un acento y no un cartel. */
+.tab-btn.is-active{
+  background:var(--surface-raised); color:var(--accent); font-weight:700;
+  box-shadow:inset 0 0 0 1px var(--accent-dim-border);
+}
