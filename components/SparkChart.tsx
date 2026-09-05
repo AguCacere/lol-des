@@ -18,6 +18,12 @@ interface SparkChartProps {
   variant?: "compact" | "detailed" | "mini";
   /** One React node per value, shown in the hover tooltip — detailed variant only. */
   pointLabels?: React.ReactNode[];
+  /**
+   * Líneas horizontales de referencia sobre valores que no son puntos del
+   * gráfico — los límites de división en el caso del LP. Sin ellas la curva
+   * es un garabato: se ve que baja, pero no CONTRA QUÉ baja.
+   */
+  guides?: { value: number; label: string }[];
 }
 
 /** Smoothed line + gradient area + endpoint dot — used for the "últimos 20" column and the LP chart. */
@@ -29,6 +35,7 @@ export function SparkChart({
   color,
   variant = "compact",
   pointLabels,
+  guides,
 }: SparkChartProps) {
   const detailed = variant === "detailed";
   const mini = variant === "mini";
@@ -39,7 +46,7 @@ export function SparkChart({
   // Mini spans the card's full inner width instead, so it reads as a base rule
   // under the card's content rather than a floating inset graphic.
   const padX = detailed || mini ? pad : pad + 3;
-  const { line, area, last, points } = lineAreaGeometry(values, width, height, padX, 10, pad, !detailed);
+  const { line, area, last, points, yOf } = lineAreaGeometry(values, width, height, padX, 10, pad, !detailed);
   const gid = "spark-" + useId().replace(/[:]/g, "");
   // Compact's endpoint marker used to feel like a separate button stuck onto
   // the line (big halo ring) — shrunk so it reads as "last value, subtly
@@ -161,6 +168,24 @@ export function SparkChart({
             strokeDasharray="3 3"
           />
         )}
+        {/* Los límites de división. La línea de "dónde arrancaste" dice si
+            subiste o bajaste; estas dicen contra qué — que es lo que convierte
+            una curva en una posición real en el ladder. */}
+        {detailed &&
+          guides?.map((g) => {
+            const y = yOf(g.value);
+            // Fuera de la caja no se dibuja: una guía pegada al borde superior
+            // se confunde con el marco y ensucia en vez de informar.
+            if (y < pad + 6 || y > height - pad - 6) return null;
+            return (
+              <g key={g.label}>
+                <line x1={pad} y1={y} x2={width - pad} y2={y} className="spark-guide-line" />
+                <text x={width - pad - 2} y={y - 4} className="spark-guide-label" textAnchor="end">
+                  {g.label}
+                </text>
+              </g>
+            );
+          })}
         {/*
           Now drawn for both variants — it used to be detailed-only because a
           translucent fill under a JAGGED zigzag line read as a colored smudge

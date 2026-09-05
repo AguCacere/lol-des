@@ -2696,3 +2696,18 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
      nadie scrollea para ver contra quién juega. */
   .lg-cols{grid-template-columns:1fr; gap:16px;}
 }
+
+/* Guías de división en el gráfico de LP: la línea que separa Platino 3 de
+   Platino 4. Apagadas a propósito — son la regla contra la que se lee la
+   curva, no un dato que compita con ella. */
+.spark-guide-line{stroke:var(--text-muted); stroke-width:1; stroke-dasharray:2 5; opacity:0.45;}
+.spark-guide-label{font-size:8.5px; fill:var(--text-muted); opacity:0.8; letter-spacing:0.02em;}
+
+/* El pie del gráfico de LP: las dos fechas de la ventana y, en el medio, el
+   récord que la explica. */
+.lp-chart-pie{
+  display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+  margin-top:8px; font-size:11px; color:var(--text-muted);
+}
+.lp-chart-pie-centro{text-align:center; flex:1 1 auto;}
+.lp-chart-pie strong{font-family:var(--font-stat); font-size:12.5px; font-variant-numeric:tabular-nums;}

@@ -41,6 +41,8 @@ export interface LineAreaGeometry {
   area: string;
   last: [number, number];
   points: [number, number][];
+  /** La misma escala vertical que usaron los puntos, para dibujar guías sobre valores que no son puntos (un límite de división, un máximo). */
+  yOf: (valor: number) => number;
 }
 
 /**
@@ -71,5 +73,6 @@ export function lineAreaGeometry(
   });
   const line = smooth ? smoothLinePath(pts) : linePath(pts);
   const area = `${line} L${pts[pts.length - 1][0].toFixed(1)},${h - padY} L${pts[0][0].toFixed(1)},${h - padY} Z`;
-  return { line, area, last: pts[pts.length - 1], points: pts };
+  const yOf = (valor: number) => padY + (1 - (valor - min) / range) * (h - padY * 2);
+  return { line, area, last: pts[pts.length - 1], points: pts, yOf };
 }

@@ -53,6 +53,11 @@ const PROFILE_TABS: { key: ProfileTabKey; label: string }[] = [
   { key: "campeones", label: "Campeones" },
 ];
 
+/** "22 ago" — la fecha de una punta del gráfico, sin año: la ventana nunca cruza uno. */
+function fechaCorta(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+}
+
 export function PlayerProfile({
   player,
   ddragonVersion,
@@ -162,6 +167,41 @@ export function PlayerProfile({
   const lpCurrentPoint = { tier: p.tierKey, division: p.division, lp: p.lp };
   const lpCrossedBoundary = lpStartPoint.tier !== lpCurrentPoint.tier || lpStartPoint.division !== lpCurrentPoint.division;
   const lpDelta = lpScores[lpScores.length - 1] - lpScores[0];
+
+  /**
+   * Los límites de división que la curva efectivamente cruzó, para dibujarlos
+   * como guías. Sin ellos el gráfico muestra que bajaste pero no CONTRA QUÉ:
+   * una caída de 102 puntos puede ser media división o dos, y no hay forma de
+   * saberlo mirando la línea.
+   *
+   * Solo los cruzados: si en toda la ventana no cambiaste de división, no hay
+   * ninguna línea que dibujar — cuánto falta para la siguiente ya está en la
+   * barra de progreso del encabezado.
+   */
+  const lpMin = Math.min(...lpScores);
+  const lpMax = Math.max(...lpScores);
+  const lpGuides = [...new Map(p.lpHistory.map((h) => [`${h.tier}|${h.division}`, h])).values()]
+    .map((h) => ({ value: rankScore(h.tier, h.division, 0), label: `${tierFor(h.tier).name} ${h.division}` }))
+    .filter((g) => g.value > lpMin && g.value < lpMax);
+
+  /**
+   * El récord de la ventana. Los snapshots guardan las victorias y derrotas
+   * acumuladas de la season, así que la resta entre el primero y el último da
+   * las partidas que efectivamente entraron en esta curva — el dato que
+   * explica la caída y que hasta ahora no se mostraba en ningún lado.
+   *
+   * Con piso en 0 por si el acumulado se reinicia (season nueva, o alguien
+   * que se agregó de nuevo): ahí la resta daría negativo y no significaría
+   * nada.
+   */
+  const lpVentana = (() => {
+    const primero = p.lpHistory[0];
+    const ultimo = p.lpHistory[p.lpHistory.length - 1];
+    const v = Math.max(0, ultimo.wins - primero.wins);
+    const d = Math.max(0, ultimo.losses - primero.losses);
+    const dias = Math.round((Date.parse(ultimo.capturedAt) - Date.parse(primero.capturedAt)) / 86400000);
+    return { v, d, dias, desde: primero.capturedAt, hasta: ultimo.capturedAt };
+  })();
   // lpDelta is a rankScore delta, not a raw LP delta — the two only match when
   // no division changed hands. Labeling it "LP" unconditionally used to show
   // e.g. "Platino 3 · 64 LP → Platino 2 · 36 LP  ▲72 LP", which reads as a
@@ -424,7 +464,28 @@ export function PlayerProfile({
                     color={lpChartColor}
                     variant="detailed"
                     pointLabels={lpPointLabels}
+                    guides={lpGuides}
                   />
+                </div>
+                {/* Debajo del gráfico, lo que la curva sola no puede decir:
+                    cuándo fue y cuántas partidas entraron. Una caída de 102
+                    puntos en tres días con 4V-14D y una en un mes con 30V-32D
+                    son dos cosas distintas dibujadas igual. */}
+                <div className="lp-chart-pie">
+                  <span>{fechaCorta(lpVentana.desde)}</span>
+                  <span className="lp-chart-pie-centro">
+                    {lpVentana.v + lpVentana.d > 0 ? (
+                      <>
+                        <strong className={lpVentana.v >= lpVentana.d ? "gd-pos" : "gd-neg"}>
+                          {lpVentana.v}V-{lpVentana.d}D
+                        </strong>
+                        {lpVentana.dias > 0 && ` en ${lpVentana.dias} ${lpVentana.dias === 1 ? "día" : "días"}`}
+                      </>
+                    ) : (
+                      "sin partidas nuevas en la ventana"
+                    )}
+                  </span>
+                  <span>{fechaCorta(lpVentana.hasta)}</span>
                 </div>
                 {p.lpHistory.length < 3 && (
                   <p className="chart-note">
