@@ -162,7 +162,7 @@ function DigestBody({
 
       <div className="digest-grid">
         {digest.biggestLpGain && (
-          <div className="digest-card accent-good">
+          <div className="digest-card accent-good destacada">
             <span className="digest-card-label">
               <span className="digest-card-icon good">
                 <TrendUpIcon />
@@ -181,21 +181,24 @@ function DigestBody({
                   <RankEnd point={digest.biggestLpGain.to} />
                 </span>
               </div>
+              {digest.biggestLpGain.lpScores.length >= 2 && (
+                // La curva AL LADO del nombre y no debajo: colgada abajo
+                // estiraba la tarjeta 50px más que las otras tres y la de al
+                // lado quedaba con ese hueco vacío para emparejarla. Acá entra
+                // en el mismo renglón y las cuatro miden lo mismo.
+                //
+                // El viewBox tiene que quedar cerca del ancho y del alto REALES
+                // en los que se dibuja: con preserveAspectRatio="none" el
+                // dibujo se estira para entrar, así que cuanto más lejos esté,
+                // más se deforma.
+                <div className="digest-card-chart">
+                  <SparkChart values={digest.biggestLpGain.lpScores} width={340} height={56} pad={6} color={trendColor(digest.biggestLpGain.lpScores)} variant="mini" />
+                </div>
+              )}
               <span className="digest-card-value gd-pos">
                 +{digest.biggestLpGain.delta} {digest.biggestLpGain.unit}
               </span>
             </div>
-            {digest.biggestLpGain.lpScores.length >= 2 && (
-              <div className="digest-card-chart">
-                {/* viewBox sized close to how wide this actually renders (~520px
-                    in a two-up grid): with preserveAspectRatio="none" the drawing
-                    is stretched to fit, so a 280-wide box was being pulled ~1.9x
-                    horizontally against ~1.3x vertically — which is what flattened
-                    the curve into a smear. Matching the proportions keeps the
-                    shape it was drawn with. */}
-                <SparkChart values={digest.biggestLpGain.lpScores} width={520} height={44} pad={4} color={trendColor(digest.biggestLpGain.lpScores)} variant="mini" />
-              </div>
-            )}
           </div>
         )}
         {digest.bestKda && (

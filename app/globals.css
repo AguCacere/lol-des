@@ -1322,8 +1322,25 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-family:var(--font-mono); font-size:11.5px; font-variant-numeric:tabular-nums; letter-spacing:0.01em;
 }
 
-.digest-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;}
-@media (max-width:680px){.digest-grid{grid-template-columns:1fr;}}
+/* Tres de las cuatro tarjetas dicen UN dato y miden lo mismo; la cuarta lleva
+   una curva y necesita alto. En dos por dos eso obligaba a la de al lado a
+   estirarse 50px para emparejarla, y esos 50px eran aire: la de "mejor KDA"
+   se leía vacía al lado de la de LP.
+   Ahora la de la curva ocupa la columna izquierda entera y las otras se
+   apilan a la derecha con el alto que cada una necesita. La curva gana
+   espacio de verdad —de 44px de alto a 132— y no sobra un hueco. */
+.digest-grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-bottom:16px;}
+/* La del LP a todo el ancho y las otras tres abajo en una fila pareja. Es la
+   única que lleva una curva, o sea la única que pide más lugar; dándoselo a
+   lo ancho —con la curva metida en el mismo renglón que el nombre— las cuatro
+   tarjetas terminan midiendo lo mismo de alto. */
+.digest-card.destacada{grid-column:1 / -1;}
+@media (max-width:980px){
+  .digest-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media (max-width:680px){
+  .digest-grid{grid-template-columns:1fr;}
+}
 /* Flex column + a growing body is what keeps the four cards feeling equally
    dense: grid stretches every card in a row to the tallest one (the LP card,
    which carries the chart), and with top-aligned content the others just
@@ -1380,16 +1397,25 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   margin-left:auto; padding-left:10px; flex:none;
   font-variant-numeric:tabular-nums; white-space:nowrap;
 }
-/* Sits at the card's bottom edge, full inner width, reading as a base rule
-   under the content — the negative bottom margin trims the SVG's own
-   built-in breathing room so the optical gap matches the card's padding
-   instead of looking like a floating block with a gutter under it. */
-.digest-card-chart{margin-top:12px; margin-bottom:-3px;}
-/* Explicit height, NOT height:auto — auto scales the drawing proportionally
-   to the card's width, which rendered it ~57px tall, nearly double the
-   intended size. The viewBox is sized to match this ratio (see TeamDigest)
-   so the curve isn't distorted on its way here. */
-.digest-card-chart svg{display:block; width:100%; height:44px;}
+/* La curva vive dentro del renglón, entre el nombre y el número. Ancho
+   flexible con un techo: es el apoyo del "+165 pts", no el tema de la
+   tarjeta, y estirada a 700px se convertía en una raya. */
+.digest-card-chart{flex:1 1 200px; max-width:340px; min-width:120px; margin-left:20px;}
+/* El bloque del nombre deja de estirarse en la tarjeta ancha: si se queda con
+   el sobrante, la curva se va contra el número y quedan 500px de nada entre
+   el nombre y ella. Así la curva sigue al nombre y el aire cae antes del
+   valor, que es donde tiene que estar. */
+.digest-card.destacada .digest-card-mid{flex:0 1 auto;}
+/* Alto explícito, NO height:auto: auto lo escala en proporción al ancho y
+   crecía o se achicaba con la tarjeta. El viewBox está armado con esta misma
+   proporción (ver TeamDigest) para que no se deforme. */
+.digest-card-chart svg{display:block; width:100%; height:56px;}
+@media (max-width:680px){
+  /* Apilado, el renglón no da para las tres cosas: la curva pasa abajo, a
+     todo el ancho de la tarjeta. */
+  .digest-card.destacada .digest-card-body{flex-wrap:wrap;}
+  .digest-card-chart{flex:1 1 100%; max-width:none; margin-left:0; margin-top:10px; order:3;}
+}
 
 /* Where the week started and where it ended — what the "+225 pts" bought.
    Each end carries its own tier colour, the LP stays muted beside it. */
