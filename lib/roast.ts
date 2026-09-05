@@ -85,6 +85,7 @@ const CARGADAS: ((label: string, champ: string, k: number, d: number, a: number)
   (l, c, k, d, a) => `**${l}** es un wachín de corso que terminó **${k}/${d}/${a}** todo reventado con **${c}**.`,
   (l, c, k, d, a) => `**${l}** es un condón usado con **${c}** y terminó **${k}/${d}/${a}**.`,
   (l, c, k, d, a) => `A **${l}** no le da la cabeza para jugar con **${c}** y fue full pantalla gris: **${k}/${d}/${a}**.`,
+  (l, c, k, d, a) => `**${l}** está re viejo gaga y tiene que borrarlo, cómo va a terminar **${k}/${d}/${a}** con **${c}**. Borralo gugu`,
 ];
 
 /**
