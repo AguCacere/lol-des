@@ -24,6 +24,18 @@ export const MANUAL_REFRESH_COOLDOWN_MS = 2 * 60 * 1000;
 export const RANKED_SOLO_QUEUE_ID = 420;
 /** Match-V5 queueId for Clash — see lib/clash.ts for how these get grouped into "tournaments" once stored. */
 export const CLASH_QUEUE_ID = 700;
+/**
+ * Flex. Se guardan las partidas pero NINGUNA vista de la app las muestra:
+ * todas las consultas de estadísticas filtran por 420 (o por 700 en la
+ * pestaña de Clash), y así queda. Están acá por una sola razón — que la
+ * cargada de Discord también agarre los desastres de flex, que son igual de
+ * dignos de burla aunque no cuenten para nada más.
+ *
+ * Ojo si mañana se agrega una consulta nueva sobre `matches`: sin el filtro
+ * de queue_id, estas filas se cuelan en el pool de campeones, en los récords
+ * y en los promedios por rol.
+ */
+export const RANKED_FLEX_QUEUE_ID = 440;
 /** Below this, a win/loss streak doesn't get a Discord ping — see checkStreakAndNotify. */
 const STREAK_NOTIFY_THRESHOLD = 3;
 
@@ -98,7 +110,10 @@ async function checkStreakAndNotify(supabase: SupabaseClient, puuid: string) {
 
 /**
  * La cargada por partida desastrosa (ver lib/roast.ts para el criterio y el
- * tono). Mira SOLO los match_id que este ciclo acaba de insertar: sobre el
+ * tono). Mira soloQ Y flex — es lo único de flex que hace la app, y morir 14
+ * veces es morir 14 veces sin importar la cola.
+ *
+ * Mira SOLO los match_id que este ciclo acaba de insertar: sobre el
  * historial entero volvería a encontrar el mismo 0/13 de hace tres días y lo
  * publicaría de nuevo cada quince minutos.
  *
@@ -109,9 +124,9 @@ async function checkStreakAndNotify(supabase: SupabaseClient, puuid: string) {
 async function checkDisasterAndNotify(supabase: SupabaseClient, puuid: string, nuevos: string[]) {
   const { data: rows } = await supabase
     .from("matches")
-    .select("match_id, champion, win, kills, deaths, assists, dmg_share, cs, cs_per_min")
+    .select("match_id, champion, win, kills, deaths, assists, dmg_share, cs, cs_per_min, queue_id")
     .eq("puuid", puuid)
-    .eq("queue_id", RANKED_SOLO_QUEUE_ID)
+    .in("queue_id", [RANKED_SOLO_QUEUE_ID, RANKED_FLEX_QUEUE_ID])
     .in("match_id", nuevos);
   if (!rows || rows.length === 0) return;
 
@@ -126,6 +141,7 @@ async function checkDisasterAndNotify(supabase: SupabaseClient, puuid: string, n
       dmgShare: r.dmg_share,
       cs: r.cs,
       csPerMin: r.cs_per_min,
+      esFlex: r.queue_id === RANKED_FLEX_QUEUE_ID,
     }))
   );
   if (!peor) return;
@@ -451,13 +467,31 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string): Promi
     if (warning) warnings.push(warning);
     else insertados.push(matchId);
   }
+  // Flex. No alimenta ninguna vista de la app (ver RANKED_FLEX_QUEUE_ID):
+  // se baja solo para que la cargada de Discord también agarre los desastres
+  // de flex. Mismo costo que la vuelta de Clash de abajo — una llamada más a
+  // Riot por ciclo, y nada por partida salvo que haya algo nuevo.
+  const insertadosFlex: string[] = [];
+  const flexMatchIds = await getMatchIdsByPuuid(puuid, 20, 0, RANKED_FLEX_QUEUE_ID);
+  for (const matchId of flexMatchIds) {
+    if (known.has(matchId)) continue;
+    const warning = await fetchAndStoreMatch(supabase, puuid, matchId);
+    if (warning) warnings.push(warning);
+    else insertadosFlex.push(matchId);
+  }
+
   // Once per refresh cycle, after everything new is already stored — not
   // once per match inside the loop above, which (with several new ranked
   // games in the same cycle) would fire one Discord message per game, each
   // describing an earlier/smaller streak than the one before it.
-  if (insertados.length > 0) {
-    await checkStreakAndNotify(supabase, puuid);
-    await checkDisasterAndNotify(supabase, puuid, insertados);
+  //
+  // La racha sigue siendo solo de soloQ: es la que mueve el LP del ladder, y
+  // mezclarle flex haría que "5 victorias seguidas" no se corresponda con
+  // nada de lo que muestra la app. La cargada, en cambio, mira las dos.
+  if (insertados.length > 0) await checkStreakAndNotify(supabase, puuid);
+  const nuevasParaCargar = [...insertados, ...insertadosFlex];
+  if (nuevasParaCargar.length > 0) {
+    await checkDisasterAndNotify(supabase, puuid, nuevasParaCargar);
   }
 
   // Clash games are rare (a handful of days a year, at most), so this almost

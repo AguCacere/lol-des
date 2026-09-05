@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { isDisaster, roastMessage, worstDisaster, type RoastCandidate } from "@/lib/roast";
-import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
+import { RANKED_FLEX_QUEUE_ID, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 
 /** Cuántas partidas recientes se miran cuando no se pasa un matchId puntual. */
 const VENTANA = 20;
@@ -16,6 +16,7 @@ interface Fila {
   dmg_share: number | null;
   cs: number | null;
   cs_per_min: number | null;
+  queue_id: number;
 }
 
 function candidato(r: Fila): RoastCandidate {
@@ -29,6 +30,7 @@ function candidato(r: Fila): RoastCandidate {
     dmgShare: r.dmg_share,
     cs: r.cs,
     csPerMin: r.cs_per_min,
+    esFlex: r.queue_id === RANKED_FLEX_QUEUE_ID,
   };
 }
 
@@ -84,12 +86,12 @@ export async function POST(req: Request) {
   }
   const label = `${summoner.game_name}#${summoner.tag_line}`;
 
-  const columnas = "match_id, champion, win, kills, deaths, assists, dmg_share, cs, cs_per_min";
+  const columnas = "match_id, champion, win, kills, deaths, assists, dmg_share, cs, cs_per_min, queue_id";
   let query = supabase
     .from("matches")
     .select(columnas)
     .eq("puuid", summoner.puuid)
-    .eq("queue_id", RANKED_SOLO_QUEUE_ID);
+    .in("queue_id", [RANKED_SOLO_QUEUE_ID, RANKED_FLEX_QUEUE_ID]);
   query = matchId
     ? query.eq("match_id", matchId)
     : query.order("played_at", { ascending: false }).limit(VENTANA);

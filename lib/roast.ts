@@ -21,6 +21,12 @@ export interface RoastCandidate {
   dmgShare?: number | null;
   csPerMin?: number | null;
   cs?: number | null;
+  /**
+   * Flex en vez de soloQ. Solo cambia el mensaje: se aclara porque la app no
+   * muestra las partidas de flex en ningún lado, y si no se dijera, el que
+   * la busca en el historial no la encuentra y parece un invento del bot.
+   */
+  esFlex?: boolean;
 }
 
 /**
@@ -113,8 +119,9 @@ export function roastMessage(label: string, m: RoastCandidate): string {
   // championLabel y no el nombre crudo de Riot: "MonkeyKing" o "Kaisa" en
   // medio de una cargada la desinflan.
   const texto = cargada(label, championLabel(m.champion), m.kills, m.deaths, m.assists);
+  const cola = m.esFlex ? " *(flex)*" : "";
   const extra = remate(m);
-  return extra ? `😂😂😂 ${texto}\n${extra}` : `😂😂😂 ${texto}`;
+  return extra ? `😂😂😂 ${texto}${cola}\n${extra}` : `😂😂😂 ${texto}${cola}`;
 }
 
 /**
