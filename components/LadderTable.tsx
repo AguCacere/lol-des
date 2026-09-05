@@ -2,6 +2,7 @@ import type { Player, RoleKey } from "@/lib/types";
 import { champTag, currentStreak, formatRelativeTime, liveGameTimeLabel, rankScore, ROLES, tierFor, trendColor } from "@/lib/ladder";
 import { RoleIcon } from "./RoleIcon";
 import { PlayerAvatar } from "./PlayerAvatar";
+import { Select, type OpcionSelect } from "./Select";
 import { StreakIcon } from "./StreakIcon";
 import { SparkChart } from "./SparkChart";
 import { ChampIcon } from "./ChampIcon";
@@ -26,6 +27,15 @@ interface LadderTableProps {
   onSortKeyChange: (key: SortKey) => void;
   ddragonVersion: string | null;
 }
+
+/** Los criterios de orden del ladder, con el detalle que explica cada uno. */
+const ORDENES: OpcionSelect[] = [
+  { value: "ladder", label: "LP (ranking)", detalle: "El orden del ladder" },
+  { value: "winrate", label: "Winrate", detalle: "% de la season" },
+  { value: "wins", label: "Victorias", detalle: "Total ganadas" },
+  { value: "streak", label: "Racha", detalle: "La actual, ganando o perdiendo" },
+  { value: "recent", label: "Progreso reciente", detalle: "Movimiento de LP" },
+];
 
 export function playerKey(p: Player): string {
   return `${p.name}#${p.tag}`;
@@ -117,20 +127,16 @@ export function LadderTable({
             </button>
           ))}
         </div>
-        <label className="sort-select-wrap">
+        <div className="sort-select-wrap">
           <span className="meta">Ordenar por</span>
-          <select
+          <Select
             className="sort-select"
             value={sortKey}
-            onChange={(e) => onSortKeyChange(e.target.value as SortKey)}
-          >
-            <option value="ladder">LP (ranking)</option>
-            <option value="winrate">Winrate</option>
-            <option value="wins">Victorias</option>
-            <option value="streak">Racha</option>
-            <option value="recent">Progreso reciente</option>
-          </select>
-        </label>
+            onChange={(v) => onSortKeyChange(v as SortKey)}
+            ariaLabel="Ordenar el ladder por"
+            options={ORDENES}
+          />
+        </div>
       </div>
 
       <div className="ladder">

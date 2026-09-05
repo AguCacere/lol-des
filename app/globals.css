@@ -191,12 +191,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .role-filter-btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
 
 .sort-select-wrap{display:flex; align-items:center; gap:8px; white-space:nowrap;}
-.sort-select{
-  font-family:var(--font-body); font-size:12px; font-weight:600; color:var(--text-primary);
-  background:var(--surface); box-shadow:var(--shadow-sm); border:1px solid transparent; border-radius:999px;
-  padding:6px 12px; cursor:pointer; outline:none;
-}
-.sort-select:focus{border-color:var(--accent-dim);}
+/* El de "Ordenar por" es la variante chica y con forma de píldora. */
+.sort-select .sel-btn{font-size:12px; border-radius:999px; padding:6px 10px 6px 12px;}
 .live-dot{
   width:7px;height:7px;border-radius:50%; background:var(--good); flex:none;
   box-shadow:0 0 0 3px var(--good-wash);
@@ -2022,12 +2018,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    Dos jugadores enfrentados: A siempre en dorado a la izquierda, B en acero
    a la derecha. Las barras salen del centro hacia el que gana el eje. */
 .h2h-selects{display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;}
-.h2h-select{
-  flex:1 1 200px; min-width:0;
-  background:var(--surface-raised); color:var(--text-primary);
-  border:1px solid var(--border-soft); border-radius:var(--radius-sm);
-  padding:9px 11px; font:inherit; font-size:14px; font-weight:600;
-}
+.h2h-select{flex:1 1 200px; min-width:0;}
+.h2h-select .sel-btn{font-size:14px; padding:9px 11px;}
 .h2h-vs{font-size:12px; font-weight:800; letter-spacing:0.08em; color:var(--text-muted); flex:none;}
 .h2h-fichas{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;}
 .h2h-ficha{background:var(--surface-raised); border-radius:var(--radius-md); padding:13px 14px; min-width:0;}
@@ -2386,3 +2378,44 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .panel-list + .subsection-label{
   margin-top:34px; padding-top:26px; border-top:1px solid var(--border-soft);
 }
+
+/* ── Desplegable propio (components/Select.tsx) ───────────────────────────
+   Reemplaza al <select> nativo, que se dibuja con los colores del sistema
+   operativo —lista blanca, fila azul— y no se puede estilar desde CSS porque
+   el navegador la pinta fuera de la página. Este es el desplegable de toda la
+   app: cualquier menú nuevo va por acá. */
+.sel{position:relative; min-width:0;}
+.sel-btn{
+  display:flex; align-items:center; gap:8px; width:100%; min-width:0;
+  background:var(--surface-raised); color:var(--text-primary);
+  border:1px solid var(--border-soft); border-radius:var(--radius-sm);
+  padding:8px 10px 8px 12px; font:inherit; font-size:13px; font-weight:600;
+  cursor:pointer; text-align:left; transition:border-color .12s ease, background .12s ease;
+}
+.sel-btn:hover{background:var(--surface-hover);}
+.sel-btn.is-open, .sel-btn:focus-visible{border-color:var(--accent-dim); outline:none;}
+.sel-btn-label{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.sel-chevron{width:14px; height:14px; flex:none; color:var(--text-muted); transition:transform .15s ease;}
+.sel-btn.is-open .sel-chevron{transform:rotate(180deg);}
+.sel-lista{
+  position:absolute; z-index:60; top:calc(100% + 6px); left:0; right:0; min-width:200px;
+  max-height:300px; overflow-y:auto; padding:5px;
+  background:var(--surface); border:1px solid var(--accent-dim-border); border-radius:var(--radius-md);
+  box-shadow:0 14px 40px rgba(0,0,0,0.55);
+  animation:sel-entra .12s ease;
+}
+@keyframes sel-entra{from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:none;}}
+@media (prefers-reduced-motion:reduce){.sel-lista{animation:none;} .sel-chevron{transition:none;}}
+.sel-opcion{
+  display:flex; align-items:center; gap:9px; width:100%; text-align:left;
+  background:none; border:none; cursor:pointer; color:var(--text-primary);
+  padding:8px 10px; border-radius:var(--radius-sm); font:inherit; font-size:13px;
+}
+.sel-opcion.en-cursor{background:var(--accent-wash-soft);}
+.sel-opcion.elegida .sel-opcion-label{color:var(--accent); font-weight:700;}
+.sel-opcion-label{flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600;}
+.sel-opcion-detalle{font-size:11px; color:var(--text-muted); margin-left:auto; white-space:nowrap; flex:none;}
+/* El tilde va después del detalle y sin empujarlo: marca cuál está elegida
+   sin que la fila cambie de ancho al seleccionarla. */
+.sel-tilde{width:13px; height:13px; flex:none; color:var(--accent); margin-left:2px;}
+.sel-opcion:not(.elegida) .sel-opcion-detalle{margin-right:15px;}

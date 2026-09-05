@@ -7,6 +7,7 @@ import { ROLES, tierFor } from "@/lib/ladder";
 import { championLabel } from "@/lib/champion-names";
 import { ChampIcon } from "./ChampIcon";
 import { InfoTip } from "./InfoTip";
+import { Select, type OpcionSelect } from "./Select";
 
 /**
  * "Cara a cara" — dos del grupo enfrentados eje por eje.
@@ -90,6 +91,11 @@ export function HeadToHead({ players, ddragonVersion }: { players: Player[]; ddr
     );
   }
 
+  const opciones: OpcionSelect[] = players.map((p) => {
+    const t = tierFor(p.tierKey);
+    return { value: claveDe(p), label: claveDe(p), detalle: `${t.name} ${p.division} · ${ROLES[p.role].label}` };
+  });
+
   const a = players.find((p) => claveDe(p) === claveA) ?? players[0];
   const b = players.find((p) => claveDe(p) === claveB) ?? players[1];
   const mismoRol = a.role === b.role;
@@ -122,21 +128,9 @@ export function HeadToHead({ players, ddragonVersion }: { players: Player[]; ddr
       </div>
 
       <div className="h2h-selects">
-        <select className="h2h-select" value={claveA} onChange={(e) => setClaveA(e.target.value)} aria-label="Primer invocador">
-          {players.map((p) => (
-            <option key={claveDe(p)} value={claveDe(p)}>
-              {p.name}#{p.tag}
-            </option>
-          ))}
-        </select>
+        <Select className="h2h-select" value={claveA} onChange={setClaveA} ariaLabel="Primer invocador" options={opciones} />
         <span className="h2h-vs">VS</span>
-        <select className="h2h-select" value={claveB} onChange={(e) => setClaveB(e.target.value)} aria-label="Segundo invocador">
-          {players.map((p) => (
-            <option key={claveDe(p)} value={claveDe(p)}>
-              {p.name}#{p.tag}
-            </option>
-          ))}
-        </select>
+        <Select className="h2h-select" value={claveB} onChange={setClaveB} ariaLabel="Segundo invocador" options={opciones} />
       </div>
 
       {claveA === claveB ? (
