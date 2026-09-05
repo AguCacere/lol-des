@@ -92,6 +92,14 @@ export async function GET(req: Request) {
    */
   const PESO_LADDER = 1;
   const PESO_PROPIO = 0.35;
+  /**
+   * Y hay un tercer caso que le gana a los dos: alguien del grupo que está
+   * jugando ESTE campeón ahora. Ahí no hace falta preguntarse qué hace la
+   * gente con Volibear — sabemos qué hace ÉL con Volibear, y es su historial
+   * el que decide. Es el caso que fallaba: el grupo tiene Volibear arriba
+   * pero el ladder lo tiene repartido, y el promedio del ladder ganaba.
+   */
+  const PESO_ES_EL = 6;
   const enJuego = [...new Set(champDe.values())];
   const observaciones: ObservacionesPorRol = new Map();
   if (enJuego.length > 0) {
@@ -101,9 +109,17 @@ export async function GET(req: Request) {
     const lista = enJuego.map((c) => `"${c.replace(/[^A-Za-z0-9]/g, "")}"`).join(",");
     const { data: vistas } = await supabase
       .from("matches")
-      .select("champion, opponent_champion, team_position")
+      .select("puuid, champion, opponent_champion, team_position")
       .not("team_position", "is", null)
       .or(`champion.in.(${lista}),opponent_champion.in.(${lista})`);
+
+    // Quién del grupo está jugando qué en esta partida: con eso, sus propias
+    // filas de ese campeón valen mucho más que el promedio del ladder.
+    const suyoAhora = new Map<string, string>();
+    for (const p of [...aliadosCrudos, ...rivalesCrudos]) {
+      const c = champDe.get(p.championId);
+      if (c && conocidos.has(p.puuid)) suyoAhora.set(p.puuid, c);
+    }
     const anotar = (champ: string | null, pos: string | null, peso: number) => {
       const rol = roleFromTeamPosition(pos);
       if (!champ || !rol || !enJuego.includes(champ)) return;
@@ -112,7 +128,8 @@ export async function GET(req: Request) {
       observaciones.set(champ, acc);
     };
     for (const fila of vistas ?? []) {
-      anotar(fila.champion, fila.team_position, PESO_PROPIO);
+      const esEl = suyoAhora.get(fila.puuid) === fila.champion;
+      anotar(fila.champion, fila.team_position, esEl ? PESO_ES_EL : PESO_PROPIO);
       anotar(fila.opponent_champion, fila.team_position, PESO_LADDER);
     }
   }

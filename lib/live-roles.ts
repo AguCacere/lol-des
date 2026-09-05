@@ -203,7 +203,10 @@ export function explicarRol(e: { motivo: MotivoRol; aFavor?: number; total?: num
     case "castigo":
       return "por el Castigo";
     case "vistas":
-      return `lo vimos ahí en ${Math.round(e.aFavor ?? 0)} de ${Math.round(e.total ?? 0)} veces`;
+      // Porcentaje y no "9 de 11": lo que se acumula son PESOS, no partidas
+      // contadas (una del propio jugador vale más que una del ladder), así
+      // que decir "veces" sería decirte un número que no existe.
+      return `es donde más lo vimos, el ${Math.round((100 * (e.aFavor ?? 0)) / (e.total || 1))}% de lo que tenemos`;
     case "clase":
       return "estimado por el tipo de campeón";
     default:
