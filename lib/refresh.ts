@@ -164,7 +164,7 @@ async function checkStreakAndNotify(supabase: SupabaseClient, puuid: string) {
 async function checkDisasterAndNotify(supabase: SupabaseClient, puuid: string, nuevos: string[]) {
   const { data: rows } = await supabase
     .from("matches")
-    .select("match_id, champion, win, kills, deaths, assists, dmg_share, cs, cs_per_min")
+    .select("match_id, champion, win, kills, deaths, assists, dmg_share, cs, cs_per_min, opponent_champion")
     .eq("puuid", puuid)
     .eq("queue_id", RANKED_SOLO_QUEUE_ID)
     .in("match_id", nuevos);
@@ -181,6 +181,7 @@ async function checkDisasterAndNotify(supabase: SupabaseClient, puuid: string, n
       dmgShare: r.dmg_share,
       cs: r.cs,
       csPerMin: r.cs_per_min,
+      opponentChampion: r.opponent_champion,
     }))
   );
   if (!peor) return;
@@ -223,6 +224,13 @@ function candidataDeMatch(puuid: string, matchId: string, match: RiotMatch): Roa
         ? Number(((100 * me.totalDamageDealtToChampions) / teamDamage).toFixed(1))
         : null;
 
+  // El rival de su misma línea, igual que en buildMatchRow. Acá solo lo
+  // necesita la cargada de Teemo, pero sale del payload que ya bajamos.
+  const rivalDeLinea =
+    me.teamPosition === ""
+      ? null
+      : (match.info.participants.find((p) => p.teamId !== me.teamId && p.teamPosition === me.teamPosition)?.championName ?? null);
+
   return {
     matchId,
     champion: me.championName,
@@ -233,6 +241,7 @@ function candidataDeMatch(puuid: string, matchId: string, match: RiotMatch): Roa
     dmgShare,
     cs,
     csPerMin: durationMin > 0 ? Number((cs / durationMin).toFixed(1)) : null,
+    opponentChampion: rivalDeLinea,
     esFlex: true,
   };
 }

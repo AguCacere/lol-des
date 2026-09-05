@@ -21,6 +21,8 @@ export interface RoastCandidate {
   dmgShare?: number | null;
   csPerMin?: number | null;
   cs?: number | null;
+  /** El campeón del rival de SU MISMA línea. Solo se usa para la cargada de Teemo. Null si Riot no resolvió posición. */
+  opponentChampion?: string | null;
   /**
    * Flex en vez de soloQ. Solo cambia el mensaje: se aclara porque la app no
    * muestra las partidas de flex en ningún lado, y si no se dijera, el que
@@ -92,6 +94,32 @@ const CARGADAS: ((label: string, champ: string, k: number, d: number, a: number)
     `Me da vergüenza mostrar esta partida... Pero **${l}** terminó **${k}/${d}/${a}** con **${c}**, no se rescata más de troll.`,
 ];
 
+/** La clave de Data Dragon. Es la misma que Match-V5 pone en championName y que guardamos. */
+const TEEMO = "Teemo";
+
+/**
+ * La cargada de Teemo, que le gana al sorteo cuando corresponde.
+ *
+ * El bot se llama Teemo, así que cuando hay un Teemo en la partida el chiste
+ * se escribe solo y sería una lástima dejarlo librado al azar entre otras
+ * seis. Son dos casos distintos y no se pueden mezclar: perder JUGANDO Teemo
+ * es traicionar a la marca; comérselo de rival es haber pisado todo lo que
+ * había para pisar.
+ *
+ * Las dos frases son las suyas de verdad, pasadas al voseo — "pisas" no lo
+ * dice nadie acá.
+ */
+function cargadaDeTeemo(l: string, m: RoastCandidate): string | null {
+  const kda = `**${m.kills}/${m.deaths}/${m.assists}**`;
+  if (m.champion === TEEMO) {
+    return `🍄 *Cuidado por dónde pisás...* Y **${l}** pisó los hongos que puso él mismo: ${kda} con **Teemo**. Devolvé el sombrero, no te lo merecés.`;
+  }
+  if (m.opponentChampion === TEEMO) {
+    return `🍄 *Acá hay un hongo con tu nombre.* Y **${l}** los encontró todos: ${kda} con **${championLabel(m.champion)}** contra un Teemo. Andá a caminar a otro lado, campeón.`;
+  }
+  return null;
+}
+
 /**
  * El remate: una segunda línea con el número que más duele, si lo tenemos
  * guardado. Es opcional a propósito — las partidas viejas no tienen estas
@@ -121,10 +149,11 @@ function indiceEstable(matchId: string, total: number): number {
 
 /** El mensaje listo para mandar a Discord. Los tres emojis van siempre adelante — es la firma del formato. */
 export function roastMessage(label: string, m: RoastCandidate): string {
-  const cargada = CARGADAS[indiceEstable(m.matchId, CARGADAS.length)];
   // championLabel y no el nombre crudo de Riot: "MonkeyKing" o "Kaisa" en
   // medio de una cargada la desinflan.
-  const texto = cargada(label, championLabel(m.champion), m.kills, m.deaths, m.assists);
+  const texto =
+    cargadaDeTeemo(label, m) ??
+    CARGADAS[indiceEstable(m.matchId, CARGADAS.length)](label, championLabel(m.champion), m.kills, m.deaths, m.assists);
   const cola = m.esFlex ? " *(flex)*" : "";
 
   // La segunda línea junta lo que no es la cargada en sí: que haya ganado
@@ -134,7 +163,9 @@ export function roastMessage(label: string, m: RoastCandidate): string {
   const dato = remate(m);
   if (dato) extras.push(dato);
 
-  const primera = `😂😂😂 ${texto}${cola}`;
+  // La de Teemo trae su propio emoji y su propio tono: meterle los tres de
+  // siempre adelante le pisa el chiste.
+  const primera = texto.startsWith("🍄") ? `${texto}${cola}` : `😂😂😂 ${texto}${cola}`;
   return extras.length > 0 ? `${primera}\n${extras.join(" ")}` : primera;
 }
 

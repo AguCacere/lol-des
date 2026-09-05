@@ -21,7 +21,11 @@ export function LineHistory({ h }: { h: HistorialLineas }) {
   const maxPartidas = jugadas[0].games;
   const wrPrincipal = pct(h.enPrincipal.wins, h.enPrincipal.games);
   const wrFuera = pct(h.fuera.wins, h.fuera.games);
-  const principal = ROLES[h.principal].label;
+  // ROLES[].label viene capitalizado para usarse como título ("Jungla",
+  // "ADC"), pero en el medio de una frase "De Jungla gana el 56%" queda raro.
+  // Se pasa a minúscula salvo ADC, que es una sigla: "De adc gana el 51%" es
+  // directamente un error de ortografía.
+  const principal = h.principal === "adc" ? "ADC" : ROLES[h.principal].label.toLowerCase();
 
   return (
     <div className="lineas">
@@ -60,12 +64,11 @@ export function LineHistory({ h }: { h: HistorialLineas }) {
       <p className="lineas-conclusion">
         {h.fuera.games === 0 ? (
           <>
-            Solo jugó de <strong>{principal.toLowerCase()}</strong>: las {h.enPrincipal.games} partidas guardadas son en
-            esa línea.
+            Solo jugó de <strong>{principal}</strong>: las {h.enPrincipal.games} partidas guardadas son en esa línea.
           </>
         ) : (
           <>
-            De <strong>{principal.toLowerCase()}</strong> gana el{" "}
+            De <strong>{principal}</strong> gana el{" "}
             <strong className={wrPrincipal >= 50 ? "gd-pos" : "gd-neg"}>{wrPrincipal}%</strong>; fuera de ahí, el{" "}
             <strong className={wrFuera >= 50 ? "gd-pos" : "gd-neg"}>{wrFuera}%</strong>.
             {h.loSacanDeSuLinea && (
