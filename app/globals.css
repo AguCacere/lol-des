@@ -2419,3 +2419,32 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    sin que la fila cambie de ancho al seleccionarla. */
 .sel-tilde{width:13px; height:13px; flex:none; color:var(--accent); margin-left:2px;}
 .sel-opcion:not(.elegida) .sel-opcion-detalle{margin-right:15px;}
+
+/* Encabezado del resumen semanal: la semana del grupo en cifras, antes de los
+   destacados individuales. */
+.digest-resumen{
+  display:flex; flex-wrap:wrap; gap:10px;
+  background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm);
+  padding:16px 20px; margin-bottom:14px;
+}
+.digest-kpi{display:flex; flex-direction:column; gap:3px; flex:1 1 110px; min-width:0;}
+/* El que más jugó necesita más lugar que un número de dos cifras. */
+.digest-kpi.ancho{flex:1 1 190px;}
+.digest-kpi-valor{
+  font-family:var(--font-stat); font-size:22px; font-weight:800; line-height:1.05;
+  color:var(--text-primary); font-variant-numeric:tabular-nums;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.digest-kpi-valor.chico{font-size:16px;}
+.digest-kpi-valor.good{color:var(--good);}
+.digest-kpi-valor.bad{color:var(--critical);}
+.digest-kpi-label{
+  display:flex; align-items:center; gap:4px;
+  font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; font-weight:600;
+}
+@media (max-width:560px){
+  .digest-resumen{padding:14px; gap:14px 10px;}
+  .digest-kpi{flex:1 1 calc(50% - 5px);}
+  .digest-kpi.ancho{flex:1 1 100%;}
+  .digest-kpi-valor{font-size:19px;}
+}

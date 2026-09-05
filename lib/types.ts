@@ -125,9 +125,23 @@ interface RankPoint {
  * Riot calls. See app/api/team-digest/route.ts. Each highlight is null when
  * nothing in the window qualifies (e.g. nobody gained LP, or zero matches).
  */
+/** La semana del grupo en números, antes de los destacados individuales. */
+export interface TeamDigestResumen {
+  partidas: number;
+  victorias: number;
+  derrotas: number;
+  /** Cuántos del grupo jugaron al menos una ranked en la ventana. */
+  jugadores: number;
+  /** Suma de lo que ganó y perdió TODO el grupo, en puntos de rankScore. */
+  lpNeto: number;
+  masActivo: { name: string; tag: string; profileIconUrl: string | null; games: number } | null;
+}
+
 export interface TeamDigest {
   windowStart: string; // ISO
   windowEnd: string; // ISO
+  /** El encabezado: cuánto jugó el grupo y cómo le fue en conjunto. */
+  resumen: TeamDigestResumen;
   biggestLpGain:
     | (TeamDigestPlayerRef & {
         delta: number;

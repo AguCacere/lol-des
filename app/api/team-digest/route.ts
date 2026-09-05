@@ -4,7 +4,7 @@ import { rankScore, tierFor } from "@/lib/ladder";
 import { tierKeyFromRiot, divisionFromRiot } from "@/lib/mapping";
 import { profileIconUrl, getLatestVersion } from "@/lib/ddragon";
 import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
-import type { TeamDigest } from "@/lib/types";
+import type { TeamDigest, TeamDigestResumen } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -187,11 +187,44 @@ export async function GET() {
     mostPlayedChampion = { ...topChampion, players };
   }
 
-  const plainText = buildPlainText({ biggestLpGain, bestKda, worstLoss, mostPlayedChampion });
+  // El resumen del grupo. Sale de las mismas dos consultas que ya se hicieron
+  // arriba, así que no cuesta nada: es agregar sobre lo que ya está en
+  // memoria.
+  const partidasVentana = matchesRes.data ?? [];
+  const porJugador = new Map<string, number>();
+  for (const m of partidasVentana) porJugador.set(m.puuid, (porJugador.get(m.puuid) ?? 0) + 1);
+  let masActivo: TeamDigestResumen["masActivo"] = null;
+  for (const [puuid, games] of porJugador) {
+    if (masActivo === null || games > masActivo.games) masActivo = { ...playerRef(puuid), games };
+  }
+  // El neto del grupo suma subidas Y bajadas: es la única cifra de la
+  // pestaña que dice si la semana fue buena para todos o si uno solo tapó a
+  // los demás.
+  let lpNeto = 0;
+  for (const rows of lpByPuuid.values()) {
+    if (rows.length < 2) continue;
+    const primero = rows[0];
+    const ultimo = rows[rows.length - 1];
+    lpNeto +=
+      rankScore(tierKeyFromRiot(ultimo.tier), divisionFromRiot(ultimo.division), ultimo.lp) -
+      rankScore(tierKeyFromRiot(primero.tier), divisionFromRiot(primero.division), primero.lp);
+  }
+  const victorias = partidasVentana.filter((m) => m.win).length;
+  const resumen: TeamDigestResumen = {
+    partidas: partidasVentana.length,
+    victorias,
+    derrotas: partidasVentana.length - victorias,
+    jugadores: porJugador.size,
+    lpNeto,
+    masActivo,
+  };
+
+  const plainText = buildPlainText({ resumen, biggestLpGain, bestKda, worstLoss, mostPlayedChampion });
 
   const digest: TeamDigest = {
     windowStart: windowStart.toISOString(),
     windowEnd: windowEnd.toISOString(),
+    resumen,
     biggestLpGain,
     bestKda,
     worstLoss,
@@ -209,6 +242,13 @@ export async function GET() {
 
 function buildPlainText(d: Omit<TeamDigest, "windowStart" | "windowEnd" | "plainText">): string {
   const lines = ["📊 Resumen semanal — Grieta Central"];
+  const r = d.resumen;
+  if (r.partidas > 0) {
+    const wr = Math.round((100 * r.victorias) / r.partidas);
+    lines.push(
+      `El grupo: ${r.partidas} partidas (${r.victorias}V-${r.derrotas}D, ${wr}%) entre ${r.jugadores} jugadores · ${r.lpNeto >= 0 ? "+" : ""}${r.lpNeto} pts netos`
+    );
+  }
   if (d.biggestLpGain) {
     const g = d.biggestLpGain;
     const rank = (p: typeof g.from) => `${tierFor(p.tier).name} ${p.division}`;

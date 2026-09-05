@@ -5,6 +5,7 @@ import type { TeamDigest as TeamDigestData } from "@/lib/types";
 import { tierFor, trendColor } from "@/lib/ladder";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { ChampIcon } from "./ChampIcon";
+import { InfoTip } from "./InfoTip";
 import { SparkChart } from "./SparkChart";
 import { CheckIcon, CopyIcon, TrendDownIcon, TrendUpIcon, TrophyIcon, ZapIcon } from "./StatIcons";
 import { championLabel } from "@/lib/champion-names";
@@ -112,8 +113,49 @@ function DigestBody({
     );
   }
 
+  const r = digest.resumen;
+  const wr = r.partidas > 0 ? Math.round((100 * r.victorias) / r.partidas) : 0;
+
   return (
     <>
+      {/* La semana del grupo antes de los destacados individuales: sin esto,
+          la pestaña arrancaba con "el que más subió" sin decir nunca si la
+          semana fue buena o mala para el grupo, ni cuánto se jugó. */}
+      {r.partidas > 0 && (
+        <div className="digest-resumen">
+          <div className="digest-kpi">
+            <span className="digest-kpi-valor">{r.partidas}</span>
+            <span className="digest-kpi-label">partidas</span>
+          </div>
+          <div className="digest-kpi">
+            <span className={`digest-kpi-valor ${wr >= 50 ? "good" : "bad"}`}>{wr}%</span>
+            <span className="digest-kpi-label">
+              {r.victorias}V-{r.derrotas}D del grupo
+            </span>
+          </div>
+          <div className="digest-kpi">
+            <span className={`digest-kpi-valor ${r.lpNeto >= 0 ? "good" : "bad"}`}>
+              {r.lpNeto >= 0 ? "+" : ""}
+              {r.lpNeto}
+            </span>
+            <span className="digest-kpi-label">
+              pts netos
+              <InfoTip text="Lo que subió y bajó TODO el grupo sumado, no solo el que más ganó. Es la única cifra de la pestaña que dice si la semana fue buena para todos o si uno solo tapó a los demás." />
+            </span>
+          </div>
+          <div className="digest-kpi">
+            <span className="digest-kpi-valor">{r.jugadores}</span>
+            <span className="digest-kpi-label">jugaron</span>
+          </div>
+          {r.masActivo && (
+            <div className="digest-kpi ancho">
+              <span className="digest-kpi-valor chico">{r.masActivo.name}</span>
+              <span className="digest-kpi-label">el que más jugó · {r.masActivo.games} partidas</span>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="digest-grid">
         {digest.biggestLpGain && (
           <div className="digest-card accent-good">
