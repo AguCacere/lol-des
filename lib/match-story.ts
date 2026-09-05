@@ -78,18 +78,18 @@ export function buildMatchStory(m: Match): MatchStory | null {
     linea = `Ibas ganando la línea (${oro(primera.valor)} a los ${primera.min}\u2032) y se te dio vuelta: ${oro(ultima.valor)} a los ${ultima.min}\u2032.`;
     tono = "bad";
   } else if (arrancoAbajo && terminoArriba) {
-    linea = `Arrancaste abajo (${oro(primera.valor)} a los ${primera.min}\u2032) y lo diste vuelta: ${oro(ultima.valor)} a los ${ultima.min}\u2032.`;
+    linea = `Arrancaste abajo (${oro(primera.valor)} a los ${primera.min}\u2032) y la diste vuelta: ${oro(ultima.valor)} a los ${ultima.min}\u2032.`;
     tono = "good";
   } else if (terminoArriba) {
     const estiro = ultima.valor > primera.valor;
-    linea = `${estiro ? "Ganaste la línea y la seguiste estirando" : "Ganaste la línea"}: ${oro(ultima.valor)} a los ${ultima.min}\u2032.`;
+    linea = `${estiro ? "Ganaste la línea y no la soltaste más" : "Te quedaste con la línea"}: ${oro(ultima.valor)} a los ${ultima.min}\u2032.`;
     tono = "good";
   } else if (terminoAbajo) {
     const seHundio = ultima.valor < primera.valor;
-    linea = `${seHundio ? "Perdiste la línea y siguió abriéndose" : "Perdiste la línea"}: ${oro(ultima.valor)} a los ${ultima.min}\u2032.`;
+    linea = `${seHundio ? "Te comieron la línea y la diferencia no paró de crecer" : "Te comieron la línea"}: ${oro(ultima.valor)} a los ${ultima.min}\u2032.`;
     tono = "bad";
   } else {
-    linea = `La línea quedó pareja: ${oro(ultima.valor)} a los ${ultima.min}\u2032.`;
+    linea = `Quedaron mano a mano: ${oro(ultima.valor)} a los ${ultima.min}\u2032.`;
     tono = "neutral";
   }
 
@@ -97,20 +97,25 @@ export function buildMatchStory(m: Match): MatchStory | null {
   // más pesa. Uno solo — dos frases de contexto ya es un informe.
   const partes: string[] = [];
   if (quiebre && Math.abs(quiebre.delta) >= DECISIVA) {
-    partes.push(`El quiebre fue entre los ${quiebre.desde}\u2032 y los ${quiebre.hasta}\u2032 (${oro(quiebre.delta)}).`);
+    const cuando = `entre los ${quiebre.desde}\u2032 y los ${quiebre.hasta}\u2032`;
+    partes.push(
+      quiebre.delta > 0
+        ? `La sacaste ${cuando} (${oro(quiebre.delta)}).`
+        : `Se te fue ${cuando} (${oro(quiebre.delta)}).`
+    );
   } else if (m.firstBaronTimeS != null && m.firstBaronMine != null) {
-    partes.push(`El primer barón fue ${m.firstBaronMine ? "de tu equipo" : "del rival"} a los ${mmss(m.firstBaronTimeS)}.`);
+    partes.push(`El primer barón se lo llevó ${m.firstBaronMine ? "tu equipo" : "el rival"} a los ${mmss(m.firstBaronTimeS)}.`);
   } else if (m.firstTowerTimeS != null && m.firstTowerMine != null) {
-    partes.push(`La primera torre fue ${m.firstTowerMine ? "de tu equipo" : "del rival"} a los ${mmss(m.firstTowerTimeS)}.`);
+    partes.push(`La primera torre la tiró ${m.firstTowerMine ? "tu equipo" : "el rival"} a los ${mmss(m.firstTowerTimeS)}.`);
   }
 
   // Y lo que de verdad vale la pena marcar: cuando tu línea y el resultado no
   // cuentan la misma historia. Es lo único que esta función puede afirmar
   // sobre el resto del mapa — que algo pasó afuera de tu línea.
   if (m.win && terminoAbajo) {
-    partes.push("Se ganó igual, así que la partida se definió en otro lado.");
+    partes.push("Igual la ganaron: se definió en otra parte del mapa.");
   } else if (!m.win && terminoArriba) {
-    partes.push("Se perdió igual: tu línea no fue donde se decidió.");
+    partes.push("Igual la perdieron: no se decidió en tu línea.");
   }
 
   return { linea, contexto: partes.length > 0 ? partes.join(" ") : null, tono };
