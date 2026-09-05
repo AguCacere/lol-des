@@ -285,18 +285,31 @@ export async function GET() {
   }
   /**
    * Los siete números de UNA partida, o null en la métrica que esa partida no
-   * tenga. El 0 de kill_participation/obj_share se trata como "sin dato" por
-   * lo explicado arriba; el costo es perder algún 0 real (un jugador que no
-   * le pegó a ningún objetivo), que es raro y no justifica sesgar el resto.
+   * tenga.
+   *
+   * Sobre los ceros: hay columnas que se agregaron con `not null default 0` y
+   * nunca se rellenaron hacia atrás, así que un 0 puede significar "no hay
+   * dato" en vez de cero de verdad. Descartar TODOS los ceros sesga al revés
+   * —se pierden los ceros reales—, así que donde se puede se distingue con
+   * otra columna de la misma fila:
+   *
+   * - participación en kills: si el jugador tuvo alguna kill o asistencia, su
+   *   participación no puede ser 0. Ahí el 0 es un dato faltante. Si no tuvo
+   *   ninguna, el 0 es verdadero y cuenta.
+   * - % de daño: si hizo daño a campeones, su porcentaje no puede ser 0.
+   * - participación en objetivos: no guardamos el daño a objetivos por fila,
+   *   así que acá no hay con qué distinguir y se descartan todos los ceros.
    */
   function radarMetricsOf(row: MatchRow): Record<RadarMetric, number | null> {
     const minutes = Math.max(1, row.game_duration_s / 60);
     const killPart = Number(row.kill_participation ?? 0);
     const objShare = Number(row.obj_share ?? 0);
+    const dmgShare = Number(row.dmg_share ?? 0);
+    const tuvoTakedowns = row.kills + row.assists > 0;
     return {
       kda: (row.kills + row.assists) / Math.max(1, row.deaths),
-      killParticipation: killPart === 0 ? null : killPart,
-      dmgShare: Number(row.dmg_share ?? 0),
+      killParticipation: killPart === 0 && tuvoTakedowns ? null : killPart,
+      dmgShare: dmgShare === 0 && row.damage_to_champs > 0 ? null : dmgShare,
       objShare: objShare === 0 ? null : objShare,
       goldPerMin: row.gold_earned / minutes,
       csPerMin: Number(row.cs_per_min),

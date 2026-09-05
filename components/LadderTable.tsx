@@ -130,7 +130,7 @@ export function LadderTable({
         <div className="sort-select-wrap">
           <span className="meta">Ordenar por</span>
           <Select
-            className="sort-select"
+            className="sort-select a-la-derecha"
             value={sortKey}
             onChange={(v) => onSortKeyChange(v as SortKey)}
             ariaLabel="Ordenar el ladder por"

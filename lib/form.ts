@@ -56,7 +56,12 @@ export interface FormSample {
  * kills), que es rarísimo y no vale distorsionar todo el resto por él.
  */
 function killPart(s: FormSample): number | null {
-  return s.killParticipation === null || s.killParticipation === 0 ? null : s.killParticipation;
+  if (s.killParticipation === null) return null;
+  // Un 0 con kills o asistencias es imposible: ahí el 0 es la columna sin
+  // rellenar, no un dato. Sin takedowns, en cambio, el 0 es verdadero y tiene
+  // que contar — descartarlo también sesgaba el promedio para arriba.
+  if (s.killParticipation === 0 && s.kills + s.assists > 0) return null;
+  return s.killParticipation;
 }
 
 /** Minutos reales de la partida, con piso para que un remake no divida por cero. */

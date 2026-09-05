@@ -2416,6 +2416,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    el navegador la pinta fuera de la página. Este es el desplegable de toda la
    app: cualquier menú nuevo va por acá. */
 .sel{position:relative; min-width:0;}
+/* Los desplegables pegados al borde derecho abren hacia adentro, o la lista
+   —que ahora crece con su contenido— se sale de la pantalla. */
+.sel.a-la-derecha .sel-lista{left:auto; right:0;}
 .sel-btn{
   display:flex; align-items:center; gap:8px; width:100%; min-width:0;
   background:var(--surface-raised); color:var(--text-primary);
@@ -2428,8 +2431,12 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .sel-btn-label{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .sel-chevron{width:14px; height:14px; flex:none; color:var(--text-muted); transition:transform .15s ease;}
 .sel-btn.is-open .sel-chevron{transform:rotate(180deg);}
+/* El ancho lo manda el contenido, no el botón: anclada a los dos lados, la
+   lista quedaba del ancho de un botón chico y las etiquetas se cortaban
+   —"LP (r…"— o desaparecían del todo cuando el detalle era largo. */
 .sel-lista{
-  position:absolute; z-index:60; top:calc(100% + 6px); left:0; right:0; min-width:200px;
+  position:absolute; z-index:60; top:calc(100% + 6px); left:0;
+  width:max-content; min-width:100%; max-width:min(360px, calc(100vw - 32px));
   max-height:300px; overflow-y:auto; padding:5px;
   background:var(--surface); border:1px solid var(--accent-dim-border); border-radius:var(--radius-md);
   box-shadow:0 14px 40px rgba(0,0,0,0.55);
@@ -2444,8 +2451,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .sel-opcion.en-cursor{background:var(--accent-wash-soft);}
 .sel-opcion.elegida .sel-opcion-label{color:var(--accent); font-weight:700;}
-.sel-opcion-label{flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600;}
-.sel-opcion-detalle{font-size:11px; color:var(--text-muted); margin-left:auto; white-space:nowrap; flex:none;}
+/* La etiqueta no se achica: es el dato. El que cede es el detalle, que es
+   contexto — al revés, la fila terminaba mostrando "Total ganadas" sin decir
+   nunca de qué opción. */
+.sel-opcion-label{flex:0 0 auto; white-space:nowrap; font-weight:600;}
+.sel-opcion-detalle{
+  font-size:11px; color:var(--text-muted); margin-left:auto; flex:0 1 auto;
+  min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
 /* El tilde va después del detalle y sin empujarlo: marca cuál está elegida
    sin que la fila cambie de ancho al seleccionarla. */
 .sel-tilde{width:13px; height:13px; flex:none; color:var(--accent); margin-left:2px;}
