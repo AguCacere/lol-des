@@ -183,15 +183,32 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   display:flex; align-items:center; justify-content:space-between; gap:12px;
   flex-wrap:wrap; margin-bottom:12px;
 }
-.role-filters{display:flex; gap:6px; flex-wrap:wrap;}
-.role-filter-btn{
-  font-family:var(--font-body); font-weight:600; font-size:12px; color:var(--text-secondary);
-  background:var(--surface); box-shadow:var(--shadow-sm); border:none; padding:6px 13px; border-radius:999px;
-  cursor:pointer; transition:background .15s ease, color .15s ease;
+/* El título de la sección es un interruptor de dos tablas: el ladder y la
+   liga. Los dos se ven como el título que reemplazan —mismo tamaño, mismo
+   peso— y el que no está activo se apaga en vez de convertirse en un botón,
+   para que la fila siga leyéndose como un encabezado y no como una barra de
+   pestañas más (arriba ya hay una). */
+.vista-switch{display:flex; align-items:baseline; gap:18px; flex-wrap:wrap; min-width:0;}
+.vista-btn{
+  display:inline-flex; align-items:center; gap:8px; padding:0; border:none; background:none; cursor:pointer;
+  font-family:var(--font-display); font-size:19px; font-weight:700; letter-spacing:-0.01em;
+  color:var(--text-muted); opacity:0.55;
+  transition:color .15s ease, opacity .15s ease;
 }
-.role-filter-btn:hover{color:var(--text-primary); background:var(--surface-hover);}
-.role-filter-btn.is-active{background:var(--accent); color:var(--accent-ink); font-weight:700;}
-.role-filter-btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+.vista-btn:hover{color:var(--text-secondary); opacity:0.85;}
+.vista-btn.is-active{color:var(--text-primary); opacity:1;}
+.vista-btn:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:4px;}
+/* Los puntitos de estado solo tienen sentido en la tabla que se está
+   mirando; en la apagada son ruido de color. */
+.vista-btn:not(.is-active) .live-dot{opacity:0.35; filter:grayscale(1);}
+.vista-btn .meta{font-family:var(--font-body); font-size:12px; font-weight:400;}
+/* El rango de fechas cuando la liga vive adentro del ladder y el encabezado
+   ya lo puso el interruptor. */
+.liga-rango-solo{display:flex; justify-content:flex-end; margin:-4px 0 10px;}
+@media (max-width:560px){
+  .vista-switch{gap:12px;}
+  .vista-btn{font-size:16px;}
+}
 
 .sort-select-wrap{display:flex; align-items:center; gap:8px; white-space:nowrap;}
 /* El de "Ordenar por" es la variante chica y con forma de píldora. */

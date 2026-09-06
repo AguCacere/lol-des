@@ -17,7 +17,6 @@ import { ClashHistory } from "@/components/ClashHistory";
 import { LiveTray } from "@/components/LiveTray";
 import { TeamDigest } from "@/components/TeamDigest";
 import { fetchConClave } from "@/components/Cerradura";
-import { LigaSemanal } from "@/components/LigaSemanal";
 
 function parseRiotId(raw: string): { gameName: string; tagLine: string } | null {
   const i = raw.indexOf("#");
@@ -52,6 +51,8 @@ export default function Home() {
   const [addStatus, setAddStatus] = useState<AddStatus>({ kind: "idle" });
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [roleFilter, setRoleFilter] = useState<RoleKey | "all">("all");
+  /** Ladder o liga: las dos son la tabla principal, y el título de la sección las intercambia. */
+  const [vista, setVista] = useState<"ladder" | "liga">("ladder");
   const [sortKey, setSortKey] = useState<SortKey>("ladder");
 
   const loadLadder = useCallback(async () => {
@@ -312,6 +313,8 @@ export default function Home() {
             error={loadError}
             lastUpdated={lastUpdated}
             roleFilter={roleFilter}
+            vista={vista}
+            onVistaChange={setVista}
             onRoleFilterChange={setRoleFilter}
             sortKey={sortKey}
             onSortKeyChange={setSortKey}
@@ -343,9 +346,6 @@ export default function Home() {
         </div>
       ) : (
         <div id="view-team">
-          {/* La liga arriba del resumen: es la que tiene algo en juego esta
-              semana, y el resumen es la foto de lo que ya pasó. */}
-          <LigaSemanal />
           <TeamDigest
             digest={teamDigest}
             loading={teamDigestLoading}

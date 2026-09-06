@@ -8,6 +8,7 @@ import { SparkChart } from "./SparkChart";
 import { ChampIcon } from "./ChampIcon";
 import { TierEmblem } from "./TierEmblem";
 import { championLabel } from "@/lib/champion-names";
+import { LigaSemanal } from "./LigaSemanal";
 
 export type SortKey = "ladder" | "winrate" | "wins" | "streak" | "recent";
 
@@ -22,6 +23,9 @@ interface LadderTableProps {
   error?: string | null;
   lastUpdated: string | null;
   roleFilter: RoleKey | "all";
+  /** Cuál de las dos tablas se está mirando. El título de arriba es el interruptor. */
+  vista: "ladder" | "liga";
+  onVistaChange: (v: "ladder" | "liga") => void;
   onRoleFilterChange: (role: RoleKey | "all") => void;
   sortKey: SortKey;
   onSortKeyChange: (key: SortKey) => void;
@@ -89,6 +93,8 @@ export function LadderTable({
   error,
   lastUpdated,
   roleFilter,
+  vista,
+  onVistaChange,
   onRoleFilterChange,
   sortKey,
   onSortKeyChange,
@@ -101,31 +107,63 @@ export function LadderTable({
   const rows =
     sortKey === "ladder" ? filtered : [...filtered].sort((a, b) => sortValue(b, sortKey) - sortValue(a, sortKey));
 
+  const enLiga = vista === "liga";
+
   return (
     <section>
+      {/* El título es el interruptor. Las dos son tablas del grupo y compiten
+          por el mismo lugar de la pantalla: el ladder dice dónde llegó cada
+          uno, la liga cuánto se movió esta semana. Tenerlas en pestañas
+          distintas escondía la que tiene algo en juego. */}
       <div className="section-head">
-        <h2>
-          <span className="live-dot" />
-          Ladder del grupo{" "}
-          <span className="meta">· {rows.length}{rows.length === 1 ? " invocador" : " invocadores"}</span>
-        </h2>
-        {!loading && lastUpdated && (
+        <div className="vista-switch" role="group" aria-label="Qué tabla mirar">
+          <button
+            type="button"
+            className={`vista-btn${!enLiga ? " is-active" : ""}`}
+            onClick={() => onVistaChange("ladder")}
+            aria-pressed={!enLiga}
+          >
+            <span className="live-dot" />
+            Ladder del grupo
+            {!enLiga && (
+              <span className="meta">
+                · {rows.length}
+                {rows.length === 1 ? " invocador" : " invocadores"}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            className={`vista-btn${enLiga ? " is-active" : ""}`}
+            onClick={() => onVistaChange("liga")}
+            aria-pressed={enLiga}
+          >
+            <span className="live-dot accent" />
+            Liga de la semana
+          </button>
+        </div>
+        {!enLiga && !loading && lastUpdated && (
           <span className="meta last-updated">Última actualización: {formatRelativeTime(lastUpdated)}</span>
         )}
       </div>
 
+      {enLiga ? (
+        <LigaSemanal conEncabezado={false} />
+      ) : (
+        <>
       <div className="ladder-controls">
-        <div className="role-filters" role="group" aria-label="Filtrar por rol">
-          {ROLE_FILTERS.map((r) => (
-            <button
-              key={r}
-              type="button"
-              className={`role-filter-btn${roleFilter === r ? " is-active" : ""}`}
-              onClick={() => onRoleFilterChange(r)}
-            >
-              {r === "all" ? "Todos" : ROLES[r].label}
-            </button>
-          ))}
+        {/* La línea pasó de seis chips a un desplegable. Ocupaba un renglón
+            entero para algo que casi no se toca, y ese renglón lo necesitaba
+            el interruptor de arriba. */}
+        <div className="sort-select-wrap">
+          <span className="meta">Línea</span>
+          <Select
+            className="sort-select"
+            value={roleFilter}
+            onChange={(v) => onRoleFilterChange(v as RoleKey | "all")}
+            ariaLabel="Filtrar el ladder por línea"
+            options={ROLE_FILTERS.map((r) => ({ value: r, label: r === "all" ? "Todas" : ROLES[r].label }))}
+          />
         </div>
         <div className="sort-select-wrap">
           <span className="meta">Ordenar por</span>
@@ -341,6 +379,8 @@ export function LadderTable({
           )}
         </div>
       </div>
+        </>
+      )}
     </section>
   );
 }

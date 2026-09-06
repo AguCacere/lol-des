@@ -37,6 +37,15 @@ export function SparkChart({
   pointLabels,
   guides,
 }: SparkChartProps) {
+  // Con menos de dos puntos no hay línea que dibujar, y lineAreaGeometry
+  // dividiría por (values.length - 1) = 0 y leería points[0] de un arreglo
+  // vacío: eso tira, y como esto se dibuja adentro de cada fila del ladder,
+  // el error se lleva puesta la tabla entera.
+  //
+  // No es hipotético: un invocador recién agregado no tiene ni una foto de LP
+  // hasta el primer refresco, así que su lpHistory llega vacío. Agregar a
+  // alguien podía dejar la pantalla en blanco para todos hasta que corriera
+  // el cron.
   const detailed = variant === "detailed";
   const mini = variant === "mini";
   // Compact ("últimos 20" ladder cells) gets its own horizontal margin, wider
@@ -126,6 +135,10 @@ export function SparkChart({
   // The little arrow needs to keep pointing at the actual hovered point even
   // when the box itself got clamped away from being centered on it.
   const arrowLeft = hover !== null ? Math.min(Math.max(pointPx - (tooltipLeft - TOOLTIP_WIDTH / 2), 14), TOOLTIP_WIDTH - 14) : TOOLTIP_WIDTH / 2;
+
+  // Después de los hooks, nunca antes: React exige que la cantidad de hooks
+  // sea la misma en cada render.
+  if (values.length < 2) return null;
 
   return (
     <div style={canHover || guiasVisibles.length > 0 ? { position: "relative" } : undefined}>

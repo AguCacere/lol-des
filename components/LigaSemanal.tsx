@@ -54,7 +54,7 @@ function loQueFalta(hasta: string): string {
  *
  * Compite solo el que se anota. Anotarlos pide la contraseña del grupo.
  */
-export function LigaSemanal() {
+export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean } = {}) {
   const [d, setD] = useState<Datos | null>(null);
   const [cargando, setCargando] = useState(true);
   const [admin, setAdmin] = useState(false);
@@ -99,18 +99,28 @@ export function LigaSemanal() {
 
   const anotados = d.plantel.filter((p) => p.participa).length;
 
+  const rango = (
+    <span className="meta liga-rango">
+      {dia(d.desde)} – {dia(new Date(Date.parse(d.hasta) - 1).toISOString())}
+      <span className="liga-falta">{loQueFalta(d.hasta)}</span>
+    </span>
+  );
+
   return (
     <section className="liga">
-      <div className="section-head">
-        <h2>
-          <span className="live-dot accent" />
-          Liga de la semana
-        </h2>
-        <span className="meta liga-rango">
-          {dia(d.desde)} – {dia(new Date(Date.parse(d.hasta) - 1).toISOString())}
-          <span className="liga-falta">{loQueFalta(d.hasta)}</span>
-        </span>
-      </div>
+      {/* Cuando la liga vive adentro del ladder, el título ya lo puso el
+          interruptor de arriba: acá solo queda el rango de fechas. */}
+      {conEncabezado ? (
+        <div className="section-head">
+          <h2>
+            <span className="live-dot accent" />
+            Liga de la semana
+          </h2>
+          {rango}
+        </div>
+      ) : (
+        <div className="liga-rango-solo">{rango}</div>
+      )}
 
       {d.tabla.length === 0 ? (
         <div className="empty-state">

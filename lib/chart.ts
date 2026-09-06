@@ -62,6 +62,16 @@ export function lineAreaGeometry(
   padY = padX,
   smooth = false,
 ): LineAreaGeometry {
+  // Con menos de dos valores no hay línea: stepX dividiría por cero y
+  // pts[pts.length - 1] leería de un arreglo vacío. Se devuelve una geometría
+  // vacía en vez de tirar — el que dibuja decide si muestra algo, y ninguna
+  // pantalla se cae por un jugador sin historial todavía.
+  if (values.length < 2) {
+    const y = h / 2;
+    const punto: [number, number] = [padX, y];
+    return { line: "", area: "", last: punto, points: values.length === 1 ? [punto] : [], yOf: () => y };
+  }
+
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = Math.max(max - min, minRange);
