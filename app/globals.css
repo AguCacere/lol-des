@@ -2882,3 +2882,43 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .lineas-nombre{display:none;}
   .lineas-detalle{grid-column:2 / -1; padding-left:0;}
 }
+
+/* ── La cerradura (components/Cerradura.tsx) ──────────────────────────────
+   Mirar la app no pide nada; el candado solo importa cuando vas a tocar algo
+   que escribe o que cuesta. De ahí que sea chico y esté al costado. */
+.cerradura{
+  display:inline-flex; align-items:center; justify-content:center; flex:none;
+  width:32px; height:32px; border-radius:var(--radius-sm);
+  border:1px solid var(--border-soft); background:var(--surface);
+  color:var(--text-muted); cursor:pointer;
+  transition:color .12s ease, border-color .12s ease, background .12s ease;
+}
+.cerradura svg{width:15px; height:15px;}
+.cerradura:hover{color:var(--text-secondary); background:var(--surface-hover);}
+.cerradura.abierta{color:var(--accent); border-color:var(--accent-dim-border); background:var(--accent-wash-soft);}
+.cerradura-fondo{
+  position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
+  padding:20px; background:rgba(0,0,0,0.62); backdrop-filter:blur(3px);
+}
+.cerradura-caja{
+  display:flex; flex-direction:column; gap:12px; width:100%; max-width:380px;
+  background:var(--surface-raised); border:1px solid var(--border-soft);
+  border-radius:var(--radius-md); padding:20px; box-shadow:var(--shadow);
+}
+.cerradura-caja h3{margin:0; font-size:15px; font-weight:700; color:var(--text-primary);}
+.cerradura-caja p{margin:0; font-size:12px; line-height:1.55; color:var(--text-muted);}
+.cerradura-caja input{
+  width:100%; box-sizing:border-box; padding:9px 11px;
+  background:var(--surface); border:1px solid var(--border-soft); border-radius:var(--radius-sm);
+  color:var(--text-primary); font-family:inherit; font-size:13px;
+}
+.cerradura-caja input:focus{outline:none; border-color:var(--accent-dim-border);}
+.cerradura-error{font-size:11.5px; color:var(--critical); line-height:1.45;}
+.cerradura-botones{display:flex; justify-content:flex-end; gap:8px; margin-top:2px;}
+/* El de entrar sí es el botón principal del cartel: .coach-btn.sm es a
+   propósito apagado, y acá el que confirma tiene que invitar al click. */
+.coach-btn.sm.primario{
+  background:var(--accent); color:var(--accent-ink); box-shadow:none; font-weight:700;
+}
+.coach-btn.sm.primario:hover{background:var(--accent); filter:brightness(1.08);}
+.coach-btn.sm.primario:disabled{opacity:0.45; cursor:default; filter:none;}

@@ -16,6 +16,7 @@ import { ChampionWinrateLeaderboard } from "@/components/ChampionWinrateLeaderbo
 import { ClashHistory } from "@/components/ClashHistory";
 import { LiveTray } from "@/components/LiveTray";
 import { TeamDigest } from "@/components/TeamDigest";
+import { fetchConClave } from "@/components/Cerradura";
 
 function parseRiotId(raw: string): { gameName: string; tagLine: string } | null {
   const i = raw.indexOf("#");
@@ -224,7 +225,7 @@ export default function Home() {
     }
     setAddStatus({ kind: "adding" });
     try {
-      const res = await fetch("/api/summoners", {
+      const res = await fetchConClave("/api/summoners", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(parsed),

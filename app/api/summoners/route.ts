@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAccountByRiotId, getLeagueEntriesByPuuid } from "@/lib/riot";
 import { getSupabaseServerClient } from "@/lib/supabase";
+import { exigirSesion } from "@/lib/auth";
 
 /**
  * POST /api/summoners — { gameName, tagLine } → resolves a Riot ID against
@@ -13,6 +14,10 @@ import { getSupabaseServerClient } from "@/lib/supabase";
  *     -d '{"gameName":"Faker","tagLine":"KR1"}'
  */
 export async function POST(req: Request) {
+  // Cuesta llamadas a Riot, plata o el Discord del grupo: solo los de casa.
+  const cerrado = exigirSesion(req);
+  if (cerrado) return cerrado;
+
   let body: { gameName?: string; tagLine?: string };
   try {
     body = await req.json();

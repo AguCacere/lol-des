@@ -5,6 +5,7 @@ import type { CoachReport } from "@/lib/coach";
 import { formatRelativeTime } from "@/lib/ladder";
 import { ChampIcon } from "./ChampIcon";
 import { InfoTip } from "./InfoTip";
+import { fetchConClave } from "./Cerradura";
 
 interface Respuesta {
   report: CoachReport | null;
@@ -73,7 +74,11 @@ export function CoachPanel({
     setError(null);
     setAvisoSinCambios(false);
     try {
-      const res = await fetch("/api/coach", {
+      // fetchConClave y no fetch: si el servidor contesta 401, en vez de
+      // mostrar "Error 401" abre el cartel de la contraseña, que es lo que ese
+      // error realmente quiere decir. El peek de arriba queda con fetch pelado
+      // porque leer el informe guardado no pide permiso.
+      const res = await fetchConClave("/api/coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ gameName, tagLine, force }),

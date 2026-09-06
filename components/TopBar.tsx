@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { Cerradura } from "./Cerradura";
 
 export type AddStatus = { kind: "idle" } | { kind: "adding" } | { kind: "error"; message: string };
 
@@ -87,6 +88,10 @@ export function TopBar({ invocadores, enVivo, filterText, onFilterChange, onSubm
         {addStatus.kind === "adding" && <span className="search-status">Buscando en la Riot API…</span>}
         {addStatus.kind === "error" && <span className="search-status is-error">{addStatus.message}</span>}
       </form>
+
+      {/* El candado al final de la barra: chico y al costado, porque mirar la
+          app no lo necesita. Solo importa cuando vas a tocar algo. */}
+      <Cerradura />
     </header>
   );
 }

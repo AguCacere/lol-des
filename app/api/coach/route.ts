@@ -5,6 +5,7 @@ import { computeMatchups, type MatchupSample } from "@/lib/matchups";
 import { roleFromTeamPosition } from "@/lib/mapping";
 import { ROLES, tierFor } from "@/lib/ladder";
 import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
+import { exigirSesion } from "@/lib/auth";
 
 // El análisis piensa un rato (adaptive thinking sobre un dossier de ~2k
 // tokens). No es una consulta de lectura, es una llamada a un modelo.
@@ -46,6 +47,14 @@ export async function POST(req: Request) {
   const { gameName, tagLine, force, peek } = body;
   if (!gameName || !tagLine) {
     return NextResponse.json({ error: "Faltan gameName y/o tagLine." }, { status: 400 });
+  }
+
+  // Acá el portero es más fino que en el resto: LEER el informe guardado no
+  // cuesta nada y lo puede ver cualquiera (es lo que hace `peek` al abrir el
+  // perfil). Lo que se cierra es GENERARLO, que es lo que se paga por token.
+  if (!peek) {
+    const cerrado = exigirSesion(req);
+    if (cerrado) return cerrado;
   }
 
   let supabase;

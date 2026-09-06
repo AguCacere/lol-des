@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { isDisaster, roastMessage, worstDisaster, type RoastCandidate } from "@/lib/roast";
 import { candidatasDeFlex, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
+import { exigirSesion } from "@/lib/auth";
 
 /** Cuántas partidas recientes se miran cuando no se pasa un matchId puntual. */
 const VENTANA = 20;
@@ -58,6 +59,10 @@ function candidato(r: Fila): RoastCandidate {
  * el criterio automático.
  */
 export async function POST(req: Request) {
+  // Cuesta llamadas a Riot, plata o el Discord del grupo: solo los de casa.
+  const cerrado = exigirSesion(req);
+  if (cerrado) return cerrado;
+
   let body: { gameName?: string; tagLine?: string; matchId?: string; dryRun?: boolean; flex?: boolean };
   try {
     body = await req.json();

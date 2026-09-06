@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { repairMatches } from "@/lib/refresh";
+import { exigirSesion } from "@/lib/auth";
 
 // 300 es lo que este endpoint PIDE, no lo que necesariamente obtiene: un
 // plan que no lo sostenga lo recorta en silencio y Vercel corta la función
@@ -35,6 +36,10 @@ export const maxDuration = 300;
  * antes de la primera llamada — sin esa columna el UPDATE falla.
  */
 export async function POST(req: Request) {
+  // Cuesta llamadas a Riot, plata o el Discord del grupo: solo los de casa.
+  const cerrado = exigirSesion(req);
+  if (cerrado) return cerrado;
+
   let body: { batchSize?: number } = {};
   try {
     body = (await req.json()) as { batchSize?: number };

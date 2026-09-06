@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { refreshAllSummoners } from "@/lib/refresh";
+import { exigirSesion } from "@/lib/auth";
 
 // Was 60 — a growing group plus the bounded-concurrency refresh (see
 // lib/refresh.ts) still needs headroom; Vercel clamps this to whatever the
@@ -15,7 +16,11 @@ export const maxDuration = 300;
  * MANUAL_REFRESH_COOLDOWN_MS (ver lib/refresh.ts) — así invocaciones
  * repetidas no queman la cuota de la key personal.
  */
-export async function POST() {
+export async function POST(req: Request) {
+  // Cuesta llamadas a Riot, plata o el Discord del grupo: solo los de casa.
+  const cerrado = exigirSesion(req);
+  if (cerrado) return cerrado;
+
   let supabase;
   try {
     supabase = getSupabaseServerClient();

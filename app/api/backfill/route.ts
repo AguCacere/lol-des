@@ -1,6 +1,7 @@
 import { NextResponse, after } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { backfillOne } from "@/lib/refresh";
+import { exigirSesion } from "@/lib/auth";
 
 // A deep pull (default 200 matches, 2 Riot calls each) comfortably finishes
 // within this, but give it the same headroom as the other refresh routes.
@@ -24,6 +25,10 @@ export const maxDuration = 300;
  * pull instead of everyone's small one.
  */
 export async function POST(req: Request) {
+  // Cuesta llamadas a Riot, plata o el Discord del grupo: solo los de casa.
+  const cerrado = exigirSesion(req);
+  if (cerrado) return cerrado;
+
   let body: { gameName?: string; tagLine?: string; maxMatches?: number };
   try {
     body = await req.json();
