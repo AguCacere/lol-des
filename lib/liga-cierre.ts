@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendDiscordNotification } from "./discord";
+import { RANKED_SOLO_QUEUE_ID } from "./refresh";
 import {
   claveDeSemana,
   finDeSemana,
@@ -42,13 +43,35 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
 
   const fin = finDeSemana(anterior);
   const desdeAntes = new Date(anterior.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString();
+  const puuids = anotados.map((s) => s.puuid);
   const { data: snaps } = await supabase
     .from("lp_snapshots")
     .select("puuid, tier, division, lp, wins, losses, captured_at")
-    .in("puuid", anotados.map((s) => s.puuid))
+    .in("puuid", puuids)
+    .eq("queue_type", "RANKED_SOLO_5x5")
     .gte("captured_at", desdeAntes)
     .lt("captured_at", fin.toISOString())
     .order("captured_at");
+
+  // Las victorias y las derrotas se cuentan de las partidas REALES de la
+  // ventana. Los contadores de lp_snapshots son acumulados de la season y
+  // restarlos da bien solo si las dos puntas son válidas — ver la nota en
+  // tablaDeLaSemana.
+  const { data: partidas } = await supabase
+    .from("matches")
+    .select("puuid, win")
+    .in("puuid", puuids)
+    .eq("queue_id", RANKED_SOLO_QUEUE_ID)
+    .gte("played_at", anterior.toISOString())
+    .lt("played_at", fin.toISOString());
+  const recordPorPuuid = new Map<string, { victorias: number; derrotas: number }>();
+  for (const m of partidas ?? []) {
+    const acc = recordPorPuuid.get(m.puuid) ?? { victorias: 0, derrotas: 0 };
+    if (m.win) acc.victorias++;
+    else acc.derrotas++;
+    recordPorPuuid.set(m.puuid, acc);
+  }
+
 
   const participantes: Participante[] = anotados.map((s) => ({
     puuid: s.puuid,
@@ -56,7 +79,7 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
     tag: s.tag_line,
     profileIconUrl: null,
   }));
-  const tabla = tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], anterior, fin);
+  const tabla = tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], anterior, fin, recordPorPuuid);
   const jugaron = tabla.filter((f) => !f.sinJugar);
   const ganador = jugaron[0] ?? null;
 

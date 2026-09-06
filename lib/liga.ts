@@ -1,5 +1,6 @@
 import { rankScore } from "./ladder";
 import { divisionFromRiot, tierKeyFromRiot } from "./mapping";
+import type { TierKey } from "./types";
 
 /**
  * La liga semanal: una competencia interna por LP neto, aparte del ladder.
@@ -68,6 +69,10 @@ export interface FilaLiga {
   derrotas: number;
   /** Si todavía no jugó nada esta semana. Se muestra distinto de un 0 conseguido jugando. */
   sinJugar: boolean;
+  /** Dónde está parado ahora — el rango de su última foto. Null si no tiene ninguna. */
+  rango: { tier: TierKey; division: number; lp: number } | null;
+  /** Los puntos de cada foto DENTRO de la semana, para dibujar cómo la fue haciendo. */
+  serie: number[];
 }
 
 export interface Participante {
@@ -75,6 +80,12 @@ export interface Participante {
   name: string;
   tag: string;
   profileIconUrl: string | null;
+}
+
+/** Partidas de la semana, contadas de verdad. Ver la nota en tablaDeLaSemana. */
+export interface RecordSemanal {
+  victorias: number;
+  derrotas: number;
 }
 
 /**
@@ -85,12 +96,20 @@ export interface Participante {
  * foto del lunes lo agarra en 20, esos 20 los perdió dentro de la semana y
  * tienen que contar. Recién si no hay ninguna foto anterior —alguien que se
  * sumó a mitad de semana— se arranca desde la primera que haya.
+ *
+ * Las victorias y derrotas NO salen de los snapshots. Los contadores de
+ * lp_snapshots son acumulados de la season, y restar dos acumulados solo da
+ * bien si los dos son válidos: si la foto base tiene 0 —un invocador recién
+ * agregado, una entrada de ranked que Riot todavía no devolvía— la resta
+ * escupe la season entera y aparece un "222V-225D" en una semana. Se cuentan
+ * las partidas reales de la ventana, que es un dato exacto y no una inferencia.
  */
 export function tablaDeLaSemana(
   participantes: Participante[],
   snapshots: Snapshot[],
   inicio: Date,
   fin: Date,
+  recordPorPuuid: Map<string, RecordSemanal>,
 ): FilaLiga[] {
   const desde = inicio.getTime();
   const hasta = fin.getTime();
@@ -113,22 +132,26 @@ export function tablaDeLaSemana(
     const base = previas.length > 0 ? previas[previas.length - 1] : dentro[0];
     const ultima = dentro.length > 0 ? dentro[dentro.length - 1] : base;
 
+    const { victorias, derrotas } = recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0 };
+    const rango = ultima
+      ? { tier: tierKeyFromRiot(ultima.tier), division: divisionFromRiot(ultima.division), lp: ultima.lp }
+      : null;
+
     if (!base || !ultima) {
-      filas.push({ ...p, lpNeto: 0, victorias: 0, derrotas: 0, sinJugar: true });
+      filas.push({ ...p, lpNeto: 0, victorias, derrotas, sinJugar: victorias + derrotas === 0, rango, serie: [] });
       continue;
     }
 
-    // Las victorias y derrotas de lp_snapshots son ACUMULADAS de la season, así
-    // que la resta entre las dos puntas da las de esta semana. Con piso en 0
-    // por si el acumulado se reinicia (season nueva) y la resta da negativo.
-    const victorias = Math.max(0, ultima.wins - base.wins);
-    const derrotas = Math.max(0, ultima.losses - base.losses);
     filas.push({
       ...p,
       lpNeto: puntos(ultima) - puntos(base),
       victorias,
       derrotas,
       sinJugar: victorias + derrotas === 0,
+      rango,
+      // La curva arranca en el punto de partida aunque sea de antes del lunes:
+      // sin él, una semana con una sola foto no dibuja nada.
+      serie: [puntos(base), ...dentro.map(puntos)],
     });
   }
 

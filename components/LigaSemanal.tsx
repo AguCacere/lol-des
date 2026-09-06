@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { InfoTip } from "./InfoTip";
 import { fetchConClave } from "./Cerradura";
+import { TierEmblem } from "./TierEmblem";
+import { SparkChart } from "./SparkChart";
+import { tierFor, trendColor } from "@/lib/ladder";
+import type { TierKey } from "@/lib/types";
 
 interface Fila {
   puuid: string;
@@ -14,6 +18,8 @@ interface Fila {
   victorias: number;
   derrotas: number;
   sinJugar: boolean;
+  rango: { tier: TierKey; division: number; lp: number } | null;
+  serie: number[];
 }
 interface DelPlantel {
   puuid: string;
@@ -98,6 +104,8 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
   if (!d) return null;
 
   const anotados = d.plantel.filter((p) => p.participa).length;
+  // Para escalar las barras de partidas: el que más jugó ocupa todo el ancho.
+  const maxPartidas = Math.max(1, ...d.tabla.map((f) => f.victorias + f.derrotas));
 
   const rango = (
     <span className="meta liga-rango">
@@ -132,27 +140,74 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
         <div className="liga-tabla">
           {d.tabla.map((f, i) => {
             const puesto = i + 1;
-            return (
-              <div className={`liga-fila${puesto === 1 && !f.sinJugar ? " lider" : ""}`} key={f.puuid}>
-                <span className={`liga-puesto p${puesto <= 3 ? puesto : 0}`}>{puesto}</span>
-                <PlayerAvatar name={f.name} iconUrl={f.profileIconUrl} className="duo-avatar sm" />
-                <span className="liga-nombre">
-                  {f.name} <span className="player-tag">#{f.tag}</span>
-                </span>
-                {f.sinJugar ? (
-                  <span className="liga-sinjugar">todavía no jugó</span>
-                ) : (
-                  <span className="liga-record">
-                    {f.victorias}V-{f.derrotas}D
+              const t = f.rango ? tierFor(f.rango.tier) : null;
+              const total = f.victorias + f.derrotas;
+              // Con guarda: si alguna vez llega una respuesta sin `serie`
+              // —una pestaña vieja contra una API nueva, o al revés— la fila
+              // se dibuja sin curva en vez de tirar y llevarse la tabla.
+              const serie = f.serie ?? [];
+              return (
+                <div className={`liga-fila${puesto === 1 && !f.sinJugar ? " lider" : ""}`} key={f.puuid}>
+                  <span className={`liga-puesto p${puesto <= 3 ? puesto : 0}`}>{puesto}</span>
+                  <PlayerAvatar name={f.name} iconUrl={f.profileIconUrl} className="duo-avatar sm" />
+                  <span className="liga-nombre">
+                    {f.name} <span className="player-tag">#{f.tag}</span>
                   </span>
-                )}
-                <span className={`liga-lp ${f.lpNeto > 0 ? "gd-pos" : f.lpNeto < 0 ? "gd-neg" : ""}`}>
-                  {f.lpNeto > 0 ? "+" : ""}
-                  {f.lpNeto}
-                </span>
-              </div>
-            );
-          })}
+
+                  {/* Dónde está parado hoy. Es el contexto que le falta al
+                      neto: subir 200 desde Plata no es lo mismo que subir 200
+                      desde Diamante, aunque en esta liga valgan igual. */}
+                  <span className="liga-rango-celda">
+                    {f.rango && t ? (
+                      <>
+                        <TierEmblem tierKey={f.rango.tier} division={f.rango.division} />
+                        <span className="liga-rango-texto">
+                          <span style={{ color: t.fg }}>
+                            {t.name} {f.rango.division}
+                          </span>
+                          <span className="liga-rango-lp">{f.rango.lp} LP</span>
+                        </span>
+                      </>
+                    ) : (
+                      <span className="liga-sinjugar">sin rango</span>
+                    )}
+                  </span>
+
+                  {/* Victorias y derrotas apiladas, el mismo idioma de barra
+                      que el resto de la app: el largo dice cuánto jugó
+                      comparado con el que más jugó, el color cómo le fue. */}
+                  <span className="liga-vd">
+                    {total > 0 ? (
+                      <>
+                        <span className="liga-barra" aria-hidden>
+                          <span className="liga-barra-total" style={{ width: `${(100 * total) / maxPartidas}%` }}>
+                            <span className="liga-barra-v" style={{ width: `${(100 * f.victorias) / total}%` }} />
+                            <span className="liga-barra-d" />
+                          </span>
+                        </span>
+                        <span className="liga-record">
+                          {f.victorias}V-{f.derrotas}D
+                        </span>
+                      </>
+                    ) : (
+                      <span className="liga-sinjugar">todavía no jugó</span>
+                    )}
+                  </span>
+
+                  {/* Cómo la fue haciendo en la semana. No es la curva de LP
+                      de siempre: acá solo entran las fotos de ESTA semana, así
+                      que se ve si el neto lo hizo de una o remontando. */}
+                  <span className="liga-curva">
+                    <SparkChart values={serie} width={110} height={30} pad={5} color={trendColor(serie)} />
+                  </span>
+
+                  <span className={`liga-lp ${f.lpNeto > 0 ? "gd-pos" : f.lpNeto < 0 ? "gd-neg" : ""}`}>
+                    {f.lpNeto > 0 ? "+" : ""}
+                    {f.lpNeto}
+                  </span>
+                </div>
+              );
+            })}
         </div>
       )}
 

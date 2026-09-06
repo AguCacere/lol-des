@@ -2950,11 +2950,26 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .liga-tabla{
   background:var(--surface-raised); border-radius:var(--radius-sm); box-shadow:var(--shadow-sm); overflow:hidden;
 }
+/* La misma anatomía que una fila del ladder —puesto, quién, rango, cómo le
+   fue, la curva y el número— pero el número de la derecha es el neto de la
+   semana en vez del LP absoluto. */
 .liga-fila{
-  display:grid; grid-template-columns:26px 28px minmax(0,1fr) auto 76px;
+  display:grid; grid-template-columns:26px 28px minmax(120px,1fr) 132px 150px 110px 76px;
   align-items:center; gap:11px; padding:9px 14px;
   border-bottom:1px solid var(--border-soft);
 }
+.liga-rango-celda{display:flex; align-items:center; gap:8px; min-width:0;}
+.liga-rango-celda .tier-emblem,
+.liga-rango-celda img{width:26px; height:26px; flex:none;}
+.liga-rango-texto{display:flex; flex-direction:column; gap:1px; min-width:0; font-size:12px; font-weight:600; white-space:nowrap;}
+.liga-rango-lp{font-family:var(--font-mono); font-size:10px; color:var(--text-muted);}
+.liga-vd{display:flex; flex-direction:column; gap:4px; min-width:0;}
+.liga-barra{height:7px; display:block;}
+.liga-barra-total{display:flex; height:100%; min-width:3px; border-radius:999px; overflow:hidden;}
+.liga-barra-v{background:var(--good); opacity:0.8; flex:none;}
+.liga-barra-d{background:var(--critical); opacity:0.55; flex:1 1 auto;}
+.liga-curva{display:block; min-width:0;}
+.liga-curva svg{display:block; width:100%; height:30px;}
 .liga-fila:last-child{border-bottom:none;}
 /* El primero no lleva medalla ni corona: un fondo apenas dorado alcanza para
    que el ojo lo encuentre sin convertir la tabla en un podio. */
@@ -3012,7 +3027,19 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-size:12.5px; color:var(--text-secondary); cursor:pointer;
 }
 .liga-admin-fila input{accent-color:var(--accent); width:15px; height:15px; cursor:pointer;}
-@media (max-width:520px){
-  .liga-fila{grid-template-columns:22px 28px minmax(0,1fr) 62px; gap:8px;}
-  .liga-record, .liga-sinjugar{display:none;}
+@media (max-width:900px){
+  /* La curva es lo primero que sobra: es el matiz de CÓMO llegó al neto, y el
+     neto está escrito al lado. */
+  .liga-fila{grid-template-columns:26px 28px minmax(100px,1fr) 118px 130px 70px; gap:9px;}
+  .liga-curva{display:none;}
+}
+@media (max-width:640px){
+  /* Y después el rango: en un teléfono el nombre y el neto son lo que se
+     mira, y el rango de cada uno ya está en el ladder de al lado. */
+  .liga-fila{grid-template-columns:22px 26px minmax(0,1fr) 110px 62px; gap:8px;}
+  .liga-rango-celda{display:none;}
+}
+@media (max-width:420px){
+  .liga-fila{grid-template-columns:22px 26px minmax(0,1fr) 58px; gap:7px;}
+  .liga-vd{display:none;}
 }
