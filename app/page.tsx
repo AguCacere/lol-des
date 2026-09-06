@@ -17,6 +17,7 @@ import { ClashHistory } from "@/components/ClashHistory";
 import { LiveTray } from "@/components/LiveTray";
 import { TeamDigest } from "@/components/TeamDigest";
 import { fetchConClave } from "@/components/Cerradura";
+import { LigaSemanal } from "@/components/LigaSemanal";
 
 function parseRiotId(raw: string): { gameName: string; tagLine: string } | null {
   const i = raw.indexOf("#");
@@ -342,6 +343,9 @@ export default function Home() {
         </div>
       ) : (
         <div id="view-team">
+          {/* La liga arriba del resumen: es la que tiene algo en juego esta
+              semana, y el resumen es la foto de lo que ya pasó. */}
+          <LigaSemanal />
           <TeamDigest
             digest={teamDigest}
             loading={teamDigestLoading}

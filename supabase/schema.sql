@@ -177,8 +177,31 @@ create table if not exists coach_reports (
   generated_at         timestamptz not null default now()
 );
 
+-- ── Liga semanal (lib/liga.ts) ───────────────────────────────────────────
+-- Una competencia interna por LP neto, de lunes 00:00 a domingo 23:59 hora
+-- argentina. Aparte del ladder: el ladder mide dónde llegaste, esto mide
+-- cuánto te moviste esta semana.
+--
+-- Se anota el que quiere, no compite todo el que está trackeado. La marca se
+-- toca solo con la contraseña del grupo (ver lib/auth.ts).
+alter table summoners add column if not exists participa_liga boolean not null default false;
+
+-- Las semanas ya cerradas. Cumple dos funciones: el historial de campeones y
+-- —más importante— el candado de idempotencia. El cron corre todos los días,
+-- así que sin esto anunciaría al mismo ganador una y otra vez; con la semana
+-- ya registrada, la segunda corrida no hace nada.
+create table if not exists liga_semanas (
+  semana        date primary key,       -- el LUNES de esa semana, en hora argentina
+  ganador_puuid text references summoners(puuid) on delete set null,
+  ganador_label text,                   -- el nombre tal como se anunció: sobrevive a que se borre el invocador
+  lp_neto       int,
+  jugadores     int not null default 0, -- cuántos participantes jugaron al menos una
+  cerrada_at    timestamptz not null default now()
+);
+
 -- RLS: estas tablas se leen/escriben solo desde el backend (service role),
 -- nunca directo desde el browser, así que se deja cerrado por defecto.
+alter table liga_semanas enable row level security;
 alter table summoners enable row level security;
 alter table lp_snapshots enable row level security;
 alter table matches enable row level security;

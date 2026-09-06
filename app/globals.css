@@ -2922,3 +2922,80 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .coach-btn.sm.primario:hover{background:var(--accent); filter:brightness(1.08);}
 .coach-btn.sm.primario:disabled{opacity:0.45; cursor:default; filter:none;}
+
+/* ── Liga de la semana (components/LigaSemanal.tsx) ───────────────────────
+   La competencia interna por LP neto. Se lee como una tabla de posiciones y
+   no como una lista más: el puesto adelante, el número que se pelea al final
+   y grande, y el líder marcado. */
+.liga{margin-bottom:22px;}
+.liga-rango{display:inline-flex; align-items:baseline; gap:8px; white-space:nowrap;}
+.liga-falta{font-size:11px; color:var(--accent-dim); font-weight:600;}
+.liga-tabla{
+  background:var(--surface-raised); border-radius:var(--radius-sm); box-shadow:var(--shadow-sm); overflow:hidden;
+}
+.liga-fila{
+  display:grid; grid-template-columns:26px 28px minmax(0,1fr) auto 76px;
+  align-items:center; gap:11px; padding:9px 14px;
+  border-bottom:1px solid var(--border-soft);
+}
+.liga-fila:last-child{border-bottom:none;}
+/* El primero no lleva medalla ni corona: un fondo apenas dorado alcanza para
+   que el ojo lo encuentre sin convertir la tabla en un podio. */
+.liga-fila.lider{background:var(--accent-wash-soft);}
+.liga-puesto{
+  font-family:var(--font-stat); font-size:12px; font-weight:800; text-align:center;
+  color:var(--text-muted); font-variant-numeric:tabular-nums;
+}
+.liga-puesto.p1{color:var(--gold);}
+.liga-puesto.p2{color:var(--text-secondary);}
+.liga-puesto.p3{color:var(--warn);}
+.liga-nombre{font-size:13px; font-weight:600; color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.liga-record{font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted); white-space:nowrap;}
+.liga-sinjugar{font-size:10.5px; color:var(--text-muted); opacity:0.7; white-space:nowrap;}
+/* El dato de la tabla: lo único que decide el premio.
+   El color va en reglas propias y no en `color` acá: .gd-pos/.gd-neg están
+   definidas más arriba en el archivo y, a igual especificidad, gana la última
+   — así que un `color` en la base las pisaba y los números salían todos
+   grises. */
+.liga-lp{
+  font-family:var(--font-stat); font-size:16px; font-weight:800;
+  font-variant-numeric:tabular-nums; text-align:right;
+}
+.liga-lp:not(.gd-pos):not(.gd-neg){color:var(--text-muted);}
+.liga-lp.gd-pos{color:var(--good);}
+.liga-lp.gd-neg{color:var(--critical);}
+.liga-historial{
+  margin-top:12px; padding:11px 14px;
+  background:var(--surface); border-radius:var(--radius-sm);
+}
+.liga-historial-label{
+  display:block; margin-bottom:7px;
+  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-muted);
+}
+.liga-historial-fila{
+  display:flex; align-items:baseline; gap:10px; padding:3px 0;
+  font-size:11.5px; color:var(--text-secondary);
+}
+.liga-historial-semana{font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted); flex:none;}
+.liga-historial-ganador{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.liga-historial-lp{font-family:var(--font-stat); font-weight:700; font-variant-numeric:tabular-nums; flex:none;}
+.liga-admin-toggle{
+  margin-top:10px; padding:5px 11px; border-radius:999px; cursor:pointer;
+  background:transparent; color:var(--text-muted); border:none; box-shadow:inset 0 0 0 1px var(--border-soft);
+  font-family:var(--font-body); font-size:11px; font-weight:600;
+}
+.liga-admin-toggle:hover{background:var(--surface-hover); color:var(--text-secondary);}
+.liga-admin{
+  margin-top:10px; padding:12px 14px;
+  background:var(--surface); border:1px solid var(--border-soft); border-radius:var(--radius-sm);
+}
+.liga-admin p{margin:0 0 9px; font-size:11.5px; line-height:1.5; color:var(--text-muted); display:flex; align-items:center; gap:5px;}
+.liga-admin-fila{
+  display:flex; align-items:center; gap:9px; padding:5px 0;
+  font-size:12.5px; color:var(--text-secondary); cursor:pointer;
+}
+.liga-admin-fila input{accent-color:var(--accent); width:15px; height:15px; cursor:pointer;}
+@media (max-width:520px){
+  .liga-fila{grid-template-columns:22px 28px minmax(0,1fr) 62px; gap:8px;}
+  .liga-record, .liga-sinjugar{display:none;}
+}

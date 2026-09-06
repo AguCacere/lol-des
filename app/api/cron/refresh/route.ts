@@ -1,6 +1,7 @@
 import { NextResponse, after } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { refreshAllSummoners } from "@/lib/refresh";
+import { cerrarSemanasPendientes } from "@/lib/liga-cierre";
 
 // Was 60 — see app/api/refresh/route.ts for why.
 export const maxDuration = 300;
@@ -40,6 +41,17 @@ export async function GET(req: Request) {
       console.log("cron refresh done:", results);
     } catch (err) {
       console.error("cron refresh failed:", err instanceof Error ? err.message : err);
+    }
+
+    // Y de paso, cerrar la semana de la liga si terminó. Va acá además de en
+    // su propio cron porque la operación es idempotente y este disparador es
+    // el que más seguido corre: si el otro se atrasa o se pierde, este la
+    // completa. En un día normal no hace nada más que una consulta.
+    try {
+      const liga = await cerrarSemanasPendientes(supabase);
+      if (liga.cerrada) console.log("liga cerrada desde el cron de refresco:", liga);
+    } catch (err) {
+      console.error("cierre de liga falló:", err instanceof Error ? err.message : err);
     }
   });
 
