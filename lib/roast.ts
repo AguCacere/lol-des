@@ -102,6 +102,7 @@ const CARGADAS: ((label: string, champ: string, k: number, d: number, a: number)
     `BRUTAL! Miren esta partida de **${l}** 🔥🔥🔥 fue un depósito de leche del equipo rival con **${c}** y terminó **${k}/${d}/${a}**, increíble!`,
   (l, c, k, d, a) =>
     `Me da vergüenza mostrar esta partida... Pero **${l}** terminó **${k}/${d}/${a}** con **${c}**, no se rescata más de troll.`,
+  (l, c, k, d, a) => `ATENCIÓN 🚨 **${l}** está nadando en caca y terminó **${k}/${d}/${a}** con **${c}**. Locura!!`,
 ];
 
 /** Claves de Data Dragon. Son las mismas que Match-V5 pone en championName y que guardamos. */
