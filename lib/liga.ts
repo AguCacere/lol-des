@@ -36,11 +36,39 @@ const ARG_OFFSET_MS = 3 * 60 * 60 * 1000;
  *
  * Es 00:00 del lunes hora argentina, o sea 03:00 UTC.
  */
-export const LIGA_INICIO = new Date(Date.UTC(2026, 8, 7, 3, 0, 0));
+export const LIGA_INICIO = new Date(Date.UTC(2026, 8, 8, 2, 30, 0));
 
-/** Si esa semana es de la liga o de antes de que existiera. */
+/**
+ * Si esa semana es de la liga. Alcanza con que TERMINE después del arranque:
+ * la primera semana empieza a mitad de camino —el pistoletazo fue un lunes a
+ * las 23:30— y aun así es una semana de la liga, solo que más corta.
+ */
 export function esSemanaDeLiga(inicio: Date): boolean {
-  return inicio.getTime() >= LIGA_INICIO.getTime();
+  return finDeSemana(inicio).getTime() > LIGA_INICIO.getTime();
+}
+
+/**
+ * La ventana que se mide de verdad para esa semana.
+ *
+ * Normalmente es el lunes entero, pero la PRIMERA arranca cuando arrancó la
+ * liga y no antes: si contara desde el lunes 00:00, las horas jugadas antes
+ * del pistoletazo entrarían al marcador y el campeonato empezaría con gente
+ * ya puntuando.
+ */
+export function ventanaDeSemana(ahora: Date = new Date()): { desde: Date; hasta: Date } {
+  const inicio = inicioDeSemana(ahora);
+  return {
+    desde: new Date(Math.max(inicio.getTime(), LIGA_INICIO.getTime())),
+    hasta: finDeSemana(inicio),
+  };
+}
+
+/** Lo mismo para una semana puntual (la que cierra el cron). */
+export function ventanaDe(inicio: Date): { desde: Date; hasta: Date } {
+  return {
+    desde: new Date(Math.max(inicio.getTime(), LIGA_INICIO.getTime())),
+    hasta: finDeSemana(inicio),
+  };
 }
 
 /** El lunes 00:00 (hora argentina) de la semana en la que cae `ahora`, como instante real. */
@@ -195,12 +223,19 @@ function fechaCorta(d: Date): string {
 
 /** El anuncio de que arranca la liga. Se manda a mano una sola vez, desde la app. */
 export function mensajeDeArranque(inicio: Date, premio: string | null): string {
-  const fin = new Date(finDeSemana(inicio).getTime() - 1);
+  const { desde, hasta } = ventanaDe(inicio);
+  const fin = new Date(hasta.getTime() - 1);
   const plata = premio ? ` Hay **${premio}** para el que gana.` : " Hay premio $$$ para el que gana.";
+  // Si la liga arranca a mitad de semana, se dice "desde ahora": poner el
+  // lunes sería prometer que cuentan horas que no van a contar.
+  const cuando =
+    desde.getTime() > inicio.getTime()
+      ? `**Desde ahora** hasta el **domingo ${fechaCorta(fin)} a las 23:59**`
+      : `Del **lunes ${fechaCorta(desde)}** al **domingo ${fechaCorta(fin)}**`;
   return [
     "🏆 **ARRANCA LA LIGA DE LA GRIETA** 🏆",
     "",
-    `Del **lunes ${fechaCorta(inicio)}** al **domingo ${fechaCorta(fin)}**, y se mide una sola cosa: **cuánto LP neto ganás en la semana**.${plata}`,
+    `${cuando}, y se mide una sola cosa: **cuánto LP neto ganás en la semana**.${plata}`,
     "",
     "No importa en qué elo estés — importa cuánto te movés. El que sube 200 puntos desde Plata le gana al que sube 50 desde Diamante.",
     "",

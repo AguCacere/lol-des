@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { exigirSesion } from "@/lib/auth";
 import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
-import { claveDeSemana, esSemanaDeLiga, finDeSemana, inicioDeSemana, LIGA_INICIO, tablaDeLaSemana, type Participante, type Snapshot } from "@/lib/liga";
+import { claveDeSemana, esSemanaDeLiga, inicioDeSemana, LIGA_INICIO, tablaDeLaSemana, ventanaDeSemana, type Participante, type Snapshot } from "@/lib/liga";
 import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 
 /**
@@ -28,7 +28,9 @@ export async function GET() {
     .order("game_name");
 
   const inicio = inicioDeSemana();
-  const fin = finDeSemana(inicio);
+  // `desde` puede no ser el lunes: la primera semana empieza cuando arrancó la
+  // liga. Todo lo que se mide va contra esta ventana, no contra el lunes.
+  const { desde: desdeVentana, hasta: fin } = ventanaDeSemana();
 
   const anotados = (todos ?? []).filter((s) => s.participa_liga);
   // Una sola consulta de versión para todos, y si Data Dragon no contesta la
@@ -50,7 +52,7 @@ export async function GET() {
   if (arrancada && participantes.length > 0) {
     // Se pide desde una semana ANTES del lunes: la fila base de cada uno es su
     // última foto previa al arranque, y esa cae fuera de la ventana.
-    const desdeAntes = new Date(inicio.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString();
+    const desdeAntes = new Date(desdeVentana.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString();
     const puuids = anotados.map((s) => s.puuid);
     const { data: snaps } = await supabase
       .from("lp_snapshots")
@@ -70,7 +72,7 @@ export async function GET() {
       .select("puuid, win")
       .in("puuid", puuids)
       .eq("queue_id", RANKED_SOLO_QUEUE_ID)
-      .gte("played_at", inicio.toISOString())
+      .gte("played_at", desdeVentana.toISOString())
       .lt("played_at", fin.toISOString());
     const recordPorPuuid = new Map<string, { victorias: number; derrotas: number }>();
     for (const m of partidas ?? []) {
@@ -80,7 +82,7 @@ export async function GET() {
       recordPorPuuid.set(m.puuid, acc);
     }
 
-    tabla = tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], inicio, fin, recordPorPuuid);
+    tabla = tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], desdeVentana, fin, recordPorPuuid);
   }
 
   // El historial de campeones. Poco y al final, que es lo que merece.
@@ -94,7 +96,7 @@ export async function GET() {
     arrancada,
     arrancaEl: LIGA_INICIO.toISOString(),
     semana: claveDeSemana(inicio),
-    desde: inicio.toISOString(),
+    desde: desdeVentana.toISOString(),
     hasta: fin.toISOString(),
     tabla,
     // Todos los trackeados, para que el panel de administración pueda anotar y

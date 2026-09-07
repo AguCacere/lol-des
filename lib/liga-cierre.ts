@@ -4,10 +4,10 @@ import { RANKED_SOLO_QUEUE_ID } from "./refresh";
 import {
   claveDeSemana,
   esSemanaDeLiga,
-  finDeSemana,
   inicioDeSemana,
   mensajeDeCierre,
   tablaDeLaSemana,
+  ventanaDe,
   type Participante,
   type Snapshot,
 } from "./liga";
@@ -49,8 +49,10 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
     return { cerrada: null, ganador: null, lpNeto: null, jugadores: 0, motivo: "no hay nadie anotado" };
   }
 
-  const fin = finDeSemana(anterior);
-  const desdeAntes = new Date(anterior.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString();
+  // La ventana real de esa semana: puede arrancar más tarde que el lunes si es
+  // la primera de la liga.
+  const { desde, hasta: fin } = ventanaDe(anterior);
+  const desdeAntes = new Date(desde.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString();
   const puuids = anotados.map((s) => s.puuid);
   const { data: snaps } = await supabase
     .from("lp_snapshots")
@@ -87,7 +89,7 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
     tag: s.tag_line,
     profileIconUrl: null,
   }));
-  const tabla = tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], anterior, fin, recordPorPuuid);
+  const tabla = tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], desde, fin, recordPorPuuid);
   const jugaron = tabla.filter((f) => !f.sinJugar);
   const ganador = jugaron[0] ?? null;
 
