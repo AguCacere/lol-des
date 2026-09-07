@@ -55,6 +55,12 @@ export interface Match {
   champLevel: number;
   damageTaken: number;
   damageMitigated: number;
+  /** Curación sobre COMPAÑEROS (no la propia). Null en partidas guardadas antes de que existiera la columna. */
+  healTeammates: number | null;
+  /** Escudo puesto sobre compañeros. Null igual que el anterior. */
+  shieldTeammates: number | null;
+  /** La línea REAL que Riot asignó en esa partida. Null si no la resolvió. */
+  role: RoleKey | null;
   wardsPlaced: number;
   wardsKilled: number;
   controlWards: number;

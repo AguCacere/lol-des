@@ -168,6 +168,11 @@ function Group({
 export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVersion: string | null }) {
   const m = match;
   const multikill = multikillLabel(m);
+  // El rol REAL de esa partida, no el main del jugador: alguien que suele ir
+  // mid pero esa vez fue de support tiene que ver sus curaciones igual.
+  const esSupport = m.role === "support";
+  const curacion = m.healTeammates;
+  const escudo = m.shieldTeammates;
   const hasTimeline =
     m.goldDiff10 != null ||
     m.goldDiff15 != null ||
@@ -237,6 +242,35 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
         {m.skillshotsHit != null && <Stat label="Skillshots acertados">{m.skillshotsHit}</Stat>}
         <Stat label="Primera sangre">{m.firstBlood ? "Sí 🩸" : "No"}</Stat>
         {m.pentaKills > 0 && <Stat label="Pentakills">{m.pentaKills}</Stat>}
+
+        {/* Curación y escudo: solo de support, y solo si Riot mandó los datos.
+            En cualquier otra línea son ruido —un bruiser "cura" con robo de
+            vida y no ayudó a nadie— y acá la cifra es sobre COMPAÑEROS, que es
+            la única que dice lo que un enchanter hizo por el equipo.
+            Ocupa la fila entera: son dos números de la misma idea y sueltos
+            entre los de daño se leían como dos estadísticas más. */}
+        {esSupport && (curacion !== null || escudo !== null) && (
+          <div className="stat-apoyo">
+            <span className="stat-apoyo-label">
+              Apoyo al equipo
+              <InfoTip text="Vida curada y escudo puestos sobre tus COMPAÑEROS, no sobre vos. Riot manda las dos por separado: la curación propia del robo de vida no entra acá. Solo se muestra de support porque en las otras líneas el número no dice nada." />
+            </span>
+            <span className="stat-apoyo-datos">
+              {curacion !== null && (
+                <span className="stat-apoyo-item">
+                  <span className="v cura">{curacion.toLocaleString("es-AR")}</span>
+                  <span className="k">curados</span>
+                </span>
+              )}
+              {escudo !== null && (
+                <span className="stat-apoyo-item">
+                  <span className="v escudo">{escudo.toLocaleString("es-AR")}</span>
+                  <span className="k">de escudo</span>
+                </span>
+              )}
+            </span>
+          </div>
+        )}
       </Group>
 
       <Group label="Visión y objetivos" icon={<EyeIcon />}>

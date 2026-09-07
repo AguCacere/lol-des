@@ -177,6 +177,16 @@ create table if not exists coach_reports (
   generated_at         timestamptz not null default now()
 );
 
+-- Curación y escudo SOBRE COMPAÑEROS. Son las dos únicas cifras que miden lo
+-- que un support realmente hizo por el equipo, y hasta ahora el detalle de
+-- partida no tenía ninguna: un enchanter terminaba con 5% de daño y nada que
+-- mostrara su aporte.
+--
+-- Van estas y no `totalHeal`: esa incluye el robo de vida y la regeneración
+-- propia, así que un bruiser top figura curando más que una Soraka.
+alter table matches add column if not exists heal_teammates int;
+alter table matches add column if not exists shield_teammates int;
+
 -- ── Liga semanal (lib/liga.ts) ───────────────────────────────────────────
 -- Una competencia interna por LP neto, de lunes 00:00 a domingo 23:59 hora
 -- argentina. Aparte del ladder: el ladder mide dónde llegaste, esto mide

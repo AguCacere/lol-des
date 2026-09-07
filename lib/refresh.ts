@@ -506,6 +506,10 @@ async function buildMatchRow(
     champ_level: me.champLevel,
     damage_taken: me.totalDamageTaken,
     damage_mitigated: me.damageSelfMitigated,
+    // Lo único que mide el aporte de un support. Null y no 0 cuando Riot no
+    // los manda: un 0 dice "no curó nada", null dice "no lo sabemos".
+    heal_teammates: me.totalHealsOnTeammates ?? null,
+    shield_teammates: me.totalDamageShieldedOnTeammates ?? null,
     wards_placed: me.wardsPlaced,
     wards_killed: me.wardsKilled,
     control_wards: me.visionWardsBoughtInGame,

@@ -62,6 +62,8 @@ interface MatchRow {
   champ_level: number | null;
   damage_taken: number | null;
   damage_mitigated: number | null;
+  heal_teammates: number | null;
+  shield_teammates: number | null;
   wards_placed: number | null;
   wards_killed: number | null;
   control_wards: number | null;
@@ -140,7 +142,7 @@ export async function GET() {
     supabase
       .from("matches")
       .select(
-        "match_id, puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, damage_to_champs, gold_earned, vision_score, kill_participation, obj_share, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, champ_level, damage_taken, damage_mitigated, wards_placed, wards_killed, control_wards, turret_takedowns, dragon_takedowns, dragon_types, item_build, baron_takedowns, herald_takedowns, inhibitor_kills, first_blood, first_tower, summoner1, summoner2, solo_kills, skillshots_hit, damage_per_min, gold_diff_10, gold_diff_15, gold_diff_20, first_blood_time_s, first_tower_time_s, first_tower_mine, first_dragon_time_s, first_dragon_mine, first_baron_time_s, first_baron_mine, team_position, opponent_champion, game_duration_s, played_at"
+        "match_id, puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, damage_to_champs, gold_earned, vision_score, kill_participation, obj_share, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, champ_level, damage_taken, damage_mitigated, heal_teammates, shield_teammates, wards_placed, wards_killed, control_wards, turret_takedowns, dragon_takedowns, dragon_types, item_build, baron_takedowns, herald_takedowns, inhibitor_kills, first_blood, first_tower, summoner1, summoner2, solo_kills, skillshots_hit, damage_per_min, gold_diff_10, gold_diff_15, gold_diff_20, first_blood_time_s, first_tower_time_s, first_tower_mine, first_dragon_time_s, first_dragon_mine, first_baron_time_s, first_baron_mine, team_position, opponent_champion, game_duration_s, played_at"
       )
       .in("puuid", puuids)
       // Ranked solo/duo only — this table also holds Clash games (queueId
@@ -585,6 +587,9 @@ export async function GET() {
       champLevel: row.champ_level ?? 0,
       damageTaken: row.damage_taken ?? 0,
       damageMitigated: row.damage_mitigated ?? 0,
+      healTeammates: row.heal_teammates ?? null,
+      shieldTeammates: row.shield_teammates ?? null,
+      role: roleFromTeamPosition(row.team_position),
       wardsPlaced: row.wards_placed ?? 0,
       wardsKilled: row.wards_killed ?? 0,
       controlWards: row.control_wards ?? 0,

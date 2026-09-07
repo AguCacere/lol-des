@@ -137,6 +137,10 @@ export interface RiotParticipant {
   pentaKills: number;
   champLevel: number;
   totalDamageTaken: number;
+  /** Curación sobre COMPAÑEROS. `totalHeal` no sirve: incluye el robo de vida y la regeneración propia. */
+  totalHealsOnTeammates?: number;
+  /** Escudo puesto sobre compañeros. La otra mitad de lo que hace un enchanter. */
+  totalDamageShieldedOnTeammates?: number;
   damageSelfMitigated: number;
   wardsPlaced: number;
   wardsKilled: number;
