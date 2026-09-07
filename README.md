@@ -1,104 +1,130 @@
 # Grieta Central
 
-Ranked tracker privado para el grupo — un circuito de SoloQ Challenge pero de
-amigos. Ladder ordenado por LP, perfil de invocador con progresión de LP
-("últimos 20"), comparación macro/micro contra el promedio del rol, y las
-últimas partidas. Enfocado en el grupo, no en ser un op.gg genérico.
+Tracker de ranked privado para un grupo de amigos del LAS — un circuito de SoloQ
+Challenge, pero de seis personas que se conocen y se cargan entre ellas. No pretende
+ser un op.gg genérico: todo lo que hace está pensado para ese grupo.
 
-Este repo es el **mockup ya portado a una app real de Next.js**, todavía
-corriendo sobre datos de ejemplo (`lib/mock-data.ts`) — la UI y la lógica de
-render son 1:1 el diseño aprobado. Lo que falta para producción es cablear
-Riot + Supabase donde ya están los `TODO(db)`.
+En producción: **https://lol-des.vercel.app**
+
+## Qué hace
+
+**Ranking** — el ladder ordenado por LP, con rango, racha, V/D y el gráfico de LP de
+cada uno. Tocando una fila se abre el perfil completo: radar de rendimiento contra el
+resto del grupo en su mismo rol, fortalezas y debilidades, forma reciente, detección de
+tilt, pool de campeones, maestría de Riot, enfrentamientos de línea, historial por
+línea (con detección de autofill), órdenes de compra, récords personales y las últimas
+partidas con su timeline. Adentro de esta misma pestaña vive la **liga semanal**: se
+cambia con el título.
+
+**Estadísticas** — mejores winrates del grupo, ranking de campeones y sinergia de duos.
+
+**Cara a cara** — dos jugadores del grupo comparados de frente, sin pedirle nada más al
+servidor.
+
+**Clash** — las partidas de Clash agrupadas por torneo, con su conclusión por día.
+
+**Equipo** — el resumen semanal del grupo.
+
+Además, sin pantalla propia:
+
+**El bot de Discord** — anuncia ascensos y rachas, y **carga a quien juega mal**: KDA
+desastroso, ahogarse en la fuente, perder contra un Nasus, cruzarse un Teemo. Se
+dispara solo con el refresco.
+
+**La liga semanal** — una competencia interna por **LP neto**, de lunes a domingo hora
+argentina, aparte del ladder. El ladder mide dónde llegaste; la liga mide cuánto te
+moviste esta semana. Es opt-in: cada uno cuenta desde que se lo anota, no desde el
+lunes. Al cierre hay campeón y premio.
+
+**La cerradura** — todo lo que escribe (agregar invocadores, refrescar, generar
+informes con Claude, anotar gente en la liga) pide una contraseña compartida. Lo que
+solo lee es abierto.
 
 ## Stack
 
-- **Next.js 16** (App Router, TypeScript, Turbopack)
-- **Riot Games API** — `lib/riot.ts` (Account-V1, League-V4, Match-V5)
-- **Supabase (Postgres)** — `supabase/schema.sql`, para cachear datos de Riot
-  y guardar historial de LP (Riot no expone rango histórico, solo el actual)
-- Sin librería de UI — CSS a mano en `app/globals.css`, portado del mockup
-  (paleta full dark, Rajdhani/Sora/Manrope/IBM Plex Mono vía `next/font/google`)
+- **Next.js 16** (App Router, TypeScript, Turbopack) en Vercel
+- **Riot Games API** — Account-V1, League-V4, Match-V5, Spectator-V5, Mastery-V4
+- **Data Dragon** para los assets estáticos
+- **Supabase (Postgres)** — cachea lo de Riot y guarda el historial de LP, que Riot no
+  expone (solo da el rango actual)
+- **Claude** (`@anthropic-ai/sdk`) para el análisis del pool de campeones
+- Sin librería de UI: CSS a mano en `app/globals.css`, paleta dark,
+  Rajdhani/Sora/Manrope/IBM Plex Mono vía `next/font/google`
 
-## Empezar en local
+## Correrlo local
 
 ```bash
 npm install
-cp .env.example .env.local   # completar con tus valores (ver abajo)
+cp .env.example .env.local   # completar (ver abajo)
 npm run dev
 ```
 
 Abrí [http://localhost:3000](http://localhost:3000).
 
-### Variables de entorno
+La base ya tiene que existir: crear el proyecto en Supabase y correr
+`supabase/schema.sql` en el SQL Editor.
 
-Ya tenés un `.env.local` con tu Riot API Key personal cargada (la que te
-aprobaron en el Developer Portal, app 874500) — está gitignoreado, así que no
-se sube al repo. Lo que falta completar ahí son las dos de Supabase una vez
-que crees el proyecto:
+### Variables de entorno
 
 | Variable | De dónde sale |
 |---|---|
-| `RIOT_API_KEY` | developer.riotgames.com → tu app → ya cargada |
-| `RIOT_PLATFORM` | `la2` (LAS) — cambiar si el grupo juega en otra región |
-| `RIOT_REGION` | `americas` — routing region para Account-V1/Match-V5 |
-| `NEXT_PUBLIC_SUPABASE_URL` | Project Settings → API, en supabase.com |
-| `SUPABASE_SERVICE_ROLE_KEY` | idem — **nunca** exponer al browser |
-| `DISCORD_WEBHOOK_URL` | Opcional — URL de un webhook de Discord (canal → Editar canal → Integraciones → Webhooks). Sin esto, las notificaciones (subida de rango, rachas) simplemente no se mandan; nada se rompe. |
+| `RIOT_API_KEY` | developer.riotgames.com → tu app |
+| `RIOT_PLATFORM` | `la2` (LAS) |
+| `RIOT_REGION` | `americas` — routing region de Account-V1 y Match-V5 |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API |
+| `SUPABASE_SERVICE_ROLE_KEY` | ídem — **nunca** al navegador |
+| `APP_PASSWORD` | La contraseña compartida. **Sin esto, todas las rutas que escriben responden 503**: falla cerrado a propósito |
+| `CRON_SECRET` | Lo que autentica a los crons de Vercel |
+| `ANTHROPIC_API_KEY` | Para el análisis del pool. Sin esto ese panel no genera nada; el resto anda |
+| `DISCORD_WEBHOOK_URL` | Opcional. Sin esto no se manda ninguna notificación y nada se rompe |
 
-Si la Riot API Key se filtra alguna vez, se regenera con "Nueva clave API" en
-el portal — no hace falta pedir una nueva app.
+Si la Riot API Key se filtra, se regenera con "Nueva clave API" en el portal — no hace
+falta pedir una app nueva.
 
-## Lo que falta para producción
+## Crons
 
-1. **Base de datos** — crear (o elegir) un proyecto de Supabase y correr
-   `supabase/schema.sql` en el SQL Editor. Define `summoners`, `lp_snapshots`,
-   `matches` y una view `ladder` que ya arma el join con el último snapshot
-   de cada uno.
-2. **Reemplazar los datos mock** — `lib/mock-data.ts` tiene el generador
-   determinístico que usa hoy `getLadder()` / `app/api/ladder/route.ts`.
-   Una vez que la base tenga datos reales, ese route handler pasa a leer la
-   view `ladder` de Supabase en vez de generar data.
-3. **Job de refresh** — algo (cron de Vercel, Supabase Edge Function
-   programada) que cada tanto recorra `summoners`, pegue contra
-   `getLeagueEntriesByPuuid` y `getMatchIdsByPuuid`/`getMatchById`
-   (`lib/riot.ts`), y guarde snapshots nuevos — así se arma el historial de
-   LP sin pisar el rate limit de la key personal (20 req/1s, 100 req/2min).
-4. **Deploy en Vercel** — conectar el repo, cargar las mismas env vars del
-   `.env.local` en Project Settings → Environment Variables, deploy.
+En `vercel.json`:
 
-`app/api/summoners/route.ts` ya pega contra la Riot API real (no mock) —
-sirve para probar que la key funciona:
+- `/api/cron/refresh` — todos los días a las **12:00 UTC**. Recorre a todos, trae
+  partidas nuevas, guarda snapshots de LP y dispara las notificaciones de Discord.
+- `/api/cron/liga` — los lunes a las **03:00 UTC**. Cierra la semana de la liga y
+  corona al campeón.
 
-```bash
-curl -X POST http://localhost:3000/api/summoners \
-  -H "Content-Type: application/json" \
-  -d '{"gameName":"TuNombre","tagLine":"LAS"}'
-```
+El plan Hobby de Vercel dispara los crons **una vez por día y con imprecisión**, así
+que el cierre de la liga es idempotente y también se dispara solo al leer `/api/liga`.
+El refresco manual del botón "Actualizar" es lo que mantiene los datos al día durante
+el día, con un cooldown de dos minutos.
 
 ## Estructura
 
 ```
 app/
-  page.tsx              # composición: TopBar + TabNav + Ladder + Profile
-  api/ladder/           # GET — hoy devuelve mock, mañana la view de Supabase
-  api/summoners/        # POST — ya real, resuelve Riot ID → puuid + rango
-components/
-  LadderTable.tsx        PlayerProfile.tsx       SparkChart.tsx
-  TopBar.tsx              TabNav.tsx              RoleIcon.tsx
-lib/
-  mock-data.ts           # generador determinístico (a reemplazar)
-  riot.ts                # wrapper de Account-V1 / League-V4 / Match-V5
-  supabase.ts             # cliente server-side (service role)
-  chart.ts                # smoothing Catmull-Rom → Bezier para los gráficos
-  types.ts
+  page.tsx          # la única página: 5 pestañas, todo entra por fetch a /api/*
+  api/              # 16 route handlers (ver ARQUITECTURA.md)
+components/         # ~40 componentes, agrupados por pestaña en ARQUITECTURA.md
+lib/                # Riot, cálculo puro, presentación e infraestructura
 supabase/
-  schema.sql
+  schema.sql        # summoners, matches, lp_snapshots, champion_mastery,
+                    # coach_reports, liga_semanas + la view ladder
+```
+
+Para el mapa completo — la tabla de rutas, el flujo de datos de Riot a la pantalla, las
+tablas con sus columnas y el patrón para agregar un dato al perfil — está
+**`ARQUITECTURA.md`**. Las trampas ya pisadas (la ventana de caché del CDN, el huso de
+Argentina, las PK compuestas, por qué las columnas nuevas de la view van al final)
+están en **`DECISIONES.md`**.
+
+## Comandos
+
+```bash
+npm run dev              # localhost:3000
+npx tsc --noEmit         # tipos
+npx eslint app lib components
+npm run build
 ```
 
 ## Notas
 
-- Uso personal y no comercial, para el grupo de amigos — no está pensado
-  para escalar más allá de eso.
-- El buscador y el "agregar invocador" están armados para llegar a esto,
-  pero la UI del ladder todavía no tiene el flujo de alta — hoy solo filtra
-  la lista existente.
+Uso personal y no comercial, para el grupo. No está pensado para escalar más allá de
+eso: seis o siete invocadores, una key personal de Riot (20 req/1s, 100 req/2min) y el
+plan Hobby de Vercel.
