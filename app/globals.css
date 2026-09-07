@@ -1824,6 +1824,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   overflow:hidden;
 }
 .duo-avatar-img{width:100%; height:100%; object-fit:cover; display:block;}
+/* El arte de campeón, para CUALQUIER caja que lo contenga (ver ChampIcon).
+   Antes cada contenedor tenía que declarar su propia regla `img` y bastaba
+   con olvidarse una para que el dibujo saliera a su tamaño natural adentro de
+   una caja chica: se veía una tira recortada del medio. Las reglas viejas por
+   contenedor siguen ahí porque varias de esas cajas también tienen otras
+   imágenes (emblemas de rango, íconos de ítem); esta se suma y cubre el caso
+   que faltaba. */
+.champ-icon-img{width:100%; height:100%; object-fit:cover; display:block;}
 .duo-seg{height:100%;}
 .duo-seg.win{background:var(--good);}
 .duo-seg.loss{background:var(--critical);}
