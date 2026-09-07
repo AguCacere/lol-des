@@ -120,6 +120,8 @@ export interface FilaLiga {
   rango: { tier: TierKey; division: number; lp: number } | null;
   /** Los puntos de cada foto DENTRO de la semana, para dibujar cómo la fue haciendo. */
   serie: number[];
+  /** Si entró después de que la semana arrancó, cuándo. Null si compitió desde el principio. */
+  entroTarde: string | null;
 }
 
 export interface Participante {
@@ -127,6 +129,12 @@ export interface Participante {
   name: string;
   tag: string;
   profileIconUrl: string | null;
+  /**
+   * Desde cuándo compite. Null si se anotó antes de que arrancara la semana.
+   * El que entra a mitad de semana empieza a contar ahí y no antes: si no,
+   * bastaría con mirar cómo viene la tabla y anotarse solo cuando conviene.
+   */
+  desde?: Date | null;
 }
 
 /** Partidas de la semana, contadas de verdad. Ver la nota en tablaDeLaSemana. */
@@ -170,22 +178,26 @@ export function tablaDeLaSemana(
 
   const filas: FilaLiga[] = [];
   for (const p of participantes) {
+    // El arranque de CADA uno: el de la semana, o el momento en que se anotó
+    // si fue después.
+    const suDesde = Math.max(desde, p.desde ? p.desde.getTime() : 0);
     const suyas = (porPuuid.get(p.puuid) ?? []).sort((a, b) => Date.parse(a.captured_at) - Date.parse(b.captured_at));
     const dentro = suyas.filter((s) => {
       const t = Date.parse(s.captured_at);
-      return t >= desde && t < hasta;
+      return t >= suDesde && t < hasta;
     });
-    const previas = suyas.filter((s) => Date.parse(s.captured_at) < desde);
+    const previas = suyas.filter((s) => Date.parse(s.captured_at) < suDesde);
     const base = previas.length > 0 ? previas[previas.length - 1] : dentro[0];
     const ultima = dentro.length > 0 ? dentro[dentro.length - 1] : base;
 
     const { victorias, derrotas } = recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0 };
+    const entroTarde = suDesde > desde ? new Date(suDesde).toISOString() : null;
     const rango = ultima
       ? { tier: tierKeyFromRiot(ultima.tier), division: divisionFromRiot(ultima.division), lp: ultima.lp }
       : null;
 
     if (!base || !ultima) {
-      filas.push({ ...p, lpNeto: 0, victorias, derrotas, sinJugar: victorias + derrotas === 0, rango, serie: [] });
+      filas.push({ ...p, lpNeto: 0, victorias, derrotas, sinJugar: victorias + derrotas === 0, rango, serie: [], entroTarde });
       continue;
     }
 
@@ -199,6 +211,7 @@ export function tablaDeLaSemana(
       // La curva arranca en el punto de partida aunque sea de antes del lunes:
       // sin él, una semana con una sola foto no dibuja nada.
       serie: [puntos(base), ...dentro.map(puntos)],
+      entroTarde,
     });
   }
 

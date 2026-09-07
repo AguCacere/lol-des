@@ -185,6 +185,11 @@ create table if not exists coach_reports (
 -- Se anota el que quiere, no compite todo el que está trackeado. La marca se
 -- toca solo con la contraseña del grupo (ver lib/auth.ts).
 alter table summoners add column if not exists participa_liga boolean not null default false;
+-- Desde cuándo compite. Sin esto, anotar a alguien un miércoles le regala el
+-- LP que hizo el lunes y el martes: podría mirar cómo viene la semana y
+-- anotarse solo si le está yendo bien. Se pone al tildarlo y se borra al
+-- destildarlo, así que volver a entrar arranca de cero.
+alter table summoners add column if not exists liga_desde timestamptz;
 
 -- Las semanas ya cerradas. Cumple dos funciones: el historial de campeones y
 -- —más importante— el candado de idempotencia. El cron corre todos los días,

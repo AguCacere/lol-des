@@ -43,7 +43,7 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
 
   const { data: anotados } = await supabase
     .from("summoners")
-    .select("puuid, game_name, tag_line")
+    .select("puuid, game_name, tag_line, liga_desde")
     .eq("participa_liga", true);
   if (!anotados || anotados.length === 0) {
     return { cerrada: null, ganador: null, lpNeto: null, jugadores: 0, motivo: "no hay nadie anotado" };
@@ -69,25 +69,31 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
   // tablaDeLaSemana.
   const { data: partidas } = await supabase
     .from("matches")
-    .select("puuid, win")
+    .select("puuid, win, played_at")
     .in("puuid", puuids)
     .eq("queue_id", RANKED_SOLO_QUEUE_ID)
-    .gte("played_at", anterior.toISOString())
+    .gte("played_at", desde.toISOString())
     .lt("played_at", fin.toISOString());
+  // Y se filtra por el arranque de CADA uno, no solo por el de la semana: el
+  // que se anotó el miércoles no puede llevarse las partidas del lunes.
+  const arranqueDe = new Map(
+    anotados.map((s) => [s.puuid, Math.max(desde.getTime(), s.liga_desde ? Date.parse(s.liga_desde) : 0)]),
+  );
   const recordPorPuuid = new Map<string, { victorias: number; derrotas: number }>();
   for (const m of partidas ?? []) {
+    if (Date.parse(m.played_at) < (arranqueDe.get(m.puuid) ?? 0)) continue;
     const acc = recordPorPuuid.get(m.puuid) ?? { victorias: 0, derrotas: 0 };
     if (m.win) acc.victorias++;
     else acc.derrotas++;
     recordPorPuuid.set(m.puuid, acc);
   }
 
-
   const participantes: Participante[] = anotados.map((s) => ({
     puuid: s.puuid,
     name: s.game_name,
     tag: s.tag_line,
     profileIconUrl: null,
+    desde: s.liga_desde ? new Date(s.liga_desde) : null,
   }));
   const tabla = tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], desde, fin, recordPorPuuid);
   const jugaron = tabla.filter((f) => !f.sinJugar);

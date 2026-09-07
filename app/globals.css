@@ -3043,3 +3043,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .liga-fila{grid-template-columns:22px 26px minmax(0,1fr) 58px; gap:7px;}
   .liga-vd{display:none;}
 }
+/* Marca de que ese entró a mitad de semana. Va chiquito y al lado del nombre
+   porque explica el número de al lado, no compite con él. */
+.liga-entro{
+  display:block; font-size:10px; font-weight:400; color:var(--warn);
+  opacity:0.8; white-space:nowrap; text-transform:none; letter-spacing:0;
+}

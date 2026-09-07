@@ -20,6 +20,7 @@ interface Fila {
   sinJugar: boolean;
   rango: { tier: TierKey; division: number; lp: number } | null;
   serie: number[];
+  entroTarde: string | null;
 }
 interface DelPlantel {
   puuid: string;
@@ -161,6 +162,17 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                   <PlayerAvatar name={f.name} iconUrl={f.profileIconUrl} className="duo-avatar sm" />
                   <span className="liga-nombre">
                     {f.name} <span className="player-tag">#{f.tag}</span>
+                    {/* Que se vea por qué tiene menos partidas que el resto:
+                        sin esto, el que entró el miércoles parece que no jugó. */}
+                    {f.entroTarde && (
+                      <span className="liga-entro" title="Solo le cuenta lo que hizo desde que se anotó">
+                        se anotó el{" "}
+                        {new Date(f.entroTarde).toLocaleDateString("es-AR", {
+                          weekday: "long",
+                          timeZone: "America/Argentina/Buenos_Aires",
+                        })}
+                      </span>
+                    )}
                   </span>
 
                   {/* Dónde está parado hoy. Es el contexto que le falta al

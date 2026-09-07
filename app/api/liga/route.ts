@@ -24,7 +24,7 @@ export async function GET() {
 
   const { data: todos } = await supabase
     .from("summoners")
-    .select("puuid, game_name, tag_line, profile_icon_id, participa_liga")
+    .select("puuid, game_name, tag_line, profile_icon_id, participa_liga, liga_desde")
     .order("game_name");
 
   const inicio = inicioDeSemana();
@@ -41,6 +41,7 @@ export async function GET() {
     name: s.game_name,
     tag: s.tag_line,
     profileIconUrl: version && s.profile_icon_id != null ? profileIconUrl(version, s.profile_icon_id) : null,
+    desde: s.liga_desde ? new Date(s.liga_desde) : null,
   }));
 
   // Si la semana en curso es anterior al arranque, no se muestra nada: el LP
@@ -69,13 +70,17 @@ export async function GET() {
     // tablaDeLaSemana.
     const { data: partidas } = await supabase
       .from("matches")
-      .select("puuid, win")
+      .select("puuid, win, played_at")
       .in("puuid", puuids)
       .eq("queue_id", RANKED_SOLO_QUEUE_ID)
       .gte("played_at", desdeVentana.toISOString())
       .lt("played_at", fin.toISOString());
+    // Se filtra por el arranque de CADA uno y no solo por el de la semana: el
+    // que se anotó el miércoles no puede llevarse las partidas del lunes.
+    const arranqueDe = new Map(participantes.map((p) => [p.puuid, Math.max(desdeVentana.getTime(), p.desde?.getTime() ?? 0)]));
     const recordPorPuuid = new Map<string, { victorias: number; derrotas: number }>();
     for (const m of partidas ?? []) {
+      if (Date.parse(m.played_at) < (arranqueDe.get(m.puuid) ?? 0)) continue;
       const acc = recordPorPuuid.get(m.puuid) ?? { victorias: 0, derrotas: 0 };
       if (m.win) acc.victorias++;
       else acc.derrotas++;
@@ -132,9 +137,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Sin Supabase." }, { status: 500 });
   }
 
+  // Se sella el momento de entrada. Al desanotar se borra, así que volver a
+  // entrar arranca de cero y no recupera lo de la primera vuelta.
   const { error } = await supabase
     .from("summoners")
-    .update({ participa_liga: body.participa })
+    .update({ participa_liga: body.participa, liga_desde: body.participa ? new Date().toISOString() : null })
     .eq("puuid", body.puuid);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
