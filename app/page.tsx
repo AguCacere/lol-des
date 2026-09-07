@@ -320,7 +320,15 @@ export default function Home() {
             onSortKeyChange={setSortKey}
             ddragonVersion={ddragonVersion}
           />
-          <PlayerProfile player={activePlayer} ddragonVersion={ddragonVersion} />
+          {/* Solo con el ladder a la vista. Las filas de la liga no se pueden
+              tocar (LigaSemanal no tiene onSelect), así que ahí el perfil no
+              solo sobra: es imposible de llenar, y lo único que se veía era el
+              cartel de "Elegí un invocador del ranking" abajo de una tabla que
+              no deja elegir a nadie.
+
+              activeKey se conserva a propósito: si volvés al ladder, el perfil
+              que tenías abierto sigue abierto. Cambiar de tabla no es cerrarlo. */}
+          {vista === "ladder" ? <PlayerProfile player={activePlayer} ddragonVersion={ddragonVersion} /> : null}
         </div>
       ) : tab === "stats" ? (
         <div id="view-stats">
