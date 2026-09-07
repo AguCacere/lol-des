@@ -212,6 +212,11 @@ export function tablaDeLaSemana(
   });
 }
 
+/** La hora, en argentino: "23:30". */
+function horaCorta(d: Date): string {
+  return new Date(d.getTime() - ARG_OFFSET_MS).toISOString().slice(11, 16);
+}
+
 /** Cómo se lee una fecha de semana en el mensaje del bot. */
 function fechaCorta(d: Date): string {
   return new Date(d.getTime() - ARG_OFFSET_MS).toLocaleDateString("es-AR", {
@@ -226,11 +231,13 @@ export function mensajeDeArranque(inicio: Date, premio: string | null): string {
   const { desde, hasta } = ventanaDe(inicio);
   const fin = new Date(hasta.getTime() - 1);
   const plata = premio ? ` Hay **${premio}** para el que gana.` : " Hay premio $$$ para el que gana.";
-  // Si la liga arranca a mitad de semana, se dice "desde ahora": poner el
-  // lunes sería prometer que cuentan horas que no van a contar.
+  // Cuando la liga arranca a mitad de semana se dice la HORA exacta y no
+  // "desde ahora": el aviso se manda un rato antes para que la gente tenga
+  // tiempo de reaccionar, así que "ahora" sería mentira en el momento de
+  // leerlo. Poner el lunes tampoco sirve: prometería horas que no cuentan.
   const cuando =
     desde.getTime() > inicio.getTime()
-      ? `**Desde ahora** hasta el **domingo ${fechaCorta(fin)} a las 23:59**`
+      ? `**Desde las ${horaCorta(desde)} de hoy** hasta el **domingo ${fechaCorta(fin)} a las 23:59**`
       : `Del **lunes ${fechaCorta(desde)}** al **domingo ${fechaCorta(fin)}**`;
   return [
     "🏆 **ARRANCA LA LIGA DE LA GRIETA** 🏆",
