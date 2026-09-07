@@ -17,6 +17,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { championLabel } from "./champion-names";
+import { winrateTexto } from "./winrate";
 import type { ChampionMatchups } from "./matchups";
 
 /** Lo que se le muestra al jugador. `dato` es el ancla: sin número del historial, no hay recomendación. */
@@ -79,7 +80,7 @@ export function renderDossier(d: CoachDossier): string {
 
   lineas.push("", "POOL DE CAMPEONES (de sus partidas ranked guardadas):");
   for (const c of d.pool) {
-    lineas.push(`- ${championLabel(c.champ)}: ${c.games} partidas, ${c.wins}V-${c.games - c.wins}D (${c.winrate}%), KDA ${c.avgKda}`);
+    lineas.push(`- ${championLabel(c.champ)}: ${c.games} partidas, ${c.wins}V-${c.games - c.wins}D (${winrateTexto(c.wins, c.games)}), KDA ${c.avgKda}`);
   }
 
   lineas.push("", "MAESTRÍA DE RIOT (toda su carrera, todas las colas — NO es el historial de arriba):");
@@ -90,7 +91,7 @@ export function renderDossier(d: CoachDossier): string {
     for (const g of d.matchups) {
       for (const o of g.opponents) {
         const oro = o.avgGoldDiff15 === null ? "sin dato de oro" : `${o.avgGoldDiff15 > 0 ? "+" : ""}${o.avgGoldDiff15} de oro a los 15`;
-        lineas.push(`- ${championLabel(g.champ)} contra ${championLabel(o.opponent)}: ${o.wins}V-${o.losses}D (${o.winrate}%), ${oro}`);
+        lineas.push(`- ${championLabel(g.champ)} contra ${championLabel(o.opponent)}: ${o.wins}V-${o.losses}D (${winrateTexto(o.wins, o.wins + o.losses)}), ${oro}`);
       }
     }
   } else {

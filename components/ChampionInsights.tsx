@@ -1,6 +1,7 @@
 import type { ChampionInsight } from "@/lib/champion-insights";
 import { championLabel } from "@/lib/champion-names";
 import { ChampIcon } from "./ChampIcon";
+import { formatearWinrate } from "@/lib/winrate";
 
 /**
  * Qué significa cada tipo, en texto. Vive acá y no en el type que viaja por
@@ -23,13 +24,13 @@ function describe(i: ChampionInsight): { tone: string; titulo: string; detalle: 
       return {
         tone: "bad",
         titulo: `${champ} no te está saliendo`,
-        detalle: `Maestría ${i.masteryLevel} y ${i.winrate}% en ${i.games} partidas — es donde más invertiste con peor retorno.`,
+        detalle: `Maestría ${i.masteryLevel} y ${formatearWinrate(i.winrate ?? 0)} en ${i.games} partidas — es donde más invertiste con peor retorno.`,
       };
     case "destacado":
       return {
         tone: "good",
         titulo: `${champ} te está rindiendo`,
-        detalle: `${i.winrate}% en ${i.games} partidas, y ni siquiera está entre tus cinco de más maestría.`,
+        detalle: `${formatearWinrate(i.winrate ?? 0)} en ${i.games} partidas, y ni siquiera está entre tus cinco de más maestría.`,
       };
   }
 }

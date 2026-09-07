@@ -1,4 +1,5 @@
 import type { ClashMatch, ClashMatchPlayer, ClashPlayerStats, ClashTournament } from "./types";
+import { winrateExacto, winrateTexto } from "./winrate";
 
 /**
  * Groups a group's stored Clash-queue matches (matches.queue_id = 700, see
@@ -143,7 +144,7 @@ export function computeClashTournaments(
     // the first player's `win` stands in for the match's own result.
     const wins = dayMatches.filter((m) => m.players[0]?.win).length;
     const losses = dayMatches.length - wins;
-    const winrate = dayMatches.length > 0 ? Math.round((100 * wins) / dayMatches.length) : 0;
+    const winrate = winrateExacto(wins, dayMatches.length);
 
     // MVP/KDA stays per-player-appearance on purpose — "who played best" is a
     // question about individuals, not about how many team games happened.
@@ -172,7 +173,7 @@ export function computeClashTournaments(
 
     let conclusion = `${dayMatches.length} partida${dayMatches.length === 1 ? "" : "s"} jugada${
       dayMatches.length === 1 ? "" : "s"
-    } · ${wins}V ${losses}D (${winrate}%).`;
+    } · ${wins}V ${losses}D (${winrateTexto(wins, dayMatches.length)}).`;
     if (mvp) conclusion += ` Mejor rendimiento: ${mvp.name} con ${mvp.champ} (${mvp.avgKda.toFixed(2)} KDA promedio).`;
     if (dayMatches.length >= 3 && winrate >= 75) conclusion += " Gran día de Clash para el grupo.";
     else if (dayMatches.length >= 3 && winrate <= 25) conclusion += " Día flojo — a buscar revancha en el próximo Clash.";
@@ -214,7 +215,7 @@ export function computeClashPlayerStats(
       games,
       wins: e.wins,
       losses: e.losses,
-      winrate: games > 0 ? Math.round((100 * e.wins) / games) : 0,
+      winrate: winrateExacto(e.wins, games),
     };
   });
 

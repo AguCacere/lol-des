@@ -8,6 +8,7 @@ import { SparkChart } from "./SparkChart";
 import { ChampIcon } from "./ChampIcon";
 import { TierEmblem } from "./TierEmblem";
 import { championLabel } from "@/lib/champion-names";
+import { tonoDeWinrate, winrateTexto } from "@/lib/winrate";
 import { LigaSemanal } from "./LigaSemanal";
 
 export type SortKey = "ladder" | "winrate" | "wins" | "streak" | "recent";
@@ -336,7 +337,13 @@ export function LadderTable({
                   </span>
                   <span className="col-winrate">
                     <span className="wr-top">
-                      <span className="wr-pct">{p.winrate}%</span>
+                      {/* Desde los contadores y no desde p.winrate: el
+                          porcentaje redondeado decía "50%" con 302V-307D, que
+                          es 49,6%. El número tiene que coincidir con el récord
+                          que está justo al lado. */}
+                      <span className={`wr-pct ${tonoDeWinrate(p.wins, p.wins + p.losses)}`}>
+                        {winrateTexto(p.wins, p.wins + p.losses)}
+                      </span>
                       <span className="wr-count">
                         <span className="wc-v">{p.wins}V</span>
                         <span className="wc-sep">·</span>

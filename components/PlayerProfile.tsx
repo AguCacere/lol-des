@@ -38,6 +38,7 @@ import { METRIC_INFO } from "@/lib/metric-info";
 import { buildMetricInsights, splitStrengthsWeaknesses } from "@/lib/insights";
 import { ClockIcon, EyeIcon, ReviewIcon, TargetIcon, TrendUpIcon, TrophyIcon, ZapIcon } from "./StatIcons";
 import { championLabel } from "@/lib/champion-names";
+import { winrateTexto } from "@/lib/winrate";
 
 /**
  * Sub-navegación del perfil. Reemplaza al toggle Macro/Micro, que solo
@@ -503,7 +504,7 @@ export function PlayerProfile({
                 )}
               </div>
               <div className="stat-grid">
-                <div className="stat-tile"><TrophyIcon /><div className="v">{p.winrate}%</div><div className="k">Winrate season</div></div>
+                <div className="stat-tile"><TrophyIcon /><div className="v">{winrateTexto(p.wins, p.wins + p.losses)}</div><div className="k">Winrate season</div></div>
                 <div className="stat-tile">
                   <TargetIcon />
                   <div className="v">{objPart}%</div>

@@ -6,6 +6,7 @@ import { tierFor, trendColor } from "@/lib/ladder";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { ChampIcon } from "./ChampIcon";
 import { InfoTip } from "./InfoTip";
+import { tonoDeWinrate, winrateTexto } from "@/lib/winrate";
 import { SparkChart } from "./SparkChart";
 import { CheckIcon, CopyIcon, TrendDownIcon, TrendUpIcon, TrophyIcon, ZapIcon } from "./StatIcons";
 import { championLabel } from "@/lib/champion-names";
@@ -118,7 +119,6 @@ function DigestBody({
   // Puede faltar si el CDN devuelve un JSON anterior al deploy (la ruta se
   // cachea 5 minutos): sin la guarda, la pestaña entera queda en blanco.
   const r = digest.resumen;
-  const wr = r && r.partidas > 0 ? Math.round((100 * r.victorias) / r.partidas) : 0;
 
   return (
     <>
@@ -132,7 +132,9 @@ function DigestBody({
             <span className="digest-kpi-label">partidas</span>
           </div>
           <div className="digest-kpi">
-            <span className={`digest-kpi-valor ${wr >= 50 ? "good" : "bad"}`}>{wr}%</span>
+            <span className={`digest-kpi-valor ${r ? tonoDeWinrate(r.victorias, r.partidas) : "neutral"}`}>
+              {r ? winrateTexto(r.victorias, r.partidas) : "0.0%"}
+            </span>
             <span className="digest-kpi-label">
               {r.victorias}V-{r.derrotas}D del grupo
             </span>

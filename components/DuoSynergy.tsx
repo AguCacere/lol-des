@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { DuoPair, DuoSharedMatch } from "@/lib/types";
 import { formatRelativeDate } from "@/lib/ladder";
 import { ChampIcon } from "./ChampIcon";
+import { tonoDeWinrate, winrateTexto } from "@/lib/winrate";
 import { PlayerAvatar } from "./PlayerAvatar";
 
 type SortKey = "games" | "winrate";
@@ -252,7 +253,9 @@ export function DuoSynergy({
                           </span>
                         </div>
                         <div className="champ-pool-stats">
-                          <span className={`champ-pool-wr ${partner.winrate >= 50 ? "good" : "bad"}`}>{partner.winrate}%</span>
+                          <span className={`champ-pool-wr ${tonoDeWinrate(partner.wins, partner.games)}`}>
+                            {winrateTexto(partner.wins, partner.games)}
+                          </span>
                           <span className="champ-pool-kda">
                             {partner.wins}V {losses}D
                           </span>

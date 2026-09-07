@@ -2,6 +2,7 @@ import type { ChampionBuildStats } from "@/lib/builds";
 import { itemIconUrl } from "@/lib/ddragon";
 import { championLabel } from "@/lib/champion-names";
 import { ChampIcon } from "./ChampIcon";
+import { tonoDeWinrate, winrateTexto } from "@/lib/winrate";
 import { InfoTip } from "./InfoTip";
 
 /**
@@ -68,7 +69,7 @@ export function BuildStarts({
                     <span className="build-start-d" />
                   </span>
                 </span>
-                <span className={`build-start-wr ${a.winrate >= 50 ? "good" : "bad"}`}>{a.winrate}%</span>
+                <span className={`build-start-wr ${tonoDeWinrate(a.wins, a.games)}`}>{winrateTexto(a.wins, a.games)}</span>
                 <span className="build-start-rec">
                   {a.wins}V-{a.games - a.wins}D
                 </span>

@@ -7,6 +7,7 @@ import { championLabel } from "@/lib/champion-names";
 import { ChampIcon } from "./ChampIcon";
 import { RoleIcon } from "./RoleIcon";
 import { InfoTip } from "./InfoTip";
+import { tonoDeWinrate, winrateTexto } from "@/lib/winrate";
 
 /**
  * La partida en curso, con los dos equipos — pensado para mirarse DURANTE la
@@ -54,7 +55,7 @@ function Rival({ p, version }: { p: LiveParticipant; version: string | null }) {
   const t = p.rango ? tierFor(p.rango.tier) : null;
   const cruce = p.vsVos;
   const total = cruce ? cruce.wins + cruce.losses : 0;
-  const wr = total > 0 ? Math.round((100 * cruce!.wins) / total) : null;
+  const tonoCruce = total > 0 ? tonoDeWinrate(cruce!.wins, total) : null;
   return (
     // El nombre del rival va en el title y no en la fila: en selección de
     // campeones importa el campeón, y meterle el Riot ID abajo del rango
@@ -76,11 +77,11 @@ function Rival({ p, version }: { p: LiveParticipant; version: string | null }) {
         </span>
       </span>
       {total > 0 ? (
-        <span className={`lg-cruce ${wr! >= 50 ? "good" : "bad"}`}>
+        <span className={`lg-cruce ${tonoCruce}`}>
           <strong>
             {cruce!.wins}V-{cruce!.losses}D
           </strong>
-          <span className="lg-cruce-wr">{wr}% ganadas</span>
+          <span className="lg-cruce-wr">{winrateTexto(cruce!.wins, total)} ganadas</span>
         </span>
       ) : (
         <span className="lg-cruce vacio">nunca te lo cruzaste</span>

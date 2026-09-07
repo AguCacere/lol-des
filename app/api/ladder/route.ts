@@ -16,6 +16,7 @@ import { computeMatchups, type MatchupSample } from "@/lib/matchups";
 import { computeChampionInsights } from "@/lib/champion-insights";
 import { computeMatchFlag, STATS_WINDOW_SIZE, type StatSample } from "@/lib/matchflags";
 import type { AegisStats, ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, DuoSharedMatch, FlexRank, LpHistoryPoint, MasteryEntry, Match, PersonalRecords, Player, RoleAverages, RoleKey } from "@/lib/types";
+import { winrateExacto } from "@/lib/winrate";
 
 export const dynamic = "force-dynamic";
 
@@ -698,7 +699,7 @@ export async function GET() {
         games: s.games,
         wins: s.wins,
         losses: s.games - s.wins,
-        winrate: Math.round((100 * s.wins) / s.games),
+        winrate: winrateExacto(s.wins, s.games),
         avgKda: Number(((s.kSum + s.aSum) / Math.max(1, s.dSum)).toFixed(2)),
         avgCsPerMin: Number((s.csMinSum / s.games).toFixed(1)),
       }))
@@ -737,7 +738,7 @@ export async function GET() {
         totalGames += s.games;
         totalWins += s.wins;
       }
-      const playerWinrate = totalGames > 0 ? Number(((100 * totalWins) / totalGames).toFixed(1)) : 0;
+      const playerWinrate = winrateExacto(totalWins, totalGames);
       for (const [champ, s] of champStats) {
         if (s.games < CHAMPION_LEADERBOARD_MIN_GAMES) continue;
         entries.push({
@@ -748,7 +749,7 @@ export async function GET() {
           games: s.games,
           wins: s.wins,
           losses: s.games - s.wins,
-          winrate: Math.round((100 * s.wins) / s.games),
+          winrate: winrateExacto(s.wins, s.games),
           playerWinrate,
           avgKda: Number(((s.kSum + s.aSum) / Math.max(1, s.dSum)).toFixed(2)),
         });
@@ -884,7 +885,7 @@ export async function GET() {
         bProfileIconUrl: b.profileIconUrl,
         games: p.games,
         wins: p.wins,
-        winrate: Math.round((100 * p.wins) / p.games),
+        winrate: winrateExacto(p.wins, p.games),
         lastPlayedAt: p.lastPlayedAt,
         aRole: (aRole || null) as RoleKey | null,
         bRole: (bRole || null) as RoleKey | null,
@@ -1008,7 +1009,7 @@ export async function GET() {
       championInsights: computeChampionInsights(mastery, championPoolAll(row.puuid)),
       liveGame: liveGameByPuuid.get(row.puuid) ?? null,
       matches,
-      winrate: wins + losses > 0 ? Math.round((100 * wins) / (wins + losses)) : 0,
+      winrate: winrateExacto(wins, wins + losses),
       roleAverages: roleAveragesFor(row.puuid, role),
       roleDistribution: roleDistributionFor(row.puuid),
       lineas: historialDeLineas(partidasConLineaByPuuid.get(row.puuid) ?? []),

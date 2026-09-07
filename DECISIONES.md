@@ -99,6 +99,19 @@ grilla, y se mide en el DOM a dos anchos.
 
 ## Estadística
 
+**El winrate no se redondea, y el color sale de los contadores.** Las dos reglas
+viven en `lib/winrate.ts` y no se reimplementan en ningún componente. 302V-307D es
+49,59%: guardado como `Math.round` daba 50, se mostraba "50%", y el color salía de
+`winrate >= 50 ? "good" : "bad"` sobre ese entero — o sea que un récord negativo se
+pintaba de **verde**, al lado del "302V · 307D" que lo desmentía. Se muestra el real
+con un decimal, y el tono se decide con `wins > losses`, que son enteros y no
+necesitan epsilon. El empate exacto tiene su propio tono: 50V-50D no es ni bueno ni
+malo, y con `>= 50` salía verde.
+
+**Todo winrate se calcula desde (wins, games), nunca desde un porcentaje ya
+calculado.** Además de ser exacto, esquiva la ventana de caché del CDN: los
+contadores son idénticos en el JSON viejo y en el nuevo, el porcentaje no.
+
 **Wilson al 99% (z=2.576) para ordenar winrates.** Al 95% un 3 de 3 le gana a un 7 de
 10, que es exactamente lo que el orden tiene que evitar.
 

@@ -11,6 +11,7 @@
  * cantidad de partidas no es un detalle al pie, es parte del dato y se
  * muestra siempre.
  */
+import { winrateExacto } from "./winrate";
 
 /** Lo mínimo de una partida que hace falta acá. */
 export interface MatchupSample {
@@ -113,7 +114,7 @@ export function computeMatchups(matches: MatchupSample[]): ChampionMatchups[] {
       games: agg.games,
       wins: agg.wins,
       losses: agg.games - agg.wins,
-      winrate: Math.round((100 * agg.wins) / agg.games),
+      winrate: winrateExacto(agg.wins, agg.games),
       avgGoldDiff15: agg.goldN > 0 ? Math.round(agg.goldSum / agg.goldN) : null,
     });
     byChamp.set(agg.champ, list);
@@ -131,7 +132,7 @@ export function computeMatchups(matches: MatchupSample[]): ChampionMatchups[] {
       games,
       wins,
       losses: games - wins,
-      winrate: Math.round((100 * wins) / games),
+      winrate: winrateExacto(wins, games),
       opponents,
     });
   }

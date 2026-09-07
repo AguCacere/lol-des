@@ -1,5 +1,6 @@
 import type { ChampionPoolEntry } from "@/lib/types";
 import { ChampIcon } from "./ChampIcon";
+import { tonoDeWinrate, winrateTexto } from "@/lib/winrate";
 import { championLabel } from "@/lib/champion-names";
 // Mismo umbral que usan los insights para decidir si se puede concluir algo
 // de un winrate: si no alcanza para sacar una conclusión, tampoco alcanza
@@ -44,8 +45,8 @@ export function ChampionPool({ pool, ddragonVersion }: { pool: ChampionPoolEntry
             </span>
           </span>
           <div className="champ-pool-stats">
-            <span className={`champ-pool-wr ${c.games < CONFIDENT_GAMES ? "thin" : c.winrate >= 50 ? "good" : "bad"}`}>
-              {c.winrate}%
+            <span className={`champ-pool-wr ${c.games < CONFIDENT_GAMES ? "thin" : tonoDeWinrate(c.wins, c.games)}`}>
+              {winrateTexto(c.wins, c.games)}
             </span>
             <span className="champ-pool-kda">{c.avgKda.toFixed(2)} KDA</span>
             {/* avgCsPerMin ya se calculaba en la ruta y viajaba en cada

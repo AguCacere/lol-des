@@ -5,6 +5,7 @@ import type { DuoPair, Player } from "@/lib/types";
 import { RADAR_AXIS, type RadarMetric } from "@/lib/radar";
 import { formatRelativeTime, ROLES, tierFor } from "@/lib/ladder";
 import { championLabel } from "@/lib/champion-names";
+import { tonoDeWinrate, winrateTexto } from "@/lib/winrate";
 import { ChampIcon } from "./ChampIcon";
 import { InfoTip } from "./InfoTip";
 import { Select, type OpcionSelect } from "./Select";
@@ -76,7 +77,7 @@ function Ficha({ p, lado }: { p: Player; lado: "a" | "b" }) {
         <span>{p.lp} LP</span>
         <span className="h2h-sep">·</span>
         <span>
-          {p.winrate}% <span className="h2h-mini">en {p.wins + p.losses}</span>
+          {winrateTexto(p.wins, p.wins + p.losses)} <span className="h2h-mini">en {p.wins + p.losses}</span>
         </span>
       </div>
     </div>
@@ -210,7 +211,9 @@ export function HeadToHead({
                 <span className="tw-dot">·</span>
                 {juntos.wins}V-{juntos.games - juntos.wins}D
                 <span className="tw-dot">·</span>
-                <strong className={juntos.winrate >= 50 ? "gd-pos" : "gd-neg"}>{juntos.winrate}%</strong>
+                <strong className={tonoDeWinrate(juntos.wins, juntos.games) === "bad" ? "gd-neg" : "gd-pos"}>
+                  {winrateTexto(juntos.wins, juntos.games)}
+                </strong>
                 <span className="tw-dot">·</span>
                 <span className="h2h-juntos-ultima">última {formatRelativeTime(juntos.lastPlayedAt)}</span>
               </span>
@@ -302,7 +305,7 @@ export function HeadToHead({
                         {c.wins}V-{c.losses}D
                       </span>
                       <span className="h2h-champ-kda">{c.avgKda} KDA</span>
-                      <span className={`h2h-champ-wr ${c.winrate >= 50 ? "good" : "bad"}`}>{c.winrate}%</span>
+                      <span className={`h2h-champ-wr ${tonoDeWinrate(c.wins, c.wins + c.losses)}`}>{winrateTexto(c.wins, c.wins + c.losses)}</span>
                     </div>
                   ))
                 )}

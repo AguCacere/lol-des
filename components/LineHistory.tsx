@@ -2,8 +2,9 @@ import type { HistorialLineas } from "@/lib/lineas";
 import { ROLES } from "@/lib/ladder";
 import { RoleIcon } from "./RoleIcon";
 import { InfoTip } from "./InfoTip";
+import { tonoDeWinrate, winrateTexto } from "@/lib/winrate";
 
-const pct = (wins: number, games: number) => (games > 0 ? Math.round((100 * wins) / games) : 0);
+
 
 /**
  * "Sus líneas" — cuánto jugó cada una, cómo le fue, y si lo están sacando de
@@ -19,8 +20,6 @@ export function LineHistory({ h }: { h: HistorialLineas }) {
   if (jugadas.length === 0) return null;
 
   const maxPartidas = jugadas[0].games;
-  const wrPrincipal = pct(h.enPrincipal.wins, h.enPrincipal.games);
-  const wrFuera = pct(h.fuera.wins, h.fuera.games);
   // ROLES[].label viene capitalizado para usarse como título ("Jungla",
   // "ADC"), pero en el medio de una frase "De Jungla gana el 56%" queda raro.
   // Se pasa a minúscula salvo ADC, que es una sigla: "De adc gana el 51%" es
@@ -31,7 +30,6 @@ export function LineHistory({ h }: { h: HistorialLineas }) {
     <div className="lineas">
       <div className="lineas-filas">
         {jugadas.map((l) => {
-          const wr = pct(l.wins, l.games);
           return (
             <div className="lineas-fila" key={l.role}>
               <span className="lineas-rol" title={ROLES[l.role].label}>
@@ -50,7 +48,7 @@ export function LineHistory({ h }: { h: HistorialLineas }) {
                   <span className="lineas-barra-d" />
                 </span>
               </span>
-              <span className={`lineas-wr ${wr >= 50 ? "good" : "bad"}`}>{wr}%</span>
+              <span className={`lineas-wr ${tonoDeWinrate(l.wins, l.games)}`}>{winrateTexto(l.wins, l.games)}</span>
               <span className="lineas-detalle">
                 {l.wins}V-{l.games - l.wins}D
                 {l.kda !== null && <span className="lineas-kda">KDA {l.kda.toFixed(2)}</span>}
@@ -69,8 +67,12 @@ export function LineHistory({ h }: { h: HistorialLineas }) {
         ) : (
           <>
             De <strong>{principal}</strong> gana el{" "}
-            <strong className={wrPrincipal >= 50 ? "gd-pos" : "gd-neg"}>{wrPrincipal}%</strong>; fuera de ahí, el{" "}
-            <strong className={wrFuera >= 50 ? "gd-pos" : "gd-neg"}>{wrFuera}%</strong>.
+            <strong className={tonoDeWinrate(h.enPrincipal.wins, h.enPrincipal.games) === "bad" ? "gd-neg" : "gd-pos"}>
+              {winrateTexto(h.enPrincipal.wins, h.enPrincipal.games)}
+            </strong>; fuera de ahí, el{" "}
+            <strong className={tonoDeWinrate(h.fuera.wins, h.fuera.games) === "bad" ? "gd-neg" : "gd-pos"}>
+              {winrateTexto(h.fuera.wins, h.fuera.games)}
+            </strong>.
             {h.loSacanDeSuLinea && (
               <>
                 {" "}

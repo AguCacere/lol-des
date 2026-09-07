@@ -9,6 +9,7 @@
  * hay pisos y se muestran los dos lados (ganadas y perdidas) en vez de un
  * porcentaje suelto.
  */
+import { winrateExacto } from "./winrate";
 
 /** Una partida vista desde acá: qué campeón, si ganó, y qué compró en orden. */
 export interface BuildSample {
@@ -96,7 +97,7 @@ export function computeBuildStats(
         nombre: nombreDe(itemId),
         games: v.games,
         wins: v.wins,
-        winrate: Math.round((100 * v.wins) / v.games),
+        winrate: winrateExacto(v.wins, v.games),
       }))
       .sort((a, b) => b.games - a.games)
       .slice(0, MAX_ARRANQUES);

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { ClashMatch, ClashMatchPlayer, ClashPlayerStats, ClashTournament, Player } from "@/lib/types";
 import { ChampIcon } from "./ChampIcon";
+import { tonoDeWinrate, winrateTexto } from "@/lib/winrate";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { InfoTip } from "./InfoTip";
 import { wilsonLower } from "@/lib/wilson";
@@ -52,8 +53,8 @@ function ClashPlayerStatsList({ stats, players }: { stats: ClashPlayerStats[]; p
                 {s.games} {s.games === 1 ? "partida de Clash" : "partidas de Clash"}
               </span>
             </div>
-            <span className={`podium-wr ${s.wins === s.losses ? "neutral" : s.wins > s.losses ? "good" : "bad"}`}>
-              {s.winrate}%
+            <span className={`podium-wr ${tonoDeWinrate(s.wins, s.games)}`}>
+              {winrateTexto(s.wins, s.games)}
             </span>
             <span className="podium-record">
               <span className="podium-vd">
@@ -101,13 +102,13 @@ function ClashPlayerStatsList({ stats, players }: { stats: ClashPlayerStats[]; p
                   </span>
                 </div>
                 <span className="tw-c-games">{s.games}</span>
-                <div className="tw-c-bar" title={`${s.winrate}% en ${s.games} partidas de Clash`}>
+                <div className="tw-c-bar" title={`${winrateTexto(s.wins, s.games)} en ${s.games} partidas de Clash`}>
                   <span className="tw-track">
                     <span className={`tw-fill ${tono}`} style={{ width: `${largo}%` }} />
                     <span className="tw-zero" />
                   </span>
                 </div>
-                <span className={`tw-c-wr ${tono}`}>{s.winrate}%</span>
+                <span className={`tw-c-wr ${tono}`}>{winrateTexto(s.wins, s.games)}</span>
                 <span className="tw-c-net">
                   <DeltaSoloQ clash={s.winrate} solo={soloQDe(s)} />
                 </span>
@@ -130,7 +131,7 @@ function DeltaSoloQ({ clash, solo }: { clash: number; solo: number | undefined }
   const d = clash - solo;
   const tono = Math.abs(d) < 5 ? "neutral" : d > 0 ? "good" : "bad";
   return (
-    <span className={`tw-delta ${tono}`} title={`Su SoloQ de esta season: ${solo}%`}>
+    <span className={`tw-delta ${tono}`} title={`Su SoloQ de esta season: ${solo.toFixed(1)}%`}>
       {Math.abs(d) < 5 ? "=" : `${d > 0 ? "+" : "−"}${Math.abs(Math.round(d))}`}
     </span>
   );
@@ -212,7 +213,7 @@ function jugadoresDelDia(t: ClashTournament): number {
 function ClashTournamentRow({ t, ddragonVersion }: { t: ClashTournament; ddragonVersion: string | null }) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <div className={`panel-item clash-day-item ${t.winrate >= 50 ? "w" : "l"}`}>
+    <div className={`panel-item clash-day-item ${t.wins >= t.losses ? "w" : "l"}`}>
       <button
         type="button"
         className={`panel-row${expanded ? " is-expanded" : ""}`}
@@ -241,7 +242,7 @@ function ClashTournamentRow({ t, ddragonVersion }: { t: ClashTournament; ddragon
             ))}
         </div>
         <div className="panel-row-stats">
-          <span className={`panel-row-wr ${t.winrate >= 50 ? "good" : "bad"}`}>{t.winrate}%</span>
+          <span className={`panel-row-wr ${tonoDeWinrate(t.wins, t.gamesPlayed)}`}>{winrateTexto(t.wins, t.gamesPlayed)}</span>
           <span className="panel-row-record">
             {t.wins}V {t.losses}D
           </span>
@@ -294,7 +295,7 @@ export function ClashHistory({
 }) {
   const totalGames = tournaments.reduce((s, t) => s + t.gamesPlayed, 0);
   const totalWins = tournaments.reduce((s, t) => s + t.wins, 0);
-  const totalWinrate = totalGames > 0 ? Math.round((100 * totalWins) / totalGames) : 0;
+  const tonoTotal = tonoDeWinrate(totalWins, totalGames);
 
   return (
     <section>
@@ -310,7 +311,7 @@ export function ClashHistory({
         <p className="clash-lifetime">
           {tournaments.length} {tournaments.length === 1 ? "torneo" : "torneos"} de Clash registrados · {totalGames}{" "}
           partidas ·{" "}
-          <span className={`clash-lifetime-wr ${totalWinrate >= 50 ? "good" : "bad"}`}>{totalWinrate}% winrate</span>
+          <span className={`clash-lifetime-wr ${tonoTotal}`}>{winrateTexto(totalWins, totalGames)} winrate</span>
         </p>
       )}
 

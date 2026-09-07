@@ -6,6 +6,7 @@ import { roleFromTeamPosition } from "@/lib/mapping";
 import { ROLES, tierFor } from "@/lib/ladder";
 import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { exigirSesion } from "@/lib/auth";
+import { winrateExacto } from "@/lib/winrate";
 
 // El análisis piensa un rato (adaptive thinking sobre un dossier de ~2k
 // tokens). No es una consulta de lectura, es una llamada a un modelo.
@@ -124,7 +125,7 @@ export async function POST(req: Request) {
       champ,
       games: s.games,
       wins: s.wins,
-      winrate: Math.round((100 * s.wins) / s.games),
+      winrate: winrateExacto(s.wins, s.games),
       avgKda: Number(((s.k + s.a) / Math.max(1, s.d)).toFixed(2)),
     }))
     .sort((a, b) => b.games - a.games)

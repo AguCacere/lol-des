@@ -5,6 +5,7 @@ import type { ChampionMatchups, Matchup } from "@/lib/matchups";
 import { MATCHUP_MIN_GAMES } from "@/lib/matchups";
 import { championLabel } from "@/lib/champion-names";
 import { ChampIcon } from "./ChampIcon";
+import { tonoDeWinrate, winrateTexto } from "@/lib/winrate";
 
 /** Una fila de rival dentro de un campeón desplegado. */
 function OpponentRow({ m, ddragonVersion }: { m: Matchup; ddragonVersion: string | null }) {
@@ -34,7 +35,7 @@ function OpponentRow({ m, ddragonVersion }: { m: Matchup; ddragonVersion: string
         )}
       </span>
       <span className="matchup-record">
-        <span className={`matchup-wr ${m.winrate >= 50 ? "good" : "bad"}`}>{m.winrate}%</span>
+        <span className={`matchup-wr ${tonoDeWinrate(m.wins, m.games)}`}>{winrateTexto(m.wins, m.games)}</span>
         <span className="matchup-games">
           {m.wins}V-{m.losses}D
         </span>
@@ -71,7 +72,7 @@ function ChampionGroup({
         </span>
         <span className="matchup-gd matchup-hueco-oro" aria-hidden />
         <span className="matchup-record">
-          <span className={`matchup-wr ${group.winrate >= 50 ? "good" : "bad"}`}>{group.winrate}%</span>
+          <span className={`matchup-wr ${tonoDeWinrate(group.wins, group.games)}`}>{winrateTexto(group.wins, group.games)}</span>
           <span className="matchup-games">
             {group.wins}V-{group.losses}D
           </span>
