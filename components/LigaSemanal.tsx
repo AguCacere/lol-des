@@ -28,6 +28,9 @@ interface DelPlantel {
   participa: boolean;
 }
 interface Datos {
+  /** Si la semana en curso ya es de la liga. Antes del arranque no hay tabla, no marcadores viejos. */
+  arrancada: boolean;
+  arrancaEl: string;
   semana: string;
   desde: string;
   hasta: string;
@@ -130,7 +133,13 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
         <div className="liga-rango-solo">{rango}</div>
       )}
 
-      {d.tabla.length === 0 ? (
+      {d.arrancada === false ? (
+        <div className="empty-state">
+          <strong>La liga arranca el lunes</strong>
+          Todos empiezan en 0. El LP que ya está guardado es de antes y no cuenta — sería empezar el campeonato con
+          marcadores puestos.
+        </div>
+      ) : d.tabla.length === 0 ? (
         <div className="empty-state">
           <strong>Todavía no hay nadie anotado</strong>
           La liga la corren los que se anotan, no todos los trackeados. Con la contraseña del grupo se anota desde acá
@@ -211,7 +220,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
         </div>
       )}
 
-      {d.historial.length > 0 && (
+      {d.arrancada && d.historial.length > 0 && (
         <div className="liga-historial">
           <span className="liga-historial-label">Campeones anteriores</span>
           {d.historial.map((h) => (

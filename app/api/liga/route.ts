@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { exigirSesion } from "@/lib/auth";
 import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
-import { claveDeSemana, finDeSemana, inicioDeSemana, tablaDeLaSemana, type Participante, type Snapshot } from "@/lib/liga";
+import { claveDeSemana, esSemanaDeLiga, finDeSemana, inicioDeSemana, LIGA_INICIO, tablaDeLaSemana, type Participante, type Snapshot } from "@/lib/liga";
 import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 
 /**
@@ -41,8 +41,13 @@ export async function GET() {
     profileIconUrl: version && s.profile_icon_id != null ? profileIconUrl(version, s.profile_icon_id) : null,
   }));
 
+  // Si la semana en curso es anterior al arranque, no se muestra nada: el LP
+  // que ya está guardado es de antes de la liga y contarlo sería empezar el
+  // campeonato con marcadores puestos.
+  const arrancada = esSemanaDeLiga(inicio);
+
   let tabla: Awaited<ReturnType<typeof tablaDeLaSemana>> = [];
-  if (participantes.length > 0) {
+  if (arrancada && participantes.length > 0) {
     // Se pide desde una semana ANTES del lunes: la fila base de cada uno es su
     // última foto previa al arranque, y esa cae fuera de la ventana.
     const desdeAntes = new Date(inicio.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString();
@@ -86,6 +91,8 @@ export async function GET() {
     .limit(8);
 
   return NextResponse.json({
+    arrancada,
+    arrancaEl: LIGA_INICIO.toISOString(),
     semana: claveDeSemana(inicio),
     desde: inicio.toISOString(),
     hasta: fin.toISOString(),

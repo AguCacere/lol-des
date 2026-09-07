@@ -24,6 +24,25 @@ import type { TierKey } from "./types";
  */
 const ARG_OFFSET_MS = 3 * 60 * 60 * 1000;
 
+/**
+ * El lunes en que la liga arranca de verdad. NADA anterior a esta fecha
+ * cuenta: ni aparece en la tabla ni se cierra ni se anuncia.
+ *
+ * Hace falta porque la app tiene meses de LP guardado y la liga no. Sin esta
+ * línea, la primera corrida del cron encontró una semana "terminada" del 24
+ * de agosto —anterior a que la liga existiera—, la cerró y le anunció un
+ * ganador al Discord. Un campeón de una competencia que todavía no había
+ * empezado.
+ *
+ * Es 00:00 del lunes hora argentina, o sea 03:00 UTC.
+ */
+export const LIGA_INICIO = new Date(Date.UTC(2026, 8, 7, 3, 0, 0));
+
+/** Si esa semana es de la liga o de antes de que existiera. */
+export function esSemanaDeLiga(inicio: Date): boolean {
+  return inicio.getTime() >= LIGA_INICIO.getTime();
+}
+
 /** El lunes 00:00 (hora argentina) de la semana en la que cae `ahora`, como instante real. */
 export function inicioDeSemana(ahora: Date = new Date()): Date {
   // Corriendo el reloj, los campos UTC de esta fecha son la hora argentina.

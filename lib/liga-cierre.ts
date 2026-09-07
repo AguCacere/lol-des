@@ -3,6 +3,7 @@ import { sendDiscordNotification } from "./discord";
 import { RANKED_SOLO_QUEUE_ID } from "./refresh";
 import {
   claveDeSemana,
+  esSemanaDeLiga,
   finDeSemana,
   inicioDeSemana,
   mensajeDeCierre,
@@ -29,6 +30,13 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
   // La que acaba de terminar es la anterior a la actual.
   const anterior = new Date(semanaEnCurso.getTime() - 7 * 24 * 60 * 60 * 1000);
   const clave = claveDeSemana(anterior);
+
+  // Antes que nada: que la semana sea DE la liga. La app tiene meses de LP
+  // guardado de antes de que esto existiera, y sin esta guarda el cron sale a
+  // coronar campeones de semanas en las que nadie estaba compitiendo.
+  if (!esSemanaDeLiga(anterior)) {
+    return { cerrada: null, ganador: null, lpNeto: null, jugadores: 0, motivo: `${clave} es anterior al arranque de la liga` };
+  }
 
   const { data: yaCerrada } = await supabase.from("liga_semanas").select("semana").eq("semana", clave).maybeSingle();
   if (yaCerrada) return { cerrada: null, ganador: null, lpNeto: null, jugadores: 0, motivo: `${clave} ya estaba cerrada` };
