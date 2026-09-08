@@ -259,6 +259,7 @@ export default function Home() {
         addStatus={addStatus}
         invocadores={players.length}
         enVivo={players.filter((p) => p.liveGame).length}
+        lastUpdated={lastUpdated}
       />
       {/* El cambio de pestaña pasa por una view transition: sin ella el
           contenido se reemplaza de golpe y en una app de una sola página eso
@@ -311,7 +312,6 @@ export default function Home() {
             }}
             loading={loading}
             error={loadError}
-            lastUpdated={lastUpdated}
             roleFilter={roleFilter}
             vista={vista}
             onVistaChange={setVista}

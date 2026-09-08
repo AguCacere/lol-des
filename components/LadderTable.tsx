@@ -1,5 +1,5 @@
 import type { Player, RoleKey } from "@/lib/types";
-import { champTag, currentStreak, formatRelativeTime, liveGameTimeLabel, rankScore, ROLES, tierFor, trendColor } from "@/lib/ladder";
+import { champTag, currentStreak, liveGameTimeLabel, rankScore, ROLES, tierFor, trendColor } from "@/lib/ladder";
 import { RoleIcon } from "./RoleIcon";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { Select, type OpcionSelect } from "./Select";
@@ -22,7 +22,6 @@ interface LadderTableProps {
   onSelect: (key: string) => void;
   loading?: boolean;
   error?: string | null;
-  lastUpdated: string | null;
   roleFilter: RoleKey | "all";
   /** Cuál de las dos tablas se está mirando. El título de arriba es el interruptor. */
   vista: "ladder" | "liga";
@@ -92,7 +91,6 @@ export function LadderTable({
   onSelect,
   loading,
   error,
-  lastUpdated,
   roleFilter,
   vista,
   onVistaChange,
@@ -132,9 +130,6 @@ export function LadderTable({
           {enLiga ? "Liga de la semana" : "Ladder del grupo"}
         </h2>
         <div className="vista-derecha">
-          {!enLiga && !loading && lastUpdated && (
-            <span className="meta last-updated">Última actualización: {formatRelativeTime(lastUpdated)}</span>
-          )}
           <button type="button" className="vista-ir" onClick={() => onVistaChange(enLiga ? "ladder" : "liga")}>
             {enLiga ? (
               <>

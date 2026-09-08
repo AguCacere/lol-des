@@ -166,9 +166,13 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    instead of islands adrift in black. Was 32/14 — with each section's own
    content also carrying top margin, the real gap between a list and the next
    title ran well past 40px and broke the page into disconnected blocks. */
+/* 20px abajo y no 12: con 12 el título quedaba a la MISMA distancia de los
+   controles que los controles de la tabla, así que tres cosas de distinto
+   rango compartían un solo valor de espacio y no agrupaba nada — se leía como
+   un bloque pegado. El título tiene que despegarse del grupo que encabeza. */
 .section-head{
   display:flex; align-items:baseline; justify-content:space-between;
-  margin:26px 0 12px; gap:12px; flex-wrap:wrap;
+  margin:26px 0 20px; gap:12px; flex-wrap:wrap;
 }
 .section-head h2{
   font-family:var(--font-display); font-weight:700; font-size:19px;
@@ -179,9 +183,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .section-head .meta{font-size:11.5px; color:var(--text-muted); text-align:right;}
 .last-updated{white-space:nowrap;}
 
+/* Y estos van PEGADOS a la tabla —8px— porque la filtran y la ordenan: son
+   parte de ella, no un tercer bloque suelto entre el título y los datos. */
 .ladder-controls{
   display:flex; align-items:center; justify-content:space-between; gap:12px;
-  flex-wrap:wrap; margin-bottom:12px;
+  flex-wrap:wrap; margin-bottom:8px;
 }
 /* La sección del ladder tiene UN título —el de la tabla que se está
    mirando— y al lado la salida hacia la otra, en chico.

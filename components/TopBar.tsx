@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Cerradura } from "./Cerradura";
+import { formatRelativeTime } from "@/lib/ladder";
 
 export type AddStatus = { kind: "idle" } | { kind: "adding" } | { kind: "error"; message: string };
 
@@ -10,6 +11,8 @@ interface TopBarProps {
   invocadores: number;
   /** Cuántos están en partida ahora mismo. */
   enVivo: number;
+  /** Cuándo se trajeron los datos por última vez. Null mientras carga. */
+  lastUpdated: string | null;
   filterText: string;
   onFilterChange: (value: string) => void;
   onSubmit: () => void;
@@ -17,7 +20,7 @@ interface TopBarProps {
   addStatus: AddStatus;
 }
 
-export function TopBar({ invocadores, enVivo, filterText, onFilterChange, onSubmit, canAdd, addStatus }: TopBarProps) {
+export function TopBar({ invocadores, enVivo, lastUpdated, filterText, onFilterChange, onSubmit, canAdd, addStatus }: TopBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -58,6 +61,17 @@ export function TopBar({ invocadores, enVivo, filterText, onFilterChange, onSubm
                   <span className="live-dot" />
                   {enVivo} en partida
                 </span>
+              </>
+            )}
+            {/* Vive acá y no en el encabezado del ladder porque es estado de
+                los DATOS, no de esa tabla: vale igual en Estadísticas o en
+                Equipo, y esta línea ya es la de estado ambiente. Allá arriba
+                además obligaba al título a compartir renglón con dos cosas
+                más, y en pantalla angosta las mandaba a un renglón propio. */}
+            {lastUpdated && (
+              <>
+                <span className="brand-sep">·</span>
+                actualizado {formatRelativeTime(lastUpdated)}
               </>
             )}
           </p>

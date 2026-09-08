@@ -97,8 +97,10 @@ La ruta contesta al toque y hace el trabajo en segundo plano con `after()`: los
 schedulers gratuitos cortan la espera a los 30 segundos, bastante menos de lo que
 puede tardar un refresco completo.
 
-El botón "Actualizar" de la app hace lo mismo a mano, con un cooldown de dos
-minutos.
+**No hay botón de "Actualizar" en la app**: el cron de 15 minutos es lo único que
+mantiene el ladder al día. `POST /api/refresh` existe para dispararlo a mano desde la
+consola o con `curl` (pide sesión, y tiene un cooldown de dos minutos por invocador),
+pero ninguna pantalla lo llama.
 
 ## Estructura
 
