@@ -192,7 +192,14 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
               // se dibuja sin curva en vez de tirar y llevarse la tabla.
               const serie = f.serie ?? [];
               return (
-                <div className={`liga-fila${puesto === 1 && !f.sinJugar ? " lider" : ""}`} key={f.puuid}>
+                <div
+                  className={`liga-fila${puesto === 1 && !f.sinJugar ? " lider" : ""}${f.sinJugar ? " en-pausa" : ""}`}
+                  key={f.puuid}
+                  // El escalonado de la entrada. Va como variable y no como
+                  // clase porque el índice es un número: 40ms entre fila y
+                  // fila alcanza para que la tabla se ARME en vez de aparecer.
+                  style={{ ["--fila" as string]: i }}
+                >
                   <span className={`liga-puesto p${puesto <= 3 ? puesto : 0}`}>
                     {puesto === 1 && !f.sinJugar ? (
                       // La corona en vez del "1": el que va ganando la semana
@@ -229,6 +236,11 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                     {f.champion ? (
                       <>
                         <ChampIcon champ={f.champion} version={d.ddragonVersion ?? null} className="liga-champ" />
+                        {/* La línea va ENCIMA del arte, no al lado: como dos
+                            cajas separadas competían entre ellas y la de la
+                            línea parecía un segundo campeón. Pegada abajo a la
+                            derecha se lee como lo que es, una etiqueta del
+                            campeón — y de paso la columna ocupa la mitad. */}
                         {f.linea && (
                           <span className="liga-linea" title={ROLES[f.linea].label}>
                             <RoleIcon role={f.linea} />

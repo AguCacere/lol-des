@@ -3017,7 +3017,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    se queda en los 230px que se le pasan. */
 .liga-fila{
   display:grid;
-  grid-template-columns:46px 40px minmax(140px,220px) 58px 158px minmax(150px,1fr) 230px 92px;
+  grid-template-columns:46px 40px minmax(140px,230px) 38px 158px minmax(160px,1fr) 230px 92px;
   align-items:center; gap:12px; padding:11px 16px;
   border-bottom:1px solid var(--border-soft);
   transition:background .14s ease;
@@ -3025,12 +3025,33 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* Que la fila responda al pasar por encima. Una tabla que no reacciona a
    nada se siente un PDF. */
 .liga-fila:hover{background:var(--surface-hover);}
+/* El que todavía no jugó no compite: se apaga para que el ojo caiga en los
+   que sí tienen algo en juego. No se esconde —está anotado y merece verse—
+   pero deja de pelear por atención con los que se están moviendo. */
+/* Se apaga con `filter` y NO con `opacity`, aunque opacity sea lo obvio: la
+   animación de entrada de más abajo usa fill-mode `both`, así que su
+   fotograma final deja fijada la opacity y GANA sobre cualquier regla
+   normal — incluido el :hover. Medido: con opacity, pasar el mouse por una
+   fila en pausa no hacía nada. Con filter son propiedades distintas y no se
+   pisan. */
+.liga-fila.en-pausa{filter:opacity(0.5); transition:filter .14s ease, background .14s ease;}
+.liga-fila.en-pausa:hover{filter:none;}
+/* La tabla se ARMA en vez de aparecer de golpe: 40ms entre fila y fila. Es
+   corto a propósito — con seis filas termina en un cuarto de segundo. */
+.liga-fila{animation:liga-entra .32s ease both; animation-delay:calc(var(--fila, 0) * 40ms);}
+@keyframes liga-entra{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+@media (prefers-reduced-motion:reduce){
+  .liga-fila{animation:none;}
+}
+/* El número del que va ganando pesa más que el resto: es el que hay que
+   mirar primero. */
+.liga-fila.lider .liga-lp{font-size:22px;}
 .liga-avatar{width:38px; height:38px; border-radius:11px; font-size:13px;}
 /* Con qué jugó la semana: el arte del campeón y el ícono de la línea. Es la
    única imagen de verdad de la fila —el ícono de perfil es un dibujito de
    Riot, no dice nada del juego— y es lo que hace que la tabla se lea como
    algo de LoL y no como una planilla. */
-.liga-jugo{display:flex; align-items:center; gap:5px; min-width:0;}
+.liga-jugo{position:relative; display:flex; align-items:center; min-width:0;}
 .liga-champ{
   width:30px; height:30px; border-radius:8px; overflow:hidden; flex:none;
   display:flex; align-items:center; justify-content:center;
@@ -3039,8 +3060,13 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 /* El hueco del que todavía no jugó: se ve el lugar, sin dibujo. */
 .liga-champ.vacio{background:var(--surface); opacity:0.35;}
-.liga-linea{display:flex; align-items:center; flex:none; opacity:0.75;}
-.liga-linea img{width:16px; height:16px; display:block;}
+.liga-linea{
+  position:absolute; right:-5px; bottom:-4px;
+  width:16px; height:16px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--surface-raised); box-shadow:0 0 0 1.5px var(--bg);
+}
+.liga-linea img{width:11px; height:11px; display:block; opacity:0.9;}
 .liga-rango-celda{display:flex; align-items:center; gap:8px; min-width:0;}
 .liga-rango-celda .tier-emblem,
 .liga-rango-celda img{width:26px; height:26px; flex:none;}
@@ -3147,23 +3173,26 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 @media (max-width:900px){
   /* La curva es lo primero que sobra: es el matiz de CÓMO llegó al neto, y el
      neto está escrito al lado. */
-  .liga-fila{grid-template-columns:42px 36px minmax(120px,220px) 54px 150px minmax(130px,1fr) 88px; gap:11px;}
+  .liga-fila{grid-template-columns:42px 36px minmax(120px,220px) 36px 150px minmax(140px,1fr) 88px; gap:11px;}
   .liga-avatar{width:34px; height:34px; border-radius:10px;}
   .liga-curva{display:none;}
 }
 @media (max-width:640px){
   /* Y después el rango: en un teléfono el nombre y el neto son lo que se
      mira, y el rango de cada uno ya está en el ladder de al lado. */
-  .liga-fila{grid-template-columns:36px 32px minmax(0,1fr) 50px minmax(110px,150px) 80px; gap:10px; padding:10px 13px;}
+  .liga-fila{grid-template-columns:36px 32px minmax(0,1fr) 34px minmax(110px,150px) 80px; gap:10px; padding:10px 13px;}
   .liga-avatar{width:31px; height:31px; border-radius:9px; font-size:11px;}
   .liga-puesto{font-size:13px;}
   .liga-puesto svg{width:16px; height:16px;}
   .liga-rango-celda{display:none;}
 }
 @media (max-width:420px){
-  .liga-fila{grid-template-columns:30px 30px minmax(0,1fr) 44px 68px; gap:8px; padding:9px 11px;}
-  .liga-champ{width:26px; height:26px; border-radius:7px;}
-  .liga-linea{display:none;}
+  .liga-fila{grid-template-columns:30px 30px minmax(0,1fr) 30px 68px; gap:8px; padding:9px 11px;}
+  .liga-champ{width:28px; height:28px; border-radius:7px;}
+  /* La insignia de línea ya no ocupa lugar propio, así que en el teléfono
+     puede quedarse: solo se achica. */
+  .liga-linea{width:13px; height:13px;}
+  .liga-linea img{width:9px; height:9px;}
   .liga-avatar{width:28px; height:28px; border-radius:8px;}
   .liga-nombre{font-size:13px;}
   .liga-lp{font-size:17px;}

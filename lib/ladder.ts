@@ -115,8 +115,8 @@ export function liveGameTimeLabel(startedMinutesAgo: number): string {
 }
 
 /**
- * Green if the series net-rose, red if it net-fell — matches the app's own
- * verde=positivo/rojo=negativo rule. Same hex as --good/--critical in
+ * Verde si la serie subió, rojo si bajó, GRIS si quedó igual — la misma regla
+ * de verde=positivo/rojo=negativo del resto de la app. Same hex as --good/--critical in
  * globals.css (not the CSS var itself, since this feeds an inline SVG stroke
  * color computed in JS) — they used to drift from the token values after the
  * palette got refined, so a chart's line and its own delta-chip badge could
@@ -124,7 +124,13 @@ export function liveGameTimeLabel(startedMinutesAgo: number): string {
  */
 export function trendColor(values: number[]): string {
   const delta = values[values.length - 1] - values[0];
-  return delta >= 0 ? "#34C97C" : "#F0555F";
+  // El empate exacto va en gris y no en verde. Con `delta >= 0` una línea
+  // PLANA se pintaba de verde, y en la liga eso quedaba a la vista: el que
+  // todavía no jugó dibuja [0, 0] y su fila mostraba una raya verde al lado de
+  // un "todavía no jugó", como si le estuviera yendo bien. Es la misma regla
+  // que el winrate (ver lib/winrate.ts): no moverse no es ganar.
+  if (delta === 0) return "#7C7C76";
+  return delta > 0 ? "#34C97C" : "#F0555F";
 }
 
 export interface Streak {
