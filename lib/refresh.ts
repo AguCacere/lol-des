@@ -1069,14 +1069,51 @@ export async function refreshAllSummoners(
     return true;
   });
 
+  // Los que se comieron un 429 se apartan en vez de darse por perdidos. Un
+  // rate limit no es un error de ESE invocador: es que en ese instante había
+  // demasiadas llamadas en vuelo, y el siguiente lo va a encontrar igual de
+  // ocupado si no se espera.
+  //
+  // Sin esto, un 429 hacía que refreshOne tirara antes de escribir
+  // last_refreshed_at, así que el invocador se perdía la corrida entera y no
+  // se enteraba nadie. Pasó de verdad: dos de catorce quedaron 29 minutos
+  // atrás mientras los otros doce estaban al día, y los dos habían fallado
+  // con 0,16 segundos de diferencia — la firma de una pared de rate limit, no
+  // la de un puuid roto. repairMatches ya trataba el 429 como "hay que
+  // frenar" (ver más arriba); acá no lo trataba nadie.
+  const conRateLimit: { puuid: string; esperaS: number }[] = [];
+
   await mapWithConcurrency(toRefresh, REFRESH_CONCURRENCY, async (summoner) => {
     try {
       const warnings = await refreshOne(supabase, summoner.puuid);
       results[summoner.puuid] = warnings.length > 0 ? `ok (${warnings.join("; ")})` : "ok";
     } catch (err) {
+      if (err instanceof RiotRateLimitError) {
+        conRateLimit.push({ puuid: summoner.puuid, esperaS: err.retryAfterS });
+        results[summoner.puuid] = `rate limit — va al reintento`;
+        return;
+      }
       results[summoner.puuid] = err instanceof Error ? err.message : "error";
     }
   });
+
+  if (conRateLimit.length > 0) {
+    // Se espera lo que pidió Riot (el mayor de los pedidos) y se reintenta de
+    // a UNO: volver a lanzar cuatro en paralelo es chocar contra la misma
+    // pared. El tope de 60s es para no comerse el maxDuration de la ruta —
+    // más que eso, mejor que se lo lleve la corrida de dentro de 15 minutos.
+    const espera = Math.min(60, Math.max(...conRateLimit.map((r) => r.esperaS)));
+    await wait(espera * 1000);
+    for (const { puuid } of conRateLimit) {
+      try {
+        const warnings = await refreshOne(supabase, puuid);
+        results[puuid] = warnings.length > 0 ? `ok en el reintento (${warnings.join("; ")})` : "ok en el reintento";
+      } catch (err) {
+        results[puuid] = err instanceof Error ? `falló el reintento: ${err.message}` : "error en el reintento";
+      }
+      await wait(REPAIR_PACE_MS);
+    }
+  }
 
   return results;
 }

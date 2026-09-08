@@ -139,6 +139,19 @@ perdida. "Borrar datos del sitio" en DevTools se lleva la cookie puesta.
 **Argentina es UTC-3 todo el año** (no hay horario de verano desde 2009). La
 conversión vive en un solo lugar: `lib/liga.ts`. No duplicarla.
 
+**Un 429 de Riot en el refresco se reintenta, no se da por perdido.** Se vio en
+producción: dos de catorce invocadores quedaron 29 minutos atrás mientras los otros
+doce estaban al día, y los dos habían fallado con 0,16 segundos de diferencia — la
+firma de una pared de rate limit, no la de un puuid roto. `repairMatches` ya trataba
+el 429 como "hay que frenar la tanda", pero el ciclo de refresco no lo trataba nadie:
+subía al `catch` genérico de `refreshAllSummoners` y ese invocador se perdía la
+corrida entera (sin `last_refreshed_at`, porque se escribe recién al final de
+`refreshOne`). Ahora los que se comen un 429 se apartan, se espera lo que pidió Riot
+—con tope de 60s, para no comerse el `maxDuration`— y se reintentan **de a uno**:
+volver a lanzar cuatro en paralelo es chocar contra la misma pared. Los errores que
+NO son rate limit no entran al reintento: un puuid que devuelve 404 no se arregla
+esperando.
+
 **"actualizado hace X" es el refresco MÁS RECIENTE, y los atrasados van aparte.**
 `last_refreshed_at` se escribe al final de `refreshOne`, así que un invocador que
 falla (Riot 429, un puuid que devuelve 404) no la actualiza nunca. Cuando el cartel
