@@ -1043,13 +1043,31 @@ export async function GET() {
 
   players.sort((a, b) => tierScore(b) - tierScore(a));
 
-  // Oldest last-refresh across the group, not newest — "last updated" should
-  // read as "everyone is at least this fresh", not get flattered by
-  // whichever one summoner happened to refresh most recently.
+  // Antes esto era el refresco MÁS VIEJO del grupo, para que "actualizado
+  // hace X" se leyera como "todos están al menos así de frescos" en vez de
+  // dejarse adular por el que se refrescó recién. La intención era buena pero
+  // el resultado engañaba: last_refreshed_at se escribe al final de
+  // refreshOne, así que un invocador que falla (Riot 429, un puuid que
+  // devuelve 404) no la actualiza NUNCA, y su fecha vieja se llevaba puesto
+  // el cartel de toda la app. Con el cron corriendo cada 15 minutos aparecía
+  // un "hace 21 min" que hacía pensar que el cron no corría, cuando en
+  // realidad corría bien para trece de catorce.
+  //
+  // Ahora son dos datos separados: cuándo se actualizó el grupo (el más
+  // reciente, que es lo que "actualizado" quiere decir) y cuántos se quedaron
+  // atrás. El aviso de staleness no se pierde — se vuelve específico y
+  // accionable en vez de disfrazarse de número general.
   const refreshTimes = (ladderRows ?? [])
     .map((r) => r.last_refreshed_at)
     .filter((t): t is string => t != null);
-  const lastUpdated = refreshTimes.length > 0 ? refreshTimes.reduce((min, t) => (t < min ? t : min)) : null;
+  const lastUpdated = refreshTimes.length > 0 ? refreshTimes.reduce((max, t) => (t > max ? t : max)) : null;
+  // Dos ciclos y medio del cron. Uno perdido puede ser un reintento; a los 35
+  // minutos ya no es ruido, es alguien que viene fallando.
+  const RETRASO_MS = 35 * 60 * 1000;
+  const corte = Date.now() - RETRASO_MS;
+  const desactualizados = (ladderRows ?? []).filter(
+    (r) => r.last_refreshed_at == null || Date.parse(r.last_refreshed_at) < corte
+  ).length;
 
   // Exposed so the client can build real champion-art URLs itself (see
   // components/ChampIcon.tsx) instead of every champion chip needing its own
@@ -1068,6 +1086,7 @@ export async function GET() {
       duoSynergy: computeDuoSynergy(),
       championLeaderboard: computeChampionLeaderboard(),
       lastUpdated,
+      desactualizados,
       ddragonVersion,
     },
     { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } }

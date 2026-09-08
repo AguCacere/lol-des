@@ -2658,6 +2658,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .brand-mark{width:29px; height:29px; flex:none; color:var(--accent);}
 .brand-meta{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
 .brand-sep{opacity:0.45;}
+/* Ámbar y no rojo: alguien atrasado no es un error de la app, es un aviso
+   de que a ese invocador le viene fallando el refresco. */
+.brand-atrasados{color:var(--accent);}
 .brand-live{display:inline-flex; align-items:center; gap:5px; color:var(--good); font-weight:600;}
 .brand-live .live-dot{width:6px; height:6px; box-shadow:0 0 0 2.5px var(--good-wash);}
 

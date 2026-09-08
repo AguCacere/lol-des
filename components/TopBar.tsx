@@ -13,6 +13,8 @@ interface TopBarProps {
   enVivo: number;
   /** Cuándo se trajeron los datos por última vez. Null mientras carga. */
   lastUpdated: string | null;
+  /** Cuántos invocadores viene fallando el refresco. Casi siempre 0. */
+  desactualizados: number;
   filterText: string;
   onFilterChange: (value: string) => void;
   onSubmit: () => void;
@@ -20,7 +22,7 @@ interface TopBarProps {
   addStatus: AddStatus;
 }
 
-export function TopBar({ invocadores, enVivo, lastUpdated, filterText, onFilterChange, onSubmit, canAdd, addStatus }: TopBarProps) {
+export function TopBar({ invocadores, enVivo, lastUpdated, desactualizados, filterText, onFilterChange, onSubmit, canAdd, addStatus }: TopBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -72,6 +74,18 @@ export function TopBar({ invocadores, enVivo, lastUpdated, filterText, onFilterC
               <>
                 <span className="brand-sep">·</span>
                 actualizado {formatRelativeTime(lastUpdated)}
+              </>
+            )}
+            {/* El aviso va SEPARADO de la fecha y no disfrazado de fecha
+                vieja. Antes el cartel mostraba el refresco más viejo del
+                grupo, así que un invocador trabado hacía decir "hace 21 min"
+                con el cron corriendo cada 15 y todo el resto al día. */}
+            {desactualizados > 0 && (
+              <>
+                <span className="brand-sep">·</span>
+                <span className="brand-atrasados" title="No se pudieron refrescar en los últimos 35 minutos. Suele ser un error de la API de Riot para ese invocador.">
+                  {desactualizados} sin actualizar
+                </span>
               </>
             )}
           </p>

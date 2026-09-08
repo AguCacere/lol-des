@@ -139,6 +139,14 @@ perdida. "Borrar datos del sitio" en DevTools se lleva la cookie puesta.
 **Argentina es UTC-3 todo el año** (no hay horario de verano desde 2009). La
 conversión vive en un solo lugar: `lib/liga.ts`. No duplicarla.
 
+**"actualizado hace X" es el refresco MÁS RECIENTE, y los atrasados van aparte.**
+`last_refreshed_at` se escribe al final de `refreshOne`, así que un invocador que
+falla (Riot 429, un puuid que devuelve 404) no la actualiza nunca. Cuando el cartel
+mostraba el MÍNIMO del grupo —para no dejarse adular por el más fresco— ese
+invocador trabado congelaba el número de toda la app: aparecía un "hace 21 min" con
+el cron corriendo cada 15 y trece de catorce al día. Ahora son dos datos: la fecha
+del más reciente, y cuántos llevan más de 35 minutos sin refrescarse.
+
 **El refresco NO es el cron de `vercel.json`.** Lo dispara un scheduler externo cada
 15 minutos, porque el plan Hobby de Vercel solo permite un cron por día. Mirar
 `vercel.json` y sacar de ahí la frecuencia real da una respuesta equivocada: el dato

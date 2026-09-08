@@ -50,6 +50,8 @@ export default function Home() {
   const [tab, setTab] = useState<TabKey>("ranking");
   const [addStatus, setAddStatus] = useState<AddStatus>({ kind: "idle" });
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  /** Invocadores que el cron no pudo refrescar en los últimos 35 min. Casi siempre 0. */
+  const [desactualizados, setDesactualizados] = useState(0);
   const [roleFilter, setRoleFilter] = useState<RoleKey | "all">("all");
   /** Ladder o liga: las dos son la tabla principal, y el título de la sección las intercambia. */
   const [vista, setVista] = useState<"ladder" | "liga">("ladder");
@@ -64,6 +66,9 @@ export default function Home() {
       setDuoSynergy((data.duoSynergy as DuoPair[]) ?? []);
       setChampionLeaderboard((data.championLeaderboard as ChampionLeaderboardEntry[]) ?? []);
       setLastUpdated((data.lastUpdated as string | null) ?? null);
+      // Con guarda: durante la ventana de caché del CDN llega el JSON viejo,
+      // que no trae el campo.
+      setDesactualizados((data.desactualizados as number | undefined) ?? 0);
       setDdragonVersion((data.ddragonVersion as string | null) ?? null);
       setLoadError(null);
     } catch (err) {
@@ -260,6 +265,7 @@ export default function Home() {
         invocadores={players.length}
         enVivo={players.filter((p) => p.liveGame).length}
         lastUpdated={lastUpdated}
+        desactualizados={desactualizados}
       />
       {/* El cambio de pestaña pasa por una view transition: sin ella el
           contenido se reemplaza de golpe y en una app de una sola página eso
