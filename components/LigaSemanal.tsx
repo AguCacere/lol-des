@@ -31,6 +31,13 @@ interface DelPlantel {
 interface Datos {
   /** Si la semana en curso ya es de la liga. Antes del arranque no hay tabla, no marcadores viejos. */
   arrancada: boolean;
+  /**
+   * Si el pistoletazo ya sonó. No es lo mismo que `arrancada`: a esa le
+   * alcanza con que la semana TERMINE después del arranque, así que el lunes
+   * antes de las 23:30 daba true y la tabla se dibujaba como una liga en curso
+   * llena de ceros. Opcional por si llega una respuesta anterior al deploy.
+   */
+  arrancoYa?: boolean;
   arrancaEl: string;
   semana: string;
   desde: string;
@@ -42,6 +49,14 @@ interface Datos {
 
 const dia = (iso: string) =>
   new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "short", timeZone: "America/Argentina/Buenos_Aires" });
+
+/** La hora de un instante, en argentino: "23:30". */
+const horaDe = (iso: string) =>
+  new Date(iso).toLocaleTimeString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
 
 /** Cuánto falta para que cierre, en criollo. */
 function loQueFalta(hasta: string): string {
@@ -107,6 +122,10 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
   }
   if (!d) return null;
 
+  // Con guarda: una pestaña vieja contra la API nueva (o al revés) no tiene el
+  // campo, y ahí lo correcto es asumir que arrancó — que es como se comportaba
+  // antes de existir el aviso.
+  const yaArranco = d.arrancoYa ?? true;
   const anotados = d.plantel.filter((p) => p.participa).length;
   // Para escalar las barras de partidas: el que más jugó ocupa todo el ancho.
   const maxPartidas = Math.max(1, ...d.tabla.map((f) => f.victorias + f.derrotas));
@@ -114,7 +133,9 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
   const rango = (
     <span className="meta liga-rango">
       {dia(d.desde)} – {dia(new Date(Date.parse(d.hasta) - 1).toISOString())}
-      <span className="liga-falta">{loQueFalta(d.hasta)}</span>
+      <span className={`liga-falta${yaArranco ? "" : " por-arrancar"}`}>
+        {yaArranco ? loQueFalta(d.hasta) : `arranca ${horaDe(d.desde)}`}
+      </span>
     </span>
   );
 
@@ -148,6 +169,13 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
         </div>
       ) : (
         <div className="liga-tabla">
+          {/* Sin esto, la primera noche la tabla mostraba puestos y ceros como
+              si la liga estuviera en curso y nadie sumara: parecía rota. */}
+          {!yaArranco && (
+            <p className="liga-aviso">
+              Todavía no arrancó. Lo que se juegue antes de las {horaDe(d.desde)} no cuenta — desde ahí, todos en 0.
+            </p>
+          )}
           {d.tabla.map((f, i) => {
             const puesto = i + 1;
               const t = f.rango ? tierFor(f.rango.tier) : null;
@@ -219,7 +247,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                       de siempre: acá solo entran las fotos de ESTA semana, así
                       que se ve si el neto lo hizo de una o remontando. */}
                   <span className="liga-curva">
-                    <SparkChart values={serie} width={110} height={30} pad={5} color={trendColor(serie)} />
+                    <SparkChart values={serie} width={110} height={30} pad={5} color={trendColor(serie)} lineaCero />
                   </span>
 
                   <span className={`liga-lp ${f.lpNeto > 0 ? "gd-pos" : f.lpNeto < 0 ? "gd-neg" : ""}`}>

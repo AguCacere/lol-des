@@ -34,7 +34,8 @@ const ARG_OFFSET_MS = 3 * 60 * 60 * 1000;
  * ganador al Discord. Un campeón de una competencia que todavía no había
  * empezado.
  *
- * Es 00:00 del lunes hora argentina, o sea 03:00 UTC.
+ * Es el lunes 7/9 a las 23:30 hora argentina (02:30 UTC del 8), que es la hora
+ * que se anunció en el Discord.
  */
 export const LIGA_INICIO = new Date(Date.UTC(2026, 8, 8, 2, 30, 0));
 
@@ -118,7 +119,16 @@ export interface FilaLiga {
   sinJugar: boolean;
   /** Dónde está parado ahora — el rango de su última foto. Null si no tiene ninguna. */
   rango: { tier: TierKey; division: number; lp: number } | null;
-  /** Los puntos de cada foto DENTRO de la semana, para dibujar cómo la fue haciendo. */
+  /**
+   * Cómo fue variando el NETO dentro de la semana, para dibujar la curva.
+   * Arranca siempre en 0 —el punto de partida de cada uno— y de ahí sube o
+   * baja. Antes eran los puntos absolutos (2400 y pico), y con eso la curva no
+   * podía "ir en negativo": se veía subir o bajar, pero no contra qué.
+   *
+   * Nunca viene con menos de dos valores: con uno solo no hay línea que
+   * dibujar y la fila quedaba con un gráfico vacío al lado de un 0, que es
+   * justo cuando más falta hace ver la línea plana.
+   */
   serie: number[];
   /** Si entró después de que la semana arrancó, cuándo. Null si compitió desde el principio. */
   entroTarde: string | null;
@@ -191,13 +201,22 @@ export function tablaDeLaSemana(
     const ultima = dentro.length > 0 ? dentro[dentro.length - 1] : base;
 
     const { victorias, derrotas } = recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0 };
+    // El neto de cada foto contra el punto de partida. Si no hay ninguna foto
+    // dentro de la ventana todavía no se movió: línea plana en 0, no un
+    // gráfico vacío.
+    const cero = base ? puntos(base) : 0;
+    const netas = dentro.map((s) => puntos(s) - cero);
+    const serieNeta = netas.length > 0 ? [0, ...netas] : [0, 0];
     const entroTarde = suDesde > desde ? new Date(suDesde).toISOString() : null;
     const rango = ultima
       ? { tier: tierKeyFromRiot(ultima.tier), division: divisionFromRiot(ultima.division), lp: ultima.lp }
       : null;
 
     if (!base || !ultima) {
-      filas.push({ ...p, lpNeto: 0, victorias, derrotas, sinJugar: victorias + derrotas === 0, rango, serie: [], entroTarde });
+      // Sin una sola foto no hay nada que medir, pero igual va la línea
+      // plana en 0: un gráfico vacío parece roto, y "no se movió" es
+      // información.
+      filas.push({ ...p, lpNeto: 0, victorias, derrotas, sinJugar: victorias + derrotas === 0, rango, serie: [0, 0], entroTarde });
       continue;
     }
 
@@ -208,9 +227,10 @@ export function tablaDeLaSemana(
       derrotas,
       sinJugar: victorias + derrotas === 0,
       rango,
-      // La curva arranca en el punto de partida aunque sea de antes del lunes:
-      // sin él, una semana con una sola foto no dibuja nada.
-      serie: [puntos(base), ...dentro.map(puntos)],
+      // Relativa al punto de partida y no en puntos absolutos: lo que la
+      // liga mide es el neto, así que la curva arranca en 0 y de ahí sube o
+      // baja. Con dos fotos iguales queda plana en 0, que es lo correcto.
+      serie: serieNeta,
       entroTarde,
     });
   }

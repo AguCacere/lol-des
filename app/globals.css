@@ -2846,6 +2846,18 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    Platino 4. Apagadas a propósito — son la regla contra la que se lee la
    curva, no un dato que compita con ella. */
 .spark-guide-line{stroke:var(--text-muted); stroke-width:1; stroke-dasharray:2 5; opacity:0.45;}
+/* El cero de la liga. Más marcada que una guía de división: no es una
+   referencia más, es la línea entre ganar y perder en la semana. */
+.spark-cero-line{stroke:var(--text-secondary); stroke-width:1; stroke-dasharray:3 3; opacity:0.5;}
+/* El aviso de que la liga todavía no arrancó, y la hora del pistoletazo en la
+   cabecera. Van en acento y no en gris: es lo que explica por qué toda la
+   tabla está en cero, así que tiene que leerse antes que los ceros. */
+.liga-aviso{
+  margin:0 0 10px; padding:8px 11px; border-radius:8px;
+  background:rgba(200,155,60,0.09); border:1px solid rgba(200,155,60,0.22);
+  font-size:12px; color:var(--text-secondary); line-height:1.5;
+}
+.liga-falta.por-arrancar{color:var(--accent);}
 /* Va en HTML por encima del SVG, no adentro: un <text> escala con la caja y
    en pantalla de celular quedaba en 4px. El fondo propio es porque la
    etiqueta cae sobre el área rellena y sin él se lee sobre el color. */

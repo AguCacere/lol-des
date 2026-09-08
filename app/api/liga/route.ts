@@ -48,6 +48,12 @@ export async function GET() {
   // que ya está guardado es de antes de la liga y contarlo sería empezar el
   // campeonato con marcadores puestos.
   const arrancada = esSemanaDeLiga(inicio);
+  // Distinto de `arrancada`: esa dice que la semana CUENTA para la liga (le
+  // alcanza con terminar después del pistoletazo). Esta dice que el
+  // pistoletazo YA SONÓ. Entre las dos hay un hueco —la primera semana
+  // arrancó un lunes 23:30— en el que la tabla se dibujaba como una liga en
+  // curso llena de ceros, sin nada que dijera que todavía no había empezado.
+  const arrancoYa = Date.now() >= desdeVentana.getTime();
 
   let tabla: Awaited<ReturnType<typeof tablaDeLaSemana>> = [];
   if (arrancada && participantes.length > 0) {
@@ -99,6 +105,7 @@ export async function GET() {
 
   return NextResponse.json({
     arrancada,
+    arrancoYa,
     arrancaEl: LIGA_INICIO.toISOString(),
     semana: claveDeSemana(inicio),
     desde: desdeVentana.toISOString(),

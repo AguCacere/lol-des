@@ -24,6 +24,14 @@ interface SparkChartProps {
    * es un garabato: se ve que baja, pero no CONTRA QUÉ baja.
    */
   guides?: { value: number; label: string }[];
+  /**
+   * Dibuja una línea de referencia en el 0. Es para las series que YA son un
+   * neto (la liga: cada punto es cuánto ganó o perdió contra su arranque), y
+   * sin ella una curva que baja se ve igual que una que sube poco. A
+   * diferencia de `guides`, esta se dibuja en las tres variantes: no lleva
+   * etiqueta, así que no tiene el problema del <text> que escala con la caja.
+   */
+  lineaCero?: boolean;
 }
 
 /** Smoothed line + gradient area + endpoint dot — used for the "últimos 20" column and the LP chart. */
@@ -36,6 +44,7 @@ export function SparkChart({
   variant = "compact",
   pointLabels,
   guides,
+  lineaCero,
 }: SparkChartProps) {
   // Con menos de dos puntos no hay línea que dibujar, y lineAreaGeometry
   // dividiría por (values.length - 1) = 0 y leería points[0] de un arreglo
@@ -208,6 +217,15 @@ export function SparkChart({
         {/* Los límites de división. La línea de "dónde arrancaste" dice si
             subiste o bajaste; estas dicen contra qué — que es lo que convierte
             una curva en una posición real en el ladder. */}
+        {/* El cero de una serie que ya es un neto. Va antes que la curva para
+            que quede por detrás, y solo si el 0 cae dentro de la caja: pegado
+            al borde se confunde con el marco. */}
+        {lineaCero &&
+          (() => {
+            const y = yOf(0);
+            if (y < pad || y > height - pad) return null;
+            return <line x1={padX} y1={y} x2={width - padX} y2={y} className="spark-cero-line" />;
+          })()}
         {detailed &&
           guides?.map((g) => {
             const y = yOf(g.value);
