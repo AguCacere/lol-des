@@ -7,8 +7,10 @@ import { fetchConClave } from "./Cerradura";
 import { TierEmblem } from "./TierEmblem";
 import { SparkChart } from "./SparkChart";
 import { StreakIcon } from "./StreakIcon";
-import { tierFor, trendColor } from "@/lib/ladder";
-import type { TierKey } from "@/lib/types";
+import { ChampIcon } from "./ChampIcon";
+import { RoleIcon } from "./RoleIcon";
+import { ROLES, tierFor, trendColor } from "@/lib/ladder";
+import type { RoleKey, TierKey } from "@/lib/types";
 
 interface Fila {
   puuid: string;
@@ -24,6 +26,9 @@ interface Fila {
   entroTarde: string | null;
   /** Con qué racha viene DENTRO de la semana. Opcional: una respuesta anterior al deploy no lo trae. */
   racha?: { resultado: "W" | "L"; cantidad: number } | null;
+  /** Con qué campeón y en qué línea jugó la semana. Opcionales: una respuesta anterior al deploy no los trae. */
+  champion?: string | null;
+  linea?: RoleKey | null;
 }
 interface DelPlantel {
   puuid: string;
@@ -48,6 +53,8 @@ interface Datos {
   tabla: Fila[];
   plantel: DelPlantel[];
   historial: { semana: string; ganador_label: string | null; lp_neto: number | null; jugadores: number }[];
+  /** Para el arte de campeón. Opcional por la misma razón. */
+  ddragonVersion?: string | null;
 }
 
 const dia = (iso: string) =>
@@ -148,13 +155,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
           interruptor de arriba: acá solo queda el rango de fechas. */}
       {conEncabezado ? (
         <div className="section-head">
-          <h2>
-            {/* Late, a diferencia del resto de los .live-dot dorados: esos
-                marcan una sección y no tienen nada que señalar, pero la liga
-                es una competencia EN CURSO — mientras la semana no cierre,
-                sigue pasando algo. */}
-            Liga de la semana
-          </h2>
+          <h2>Liga de la semana</h2>
           {rango}
         </div>
       ) : (
@@ -216,6 +217,26 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                           timeZone: "America/Argentina/Buenos_Aires",
                         })}
                       </span>
+                    )}
+                  </span>
+
+                  {/* Con qué jugó ESTA semana: el campeón que más eligió y
+                      la línea donde más apareció. Es lo que le pone cara a la
+                      fila —hasta acá la única imagen era el ícono de perfil—
+                      y de paso explica el número: no es lo mismo un +31 de
+                      jungla que uno de support. */}
+                  <span className="liga-jugo">
+                    {f.champion ? (
+                      <>
+                        <ChampIcon champ={f.champion} version={d.ddragonVersion ?? null} className="liga-champ" />
+                        {f.linea && (
+                          <span className="liga-linea" title={ROLES[f.linea].label}>
+                            <RoleIcon role={f.linea} />
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="liga-champ vacio" aria-hidden />
                     )}
                   </span>
 

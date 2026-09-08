@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { exigirSesion } from "@/lib/auth";
 import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
-import { claveDeSemana, esSemanaDeLiga, inicioDeSemana, LIGA_INICIO, tablaDeLaSemana, ventanaDeSemana, type Participante, type Snapshot } from "@/lib/liga";
+import { claveDeSemana, esSemanaDeLiga, inicioDeSemana, LIGA_INICIO, tablaDeLaSemana, ventanaDeSemana, type Participante, type RecordSemanal, type Snapshot } from "@/lib/liga";
 import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
+import { roleFromTeamPosition } from "@/lib/mapping";
 
 /**
  * GET  /api/liga  — la tabla de la semana en curso. Lectura libre: mirar quién
@@ -76,7 +77,7 @@ export async function GET() {
     // tablaDeLaSemana.
     const { data: partidas } = await supabase
       .from("matches")
-      .select("puuid, win, played_at")
+      .select("puuid, win, played_at, champion, team_position")
       .in("puuid", puuids)
       .eq("queue_id", RANKED_SOLO_QUEUE_ID)
       .gte("played_at", desdeVentana.toISOString())
@@ -86,14 +87,23 @@ export async function GET() {
     const arranqueDe = new Map(participantes.map((p) => [p.puuid, Math.max(desdeVentana.getTime(), p.desde?.getTime() ?? 0)]));
     // Se juntan las partidas de cada uno antes de contar, en vez de sumar al
     // vuelo: la racha necesita el ORDEN y la consulta no lo garantiza.
-    const suyasPorPuuid = new Map<string, { win: boolean; played_at: string }[]>();
+    const suyasPorPuuid = new Map<string, { win: boolean; played_at: string; champion: string | null; team_position: string | null }[]>();
     for (const m of partidas ?? []) {
       if (Date.parse(m.played_at) < (arranqueDe.get(m.puuid) ?? 0)) continue;
       const arr = suyasPorPuuid.get(m.puuid) ?? [];
-      arr.push({ win: m.win, played_at: m.played_at });
+      arr.push({ win: m.win, played_at: m.played_at, champion: m.champion, team_position: m.team_position });
       suyasPorPuuid.set(m.puuid, arr);
     }
-    const recordPorPuuid = new Map<string, { victorias: number; derrotas: number; racha: { resultado: "W" | "L"; cantidad: number } | null }>();
+    /** El valor que más se repite. En un empate gana el primero, que da igual. */
+    const masRepetido = <T,>(valores: (T | null)[]): T | null => {
+      const cuenta = new Map<T, number>();
+      for (const v of valores) if (v != null) cuenta.set(v, (cuenta.get(v) ?? 0) + 1);
+      let mejor: T | null = null;
+      let max = 0;
+      for (const [v, n] of cuenta) if (n > max) { mejor = v; max = n; }
+      return mejor;
+    };
+    const recordPorPuuid = new Map<string, RecordSemanal>();
     for (const [puuid, suyas] of suyasPorPuuid) {
       const victorias = suyas.filter((m) => m.win).length;
       // De la más nueva hacia atrás, contando mientras el resultado no cambie.
@@ -104,10 +114,15 @@ export async function GET() {
         if (m.win !== ultimo) break;
         cantidad++;
       }
+      // Con qué jugó la semana. No es "su campeón" ni "su rol" en general:
+      // es lo que eligió ESTA semana, que en una liga de siete días es el
+      // dato que explica el número de al lado.
       recordPorPuuid.set(puuid, {
         victorias,
         derrotas: suyas.length - victorias,
         racha: { resultado: ultimo ? "W" : "L", cantidad },
+        champion: masRepetido(suyas.map((m) => m.champion)),
+        linea: roleFromTeamPosition(masRepetido(suyas.map((m) => m.team_position))),
       });
     }
 
@@ -129,6 +144,8 @@ export async function GET() {
     desde: desdeVentana.toISOString(),
     hasta: fin.toISOString(),
     tabla,
+    // Para que la tabla pueda pedirle el arte del campeón a Data Dragon.
+    ddragonVersion: version,
     // Todos los trackeados, para que el panel de administración pueda anotar y
     // desanotar sin pedir el ladder entero.
     plantel: (todos ?? []).map((s) => ({

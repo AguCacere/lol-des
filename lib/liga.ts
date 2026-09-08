@@ -1,6 +1,6 @@
 import { rankScore } from "./ladder";
 import { divisionFromRiot, tierKeyFromRiot } from "./mapping";
-import type { TierKey } from "./types";
+import type { RoleKey, TierKey } from "./types";
 
 /**
  * La liga semanal: una competencia interna por LP neto, aparte del ladder.
@@ -134,6 +134,9 @@ export interface FilaLiga {
   entroTarde: string | null;
   /** Con qué racha viene dentro de la semana. Null si no jugó. */
   racha: { resultado: "W" | "L"; cantidad: number } | null;
+  /** Con qué campeón y en qué línea jugó la semana. Null si no jugó. */
+  champion: string | null;
+  linea: RoleKey | null;
 }
 
 export interface Participante {
@@ -159,6 +162,10 @@ export interface RecordSemanal {
    * racha histórica: es lo que está pasando ahora en la competencia.
    */
   racha: { resultado: "W" | "L"; cantidad: number } | null;
+  /** El campeón que más jugó DENTRO de la semana. Null si no jugó. */
+  champion: string | null;
+  /** La línea en la que más jugó DENTRO de la semana. Null si no jugó o si Riot no la dio. */
+  linea: RoleKey | null;
 }
 
 /**
@@ -208,7 +215,8 @@ export function tablaDeLaSemana(
     const base = previas.length > 0 ? previas[previas.length - 1] : dentro[0];
     const ultima = dentro.length > 0 ? dentro[dentro.length - 1] : base;
 
-    const { victorias, derrotas, racha } = recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0, racha: null };
+    const { victorias, derrotas, racha, champion, linea } =
+      recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0, racha: null, champion: null, linea: null };
     // El neto de cada foto contra el punto de partida. Si no hay ninguna foto
     // dentro de la ventana todavía no se movió: línea plana en 0, no un
     // gráfico vacío.
@@ -224,7 +232,7 @@ export function tablaDeLaSemana(
       // Sin una sola foto no hay nada que medir, pero igual va la línea
       // plana en 0: un gráfico vacío parece roto, y "no se movió" es
       // información.
-      filas.push({ ...p, lpNeto: 0, victorias, derrotas, racha, sinJugar: victorias + derrotas === 0, rango, serie: [0, 0], entroTarde });
+      filas.push({ ...p, lpNeto: 0, victorias, derrotas, racha, champion, linea, sinJugar: victorias + derrotas === 0, rango, serie: [0, 0], entroTarde });
       continue;
     }
 
@@ -234,6 +242,8 @@ export function tablaDeLaSemana(
       victorias,
       derrotas,
       racha,
+      champion,
+      linea,
       sinJugar: victorias + derrotas === 0,
       rango,
       // Relativa al punto de partida y no en puntos absolutos: lo que la
