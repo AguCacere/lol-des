@@ -14,7 +14,7 @@ resto del grupo en su mismo rol, fortalezas y debilidades, forma reciente, detec
 tilt, pool de campeones, maestría de Riot, enfrentamientos de línea, historial por
 línea (con detección de autofill), órdenes de compra, récords personales y las últimas
 partidas con su timeline. Adentro de esta misma pestaña vive la **liga semanal**: se
-cambia con el título.
+cambia con el enlace que está al lado del título.
 
 **Estadísticas** — mejores winrates del grupo, ranking de campeones y sinergia de duos.
 

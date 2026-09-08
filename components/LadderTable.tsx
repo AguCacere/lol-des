@@ -112,40 +112,41 @@ export function LadderTable({
 
   return (
     <section>
-      {/* El título es el interruptor. Las dos son tablas del grupo y compiten
-          por el mismo lugar de la pantalla: el ladder dice dónde llegó cada
-          uno, la liga cuánto se movió esta semana. Tenerlas en pestañas
-          distintas escondía la que tiene algo en juego. */}
+      {/* Un título —el de la tabla que estás mirando— y al lado la salida
+          hacia la otra. Las dos son tablas del grupo y compiten por el mismo
+          lugar: el ladder dice dónde llegó cada uno, la liga cuánto se movió
+          esta semana.
+
+          Antes eran DOS títulos del mismo tamaño y peso, más el contador de
+          invocadores en el medio: se leían como dos encabezados compitiendo
+          en vez de "estoy acá y puedo ir allá", y la línea quedaba apretada.
+
+          La otra tabla queda A LA VISTA a propósito, y no adentro de un
+          desplegable: son dos opciones —esconder una detrás de un clic no
+          descomprime, agrega un paso— y la que se escondería es la liga, que
+          es justo la que tiene algo en juego y de la que nadie se acuerda si
+          no la ve. */}
       <div className="section-head">
-        <div className="vista-switch" role="group" aria-label="Qué tabla mirar">
-          <button
-            type="button"
-            className={`vista-btn${!enLiga ? " is-active" : ""}`}
-            onClick={() => onVistaChange("ladder")}
-            aria-pressed={!enLiga}
-          >
-            <span className="live-dot" />
-            Ladder del grupo
-            {!enLiga && (
-              <span className="meta">
-                · {rows.length}
-                {rows.length === 1 ? " invocador" : " invocadores"}
-              </span>
+        <h2>
+          <span className={`live-dot${enLiga ? " accent" : ""}`} />
+          {enLiga ? "Liga de la semana" : "Ladder del grupo"}
+        </h2>
+        <div className="vista-derecha">
+          {!enLiga && !loading && lastUpdated && (
+            <span className="meta last-updated">Última actualización: {formatRelativeTime(lastUpdated)}</span>
+          )}
+          <button type="button" className="vista-ir" onClick={() => onVistaChange(enLiga ? "ladder" : "liga")}>
+            {enLiga ? (
+              <>
+                <span aria-hidden>←</span> Ladder del grupo
+              </>
+            ) : (
+              <>
+                Liga de la semana <span aria-hidden>→</span>
+              </>
             )}
           </button>
-          <button
-            type="button"
-            className={`vista-btn${enLiga ? " is-active" : ""}`}
-            onClick={() => onVistaChange("liga")}
-            aria-pressed={enLiga}
-          >
-            <span className="live-dot accent" />
-            Liga de la semana
-          </button>
         </div>
-        {!enLiga && !loading && lastUpdated && (
-          <span className="meta last-updated">Última actualización: {formatRelativeTime(lastUpdated)}</span>
-        )}
       </div>
 
       {enLiga ? (
