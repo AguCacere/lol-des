@@ -5,12 +5,13 @@ import { cerrarSemanasPendientes } from "@/lib/liga-cierre";
 /**
  * GET /api/cron/liga — cierra la semana que terminó y anuncia al ganador.
  *
- * Corre TODOS LOS DÍAS a propósito, no solo el domingo. El plan de Vercel
- * dispara los crons una vez por día y sin puntualidad garantizada, así que
- * atarlo a un horario exacto es pedirle a la infraestructura algo que no
- * promete. En vez de eso la corrida pregunta "¿hay alguna semana terminada y
- * sin anunciar?" y actúa solo si la hay: si el disparo se atrasa o se pierde,
- * el del día siguiente lo arregla.
+ * No está atado a un horario exacto a propósito: pregunta "¿hay alguna semana
+ * terminada y sin anunciar?" y actúa solo si la hay. Así da igual cuándo se
+ * dispare, si se atrasa o si se pierde una corrida.
+ *
+ * De hecho es el disparador MENOS importante de los tres: el cron de refresco
+ * (externo, cada 15 minutos — ver app/api/cron/refresh/route.ts) hace este
+ * mismo cierre, y leer /api/liga también. Este queda como red de contención.
  *
  * Lo que hace que esto sea seguro es la tabla liga_semanas: una semana ya
  * registrada no se vuelve a anunciar, por más veces que corra.

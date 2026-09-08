@@ -39,7 +39,7 @@ cerradura no está puesta, nadie escribe).
 | `/api/coach` | POST | Análisis del pool con Claude | sí (caché) | **sí**\* | — |
 | `/api/roast` | POST | Dispara la cargada de Discord | no | **sí** | — |
 | `/api/login` | GET/POST/DELETE | Estado de sesión / entrar / salir | no | no | — |
-| `/api/cron/refresh` | GET | Cron diario: refresca a todos | sí | `CRON_SECRET` | — |
+| `/api/cron/refresh` | GET | Cada 15 min: refresca a todos | sí | `CRON_SECRET` | — |
 | `/api/cron/liga` | GET | Cron de lunes: cierra la semana | sí | `CRON_SECRET` | — |
 
 \* `/api/coach` con `{ peek: true }` **no** pide sesión: solo mira el caché de
@@ -110,7 +110,7 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
 **De Riot a la base** (escribe):
 
 ```
-cron diario (0 12 * * *)  →  /api/cron/refresh  ─┐
+cron externo (cada 15 min) →  /api/cron/refresh ─┐
 botón "Actualizar"        →  /api/refresh       ─┴→ refreshAllSummoners
                                                          │
                                                          ↓  por cada invocador
@@ -223,7 +223,15 @@ Es siempre el mismo patrón, y saberlo evita leer el handler del ladder entero:
 `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, `DISCORD_WEBHOOK_URL`,
 `APP_PASSWORD` (la cerradura), `CRON_SECRET` (los crons).
 
-Crons en `vercel.json`: `/api/cron/refresh` todos los días a las 12:00 UTC y
-`/api/cron/liga` los lunes a las 03:00 UTC. En el plan Hobby de Vercel disparan una
-vez por día y con imprecisión, así que el cierre de la liga es idempotente y también
-se dispara solo al leer `/api/liga`.
+**El refresco corre cada 15 minutos**, disparado por un scheduler externo (tipo
+cron-job.org) con `Authorization: Bearer $CRON_SECRET`. No sale de `vercel.json`
+porque el plan Hobby de Vercel solo permite un cron por día; las entradas que hay
+ahí (`/api/cron/refresh` a las 12:00 UTC, `/api/cron/liga` los lunes a las 03:00)
+quedan como red de contención.
+
+La ruta contesta al toque y trabaja en `after()`: los schedulers gratuitos cortan la
+espera a los 30s, menos de lo que tarda un refresco completo.
+
+El cierre de la liga se dispara desde tres lados —el cron de refresco, el cron de
+liga y la lectura de `/api/liga`— y es idempotente, así que no importa cuál llegue
+primero.

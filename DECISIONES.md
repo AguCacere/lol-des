@@ -139,9 +139,20 @@ perdida. "Borrar datos del sitio" en DevTools se lleva la cookie puesta.
 **Argentina es UTC-3 todo el año** (no hay horario de verano desde 2009). La
 conversión vive en un solo lugar: `lib/liga.ts`. No duplicarla.
 
-**Los crons del plan Hobby de Vercel disparan una vez por día y con imprecisión.** Por
-eso el cierre de la liga es **idempotente** y se dispara desde dos lados: el cron y la
-lectura de `/api/liga`.
+**El refresco NO es el cron de `vercel.json`.** Lo dispara un scheduler externo cada
+15 minutos, porque el plan Hobby de Vercel solo permite un cron por día. Mirar
+`vercel.json` y sacar de ahí la frecuencia real da una respuesta equivocada: el dato
+está en el header de `app/api/cron/refresh/route.ts`. Ya pasó una vez — le dije al
+dueño que los datos tardaban hasta el otro día cuando en realidad tardan 15 minutos.
+
+**Por eso la ruta contesta al toque y trabaja en `after()`**: los schedulers gratuitos
+cortan la espera a los 30 segundos, bastante menos de lo que puede tardar un refresco
+completo. `after()` mantiene viva la función hasta `maxDuration` aunque el que llamó
+ya se haya ido.
+
+**El cierre de la liga es idempotente y se dispara desde tres lados**: el cron de
+refresco, el cron de liga y la lectura de `/api/liga`. Lo que lo hace seguro es
+`liga_semanas`: una semana ya registrada no se vuelve a anunciar.
 
 **La liga cuenta desde que cada uno se anota** (`summoners.liga_desde`), no desde el
 lunes. Anotarse el miércoles después de ver que venís sumando no es lo mismo que

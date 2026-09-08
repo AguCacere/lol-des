@@ -74,7 +74,7 @@ La base ya tiene que existir: crear el proyecto en Supabase y correr
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API |
 | `SUPABASE_SERVICE_ROLE_KEY` | ídem — **nunca** al navegador |
 | `APP_PASSWORD` | La contraseña compartida. **Sin esto, todas las rutas que escriben responden 503**: falla cerrado a propósito |
-| `CRON_SECRET` | Lo que autentica a los crons de Vercel |
+| `CRON_SECRET` | Autentica al scheduler externo que refresca cada 15 min, y a los crons de Vercel. Va como `Authorization: Bearer …` |
 | `ANTHROPIC_API_KEY` | Para el análisis del pool. Sin esto ese panel no genera nada; el resto anda |
 | `DISCORD_WEBHOOK_URL` | Opcional. Sin esto no se manda ninguna notificación y nada se rompe |
 
@@ -83,17 +83,22 @@ falta pedir una app nueva.
 
 ## Crons
 
-En `vercel.json`:
+**`/api/cron/refresh` corre cada 15 minutos**, disparado por un scheduler externo
+(tipo cron-job.org) que pega con `Authorization: Bearer $CRON_SECRET`. Recorre a
+todos, trae partidas nuevas, guarda snapshots de LP, dispara las notificaciones de
+Discord y de paso cierra la semana de la liga si terminó.
 
-- `/api/cron/refresh` — todos los días a las **12:00 UTC**. Recorre a todos, trae
-  partidas nuevas, guarda snapshots de LP y dispara las notificaciones de Discord.
-- `/api/cron/liga` — los lunes a las **03:00 UTC**. Cierra la semana de la liga y
-  corona al campeón.
+No sale de `vercel.json`: el plan Hobby de Vercel **solo permite un cron por día**,
+que para una liga semanal por LP es demasiado poco. Las entradas que hay en
+`vercel.json` (`/api/cron/refresh` a las 12:00 UTC y `/api/cron/liga` los lunes a las
+03:00 UTC) quedan como red de contención por si el scheduler externo se cae.
 
-El plan Hobby de Vercel dispara los crons **una vez por día y con imprecisión**, así
-que el cierre de la liga es idempotente y también se dispara solo al leer `/api/liga`.
-El refresco manual del botón "Actualizar" es lo que mantiene los datos al día durante
-el día, con un cooldown de dos minutos.
+La ruta contesta al toque y hace el trabajo en segundo plano con `after()`: los
+schedulers gratuitos cortan la espera a los 30 segundos, bastante menos de lo que
+puede tardar un refresco completo.
+
+El botón "Actualizar" de la app hace lo mismo a mano, con un cooldown de dos
+minutos.
 
 ## Estructura
 
