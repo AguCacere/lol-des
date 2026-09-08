@@ -3007,31 +3007,58 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* La misma anatomía que una fila del ladder —puesto, quién, rango, cómo le
    fue, la curva y el número— pero el número de la derecha es el neto de la
    semana en vez del LP absoluto. */
+/* El espacio sobrante va a la BARRA de victorias/derrotas, no al nombre.
+   Antes el nombre era el `1fr` y a 1210px se quedaba con 622px de los que
+   usaba 150: un nombre flotando en medio de un hueco enorme es exactamente
+   lo que hace que una tabla se lea como planilla. La barra, en cambio, es un
+   div con ancho en % — estira sin deformarse y cuanto más larga, mejor
+   cuenta el volumen. La curva NO puede estirar: SparkChart usa
+   preserveAspectRatio="none" y se deformaría (ver DECISIONES.md), así que
+   se queda en los 230px que se le pasan. */
 .liga-fila{
-  display:grid; grid-template-columns:26px 28px minmax(120px,1fr) 132px 150px 110px 76px;
-  align-items:center; gap:11px; padding:9px 14px;
+  display:grid;
+  grid-template-columns:46px 40px minmax(150px,240px) 158px minmax(160px,1fr) 230px 92px;
+  align-items:center; gap:12px; padding:11px 16px;
   border-bottom:1px solid var(--border-soft);
+  transition:background .14s ease;
 }
+/* Que la fila responda al pasar por encima. Una tabla que no reacciona a
+   nada se siente un PDF. */
+.liga-fila:hover{background:var(--surface-hover);}
+.liga-avatar{width:38px; height:38px; border-radius:11px; font-size:13px;}
 .liga-rango-celda{display:flex; align-items:center; gap:8px; min-width:0;}
 .liga-rango-celda .tier-emblem,
 .liga-rango-celda img{width:26px; height:26px; flex:none;}
 .liga-rango-texto{display:flex; flex-direction:column; gap:1px; min-width:0; font-size:12px; font-weight:600; white-space:nowrap;}
 .liga-rango-lp{font-family:var(--font-mono); font-size:10px; color:var(--text-muted);}
 .liga-vd{display:flex; flex-direction:column; gap:4px; min-width:0;}
-.liga-barra{height:7px; display:block;}
+.liga-barra{height:9px; display:block;}
 .liga-barra-total{display:flex; height:100%; min-width:3px; border-radius:999px; overflow:hidden;}
 .liga-barra-v{background:var(--good); opacity:0.8; flex:none;}
 .liga-barra-d{background:var(--critical); opacity:0.55; flex:1 1 auto;}
 .liga-curva{display:block; min-width:0;}
-.liga-curva svg{display:block; width:100%; height:30px;}
+.liga-curva svg{display:block; width:100%; height:34px;}
 .liga-fila:last-child{border-bottom:none;}
 /* El primero no lleva medalla ni corona: un fondo apenas dorado alcanza para
    que el ojo lo encuentre sin convertir la tabla en un podio. */
-.liga-fila.lider{background:var(--accent-wash-soft); box-shadow:inset 3px 0 0 var(--accent);}
+/* El que va ganando la semana no es "una fila más con fondo distinto": se
+   lleva un degradado que se apaga hacia la derecha, la barra dorada al
+   costado y su avatar con anillo. Es la única fila que tiene algo en juego. */
+.liga-fila.lider{
+  background:linear-gradient(90deg, var(--accent-wash) 0%, var(--accent-wash-soft) 45%, transparent 100%);
+  box-shadow:inset 3px 0 0 var(--accent);
+}
+.liga-fila.lider:hover{
+  background:linear-gradient(90deg, var(--accent-wash) 0%, var(--accent-wash) 45%, var(--surface-hover) 100%);
+}
+.liga-fila.lider .liga-avatar{box-shadow:0 0 0 2px var(--accent);}
+.liga-fila.lider .liga-nombre{color:var(--accent);}
 .liga-puesto{
-  font-family:var(--font-stat); font-size:12px; font-weight:800; text-align:center;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-stat); font-size:15px; font-weight:800;
   color:var(--text-muted); font-variant-numeric:tabular-nums;
 }
+.liga-puesto svg{width:19px; height:19px;}
 .liga-puesto.p1{color:var(--gold);}
 .liga-puesto.p2{color:var(--text-secondary);}
 .liga-puesto.p3{color:var(--warn);}
@@ -3105,17 +3132,24 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 @media (max-width:900px){
   /* La curva es lo primero que sobra: es el matiz de CÓMO llegó al neto, y el
      neto está escrito al lado. */
-  .liga-fila{grid-template-columns:26px 28px minmax(100px,1fr) 118px 130px 70px; gap:9px;}
+  .liga-fila{grid-template-columns:42px 36px minmax(120px,240px) 150px minmax(140px,1fr) 88px; gap:11px;}
+  .liga-avatar{width:34px; height:34px; border-radius:10px;}
   .liga-curva{display:none;}
 }
 @media (max-width:640px){
   /* Y después el rango: en un teléfono el nombre y el neto son lo que se
      mira, y el rango de cada uno ya está en el ladder de al lado. */
-  .liga-fila{grid-template-columns:22px 26px minmax(0,1fr) 110px 62px; gap:8px;}
+  .liga-fila{grid-template-columns:36px 32px minmax(0,1fr) minmax(110px,150px) 80px; gap:10px; padding:10px 13px;}
+  .liga-avatar{width:31px; height:31px; border-radius:9px; font-size:11px;}
+  .liga-puesto{font-size:13px;}
+  .liga-puesto svg{width:16px; height:16px;}
   .liga-rango-celda{display:none;}
 }
 @media (max-width:420px){
-  .liga-fila{grid-template-columns:22px 26px minmax(0,1fr) 58px; gap:7px;}
+  .liga-fila{grid-template-columns:30px 30px minmax(0,1fr) 68px; gap:8px; padding:9px 11px;}
+  .liga-avatar{width:28px; height:28px; border-radius:8px;}
+  .liga-nombre{font-size:13px;}
+  .liga-lp{font-size:17px;}
   .liga-vd{display:none;}
 }
 /* Marca de que ese entró a mitad de semana. Va chiquito y al lado del nombre

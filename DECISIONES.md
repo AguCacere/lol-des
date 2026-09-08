@@ -93,6 +93,14 @@ va solo: siempre con el número al lado.
 tenía que declarar la suya y dos se olvidaron: la imagen de 120px salía a tamaño
 natural dentro de una caja de 36px. Contenedor nuevo ≠ regla nueva.
 
+**El `1fr` de una grilla va donde ESTIRA BIEN, no en el texto.** En la liga el `1fr`
+estaba en el nombre: a 1210px se quedaba con 622px de los que usaba 150, y un nombre
+flotando en medio de un hueco enorme es lo que hace que una tabla se lea como
+planilla. El espacio tiene que ir a algo que crezca con sentido — una barra de
+volumen (un div con ancho en %) estira perfecto y cuanto más larga mejor cuenta. Lo
+que **no** puede recibirlo es un `SparkChart`: usa `preserveAspectRatio="none"` y se
+deforma, así que su columna se queda en el ancho que se le pasa por prop.
+
 **Filas padre e hijo tienen que compartir grilla.** En "Enfrentamientos" eran dos
 layouts flex distintos y las barras y los récords quedaban en x diferentes. Una sola
 grilla, y se mide en el DOM a dos anchos.

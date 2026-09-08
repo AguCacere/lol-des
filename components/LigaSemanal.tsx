@@ -192,8 +192,18 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
               const serie = f.serie ?? [];
               return (
                 <div className={`liga-fila${puesto === 1 && !f.sinJugar ? " lider" : ""}`} key={f.puuid}>
-                  <span className={`liga-puesto p${puesto <= 3 ? puesto : 0}`}>{puesto}</span>
-                  <PlayerAvatar name={f.name} iconUrl={f.profileIconUrl} className="duo-avatar sm" />
+                  <span className={`liga-puesto p${puesto <= 3 ? puesto : 0}`}>
+                    {puesto === 1 && !f.sinJugar ? (
+                      // La corona en vez del "1": el que va ganando la semana
+                      // se tiene que ver de un vistazo, no leerse.
+                      <svg viewBox="0 0 24 24" fill="currentColor" aria-label="Va ganando" role="img">
+                        <path d="M3 8l4.5 3.5L12 4l4.5 7.5L21 8l-1.8 10.2a1 1 0 0 1-1 .8H5.8a1 1 0 0 1-1-.8L3 8z" />
+                      </svg>
+                    ) : (
+                      puesto
+                    )}
+                  </span>
+                  <PlayerAvatar name={f.name} iconUrl={f.profileIconUrl} className="duo-avatar liga-avatar" />
                   <span className="liga-nombre">
                     {f.name} <span className="player-tag">#{f.tag}</span>
                     {/* Que se vea por qué tiene menos partidas que el resto:
@@ -263,7 +273,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                       de siempre: acá solo entran las fotos de ESTA semana, así
                       que se ve si el neto lo hizo de una o remontando. */}
                   <span className="liga-curva">
-                    <SparkChart values={serie} width={110} height={30} pad={5} color={trendColor(serie)} lineaCero />
+                    <SparkChart values={serie} width={230} height={34} pad={5} color={trendColor(serie)} lineaCero />
                   </span>
 
                   <span className={`liga-lp ${f.lpNeto > 0 ? "gd-pos" : f.lpNeto < 0 ? "gd-neg" : ""}`}>
