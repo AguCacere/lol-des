@@ -311,7 +311,6 @@ export function TeamDigest({
     <section className="digest-section">
       <div className="section-head">
         <h2>
-          <span className="live-dot accent" />
           Resumen semanal
         </h2>
         {/* Navegador de semanas. No hace falta guardar nada para que exista:

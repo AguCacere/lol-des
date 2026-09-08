@@ -1,16 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendDiscordNotification } from "./discord";
 import { RANKED_SOLO_QUEUE_ID } from "./refresh";
-import {
-  claveDeSemana,
-  esSemanaDeLiga,
-  inicioDeSemana,
-  mensajeDeCierre,
-  tablaDeLaSemana,
-  ventanaDe,
-  type Participante,
-  type Snapshot,
-} from "./liga";
+import { claveDeSemana, esSemanaDeLiga, inicioDeSemana, mensajeDeCierre, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot, ventanaDe } from "./liga";
 
 /**
  * El cierre de la semana, separado de la ruta para poder llamarlo también
@@ -79,10 +70,14 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
   const arranqueDe = new Map(
     anotados.map((s) => [s.puuid, Math.max(desde.getTime(), s.liga_desde ? Date.parse(s.liga_desde) : 0)]),
   );
-  const recordPorPuuid = new Map<string, { victorias: number; derrotas: number }>();
+  // La racha va en null a propósito: acá solo se corona al ganador y se manda
+  // el mensaje de cierre, que se decide por LP neto. Con qué racha terminó la
+  // semana es para la tabla en pantalla, no para el anuncio, y calcularla
+  // obligaría a ordenar las partidas de todos para nada.
+  const recordPorPuuid = new Map<string, RecordSemanal>();
   for (const m of partidas ?? []) {
     if (Date.parse(m.played_at) < (arranqueDe.get(m.puuid) ?? 0)) continue;
-    const acc = recordPorPuuid.get(m.puuid) ?? { victorias: 0, derrotas: 0 };
+    const acc = recordPorPuuid.get(m.puuid) ?? { victorias: 0, derrotas: 0, racha: null };
     if (m.win) acc.victorias++;
     else acc.derrotas++;
     recordPorPuuid.set(m.puuid, acc);

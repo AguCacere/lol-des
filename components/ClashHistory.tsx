@@ -301,7 +301,6 @@ export function ClashHistory({
     <section>
       <div className="section-head">
         <h2>
-          <span className="live-dot accent" />
           Clash
         </h2>
         <span className="meta">Cómo le fue al grupo en cada Clash jugado</span>

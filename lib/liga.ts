@@ -132,6 +132,8 @@ export interface FilaLiga {
   serie: number[];
   /** Si entró después de que la semana arrancó, cuándo. Null si compitió desde el principio. */
   entroTarde: string | null;
+  /** Con qué racha viene dentro de la semana. Null si no jugó. */
+  racha: { resultado: "W" | "L"; cantidad: number } | null;
 }
 
 export interface Participante {
@@ -151,6 +153,12 @@ export interface Participante {
 export interface RecordSemanal {
   victorias: number;
   derrotas: number;
+  /**
+   * La racha con la que viene DENTRO de la semana, no la de la season. En una
+   * liga que dura siete días, "ganó las últimas cuatro" dice mucho más que su
+   * racha histórica: es lo que está pasando ahora en la competencia.
+   */
+  racha: { resultado: "W" | "L"; cantidad: number } | null;
 }
 
 /**
@@ -200,7 +208,7 @@ export function tablaDeLaSemana(
     const base = previas.length > 0 ? previas[previas.length - 1] : dentro[0];
     const ultima = dentro.length > 0 ? dentro[dentro.length - 1] : base;
 
-    const { victorias, derrotas } = recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0 };
+    const { victorias, derrotas, racha } = recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0, racha: null };
     // El neto de cada foto contra el punto de partida. Si no hay ninguna foto
     // dentro de la ventana todavía no se movió: línea plana en 0, no un
     // gráfico vacío.
@@ -216,7 +224,7 @@ export function tablaDeLaSemana(
       // Sin una sola foto no hay nada que medir, pero igual va la línea
       // plana en 0: un gráfico vacío parece roto, y "no se movió" es
       // información.
-      filas.push({ ...p, lpNeto: 0, victorias, derrotas, sinJugar: victorias + derrotas === 0, rango, serie: [0, 0], entroTarde });
+      filas.push({ ...p, lpNeto: 0, victorias, derrotas, racha, sinJugar: victorias + derrotas === 0, rango, serie: [0, 0], entroTarde });
       continue;
     }
 
@@ -225,6 +233,7 @@ export function tablaDeLaSemana(
       lpNeto: puntos(ultima) - puntos(base),
       victorias,
       derrotas,
+      racha,
       sinJugar: victorias + derrotas === 0,
       rango,
       // Relativa al punto de partida y no en puntos absolutos: lo que la

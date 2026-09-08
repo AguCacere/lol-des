@@ -6,6 +6,7 @@ import { InfoTip } from "./InfoTip";
 import { fetchConClave } from "./Cerradura";
 import { TierEmblem } from "./TierEmblem";
 import { SparkChart } from "./SparkChart";
+import { StreakIcon } from "./StreakIcon";
 import { tierFor, trendColor } from "@/lib/ladder";
 import type { TierKey } from "@/lib/types";
 
@@ -21,6 +22,8 @@ interface Fila {
   rango: { tier: TierKey; division: number; lp: number } | null;
   serie: number[];
   entroTarde: string | null;
+  /** Con qué racha viene DENTRO de la semana. Opcional: una respuesta anterior al deploy no lo trae. */
+  racha?: { resultado: "W" | "L"; cantidad: number } | null;
 }
 interface DelPlantel {
   puuid: string;
@@ -146,7 +149,10 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
       {conEncabezado ? (
         <div className="section-head">
           <h2>
-            <span className="live-dot accent" />
+            {/* Late, a diferencia del resto de los .live-dot dorados: esos
+                marcan una sección y no tienen nada que señalar, pero la liga
+                es una competencia EN CURSO — mientras la semana no cierre,
+                sigue pasando algo. */}
             Liga de la semana
           </h2>
           {rango}
@@ -236,6 +242,16 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                         </span>
                         <span className="liga-record">
                           {f.victorias}V-{f.derrotas}D
+                          {/* La racha DE LA SEMANA, no la de la season: en una
+                              competencia de siete días, "ganó las últimas
+                              cuatro" es lo que está pasando ahora. Desde 2,
+                              porque una sola partida no es una racha. */}
+                          {f.racha && f.racha.cantidad >= 2 && (
+                            <span className={`liga-racha ${f.racha.resultado === "W" ? "w" : "l"}`}>
+                              <StreakIcon result={f.racha.resultado} />
+                              {f.racha.cantidad}
+                            </span>
+                          )}
                         </span>
                       </>
                     ) : (

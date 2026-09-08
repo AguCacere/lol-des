@@ -84,13 +84,31 @@ export async function GET() {
     // Se filtra por el arranque de CADA uno y no solo por el de la semana: el
     // que se anotó el miércoles no puede llevarse las partidas del lunes.
     const arranqueDe = new Map(participantes.map((p) => [p.puuid, Math.max(desdeVentana.getTime(), p.desde?.getTime() ?? 0)]));
-    const recordPorPuuid = new Map<string, { victorias: number; derrotas: number }>();
+    // Se juntan las partidas de cada uno antes de contar, en vez de sumar al
+    // vuelo: la racha necesita el ORDEN y la consulta no lo garantiza.
+    const suyasPorPuuid = new Map<string, { win: boolean; played_at: string }[]>();
     for (const m of partidas ?? []) {
       if (Date.parse(m.played_at) < (arranqueDe.get(m.puuid) ?? 0)) continue;
-      const acc = recordPorPuuid.get(m.puuid) ?? { victorias: 0, derrotas: 0 };
-      if (m.win) acc.victorias++;
-      else acc.derrotas++;
-      recordPorPuuid.set(m.puuid, acc);
+      const arr = suyasPorPuuid.get(m.puuid) ?? [];
+      arr.push({ win: m.win, played_at: m.played_at });
+      suyasPorPuuid.set(m.puuid, arr);
+    }
+    const recordPorPuuid = new Map<string, { victorias: number; derrotas: number; racha: { resultado: "W" | "L"; cantidad: number } | null }>();
+    for (const [puuid, suyas] of suyasPorPuuid) {
+      const victorias = suyas.filter((m) => m.win).length;
+      // De la más nueva hacia atrás, contando mientras el resultado no cambie.
+      suyas.sort((a, b) => Date.parse(b.played_at) - Date.parse(a.played_at));
+      const ultimo = suyas[0].win;
+      let cantidad = 0;
+      for (const m of suyas) {
+        if (m.win !== ultimo) break;
+        cantidad++;
+      }
+      recordPorPuuid.set(puuid, {
+        victorias,
+        derrotas: suyas.length - victorias,
+        racha: { resultado: ultimo ? "W" : "L", cantidad },
+      });
     }
 
     tabla = tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], desdeVentana, fin, recordPorPuuid);

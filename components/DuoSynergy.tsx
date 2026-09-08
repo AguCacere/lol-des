@@ -164,7 +164,6 @@ export function DuoSynergy({
     <section>
       <div className="section-head">
         <h2>
-          <span className="live-dot accent" />
           Sinergia de dúo
         </h2>
         <span className="meta">Elegí un invocador para ver con quién juega</span>

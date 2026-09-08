@@ -48,7 +48,6 @@ export function ChampionWinrateLeaderboard({
     <section>
       <div className="section-head">
         <h2>
-          <span className="live-dot accent" />
           Mayor winrate por campeón
         </h2>
         <span className="meta">Top 7, mínimo {MIN_GAMES} partidas con ese campeón</span>

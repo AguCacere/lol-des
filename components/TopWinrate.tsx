@@ -55,7 +55,6 @@ export function TopWinrate({ players }: { players: Player[] }) {
     <section>
       <div className="section-head">
         <h2>
-          <span className="live-dot accent" />
           Mayor winrate
         </h2>
         <span className="meta">Season completa, mínimo {MIN_GAMES} partidas jugadas</span>

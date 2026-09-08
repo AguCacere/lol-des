@@ -121,7 +121,6 @@ export function PlayerProfile({
       <section id="profileSection">
         <div className="section-head">
           <h2>
-            <span className="live-dot accent" />
             Perfil de invocador
           </h2>
           <span className="meta">Click en una fila del ladder para inspeccionar</span>
@@ -271,7 +270,6 @@ export function PlayerProfile({
     <section id="profileSection">
       <div className="section-head">
         <h2>
-          <span className="live-dot accent" />
           Perfil de invocador
         </h2>
         <span className="meta">Click en una fila del ladder para inspeccionar</span>

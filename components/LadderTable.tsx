@@ -125,10 +125,12 @@ export function LadderTable({
           es justo la que tiene algo en juego y de la que nadie se acuerda si
           no la ve. */}
       <div className="section-head">
-        <h2>
-          <span className={`live-dot${enLiga ? " accent" : ""}`} />
-          {enLiga ? "Liga de la semana" : "Ladder del grupo"}
-        </h2>
+        {/* Sin puntito: marcaba "sección", no datos en vivo, y con la app
+            refrescándose sola cada 15 minutos no hay nada que señalar. Ocho
+            encabezados con una lucecita al lado hacían que todo pareciera un
+            panel de estado. Los .live-dot verdes que quedan son los de alguien
+            REALMENTE en partida ahora, que sí es información. */}
+        <h2>{enLiga ? "Liga de la semana" : "Ladder del grupo"}</h2>
         <div className="vista-derecha">
           <button type="button" className="vista-ir" onClick={() => onVistaChange(enLiga ? "ladder" : "liga")}>
             {enLiga ? (
