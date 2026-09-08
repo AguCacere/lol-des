@@ -15,6 +15,13 @@ el campo en `buildMatchRow` + `MatchRow` en `lib/types.ts` + la columna en el `s
 del ladder + `repaired_at = null` para que el repair rellene lo viejo. Si falta el
 último paso, la columna queda en `null` para siempre en todo lo ya guardado.
 
+**El puuid es para siempre, el "Nombre#TAG" no.** Cualquiera puede cambiarse el
+Riot ID. Hasta que `refreshOne` volvió a preguntarlo (Account-V1 por puuid), el
+nombre se escribía UNA sola vez al agregar al invocador y no se tocaba nunca más: el
+que se lo cambiaba seguía figurando con el viejo para siempre, en el ladder, en la
+liga y en las cargadas del bot. Se relee en cada refresco y solo se escribe si
+cambió.
+
 **`lp_snapshots` solo inserta si algo cambió.** Un snapshot por refresco aunque no se
 haya jugado aplana el gráfico: veinte puntos idénticos y después un salto. La
 comparación con la fila anterior es a propósito.

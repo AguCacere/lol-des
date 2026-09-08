@@ -73,6 +73,19 @@ export function getAccountByRiotId(gameName: string, tagLine: string) {
   return riotFetch<RiotAccount>(url);
 }
 
+/**
+ * El camino inverso: del puuid al Riot ID de AHORA.
+ *
+ * Hace falta porque el puuid es para siempre pero el "Nombre#TAG" no: se puede
+ * cambiar, y hasta que existió esto la app se quedaba con el nombre del día en
+ * que se agregó al invocador. En un grupo de amigos que se cambian el nombre
+ * cada dos por tres, eso es una tabla llena de gente que ya no se llama así.
+ */
+export function getAccountByPuuid(puuid: string) {
+  const url = `https://${REGION}.api.riotgames.com/riot/account/v1/accounts/by-puuid/${encodeURIComponent(puuid)}`;
+  return riotFetch<RiotAccount>(url);
+}
+
 export interface RiotLeagueEntry {
   leagueId: string;
   queueType: string; // "RANKED_SOLO_5x5" is the one we care about

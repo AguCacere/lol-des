@@ -3,6 +3,7 @@ import {
   getLeagueEntriesByPuuid,
   getMatchById,
   getMatchIdsByPuuid,
+  getAccountByPuuid,
   getMatchTimeline,
   getSummonerByPuuid,
   getTopChampionMasteries,
@@ -759,6 +760,35 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string): Promi
     const message = err instanceof Error ? err.message : String(err);
     warnings.push(`profile icon: ${message}`);
     console.error(`refreshOne(${puuid}): profile icon fetch failed —`, message);
+  }
+
+  // El Riot ID de AHORA. El puuid es para siempre, el "Nombre#TAG" no: se
+  // puede cambiar cuando uno quiera. Hasta acá el nombre se guardaba una sola
+  // vez, al agregar al invocador, y no se tocaba nunca más — así que el que se
+  // cambiaba el nombre seguía figurando con el viejo para siempre, en el
+  // ladder, en la liga y en las cargadas del bot.
+  //
+  // Solo escribe si cambió, para no mandarle un UPDATE a la base catorce veces
+  // cada quince minutos por nada. Y en try/catch como los de arriba: esto es
+  // cosmético y no puede bloquear la escritura de last_refreshed_at.
+  try {
+    const cuenta = await getAccountByPuuid(puuid);
+    const { data: guardado } = await supabase
+      .from("summoners")
+      .select("game_name, tag_line")
+      .eq("puuid", puuid)
+      .maybeSingle();
+    if (guardado && (guardado.game_name !== cuenta.gameName || guardado.tag_line !== cuenta.tagLine)) {
+      await supabase
+        .from("summoners")
+        .update({ game_name: cuenta.gameName, tag_line: cuenta.tagLine })
+        .eq("puuid", puuid);
+      console.log(`refreshOne(${puuid}): se cambió el nombre — ${guardado.game_name}#${guardado.tag_line} → ${cuenta.gameName}#${cuenta.tagLine}`);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    warnings.push(`riot id: ${message}`);
+    console.error(`refreshOne(${puuid}): no se pudo releer el Riot ID —`, message);
   }
 
   await supabase.from("summoners").update({ last_refreshed_at: new Date().toISOString() }).eq("puuid", puuid);

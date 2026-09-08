@@ -443,6 +443,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   width:100%;
 }
 .ladder-row:last-child{border-bottom:none;}
+/* El mismo escalonado que la liga: la tabla se ARMA. Ojo con el fill-mode
+   `both` — su fotograma final pisa las reglas normales de las propiedades que
+   anima, así que acá solo se animan opacity y transform, que ninguna otra
+   regla de la fila usa. */
+.ladder-row{animation:liga-entra .32s ease both; animation-delay:calc(var(--fila, 0) * 40ms);}
+@media (prefers-reduced-motion:reduce){
+  .ladder-row{animation:none;}
+}
 /* El hover no es solo un cambio de fondo: la fila lleva a algún lado (abre el
    perfil y baja hasta él), así que se anuncia con una línea dorada que crece
    desde la izquierda y el chevron que se acerca. Sutil, pero suficiente para
@@ -469,7 +477,13 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-size:10.5px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase;
   color:var(--text-muted);
 }
-.col-rank{font-family:var(--font-mono); color:var(--text-muted); font-size:13px; text-align:center;}
+.col-rank{
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); color:var(--text-muted); font-size:13px;
+}
+/* El primero del ladder lleva corona, igual que el de la liga. */
+.col-rank.campeon{color:var(--gold);}
+.col-rank svg{width:18px; height:18px;}
 .col-player{display:flex; align-items:center; gap:11px; min-width:0;}
 /* Avatar del invocador con el rol como badge encima, en vez de un chip de rol
    suelto. Es el cambio que más hace que el ladder deje de leerse como una
@@ -509,7 +523,16 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-size:9.5px; font-weight:700; letter-spacing:0.05em; color:#241a05;
   background:var(--gold); padding:2px 6px; border-radius:4px; flex:none;
 }
-.player-champ{font-size:11.5px; color:var(--text-secondary); margin-top:1px;}
+.player-champ{
+  display:flex; align-items:center; gap:6px;
+  font-size:11.5px; color:var(--text-secondary); margin-top:2px;
+}
+.player-champ-art{
+  width:18px; height:18px; border-radius:5px; overflow:hidden; flex:none;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--surface-hover); color:var(--text-muted);
+  font-family:var(--font-mono); font-size:7px; font-weight:700;
+}
 .col-tier{display:flex; align-items:center; gap:8px;}
 .tier-badge{
   width:30px;height:30px;border-radius:8px; flex:none;

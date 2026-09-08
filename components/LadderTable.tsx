@@ -258,8 +258,23 @@ export function LadderTable({
                   type="button"
                   className={`ladder-row${isActive ? " is-active" : ""}${p.you ? " is-you" : ""}`}
                   onClick={() => onSelect(key)}
+                  // El mismo escalonado de entrada que la liga: la tabla se
+                  // arma en vez de aparecer de golpe.
+                  style={{ ["--fila" as string]: i }}
                 >
-                  <span className="col-rank">{rank}</span>
+                  <span className={`col-rank${rank === 1 && sortKey === "ladder" ? " campeon" : ""}`}>
+                    {/* La corona SOLO con el orden del ladder. Con cualquier
+                        otro, `rank` es la posición en ESA lista y no el puesto
+                        real (ver el comentario de arriba): coronar al de mejor
+                        winrate diría que va ganando el ladder, y no. */}
+                    {rank === 1 && sortKey === "ladder" ? (
+                      <svg viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="Primero del ladder">
+                        <path d="M3 8l4.5 3.5L12 4l4.5 7.5L21 8l-1.8 10.2a1 1 0 0 1-1 .8H5.8a1 1 0 0 1-1-.8L3 8z" />
+                      </svg>
+                    ) : (
+                      rank
+                    )}
+                  </span>
                   <span className="col-player">
                     {/* La cara del invocador, no solo el ícono de su rol. Un
                         ladder sin caras se lee como una planilla: el avatar es
@@ -288,7 +303,14 @@ export function LadderTable({
                           </span>
                         )}
                       </span>
-                      <span className="player-champ">Main: {championLabel(p.mainChamp)}</span>
+                      {/* Con la cara del campeón y no solo el nombre. Era la única fila
+                          de la app donde el campeón era texto pelado, y "Main:
+                          Yasuo" al lado de una tabla con arte en todos lados se
+                          notaba. */}
+                      <span className="player-champ" title="Su campeón más jugado">
+                        <ChampIcon champ={p.mainChamp} version={ddragonVersion} className="player-champ-art" />
+                        {championLabel(p.mainChamp)}
+                      </span>
                       {/*
                         Rendered as a sibling of player-name (not nested inside
                         the live-badge) on purpose: player-name has its own
