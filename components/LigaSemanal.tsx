@@ -172,6 +172,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
   // antes de existir el aviso.
   const yaArranco = d.arrancoYa ?? true;
   const anotados = d.plantel.filter((p) => p.participa).length;
+  const sinJugar = d.tabla.filter((f) => f.sinJugar).length;
   // Para escalar las barras de partidas: el que más jugó ocupa todo el ancho.
   const maxPartidas = Math.max(1, ...d.tabla.map((f) => f.victorias + f.derrotas));
 
@@ -195,6 +196,17 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
         </div>
       ) : (
         <div className="liga-rango-solo">{rango}</div>
+      )}
+
+      {/* La regla, escrita, arriba de todo. Sin esto la pantalla tiene dos
+          números grandes —las netas y el LP— y no dice cuál es el que compite:
+          más de uno estuvo jugando para subir LP creyendo que eso era ir
+          primero. Una línea alcanza. */}
+      {d.arrancada !== false && (
+        <p className="liga-regla">
+          Gana el que más <b>netas</b> hace: victorias menos derrotas.{" "}
+          <span className="liga-regla-nota">El LP no puntúa — una victoria vale 1 para todos.</span>
+        </p>
       )}
 
       {d.arrancada === false ? (
@@ -320,9 +332,20 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                     )}
                   </span>
 
-                  {/* Victorias y derrotas apiladas, el mismo idioma de barra
-                      que el resto de la app: el largo dice cuánto jugó
-                      comparado con el que más jugó, el color cómo le fue. */}
+                  {/* Cómo la fue haciendo en la semana. No es la curva de LP
+                      de siempre: acá solo entran las fotos de ESTA semana, así
+                      que se ve si el neto lo hizo de una o remontando.
+                      Va ANTES del récord y no al lado del puntaje: es el
+                      "cómo viene", no el marcador, y pegada a las netas
+                      competía con ellas por ser el dato de la derecha. */}
+                  <span className="liga-curva">
+                    <SparkChart values={serie} width={190} height={30} pad={4} color={trendColor(serie)} lineaCero />
+                  </span>
+
+                  {/* El récord, pegado a las netas: es de dónde SALEN. La barra
+                      dice cuánto jugó comparado con el que más jugó, y abajo
+                      las victorias en verde y las derrotas en rojo, para que
+                      la resta se lea sin hacer la cuenta. */}
                   <span className="liga-vd">
                     {total > 0 ? (
                       <>
@@ -333,7 +356,11 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                           </span>
                         </span>
                         <span className="liga-record">
-                          {f.victorias}V-{f.derrotas}D
+                          <span className="rec-v">{f.victorias}V</span>
+                          <span className="rec-menos" aria-hidden>
+                            −
+                          </span>
+                          <span className="rec-d">{f.derrotas}D</span>
                           {/* La racha DE LA SEMANA, no la de la season: en una
                               competencia de siete días, "ganó las últimas
                               cuatro" es lo que está pasando ahora. Desde 2,
@@ -351,13 +378,6 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                     )}
                   </span>
 
-                  {/* Cómo la fue haciendo en la semana. No es la curva de LP
-                      de siempre: acá solo entran las fotos de ESTA semana, así
-                      que se ve si el neto lo hizo de una o remontando. */}
-                  <span className="liga-curva">
-                    <SparkChart values={serie} width={230} height={34} pad={5} color={trendColor(serie)} lineaCero />
-                  </span>
-
                   {/* El número grande es el PUNTAJE del modo activo. Con
                       "netas" son victorias menos derrotas: una victoria vale
                       lo mismo para todos, sin importar cuánto LP le dé Riot a
@@ -372,7 +392,10 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                     <span className="liga-puntaje">
                       {puntaje > 0 ? "+" : puntaje < 0 ? "−" : ""}
                       {Math.abs(puntaje)}
-                      <span className="liga-puntaje-unidad">netas</span>
+                      {/* "1 neta", no "1 netas". Es una palabra y nadie la va a
+                          aplaudir, pero un plural mal puesto en el dato más
+                          grande de la pantalla se nota. */}
+                      <span className="liga-puntaje-unidad">{Math.abs(puntaje) === 1 ? "neta" : "netas"}</span>
                     </span>
                     {!f.sinJugar && (
                       <span
@@ -394,7 +417,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                   <div className="liga-detalle">
                     <p className="liga-detalle-titulo">
                       Sus últimas {f.ultimas!.length} de la semana
-                      <span className="liga-detalle-nota">El LP no puntúa — una victoria vale 1 para todos.</span>
+                      <span className="liga-detalle-nota">El LP va de referencia; lo que puntúa es la columna del medio.</span>
                     </p>
                     {f.ultimas!.map((m) => (
                       <div className={`liga-partida ${m.win ? "gano" : "perdio"}`} key={m.matchId}>
@@ -454,9 +477,19 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
         </div>
       )}
 
-      <button type="button" className="liga-admin-toggle" onClick={() => setAdmin((v) => !v)}>
-        {admin ? "Listo" : `Quién compite (${anotados} de ${d.plantel.length})`}
-      </button>
+      {/* El pie dice quiénes están en carrera. Los que todavía no jugaron se
+          cuentan aparte a propósito: es la parte que dice "esto no está
+          cerrado", que en una liga de siete días es la mitad de la gracia. */}
+      <div className="liga-pie">
+        <button type="button" className="liga-admin-toggle" onClick={() => setAdmin((v) => !v)}>
+          {admin ? "Listo" : `Quién compite · ${anotados} de ${d.plantel.length}`}
+        </button>
+        {!admin && sinJugar > 0 && (
+          <span className="liga-pie-nota">
+            {sinJugar === 1 ? "1 anotado todavía no jugó" : `${sinJugar} anotados todavía no jugaron`}
+          </span>
+        )}
+      </div>
 
       {admin && (
         <div className="liga-admin">

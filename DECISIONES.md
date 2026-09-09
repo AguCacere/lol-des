@@ -123,6 +123,19 @@ volumen (un div con ancho en %) estira perfecto y cuanto más larga mejor cuenta
 que **no** puede recibirlo es un `SparkChart`: usa `preserveAspectRatio="none"` y se
 deforma, así que su columna se queda en el ancho que se le pasa por prop.
 
+**El orden de las columnas ES la jerarquía.** En la liga el récord (`7V − 4D`) estaba
+separado de las netas por la curva de LP, y la curva ocupaba el lugar de la derecha —
+el del marcador. Resultado: dos números grandes compitiendo por ser "el score" y la
+resta que explica el puntaje sin conexión visual con su resultado. El orden ahora es
+puesto → quién → rango → curva → RÉCORD → NETAS: lo que explica el dato va pegado al
+dato, y lo secundario al medio. No hizo falta cambiar tamaños ni colores.
+
+**En el teléfono, antes de angostar una columna más, romper la fila en dos renglones.**
+La fila de la liga tenía cinco columnas de datos en 390px y la que se comía el
+sobrante era el nombre: 20px, o sea, no se leía de quién era la fila. Abajo de 480px
+ahora el puesto, el avatar y las netas ocupan dos renglones y en el medio va el nombre
+arriba y el récord abajo. Angostar hasta que algo desaparece no es responsive.
+
 **Filas padre e hijo tienen que compartir grilla.** En "Enfrentamientos" eran dos
 layouts flex distintos y las barras y los récords quedaban en x diferentes. Una sola
 grilla, y se mide en el DOM a dos anchos.

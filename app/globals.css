@@ -3039,7 +3039,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    y grande, y el líder marcado. */
 .liga{margin-bottom:22px;}
 .liga-rango{display:inline-flex; align-items:baseline; gap:8px; white-space:nowrap;}
-.liga-falta{font-size:11px; color:var(--accent-dim); font-weight:600;}
+/* Un poco más de presencia que el rango de fechas: es lo único del header
+   que mete urgencia, y en una liga de siete días eso es la mitad del asunto. */
+.liga-falta{font-size:11.5px; color:var(--accent); font-weight:700;}
 /* El MISMO fondo que .ladder, no uno más claro. Las dos tablas se
    intercambian en el mismo lugar de la pantalla y estaban en colores
    distintos: el ladder en --bg (#050504) y esta en --surface-raised
@@ -3053,6 +3055,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    plano liso del mismo --bg, así que no hay nada atrás que se transparente —
    lo que da la sensación de aire es que la tabla deje de ser una losa más
    clara, y eso se consigue con el color. */
+/* La regla de la competencia, escrita, antes de la tabla. No es decoración:
+   la pantalla muestra netas y LP uno al lado del otro y sin esta línea no
+   queda claro cuál de los dos compite. */
+.liga-regla{
+  margin:0 0 10px; padding:0 2px;
+  font-size:12px; line-height:1.5; color:var(--text-secondary);
+}
+.liga-regla b{color:var(--text-primary); font-weight:700;}
+.liga-regla-nota{color:var(--text-muted);}
 .liga-tabla{
   background:var(--bg); border-radius:var(--radius-lg); box-shadow:var(--shadow); overflow:hidden;
 }
@@ -3066,11 +3077,17 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    div con ancho en % — estira sin deformarse y cuanto más larga, mejor
    cuenta el volumen. La curva NO puede estirar: SparkChart usa
    preserveAspectRatio="none" y se deformaría (ver DECISIONES.md), así que
-   se queda en los 230px que se le pasan. */
+   se queda en los 190px que se le pasan.
+
+   El orden de las columnas es la lectura que se busca: puesto → quién →
+   rango → cómo viene → RÉCORD → NETAS. El récord quedó pegado al puntaje
+   porque es de donde sale; antes tenía la curva en el medio y la resta no se
+   ataba con su resultado. Y la curva, que estaba en el lugar de la derecha
+   —el del marcador—, pasa al medio: cuenta el "cómo viene", no quién gana. */
 .liga-fila{
   display:grid;
-  grid-template-columns:46px 40px minmax(140px,230px) 38px 158px minmax(160px,1fr) 230px 104px;
-  align-items:center; gap:12px; padding:11px 16px;
+  grid-template-columns:46px 40px minmax(140px,200px) 38px 158px 190px minmax(160px,1fr) 104px;
+  align-items:center; gap:12px; padding:12px 18px;
   border-bottom:1px solid var(--border-soft);
   transition:background .14s ease;
 }
@@ -3086,7 +3103,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    normal — incluido el :hover. Medido: con opacity, pasar el mouse por una
    fila en pausa no hacía nada. Con filter son propiedades distintas y no se
    pisan. */
-.liga-fila.en-pausa{filter:opacity(0.5); transition:filter .14s ease, background .14s ease;}
+.liga-fila.en-pausa{filter:opacity(0.66); transition:filter .14s ease, background .14s ease;}
 .liga-fila.en-pausa:hover{filter:none;}
 /* La tabla se ARMA en vez de aparecer de golpe: 40ms entre fila y fila. Es
    corto a propósito — con seis filas termina en un cuarto de segundo. */
@@ -3121,16 +3138,19 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .liga-linea img{width:11px; height:11px; display:block; opacity:0.9;}
 .liga-rango-celda{display:flex; align-items:center; gap:8px; min-width:0;}
 .liga-rango-celda .tier-emblem,
-.liga-rango-celda img{width:26px; height:26px; flex:none;}
-.liga-rango-texto{display:flex; flex-direction:column; gap:1px; min-width:0; font-size:12px; font-weight:600; white-space:nowrap;}
-.liga-rango-lp{font-family:var(--font-mono); font-size:10px; color:var(--text-muted);}
+.liga-rango-celda img{width:24px; height:24px; flex:none; opacity:0.92;}
+/* Estado del jugador, no marcador: medio punto menos y sin la negrita del
+   resto. El rango dice dónde está parado, las netas dicen quién va ganando. */
+.liga-rango-texto{display:flex; flex-direction:column; gap:1px; min-width:0; font-size:11.5px; font-weight:600; white-space:nowrap;}
+.liga-rango-lp{font-family:var(--font-mono); font-size:9.5px; color:var(--text-muted); opacity:0.85;}
 .liga-vd{display:flex; flex-direction:column; gap:4px; min-width:0;}
 .liga-barra{height:9px; display:block;}
 .liga-barra-total{display:flex; height:100%; min-width:3px; border-radius:999px; overflow:hidden;}
 .liga-barra-v{background:var(--good); opacity:0.8; flex:none;}
 .liga-barra-d{background:var(--critical); opacity:0.55; flex:1 1 auto;}
 .liga-curva{display:block; min-width:0;}
-.liga-curva svg{display:block; width:100%; height:34px;}
+.liga-curva svg{display:block; width:100%; height:30px; opacity:0.88;}
+.liga-fila:hover .liga-curva svg{opacity:1;}
 .liga-grupo:last-child .liga-fila{border-bottom:none;}
 /* La fila se toca para abrir el detalle. Solo la de quien jugó: abrir una
    vacía no muestra nada. */
@@ -3245,10 +3265,19 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-family:var(--font-display); font-size:14px; font-weight:700; letter-spacing:-0.01em;
   color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
+/* El récord explica el puntaje de al lado, así que se lee como una cuenta:
+   las victorias del verde de la barra, las derrotas del rojo, y el menos en
+   el medio. Antes era "7V-4D" todo gris del mismo tamaño que cualquier meta,
+   y había que hacer la resta a mano para entender el +3. */
 .liga-record{
-  display:flex; align-items:center; gap:7px;
-  font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted); white-space:nowrap;
+  display:flex; align-items:center; gap:5px;
+  font-family:var(--font-stat); font-size:11.5px; font-weight:700;
+  font-variant-numeric:tabular-nums; color:var(--text-muted); white-space:nowrap;
 }
+.liga-record .rec-v{color:rgba(52,201,124,0.82);}
+.liga-record .rec-d{color:rgba(240,85,95,0.78);}
+.liga-record .rec-menos{color:var(--text-muted); opacity:0.6; font-weight:600;}
+.liga-record .liga-racha{margin-left:3px;}
 /* La racha de la semana. Chip con su ícono, del color del resultado: es el
    dato que dice si viene subiendo o cayéndose AHORA, que el neto solo no
    cuenta — un +16 puede ser tres ganadas al hilo o una racha que se dio
@@ -3325,12 +3354,17 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .liga-historial-semana{font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted); flex:none;}
 .liga-historial-ganador{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .liga-historial-lp{font-family:var(--font-stat); font-weight:700; font-variant-numeric:tabular-nums; flex:none;}
+/* El pie: quiénes compiten y cuántos todavía no jugaron. Va en una línea
+   sola con el botón para que se lea como una frase y no como dos controles. */
+.liga-pie{display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-top:12px;}
+.liga-pie-nota{font-size:11px; color:var(--text-muted);}
 .liga-admin-toggle{
-  margin-top:10px; padding:5px 11px; border-radius:999px; cursor:pointer;
-  background:transparent; color:var(--text-muted); border:none; box-shadow:inset 0 0 0 1px var(--border-soft);
-  font-family:var(--font-body); font-size:11px; font-weight:600;
+  padding:6px 13px; border-radius:999px; cursor:pointer;
+  background:transparent; color:var(--text-secondary); border:none; box-shadow:inset 0 0 0 1px var(--border-soft);
+  font-family:var(--font-body); font-size:11.5px; font-weight:600;
+  transition:background .14s ease, color .14s ease, box-shadow .14s ease;
 }
-.liga-admin-toggle:hover{background:var(--surface-hover); color:var(--text-secondary);}
+.liga-admin-toggle:hover{background:var(--surface-hover); color:var(--text-primary); box-shadow:inset 0 0 0 1px var(--accent-dim-border);}
 .liga-admin{
   margin-top:10px; padding:12px 14px;
   background:var(--surface); border:1px solid var(--border-soft); border-radius:var(--radius-sm);
@@ -3351,7 +3385,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 @media (max-width:640px){
   /* Y después el rango: en un teléfono el nombre y el neto son lo que se
      mira, y el rango de cada uno ya está en el ladder de al lado. */
-  .liga-fila{grid-template-columns:36px 32px minmax(0,1fr) 34px minmax(110px,150px) 82px; gap:10px; padding:10px 13px;}
+  /* Se cae también el campeón. Cinco columnas de datos no entran en 390px y
+     algo tiene que salir: entre el arte del campeón y el NOMBRE del jugador,
+     sale el arte. Antes no salía nada y el resultado era peor que elegir —
+     la columna del nombre se comprimía a 20px y en el teléfono las filas no
+     decían de quién eran. */
+  .liga-jugo{display:none;}
+  .liga-fila{grid-template-columns:34px 30px minmax(0,1fr) 92px 78px; gap:10px; padding:10px 13px;}
+  .liga-record{font-size:11px; gap:4px;}
+  .liga-record .liga-racha{margin-left:1px;}
   /* En el teléfono se cae la palabra: "netas" no entra al lado del número, y
      lo que importa ahí es el número. */
   .liga-puntaje-unidad{display:none;}
@@ -3362,17 +3404,26 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .liga-puesto svg{width:16px; height:16px;}
   .liga-rango-celda{display:none;}
 }
-@media (max-width:420px){
-  .liga-fila{grid-template-columns:30px 30px minmax(0,1fr) 30px 68px; gap:8px; padding:9px 11px;}
-  .liga-champ{width:28px; height:28px; border-radius:7px;}
-  /* La insignia de línea ya no ocupa lugar propio, así que en el teléfono
-     puede quedarse: solo se achica. */
-  .liga-linea{width:13px; height:13px;}
-  .liga-linea img{width:9px; height:9px;}
-  .liga-avatar{width:28px; height:28px; border-radius:8px;}
-  .liga-nombre{font-size:13px;}
-  .liga-lp{font-size:17px;}
-  .liga-vd{display:none;}
+/* En el teléfono la fila pasa a DOS renglones en vez de seguir angostando
+   columnas. Con todo en una línea el nombre se quedaba con 20px —o sea, no se
+   leía de quién era la fila— y el récord es demasiado importante para tirarlo:
+   es de dónde salen las netas. Así que puesto, avatar y netas ocupan los dos
+   renglones, y en el medio va el nombre arriba y el récord abajo. */
+@media (max-width:480px){
+  .liga-fila{
+    grid-template-columns:26px 30px minmax(0,1fr) 74px;
+    grid-template-rows:auto auto;
+    column-gap:9px; row-gap:3px; padding:10px 12px;
+  }
+  .liga-puesto{grid-column:1; grid-row:1 / span 2;}
+  .liga-avatar{grid-column:2; grid-row:1 / span 2; width:32px; height:32px; border-radius:9px; font-size:11px;}
+  .liga-nombre{grid-column:3; grid-row:1; font-size:13.5px;}
+  .liga-vd{grid-column:3; grid-row:2;}
+  .liga-lp{grid-column:4; grid-row:1 / span 2; font-size:19px;}
+  .liga-puesto{font-size:13px;}
+  .liga-puesto svg{width:16px; height:16px;}
+  .liga-barra{height:7px;}
+  .liga-record{font-size:11px;}
 }
 /* Marca de que ese entró a mitad de semana. Va chiquito y al lado del nombre
    porque explica el número de al lado, no compite con él. */
