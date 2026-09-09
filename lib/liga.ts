@@ -177,22 +177,30 @@ export interface PartidaLiga {
   win: boolean;
   playedAt: string;
   /**
-   * Lo que sumó o restó esa partida. Null si no se pudo atribuir.
+   * Lo que sumó o restó ESA partida sola. Null si cayó junta con otras.
    *
    * Sale de comparar dos fotos consecutivas de lp_snapshots: la diferencia de
    * `wins`/`losses` dice cuántas partidas pasaron en el medio y la de puntos
    * cuánto se movió. Solo se atribuye cuando en ese tramo hubo UNA sola
    * partida, que con el cron cada 15 minutos y partidas de ~30 es el caso
    * normal.
-   *
-   * Si cayeron dos o más en el mismo tramo queda en null y NO se reparte. Un
-   * reparto en partes iguales le pondría +5 a una DERROTA, y todo esto existe
-   * justamente para que el grupo pueda verificar el cálculo: un número
-   * inventado que contradice el resultado destruye lo único que aporta.
    */
   lp: number | null;
-  /** Por qué no hay número: "varias" = cayeron juntas en el mismo tramo. Null si sí lo hay. */
+  /** Por qué no hay número propio: "varias" = cayeron juntas en el mismo tramo. Null si sí lo hay. */
   sinLp: "varias" | "sin-foto" | null;
+  /**
+   * El LP del tramo ENTERO cuando cayeron varias partidas entre las mismas dos
+   * fotos: el mismo número en todas ellas, mostrado como lo que es.
+   *
+   * No se reparte en partes iguales, y por eso hay dos campos en vez de uno: un
+   * reparto le pondría "+5" a una DERROTA, y todo esto existe justamente para
+   * que el grupo pueda verificar el cálculo — un número inventado que
+   * contradice el resultado destruye lo único que aporta. El total del tramo,
+   * en cambio, es medido: dice "estas dos juntas dieron +18" y eso es cierto.
+   */
+  lpTramo: number | null;
+  /** Cuántas partidas comparten ese `lpTramo`. 0 cuando no aplica. */
+  juntas: number;
 }
 
 /**
@@ -204,7 +212,10 @@ export interface PartidaLiga {
  */
 export function lpPorPartida(snapshots: Snapshot[], partidas: PartidaLiga[]): PartidaLiga[] {
   const fotos = [...snapshots].sort((a, b) => Date.parse(a.captured_at) - Date.parse(b.captured_at));
-  const porMatch = new Map<string, { lp: number | null; sinLp: "varias" | "sin-foto" | null }>();
+  const porMatch = new Map<
+    string,
+    { lp: number | null; sinLp: "varias" | "sin-foto" | null; lpTramo: number | null; juntas: number }
+  >();
 
   for (let i = 1; i < fotos.length; i++) {
     const a = fotos[i - 1];
@@ -218,16 +229,27 @@ export function lpPorPartida(snapshots: Snapshot[], partidas: PartidaLiga[]): Pa
       return t > desde && t <= hasta;
     });
     if (enElTramo.length === 0) continue;
+    const movio = puntos(b) - puntos(a);
     if (enElTramo.length > 1) {
-      for (const m of enElTramo) porMatch.set(m.matchId, { lp: null, sinLp: "varias" });
+      // Sin número propio, pero con el del grupo: antes esto era un guion y la
+      // pregunta "¿y esta cuánto dio?" se quedaba sin ninguna respuesta.
+      for (const m of enElTramo) {
+        porMatch.set(m.matchId, { lp: null, sinLp: "varias", lpTramo: movio, juntas: enElTramo.length });
+      }
       continue;
     }
-    porMatch.set(enElTramo[0].matchId, { lp: puntos(b) - puntos(a), sinLp: null });
+    porMatch.set(enElTramo[0].matchId, { lp: movio, sinLp: null, lpTramo: null, juntas: 0 });
   }
 
   return partidas.map((m) => {
     const v = porMatch.get(m.matchId);
-    return { ...m, lp: v?.lp ?? null, sinLp: v ? v.sinLp : "sin-foto" };
+    return {
+      ...m,
+      lp: v?.lp ?? null,
+      sinLp: v ? v.sinLp : "sin-foto",
+      lpTramo: v?.lpTramo ?? null,
+      juntas: v?.juntas ?? 0,
+    };
   });
 }
 

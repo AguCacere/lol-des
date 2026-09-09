@@ -32,6 +32,16 @@ con la punta base en 0 sale la season entera — así apareció un "222V-225D en
 semana" en la liga. Las victorias y derrotas de un período se cuentan de `matches`,
 no restando acumulados.
 
+**El LP de UNA partida sale de dos fotos, y a veces no sale.** `lpPorPartida`
+(`lib/liga.ts`) cruza los horarios de `matches` con `lp_snapshots`: si entre dos fotos
+consecutivas cayó una sola partida, la diferencia de puntos es suya y punto. Si
+cayeron dos o más, **no se reparte**: repartir en partes iguales le ponía "+9" a una
+derrota, y toda esa pantalla existe para que el grupo pueda *verificar* el cálculo —
+un número que contradice el resultado destruye lo único que aporta. Lo que sí se
+muestra es el total del tramo con "entre 2", que es medido. El caso se vuelve raro
+mientras el scheduler corra cada 15 minutos; si aparece seguido, el arreglo es bajar
+el intervalo, no inventar el reparto.
+
 **La vista `ladder`: columnas nuevas al final.** Postgres tira 42P16 si se intenta
 `CREATE OR REPLACE VIEW` cambiando el orden o el tipo de las columnas existentes.
 

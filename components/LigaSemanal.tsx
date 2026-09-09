@@ -44,6 +44,9 @@ interface PartidaLiga {
   playedAt: string;
   lp: number | null;
   sinLp: "varias" | "sin-foto" | null;
+  /** Opcionales por la ventana de caché del CDN: una pestaña vieja no los trae. */
+  lpTramo?: number | null;
+  juntas?: number;
 }
 interface DelPlantel {
   puuid: string;
@@ -83,19 +86,19 @@ const horaDe = (iso: string) =>
     timeZone: "America/Argentina/Buenos_Aires",
   });
 
-/** "hoy 21:40" / "ayer 03:12" / "mar 18:05" — corto, para la lista de partidas. */
-function cuando(iso: string): string {
-  const d = new Date(iso);
-  const opts: Intl.DateTimeFormatOptions = { timeZone: "America/Argentina/Buenos_Aires" };
-  // hour12:false explícito: es-AR devuelve "06:41 p. m." por defecto, con
-  // puntos y espacios, y en una columna de 11px eso es un choclo.
-  const hora = d.toLocaleTimeString("es-AR", { ...opts, hour: "2-digit", minute: "2-digit", hour12: false });
-  const hoy = new Date().toLocaleDateString("es-AR", opts);
-  const suyo = d.toLocaleDateString("es-AR", opts);
-  if (suyo === hoy) return `hoy ${hora}`;
-  const ayer = new Date(Date.now() - 86400000).toLocaleDateString("es-AR", opts);
-  if (suyo === ayer) return `ayer ${hora}`;
-  return `${d.toLocaleDateString("es-AR", { ...opts, weekday: "short" })} ${hora}`;
+/**
+ * "+18 LP" / "−24 LP" / "0 LP", con el menos de verdad (−).
+ *
+ * El guion del toString de un número es más corto que el signo más y en una
+ * columna alineada a la derecha se notaba: los negativos quedaban corridos.
+ */
+function lpTexto(n: number): string {
+  return `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n)} LP`;
+}
+
+/** La clase de color por signo, que es la misma en todos lados. */
+function tono(n: number): string {
+  return n > 0 ? "gd-pos" : n < 0 ? "gd-neg" : "";
 }
 
 /** Cuánto falta para que cierre, en criollo. */
@@ -361,15 +364,22 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                       cada cuenta. El LP real queda abajo, chiquito, porque
                       sigue siendo lo que cada uno mira para entender su
                       semana — pero ya no decide nada. */}
-                  <span className={`liga-lp ${puntaje > 0 ? "gd-pos" : puntaje < 0 ? "gd-neg" : ""}`}>
+                  <span className={`liga-lp ${tono(puntaje)}`}>
+                    {/* En placa y no suelto: la columna tiene tres tamaños de
+                        letra al lado (récord, racha, LP) y el número que decide
+                        el premio se perdía entre ellos. La placa además le da
+                        piso al 0, que sin fondo parecía un hueco. */}
                     <span className="liga-puntaje">
-                      {puntaje > 0 ? "+" : ""}
-                      {puntaje}
+                      {puntaje > 0 ? "+" : puntaje < 0 ? "−" : ""}
+                      {Math.abs(puntaje)}
+                      <span className="liga-puntaje-unidad">netas</span>
                     </span>
                     {!f.sinJugar && (
-                      <span className="liga-lp-ref" title="El LP real de la semana. No puntúa: está solo como referencia.">
-                        {f.lpNeto > 0 ? "+" : ""}
-                        {f.lpNeto} LP
+                      <span
+                        className={`liga-lp-ref ${tono(f.lpNeto)}`}
+                        title="El LP real de la semana. No puntúa: está solo como referencia."
+                      >
+                        {lpTexto(f.lpNeto)}
                       </span>
                     )}
                   </span>
@@ -391,26 +401,29 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                         <span className={`liga-partida-res ${m.win ? "gano" : "perdio"}`}>{m.win ? "V" : "D"}</span>
                         <ChampIcon champ={m.champion ?? ""} version={d.ddragonVersion ?? null} className="liga-partida-champ" />
                         <span className="liga-partida-champ-nombre">{m.champion ? championLabel(m.champion) : "—"}</span>
-                        <span className="liga-partida-cuando">{cuando(m.playedAt)}</span>
                         <span className="liga-partida-netas">{m.win ? "+1" : "−1"}</span>
                         {m.lp !== null ? (
-                          <span className={`liga-partida-lp ${m.lp > 0 ? "gd-pos" : m.lp < 0 ? "gd-neg" : ""}`}>
-                            {/* El signo menos de verdad (−), el mismo que las
-                                netas de al lado: el guion del toString de un
-                                número queda más corto y se nota en la columna. */}
-                            {m.lp > 0 ? "+" : m.lp < 0 ? "−" : ""}
-                            {Math.abs(m.lp)} LP
+                          <span className={`liga-partida-lp ${tono(m.lp)}`}>
+                            <span className="liga-partida-lp-n">{lpTexto(m.lp)}</span>
+                          </span>
+                        ) : m.lpTramo != null ? (
+                          // Cayó junta con otras entre dos fotos: se muestra lo
+                          // que movieron TODAS, aclarando cuántas son. Antes acá
+                          // había un guion y la pregunta se quedaba sin
+                          // respuesta; repartir el total en partes iguales, en
+                          // cambio, le ponía "+9" a una derrota.
+                          <span
+                            className={`liga-partida-lp junta ${tono(m.lpTramo)}`}
+                            title={`Estas ${m.juntas ?? 2} partidas cayeron entre las mismas dos fotos de LP: juntas movieron ${lpTexto(
+                              m.lpTramo,
+                            )}. Cuánto dio cada una no se puede saber, así que no se inventa.`}
+                          >
+                            <span className="liga-partida-lp-n">{lpTexto(m.lpTramo)}</span>
+                            <span className="liga-partida-junta">entre {m.juntas ?? 2}</span>
                           </span>
                         ) : (
-                          <span
-                            className="liga-partida-lp sin"
-                            title={
-                              m.sinLp === "varias"
-                                ? "Cayeron dos o más partidas entre dos fotos de LP, así que no se puede separar cuánto dio cada una. No se inventa un número."
-                                : "No hay una foto de LP que encierre esta partida."
-                            }
-                          >
-                            —
+                          <span className="liga-partida-lp sin" title="Todavía no hay una foto de LP posterior a esta partida.">
+                            <span className="liga-partida-lp-n">—</span>
                           </span>
                         )}
                       </div>

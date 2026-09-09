@@ -145,6 +145,8 @@ export async function GET() {
             playedAt: m.played_at,
             lp: null,
             sinLp: null,
+            lpTramo: null,
+            juntas: 0,
           })),
         ),
       });
