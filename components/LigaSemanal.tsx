@@ -10,6 +10,7 @@ import { StreakIcon } from "./StreakIcon";
 import { ChampIcon } from "./ChampIcon";
 import { RoleIcon } from "./RoleIcon";
 import { ROLES, tierFor, trendColor } from "@/lib/ladder";
+import { TOPE_LP_POR_VICTORIA } from "@/lib/liga";
 import type { RoleKey, TierKey } from "@/lib/types";
 
 interface Fila {
@@ -18,6 +19,8 @@ interface Fila {
   tag: string;
   profileIconUrl: string | null;
   lpNeto: number;
+  /** Cuánto le recortó el tope por victoria. Opcional: una respuesta anterior al deploy no lo trae. */
+  lpRecortado?: number;
   victorias: number;
   derrotas: number;
   sinJugar: boolean;
@@ -312,6 +315,17 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                   <span className={`liga-lp ${f.lpNeto > 0 ? "gd-pos" : f.lpNeto < 0 ? "gd-neg" : ""}`}>
                     {f.lpNeto > 0 ? "+" : ""}
                     {f.lpNeto}
+                    {/* Que se vea cuando el tope actuó. Sin esto, cualquiera
+                        que sume el LP a mano ve que no da y piensa que la
+                        tabla está rota. */}
+                    {(f.lpRecortado ?? 0) > 0 && (
+                      <span
+                        className="liga-tope"
+                        title={`Se le descontaron ${f.lpRecortado} LP: ninguna victoria puede sumar más de ${TOPE_LP_POR_VICTORIA}. Una cuenta nueva gana más LP por partida que el resto, y eso no es jugar mejor.`}
+                      >
+                        con tope
+                      </span>
+                    )}
                   </span>
                 </div>
               );

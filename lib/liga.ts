@@ -111,8 +111,14 @@ export interface FilaLiga {
   name: string;
   tag: string;
   profileIconUrl: string | null;
-  /** Lo que se mide: puntos ganados (o perdidos) en la semana. */
+  /** Lo que se mide: puntos ganados (o perdidos) en la semana, YA con el tope por victoria. */
   lpNeto: number;
+  /**
+   * Cuánto LP le recortó el tope esta semana. 0 en la enorme mayoría de los
+   * casos. Se muestra para que nadie saque la cuenta a mano y crea que la
+   * tabla está mal.
+   */
+  lpRecortado: number;
   victorias: number;
   derrotas: number;
   /** Si todavía no jugó nada esta semana. Se muestra distinto de un 0 conseguido jugando. */
@@ -169,6 +175,64 @@ export interface RecordSemanal {
 }
 
 /**
+ * Lo máximo que puede sumar UNA victoria.
+ *
+ * Riot le da bastante más LP por partida a una cuenta nueva, porque su MMR
+ * real está muy por encima del rango que muestra. En una liga que se mide por
+ * LP neto eso no es jugar mejor, es tener otra tabla de premios: se vio
+ * 4V-1D dando +141 al lado de otro 4V-1D dando +54.
+ *
+ * En equilibrio una victoria da 15-20 LP, y alguien que viene subiendo bien
+ * ronda los 22. De 25 para arriba ya es una cuenta sin asentar. El tope en 22
+ * deja pasar entera cualquier victoria normal —incluso una buena racha— y solo
+ * recorta las infladas.
+ *
+ * Es UN número y está pensado para tocarse: subirlo hace la liga más
+ * permisiva, bajarlo la aplana.
+ */
+export const TOPE_LP_POR_VICTORIA = 22;
+
+/**
+ * El neto de la semana con el tope aplicado, y cuánto se recortó.
+ *
+ * Se camina foto por foto en vez de restar las dos puntas, porque el tope es
+ * POR VICTORIA y para eso hay que saber cuántas partidas hubo en cada tramo.
+ * Eso se puede: lp_snapshots guarda `wins` y `losses` al lado del LP, así que
+ * la diferencia entre dos fotos consecutivas dice exactamente cuántas se
+ * ganaron y cuántas se perdieron en el medio. No es una estimación.
+ *
+ * Los puntos se comparan con `puntos()` (rankScore) y no con el LP crudo: al
+ * ascender de división el LP vuelve a cero y la resta daría un desplome.
+ *
+ * Las DERROTAS no se tocan. El inflado de una cuenta nueva también hace que
+ * pierda menos por derrota, pero taparlo pediría un piso —o sea inventarle
+ * derrotas más caras que las reales— y eso ya no es emparejar la cancha, es
+ * penalizar. Queda como diferencia conocida y chica al lado de la de las
+ * victorias.
+ */
+function netoConTope(tramos: Snapshot[]): { neto: number; recortado: number } {
+  let neto = 0;
+  let recortado = 0;
+  for (let i = 1; i < tramos.length; i++) {
+    const a = tramos[i - 1];
+    const b = tramos[i];
+    const delta = puntos(b) - puntos(a);
+    const ganadas = b.wins - a.wins;
+    // Solo se recorta una subida que venga de victorias contadas. Si el tramo
+    // no registra partidas, el movimiento es de Riot (una corrección, un
+    // decay) y no hay nada que topear.
+    if (delta > 0 && ganadas > 0) {
+      const tope = ganadas * TOPE_LP_POR_VICTORIA;
+      if (delta > tope) recortado += delta - tope;
+      neto += Math.min(delta, tope);
+    } else {
+      neto += delta;
+    }
+  }
+  return { neto, recortado };
+}
+
+/**
  * La tabla de la semana.
  *
  * El punto de partida de cada uno es su ÚLTIMA foto ANTES del lunes, no la
@@ -220,9 +284,15 @@ export function tablaDeLaSemana(
     // El neto de cada foto contra el punto de partida. Si no hay ninguna foto
     // dentro de la ventana todavía no se movió: línea plana en 0, no un
     // gráfico vacío.
-    const cero = base ? puntos(base) : 0;
-    const netas = dentro.map((s) => puntos(s) - cero);
-    const serieNeta = netas.length > 0 ? [0, ...netas] : [0, 0];
+    // La curva se arma con los MISMOS tramos topeados que el número: si el
+    // gráfico dibujara el neto crudo, la línea y el "+68" de al lado se
+    // contradirían.
+    const tramos = base ? [base, ...dentro] : dentro;
+    const acumulada: number[] = [0];
+    for (let i = 1; i < tramos.length; i++) {
+      acumulada.push(netoConTope(tramos.slice(0, i + 1)).neto);
+    }
+    const serieNeta = acumulada.length > 1 ? acumulada : [0, 0];
     const entroTarde = suDesde > desde ? new Date(suDesde).toISOString() : null;
     const rango = ultima
       ? { tier: tierKeyFromRiot(ultima.tier), division: divisionFromRiot(ultima.division), lp: ultima.lp }
@@ -232,13 +302,15 @@ export function tablaDeLaSemana(
       // Sin una sola foto no hay nada que medir, pero igual va la línea
       // plana en 0: un gráfico vacío parece roto, y "no se movió" es
       // información.
-      filas.push({ ...p, lpNeto: 0, victorias, derrotas, racha, champion, linea, sinJugar: victorias + derrotas === 0, rango, serie: [0, 0], entroTarde });
+      filas.push({ ...p, lpNeto: 0, lpRecortado: 0, victorias, derrotas, racha, champion, linea, sinJugar: victorias + derrotas === 0, rango, serie: [0, 0], entroTarde });
       continue;
     }
 
+    const { neto, recortado } = netoConTope(tramos);
     filas.push({
       ...p,
-      lpNeto: puntos(ultima) - puntos(base),
+      lpNeto: neto,
+      lpRecortado: recortado,
       victorias,
       derrotas,
       racha,

@@ -3156,8 +3156,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    — así que un `color` en la base las pisaba y los números salían todos
    grises. */
 .liga-lp{
+  display:flex; flex-direction:column; align-items:flex-end; gap:1px;
   font-family:var(--font-stat); font-size:19px; font-weight:800; letter-spacing:-0.02em;
   font-variant-numeric:tabular-nums; text-align:right;
+}
+/* La marca de que el tope actuó. Chiquita y debajo del número, con la
+   explicación entera en el title: es una aclaración, no una acusación. */
+.liga-tope{
+  font-family:var(--font-body); font-size:9px; font-weight:600; letter-spacing:0.04em;
+  text-transform:uppercase; color:var(--text-muted); cursor:help;
 }
 .liga-lp:not(.gd-pos):not(.gd-neg){color:var(--text-muted);}
 .liga-lp.gd-pos{color:var(--good);}

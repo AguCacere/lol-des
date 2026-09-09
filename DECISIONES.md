@@ -190,6 +190,17 @@ ya se haya ido.
 refresco, el cron de liga y la lectura de `/api/liga`. Lo que lo hace seguro es
 `liga_semanas`: una semana ya registrada no se vuelve a anunciar.
 
+**Una victoria no puede sumar más de `TOPE_LP_POR_VICTORIA` (hoy 22).** Riot le da
+bastante más LP por partida a una cuenta nueva, porque su MMR real está muy por
+encima del rango que muestra: se vio un 4V-1D dando +141 al lado de otro 4V-1D dando
++54. En una liga por LP neto eso no es jugar mejor, es tener otra tabla de premios.
+El tope se aplica **por victoria** y para eso hay que caminar foto por foto en vez de
+restar las dos puntas — se puede porque `lp_snapshots` guarda `wins`/`losses` al lado
+del `lp`, así que la diferencia entre dos fotos consecutivas dice exactamente cuántas
+se ganaron en el medio. Las derrotas NO se topean: taparlas pediría un piso, o sea
+inventar derrotas más caras que las reales. La curva se dibuja con los mismos tramos
+topeados que el número, o el gráfico y el neto se contradirían.
+
 **La liga cuenta desde que cada uno se anota** (`summoners.liga_desde`), no desde el
 lunes. Anotarse el miércoles después de ver que venís sumando no es lo mismo que
 anotarse el lunes.
