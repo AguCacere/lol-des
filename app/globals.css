@@ -3143,6 +3143,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .liga-detalle{
   padding:10px 16px 14px 58px; background:var(--surface);
   border-bottom:1px solid var(--border-soft);
+  /* La guía dorada lo ata visualmente a la fila que lo abrió: sin ella el
+     bloque flotaba y no se sabía de quién era. */
+  box-shadow:inset 3px 0 0 var(--accent-dim);
   animation:liga-abre .18s ease;
 }
 @keyframes liga-abre{from{opacity:0;} to{opacity:1;}}
@@ -3153,9 +3156,16 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   text-transform:uppercase; letter-spacing:0.05em;
 }
 .liga-detalle-nota{font-size:10.5px; font-weight:500; text-transform:none; letter-spacing:0; color:var(--text-muted);}
+/* Columnas FIJAS y empaquetadas a la izquierda (justify-content:start), sin
+   ningún 1fr. Con el 1fr en el nombre del campeón, "Shen" se quedaba con
+   ~600px de hueco antes de la hora — la misma trampa que está anotada en
+   DECISIONES.md ("el 1fr va donde ESTIRA BIEN, no en el texto") y que acá se
+   repitió. Una lista de detalle no tiene por qué ocupar el ancho entero: se
+   lee mejor como un bloque compacto abajo de su fila. */
 .liga-partida{
-  display:grid; grid-template-columns:20px 24px minmax(70px,1fr) 92px 34px 64px;
-  align-items:center; gap:10px; padding:5px 0;
+  display:grid; grid-template-columns:22px 26px 104px 92px 40px 74px;
+  justify-content:start;
+  align-items:center; gap:12px; padding:6px 0;
   border-top:1px solid var(--border-soft);
 }
 .liga-partida:first-of-type{border-top:none;}
@@ -3171,7 +3181,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   background:var(--surface-hover); color:var(--text-muted);
   font-family:var(--font-mono); font-size:8px; font-weight:700;
 }
-.liga-partida-champ-nombre{font-size:12px; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.liga-partida-champ-nombre{font-size:12.5px; font-weight:600; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .liga-partida-cuando{font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted); white-space:nowrap;}
 /* Lo que SÍ puntúa va en blanco; el LP, apagado al lado. */
 .liga-partida-netas{
@@ -3185,7 +3195,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .liga-partida-lp.sin{cursor:help; opacity:0.6;}
 @media (max-width:560px){
   .liga-detalle{padding-left:16px;}
-  .liga-partida{grid-template-columns:20px 24px minmax(0,1fr) 30px 58px; gap:8px;}
+  .liga-partida{grid-template-columns:20px 24px minmax(0,1fr) 34px 64px; gap:9px;}
   .liga-partida-cuando{display:none;}
 }
 /* El primero no lleva medalla ni corona: un fondo apenas dorado alcanza para

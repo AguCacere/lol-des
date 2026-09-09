@@ -87,7 +87,9 @@ const horaDe = (iso: string) =>
 function cuando(iso: string): string {
   const d = new Date(iso);
   const opts: Intl.DateTimeFormatOptions = { timeZone: "America/Argentina/Buenos_Aires" };
-  const hora = d.toLocaleTimeString("es-AR", { ...opts, hour: "2-digit", minute: "2-digit" });
+  // hour12:false explícito: es-AR devuelve "06:41 p. m." por defecto, con
+  // puntos y espacios, y en una columna de 11px eso es un choclo.
+  const hora = d.toLocaleTimeString("es-AR", { ...opts, hour: "2-digit", minute: "2-digit", hour12: false });
   const hoy = new Date().toLocaleDateString("es-AR", opts);
   const suyo = d.toLocaleDateString("es-AR", opts);
   if (suyo === hoy) return `hoy ${hora}`;
@@ -382,9 +384,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                   <div className="liga-detalle">
                     <p className="liga-detalle-titulo">
                       Sus últimas {f.ultimas!.length} de la semana
-                      <span className="liga-detalle-nota">
-                        El LP no puntúa: la liga se mide en partidas netas, y una victoria vale 1 para todos.
-                      </span>
+                      <span className="liga-detalle-nota">El LP no puntúa — una victoria vale 1 para todos.</span>
                     </p>
                     {f.ultimas!.map((m) => (
                       <div className={`liga-partida ${m.win ? "gano" : "perdio"}`} key={m.matchId}>
