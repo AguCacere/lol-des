@@ -3097,7 +3097,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 /* El número del que va ganando pesa más que el resto: es el que hay que
    mirar primero. */
-.liga-fila.lider .liga-lp{font-size:29px;}
+.liga-fila.lider .liga-lp{font-size:23px;}
 .liga-avatar{width:38px; height:38px; border-radius:11px; font-size:13px;}
 /* Con qué jugó la semana: el arte del campeón y el ícono de la línea. Es la
    única imagen de verdad de la fila —el ícono de perfil es un dibujito de
@@ -3269,7 +3269,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    grises. */
 .liga-lp{
   display:flex; flex-direction:column; align-items:flex-end; gap:2px;
-  font-family:var(--font-stat); font-size:25px; font-weight:800; letter-spacing:-0.03em;
+  font-family:var(--font-stat); font-size:20px; font-weight:800; letter-spacing:-0.02em;
   font-variant-numeric:tabular-nums; text-align:right;
 }
 /* El LP real, abajo del puntaje y en chico. Ya no decide nada —puntúan las
@@ -3284,13 +3284,16 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    Va a media luz para no competir con la placa de arriba, que es la que
    decide. Colores explícitos porque .gd-pos/.gd-neg están definidas más
    arriba y, a igual especificidad, pierden contra .liga-lp-ref. */
-.liga-lp-ref.gd-pos{color:rgba(52,201,124,0.72);}
-.liga-lp-ref.gd-neg{color:rgba(240,85,95,0.72);}
+.liga-lp-ref.gd-pos{color:rgba(52,201,124,0.66);}
+.liga-lp-ref.gd-neg{color:rgba(240,85,95,0.66);}
 /* El puntaje NO va en caja. Estuvo un rato en placa —fondo teñido y aro— y en
    una columna de seis filas eso son seis rectángulos en fila que se leen como
    botones, encima adentro de una fila que SÍ es cliqueable. La vida se la da
-   la luz, no el marco: el número grande, y un resplandor del color del signo
-   que se aviva al pasar por la fila. La palabra al lado dice qué se cuenta. */
+   la luz, no el marco: un resplandor del color del signo que se aviva al pasar
+   por la fila, y la palabra al lado diciendo qué se cuenta.
+   El tamaño quedó en 20px y el resplandor bajo a propósito: pasó por 25 y
+   hacía ruido. En una tabla de seis filas el número no necesita gritar, ya es
+   lo único grande de su columna. */
 .liga-puntaje{
   display:inline-flex; align-items:baseline; gap:5px; line-height:1;
   transition:text-shadow .16s ease;
@@ -3302,10 +3305,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .liga-lp:not(.gd-pos):not(.gd-neg){color:var(--text-muted);}
 .liga-lp.gd-pos{color:var(--good);}
 .liga-lp.gd-neg{color:var(--critical);}
-.liga-lp.gd-pos .liga-puntaje{text-shadow:0 0 20px rgba(52,201,124,0.32);}
-.liga-lp.gd-neg .liga-puntaje{text-shadow:0 0 20px rgba(240,85,95,0.28);}
-.liga-fila:hover .liga-lp.gd-pos .liga-puntaje{text-shadow:0 0 26px rgba(52,201,124,0.55);}
-.liga-fila:hover .liga-lp.gd-neg .liga-puntaje{text-shadow:0 0 26px rgba(240,85,95,0.5);}
+.liga-lp.gd-pos .liga-puntaje{text-shadow:0 0 14px rgba(52,201,124,0.20);}
+.liga-lp.gd-neg .liga-puntaje{text-shadow:0 0 14px rgba(240,85,95,0.18);}
+.liga-fila:hover .liga-lp.gd-pos .liga-puntaje{text-shadow:0 0 20px rgba(52,201,124,0.36);}
+.liga-fila:hover .liga-lp.gd-neg .liga-puntaje{text-shadow:0 0 20px rgba(240,85,95,0.33);}
 @media (prefers-reduced-motion:reduce){ .liga-puntaje{transition:none;} }
 .liga-historial{
   margin-top:12px; padding:11px 14px;
@@ -3352,8 +3355,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   /* En el teléfono se cae la palabra: "netas" no entra al lado del número, y
      lo que importa ahí es el número. */
   .liga-puntaje-unidad{display:none;}
-  .liga-lp{font-size:22px;}
-  .liga-fila.lider .liga-lp{font-size:24px;}
+  .liga-lp{font-size:18px;}
+  .liga-fila.lider .liga-lp{font-size:20px;}
   .liga-avatar{width:31px; height:31px; border-radius:9px; font-size:11px;}
   .liga-puesto{font-size:13px;}
   .liga-puesto svg{width:16px; height:16px;}
@@ -3368,7 +3371,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .liga-linea img{width:9px; height:9px;}
   .liga-avatar{width:28px; height:28px; border-radius:8px;}
   .liga-nombre{font-size:13px;}
-  .liga-lp{font-size:19px;}
+  .liga-lp{font-size:17px;}
   .liga-vd{display:none;}
 }
 /* Marca de que ese entró a mitad de semana. Va chiquito y al lado del nombre
