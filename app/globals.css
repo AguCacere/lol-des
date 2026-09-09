@@ -3097,7 +3097,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 /* El número del que va ganando pesa más que el resto: es el que hay que
    mirar primero. */
-.liga-fila.lider .liga-lp{font-size:22px;}
+.liga-fila.lider .liga-lp{font-size:29px;}
 .liga-avatar{width:38px; height:38px; border-radius:11px; font-size:13px;}
 /* Con qué jugó la semana: el arte del campeón y el ícono de la línea. Es la
    única imagen de verdad de la fila —el ícono de perfil es un dibujito de
@@ -3206,9 +3206,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    apagado y con la aclaración pegada, para que no se lea como propio de esa. */
 .liga-partida-lp.junta{cursor:help; opacity:0.82;}
 .liga-partida-junta{
-  font-family:var(--font-body); font-size:9.5px; font-weight:700; letter-spacing:0.03em;
-  color:var(--text-muted); background:var(--surface-hover);
-  border-radius:999px; padding:1px 6px; white-space:nowrap;
+  font-family:var(--font-body); font-size:10px; font-weight:600; letter-spacing:0.02em;
+  color:var(--text-muted); white-space:nowrap; opacity:0.85;
 }
 .liga-partida-lp.sin{cursor:help; opacity:0.6;}
 @media (max-width:560px){
@@ -3269,8 +3268,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    — así que un `color` en la base las pisaba y los números salían todos
    grises. */
 .liga-lp{
-  display:flex; flex-direction:column; align-items:flex-end; gap:4px;
-  font-family:var(--font-stat); font-size:19px; font-weight:800; letter-spacing:-0.02em;
+  display:flex; flex-direction:column; align-items:flex-end; gap:2px;
+  font-family:var(--font-stat); font-size:25px; font-weight:800; letter-spacing:-0.03em;
   font-variant-numeric:tabular-nums; text-align:right;
 }
 /* El LP real, abajo del puntaje y en chico. Ya no decide nada —puntúan las
@@ -3287,27 +3286,27 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    arriba y, a igual especificidad, pierden contra .liga-lp-ref. */
 .liga-lp-ref.gd-pos{color:rgba(52,201,124,0.72);}
 .liga-lp-ref.gd-neg{color:rgba(240,85,95,0.72);}
-/* La placa: el número que decide el premio tiene al lado un récord, una racha
-   y una curva, y suelto se perdía entre todos. El fondo tenue lo separa y de
-   paso le da piso al 0, que sin nada atrás parecía un hueco en la columna. */
+/* El puntaje NO va en caja. Estuvo un rato en placa —fondo teñido y aro— y en
+   una columna de seis filas eso son seis rectángulos en fila que se leen como
+   botones, encima adentro de una fila que SÍ es cliqueable. La vida se la da
+   la luz, no el marco: el número grande, y un resplandor del color del signo
+   que se aviva al pasar por la fila. La palabra al lado dice qué se cuenta. */
 .liga-puntaje{
-  display:inline-flex; align-items:baseline; gap:5px;
-  padding:4px 9px 5px; border-radius:9px; line-height:1;
-  background:var(--surface-hover); box-shadow:inset 0 0 0 1px var(--border-soft);
-  transition:background .14s ease, box-shadow .14s ease;
+  display:inline-flex; align-items:baseline; gap:5px; line-height:1;
+  transition:text-shadow .16s ease;
 }
 .liga-puntaje-unidad{
   font-family:var(--font-body); font-size:9px; font-weight:700;
-  letter-spacing:0.06em; text-transform:uppercase; opacity:0.6;
+  letter-spacing:0.07em; text-transform:uppercase; opacity:0.42;
 }
 .liga-lp:not(.gd-pos):not(.gd-neg){color:var(--text-muted);}
 .liga-lp.gd-pos{color:var(--good);}
 .liga-lp.gd-neg{color:var(--critical);}
-.liga-lp.gd-pos .liga-puntaje{background:var(--good-wash); box-shadow:inset 0 0 0 1px rgba(52,201,124,0.26);}
-.liga-lp.gd-neg .liga-puntaje{background:var(--critical-wash); box-shadow:inset 0 0 0 1px rgba(240,85,95,0.24);}
-.liga-fila:hover .liga-puntaje{background:rgba(255,255,255,0.06);}
-.liga-fila:hover .liga-lp.gd-pos .liga-puntaje{background:rgba(52,201,124,0.19); box-shadow:inset 0 0 0 1px rgba(52,201,124,0.4);}
-.liga-fila:hover .liga-lp.gd-neg .liga-puntaje{background:rgba(240,85,95,0.19); box-shadow:inset 0 0 0 1px rgba(240,85,95,0.38);}
+.liga-lp.gd-pos .liga-puntaje{text-shadow:0 0 20px rgba(52,201,124,0.32);}
+.liga-lp.gd-neg .liga-puntaje{text-shadow:0 0 20px rgba(240,85,95,0.28);}
+.liga-fila:hover .liga-lp.gd-pos .liga-puntaje{text-shadow:0 0 26px rgba(52,201,124,0.55);}
+.liga-fila:hover .liga-lp.gd-neg .liga-puntaje{text-shadow:0 0 26px rgba(240,85,95,0.5);}
+@media (prefers-reduced-motion:reduce){ .liga-puntaje{transition:none;} }
 .liga-historial{
   margin-top:12px; padding:11px 14px;
   background:var(--surface); border-radius:var(--radius-sm);
@@ -3350,10 +3349,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   /* Y después el rango: en un teléfono el nombre y el neto son lo que se
      mira, y el rango de cada uno ya está en el ladder de al lado. */
   .liga-fila{grid-template-columns:36px 32px minmax(0,1fr) 34px minmax(110px,150px) 82px; gap:10px; padding:10px 13px;}
-  /* En el teléfono la placa se queda pero pierde la palabra: "netas" no cabe
-     al lado del número y lo que importa ahí es el número. */
+  /* En el teléfono se cae la palabra: "netas" no entra al lado del número, y
+     lo que importa ahí es el número. */
   .liga-puntaje-unidad{display:none;}
-  .liga-puntaje{padding:3px 8px 4px;}
+  .liga-lp{font-size:22px;}
+  .liga-fila.lider .liga-lp{font-size:24px;}
   .liga-avatar{width:31px; height:31px; border-radius:9px; font-size:11px;}
   .liga-puesto{font-size:13px;}
   .liga-puesto svg{width:16px; height:16px;}
@@ -3368,7 +3368,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .liga-linea img{width:9px; height:9px;}
   .liga-avatar{width:28px; height:28px; border-radius:8px;}
   .liga-nombre{font-size:13px;}
-  .liga-lp{font-size:17px;}
+  .liga-lp{font-size:19px;}
   .liga-vd{display:none;}
 }
 /* Marca de que ese entró a mitad de semana. Va chiquito y al lado del nombre
