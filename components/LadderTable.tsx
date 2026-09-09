@@ -391,13 +391,14 @@ export function LadderTable({
                     </span>
                   </span>
                   <span className="col-spark">
-                    {/* width 300 y no 150: la columna renderiza ~305px y el
-                        SVG usa preserveAspectRatio="none", así que con el
-                        viewBox en 150 el dibujo salía estirado al DOBLE de
-                        ancho (medido: 2,03x). Eso ensancha el trazo solo en
-                        horizontal, aplana la curva y convierte el punto final
-                        en un óvalo — por eso el gráfico del ladder se veía
-                        peor que el de la liga, que va 1:1.
+                    {/* Exactamente las mismas medidas que el de la liga
+                        (230x34, pad 5): son los dos el mismo gráfico y no hay
+                        motivo para que uno sea más grande. Antes era un
+                        viewBox de 150 en una columna de 305px y, como el SVG
+                        usa preserveAspectRatio="none", salía estirado al DOBLE
+                        de ancho (medido: 2,03x) — eso ensancha el trazo solo
+                        en horizontal, aplana la curva y convierte el punto
+                        final en un óvalo.
 
                         Y la serie va RELATIVA a su arranque, como en la liga:
                         la forma de la curva es idéntica (la geometría
@@ -406,9 +407,9 @@ export function LadderTable({
                         exactamente lo que dice el "▲ N pts" de abajo. */}
                     <SparkChart
                       values={sparkRelativa}
-                      width={300}
-                      height={40}
-                      pad={8}
+                      width={230}
+                      height={34}
+                      pad={5}
                       color={trendColor(spark)}
                       lineaCero
                     />
