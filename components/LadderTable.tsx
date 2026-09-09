@@ -256,6 +256,9 @@ export function LadderTable({
               const isActive = key === activeKey;
               const streak = currentStreak(p.matches);
               const spark = trendSeries(p);
+              // Contra su propio punto de partida, para que el 0 signifique
+              // algo. Restar una constante no cambia la forma del dibujo.
+              const sparkRelativa = spark.length > 0 ? spark.map((v) => v - spark[0]) : spark;
               return (
                 <button
                   key={key}
@@ -388,7 +391,27 @@ export function LadderTable({
                     </span>
                   </span>
                   <span className="col-spark">
-                    <SparkChart values={spark} width={150} height={40} pad={8} color={trendColor(spark)} />
+                    {/* width 300 y no 150: la columna renderiza ~305px y el
+                        SVG usa preserveAspectRatio="none", así que con el
+                        viewBox en 150 el dibujo salía estirado al DOBLE de
+                        ancho (medido: 2,03x). Eso ensancha el trazo solo en
+                        horizontal, aplana la curva y convierte el punto final
+                        en un óvalo — por eso el gráfico del ladder se veía
+                        peor que el de la liga, que va 1:1.
+
+                        Y la serie va RELATIVA a su arranque, como en la liga:
+                        la forma de la curva es idéntica (la geometría
+                        normaliza min-max igual), pero así el 0 existe y la
+                        línea punteada marca de dónde salió — que es
+                        exactamente lo que dice el "▲ N pts" de abajo. */}
+                    <SparkChart
+                      values={sparkRelativa}
+                      width={300}
+                      height={40}
+                      pad={8}
+                      color={trendColor(spark)}
+                      lineaCero
+                    />
                     {/* La curva sola dice la forma pero no la magnitud: dos
                         jugadores con la misma silueta pueden haber movido 5
                         puntos o 90. recentDelta ya se calculaba para ordenar

@@ -72,7 +72,12 @@ cambia esto: apaga el caché de datos de Next, no el del CDN.
 ## Gráficos y SVG
 
 **`preserveAspectRatio="none"` deforma.** El `viewBox` tiene que estar cerca del
-tamaño real de render o el dibujo se estira. Y el `<text>` de un SVG escala con la
+tamaño real de render o el dibujo se estira. El remedio para una columna fluida es
+`max-width` igual al ancho del viewBox: **estirar es la dirección fea** —engorda el
+trazo solo en horizontal y convierte el punto final del `SparkChart` en un óvalo—
+mientras que comprimir apenas afina la línea. El del ladder venía con viewBox de 150
+en una columna de 305: 2,03x de estirón, y era la razón de que se viera peor que el
+de la liga, que va 1:1. Y el `<text>` de un SVG escala con la
 caja: una etiqueta legible en desktop queda en 4,7px en mobile. **Las etiquetas van en
 HTML encima del SVG**, no adentro.
 

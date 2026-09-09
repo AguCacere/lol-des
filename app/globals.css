@@ -437,7 +437,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .ladder-row:last-child{border-bottom-left-radius:var(--radius-lg); border-bottom-right-radius:var(--radius-lg);}
 .ladder-row{
   display:grid;
-  grid-template-columns:34px 1.85fr 0.85fr 1.1fr 1.55fr 28px;
+  grid-template-columns:34px 1.85fr 0.85fr 1.1fr minmax(0,300px) 28px;
   align-items:center; gap:14px;
   padding:14px 18px;
   appearance:none; -webkit-appearance:none;
@@ -479,7 +479,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .ladder-row.is-you.is-active{box-shadow:inset 2px 0 0 var(--accent);}
 .ladder-row.is-you:focus-visible{box-shadow:inset 0 0 0 2px var(--accent);}
 .ladder-head{
-  display:grid; grid-template-columns:34px 1.85fr 0.85fr 1.1fr 1.55fr 28px; gap:14px;
+  display:grid; grid-template-columns:34px 1.85fr 0.85fr 1.1fr minmax(0,300px) 28px; gap:14px;
   padding:10px 18px; border-bottom:1px solid var(--border-soft);
   font-size:10.5px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase;
   color:var(--text-muted);
@@ -598,7 +598,13 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .spark-delta.up{color:var(--good);}
 .spark-delta.down{color:var(--critical);}
-.col-spark svg{display:block; width:100%; height:40px; transition:filter .18s ease;}
+/* max-width igual al viewBox del SparkChart (300). El SVG usa
+   preserveAspectRatio="none": si la columna es MÁS ancha que el viewBox el
+   dibujo se estira, y estirar es la dirección fea — engorda el trazo solo en
+   horizontal y convierte el punto final en un óvalo. Medido, antes se estiraba
+   2,03x. Comprimir (columna más angosta que el viewBox) apenas afina la línea,
+   así que el tope va solo de un lado. */
+.col-spark svg{display:block; width:100%; max-width:300px; height:40px; transition:filter .18s ease;}
 /* Row hover gives the sparkline itself a very slight lift — line, endpoint dot and its halo all brighten together, nothing redraws or resizes. */
 .ladder-row:hover .col-spark svg{filter:brightness(1.12);}
 .col-chevron{color:var(--text-muted); display:flex; justify-content:flex-end;}
