@@ -110,28 +110,26 @@ export function LadderTable({
 
   return (
     <section>
-      {/* Un título —el de la tabla que estás mirando— y al lado la salida
-          hacia la otra. Las dos son tablas del grupo y compiten por el mismo
-          lugar: el ladder dice dónde llegó cada uno, la liga cuánto se movió
-          esta semana.
-
-          Antes eran DOS títulos del mismo tamaño y peso, más el contador de
-          invocadores en el medio: se leían como dos encabezados compitiendo
-          en vez de "estoy acá y puedo ir allá", y la línea quedaba apretada.
-
-          La otra tabla queda A LA VISTA a propósito, y no adentro de un
+      {/* La otra tabla queda A LA VISTA a propósito, y no adentro de un
           desplegable: son dos opciones —esconder una detrás de un clic no
           descomprime, agrega un paso— y la que se escondería es la liga, que
           es justo la que tiene algo en juego y de la que nadie se acuerda si
-          no la ve. */}
+          no la ve.
+
+          Los filtros viven ACÁ, en el mismo renglón que el título, y el
+          interruptor se corre a la izquierda pegado al nombre de la tabla.
+
+          Antes eran TRES bandas apiladas —pestañas, título, filtros— y dos de
+          ellas iban de borde a borde con algo a la izquierda y algo a la
+          derecha. Medido: el ojo hacía izquierda-derecha tres veces seguidas
+          en 159px de alto. No sobraba espacio vertical (48/24/8 estaba bien
+          jerarquizado): sobraba una banda.
+
+          Ahora son dos, y cada lado significa algo: a la izquierda QUÉ tabla
+          estás mirando y cómo ir a la otra, a la derecha CÓMO la querés ver. */}
       <div className="section-head">
-        {/* Sin puntito: marcaba "sección", no datos en vivo, y con la app
-            refrescándose sola cada 15 minutos no hay nada que señalar. Ocho
-            encabezados con una lucecita al lado hacían que todo pareciera un
-            panel de estado. Los .live-dot verdes que quedan son los de alguien
-            REALMENTE en partida ahora, que sí es información. */}
-        <h2>{enLiga ? "Liga de la semana" : "Ladder del grupo"}</h2>
-        <div className="vista-derecha">
+        <div className="vista-titulo">
+          <h2>{enLiga ? "Liga de la semana" : "Ladder del grupo"}</h2>
           <button type="button" className="vista-ir" onClick={() => onVistaChange(enLiga ? "ladder" : "liga")}>
             {enLiga ? (
               <>
@@ -139,43 +137,49 @@ export function LadderTable({
               </>
             ) : (
               <>
+                {/* La copa: es una competencia con premio, no un enlace más.
+                    Sin ella el botón era una pastilla con texto y podía ser
+                    cualquier cosa. */}
+                <svg className="vista-ir-copa" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M6 3h12v2h3v3a4 4 0 0 1-4 4h-.3A6 6 0 0 1 13 15.9V18h3v3H8v-3h3v-2.1A6 6 0 0 1 7.3 12H7a4 4 0 0 1-4-4V5h3V3zm0 4H5v1a2 2 0 0 0 1 1.7V7zm12 0v2.7A2 2 0 0 0 19 8V7h-1z" />
+                </svg>
                 Liga de la semana <span aria-hidden>→</span>
               </>
             )}
           </button>
         </div>
+        {!enLiga && (
+          <div className="ladder-controls">
+            {/* La línea pasó de seis chips a un desplegable. Ocupaba un renglón
+                entero para algo que casi no se toca. */}
+            <div className="sort-select-wrap">
+              <span className="meta">Línea</span>
+              <Select
+                className="sort-select"
+                value={roleFilter}
+                onChange={(v) => onRoleFilterChange(v as RoleKey | "all")}
+                ariaLabel="Filtrar el ladder por línea"
+                options={ROLE_FILTERS.map((r) => ({ value: r, label: r === "all" ? "Todas" : ROLES[r].label }))}
+              />
+            </div>
+            <div className="sort-select-wrap">
+              <span className="meta">Ordenar por</span>
+              <Select
+                className="sort-select a-la-derecha"
+                value={sortKey}
+                onChange={(v) => onSortKeyChange(v as SortKey)}
+                ariaLabel="Ordenar el ladder por"
+                options={ORDENES}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {enLiga ? (
         <LigaSemanal conEncabezado={false} />
       ) : (
         <>
-      <div className="ladder-controls">
-        {/* La línea pasó de seis chips a un desplegable. Ocupaba un renglón
-            entero para algo que casi no se toca, y ese renglón lo necesitaba
-            el interruptor de arriba. */}
-        <div className="sort-select-wrap">
-          <span className="meta">Línea</span>
-          <Select
-            className="sort-select"
-            value={roleFilter}
-            onChange={(v) => onRoleFilterChange(v as RoleKey | "all")}
-            ariaLabel="Filtrar el ladder por línea"
-            options={ROLE_FILTERS.map((r) => ({ value: r, label: r === "all" ? "Todas" : ROLES[r].label }))}
-          />
-        </div>
-        <div className="sort-select-wrap">
-          <span className="meta">Ordenar por</span>
-          <Select
-            className="sort-select a-la-derecha"
-            value={sortKey}
-            onChange={(v) => onSortKeyChange(v as SortKey)}
-            ariaLabel="Ordenar el ladder por"
-            options={ORDENES}
-          />
-        </div>
-      </div>
-
       <div className="ladder">
         <div className="ladder-head">
           <span>#</span>

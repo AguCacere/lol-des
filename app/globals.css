@@ -183,12 +183,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .section-head .meta{font-size:11.5px; color:var(--text-muted); text-align:right;}
 .last-updated{white-space:nowrap;}
 
-/* Y estos van PEGADOS a la tabla —8px— porque la filtran y la ordenan: son
-   parte de ella, no un tercer bloque suelto entre el título y los datos. */
+/* Ya no son una banda propia: viven adentro de .section-head, como el grupo
+   de la DERECHA. Antes ocupaban un renglón entero de borde a borde y, sumados
+   a las pestañas y al título, hacían tres bandas seguidas con algo pegado a
+   cada costado — el ojo iba izquierda-derecha tres veces en 159px. */
 .ladder-controls{
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  flex-wrap:wrap; margin-bottom:8px;
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap; align-self:center;
 }
+/* El grupo de la IZQUIERDA: qué tabla estás mirando, y cómo ir a la otra. */
+.vista-titulo{display:flex; align-items:center; gap:13px; min-width:0; align-self:center; flex-wrap:wrap;}
 /* La sección del ladder tiene UN título —el de la tabla que se está
    mirando— y al lado la salida hacia la otra, en chico.
 
@@ -196,23 +199,28 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    contador de invocadores: la línea se leía como dos encabezados compitiendo
    y quedaba apretada. Bajarle el tamaño al que no está activo es lo que
    convierte la fila en "estoy acá y puedo ir allá". */
-.vista-derecha{
-  display:flex; align-items:baseline; justify-content:flex-end;
-  gap:14px; min-width:0; flex-wrap:wrap;
-}
 /* Una pastilla y no texto gris suelto: gris a 13px no se leía como algo que
    se toca, y esto es lo único que lleva de una tabla a la otra. En el color de
    acento, con borde propio, y la flecha se corre en el hover — el movimiento
    es lo que termina de decir "esto es un botón". */
 .vista-ir{
   display:inline-flex; align-items:center; gap:7px; cursor:pointer; white-space:nowrap;
-  padding:5px 11px; border-radius:999px;
-  border:1px solid var(--accent-dim); background:var(--accent-wash-soft);
+  padding:7px 14px; border-radius:999px;
+  border:1px solid var(--accent-dim);
+  /* Degradado y no un plano: una pastilla lisa se leía como una etiqueta.
+     El brillo arriba y la sombra propia la levantan de la página. */
+  background:linear-gradient(180deg, var(--accent-wash) 0%, var(--accent-wash-soft) 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.4);
   font-family:var(--font-body); font-size:12.5px; font-weight:700; letter-spacing:0.01em;
   color:var(--accent);
-  transition:background .16s ease, border-color .16s ease, color .16s ease;
+  transition:background .16s ease, border-color .16s ease, box-shadow .16s ease;
 }
-.vista-ir:hover{background:var(--accent-wash); border-color:var(--accent);}
+.vista-ir:hover{
+  background:linear-gradient(180deg, rgba(212,175,55,0.2) 0%, var(--accent-wash) 100%);
+  border-color:var(--accent);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.1), 0 0 0 3px var(--accent-wash-soft);
+}
+.vista-ir-copa{width:14px; height:14px; flex:none;}
 .vista-ir span{transition:transform .16s ease;}
 .vista-ir:hover span{transform:translateX(3px);}
 /* La que apunta para atrás se corre para atrás. */
@@ -225,9 +233,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    ya lo puso el interruptor. */
 .liga-rango-solo{display:flex; justify-content:flex-end; margin:-4px 0 10px;}
 @media (max-width:560px){
-  /* En pantalla angosta la salida se va sola a su renglón; alineada a la
-     izquierda queda debajo del título en vez de colgada del borde derecho. */
-  .vista-derecha{gap:8px; justify-content:flex-start;}
+  /* En pantalla angosta los filtros se van solos a su renglón. */
+  .ladder-controls{gap:12px;}
 }
 
 .sort-select-wrap{display:flex; align-items:center; gap:8px; white-space:nowrap;}
