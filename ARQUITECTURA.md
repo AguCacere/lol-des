@@ -89,7 +89,8 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
 - `clash.ts` — agrupa las partidas de Clash (queue 700) en torneos.
 - `timeline.ts` — extrae de los frames de Match-V5 los números de `MatchDetail`.
 - `match-story.ts` — "dónde se dio vuelta la partida", en castellano.
-- `liga.ts` — la liga semanal: ventanas de tiempo, tabla y mensajes.
+- `liga.ts` — la liga semanal: ventanas de tiempo, tabla, mínimos para cobrar
+  (`MINIMO_SEMANAL`, `MINIMO_ULTIMO_DIA`, `ganadorDe`) y mensajes.
 - `liga-cierre.ts` — el cierre idempotente de la semana.
 - `roast.ts` — las cargadas: plantillas, precedencia y las especiales.
 - `coach.ts` — el prompt del análisis del pool.

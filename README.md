@@ -31,10 +31,16 @@ Además, sin pantalla propia:
 desastroso, ahogarse en la fuente, perder contra un Nasus, cruzarse un Teemo. Se
 dispara solo con el refresco.
 
-**La liga semanal** — una competencia interna por **LP neto**, de lunes a domingo hora
-argentina, aparte del ladder. El ladder mide dónde llegaste; la liga mide cuánto te
-moviste esta semana. Es opt-in: cada uno cuenta desde que se lo anota, no desde el
-lunes. Al cierre hay campeón y premio.
+**La liga semanal** — una competencia interna por **partidas netas** (victorias menos
+derrotas), de lunes a domingo hora argentina, aparte del ladder. El ladder mide dónde
+llegaste; la liga mide cuánto te moviste esta semana. Una victoria vale 1 para todos,
+sin importar cuánto LP dé cada cuenta. Es opt-in: cada uno cuenta desde que se lo
+anota, no desde el lunes.
+
+Para llevarse el premio no alcanza con ir primero: hay que jugar **10 partidas en la
+semana** y **3 el último día**. Es contra el que agarra ventaja el martes y no juega
+más para no arriesgarla. Si el puntero no llega a los mínimos, cobra el primero que
+sí; si no llega nadie, la semana cierra sin premio.
 
 **La cerradura** — todo lo que escribe (agregar invocadores, refrescar, generar
 informes con Claude, anotar gente en la liga) pide una contraseña compartida. Lo que

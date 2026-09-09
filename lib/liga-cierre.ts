@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendDiscordNotification } from "./discord";
 import { RANKED_SOLO_QUEUE_ID } from "./refresh";
-import { claveDeSemana, esSemanaDeLiga, inicioDeSemana, mensajeDeCierre, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot, ventanaDe } from "./liga";
+import { claveDeSemana, esSemanaDeLiga, ganadorDe, inicioDeSemana, mensajeDeCierre, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot, ventanaDe, ventanaUltimoDia } from "./liga";
 
 /**
  * El cierre de la semana, separado de la ruta para poder llamarlo también
@@ -74,12 +74,16 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
   // el mensaje de cierre, que se decide por LP neto. Con qué racha terminó la
   // semana es para la tabla en pantalla, no para el anuncio, y calcularla
   // obligaría a ordenar las partidas de todos para nada.
+  // El arranque del último día: sin el mínimo de ese día no se cobra, por más
+  // arriba que se haya terminado. Ver MINIMO_ULTIMO_DIA en lib/liga.ts.
+  const arrancaUltimoDia = ventanaUltimoDia(anterior).desde.getTime();
   const recordPorPuuid = new Map<string, RecordSemanal>();
   for (const m of partidas ?? []) {
     if (Date.parse(m.played_at) < (arranqueDe.get(m.puuid) ?? 0)) continue;
-    const acc = recordPorPuuid.get(m.puuid) ?? { victorias: 0, derrotas: 0, racha: null, champion: null, linea: null, secuencia: [], ultimas: [] };
+    const acc = recordPorPuuid.get(m.puuid) ?? { victorias: 0, derrotas: 0, racha: null, champion: null, linea: null, secuencia: [], ultimas: [], ultimoDia: 0 };
     if (m.win) acc.victorias++;
     else acc.derrotas++;
+    if (Date.parse(m.played_at) >= arrancaUltimoDia) acc.ultimoDia++;
     recordPorPuuid.set(m.puuid, acc);
   }
 
@@ -92,7 +96,11 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
   }));
   const tabla = tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], desde, fin, recordPorPuuid);
   const jugaron = tabla.filter((f) => !f.sinJugar);
-  const ganador = jugaron[0] ?? null;
+  // El que cobra no es el primero de la tabla: es el primero que además
+  // cumplió los dos mínimos. Puede no haber ninguno, y ahí la semana se cierra
+  // sin premio — que es exactamente lo que la regla tiene que poder hacer, o
+  // no sería una regla.
+  const ganador = ganadorDe(tabla);
 
   // Se registra ANTES de mandar el mensaje. Si Discord falla, la semana queda
   // cerrada igual y no se reintenta: es preferible perder un anuncio a que el

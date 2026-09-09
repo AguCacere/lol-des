@@ -42,6 +42,14 @@ muestra es el total del tramo con "entre 2", que es medido. El caso se vuelve ra
 mientras el scheduler corra cada 15 minutos; si aparece seguido, el arreglo es bajar
 el intervalo, no inventar el reparto.
 
+**El que va primero no es necesariamente el que cobra.** La liga tiene dos mínimos
+(`MINIMO_SEMANAL` = 10, `MINIMO_ULTIMO_DIA` = 3, en `lib/liga.ts`) y el premio lo
+levanta `ganadorDe`, que es el primero de la tabla que además los cumple — puede no
+haber ninguno y la semana cierra sin premio. La POSICIÓN sigue siendo la que dan las
+netas: lo que se pierde por no cumplir es el premio, no el puesto. Cualquier lugar que
+corone a alguien (el cierre, el mensaje de Discord) tiene que pasar por `ganadorDe` y
+no por `tabla[0]`, o la app dice una cosa y el premio va a otra.
+
 **La vista `ladder`: columnas nuevas al final.** Postgres tira 42P16 si se intenta
 `CREATE OR REPLACE VIEW` cambiando el orden o el tipo de las columnas existentes.
 

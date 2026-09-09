@@ -26,6 +26,9 @@ interface Fila {
   victorias: number;
   derrotas: number;
   sinJugar: boolean;
+  /** Partidas del último día y si cumple los dos mínimos. Opcionales por la ventana de caché del CDN. */
+  ultimoDia?: number;
+  habilitado?: boolean;
   rango: { tier: TierKey; division: number; lp: number } | null;
   serie: number[];
   entroTarde: string | null;
@@ -73,6 +76,10 @@ interface Datos {
   historial: { semana: string; ganador_label: string | null; lp_neto: number | null; jugadores: number }[];
   /** Para el arte de campeón. Opcional por la misma razón. */
   ddragonVersion?: string | null;
+  /** Los dos mínimos para cobrar y si el último día ya arrancó. Opcionales por la caché del CDN. */
+  minimoSemanal?: number;
+  minimoUltimoDia?: number;
+  ultimoDia?: boolean;
 }
 
 const dia = (iso: string) =>
@@ -173,8 +180,46 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
   const yaArranco = d.arrancoYa ?? true;
   const anotados = d.plantel.filter((p) => p.participa).length;
   const sinJugar = d.tabla.filter((f) => f.sinJugar).length;
+  // Los mínimos vienen de la API para que cambiarlos en lib/liga.ts alcance.
+  // Con guarda: una pestaña vieja contra la API nueva no los trae, y ahí lo
+  // correcto es no mostrar la regla en vez de inventar un número que no es el
+  // que aplica el cierre.
+  const minSemana = d.minimoSemanal ?? null;
+  const minDia = d.minimoUltimoDia ?? null;
+  const esUltimoDia = d.ultimoDia ?? false;
   // Para escalar las barras de partidas: el que más jugó ocupa todo el ancho.
   const maxPartidas = Math.max(1, ...d.tabla.map((f) => f.victorias + f.derrotas));
+
+  /**
+   * El estado de cobro de una fila: "cobra" si cumple los dos mínimos, o lo que
+   * le falta. Devuelve null cuando la API todavía no manda los mínimos, así una
+   * pestaña vieja no muestra un requisito inventado.
+   */
+  function cupo(f: Fila) {
+    if (minSemana == null || minDia == null) return null;
+    const total = f.victorias + f.derrotas;
+    if (f.habilitado) {
+      return (
+        <span className="liga-cupo ok" title={`Jugó ${total} en la semana y ${f.ultimoDia ?? 0} el último día: cobra.`}>
+          cobra
+        </span>
+      );
+    }
+    if (total < minSemana) {
+      return (
+        <span className="liga-cupo" title={`Le faltan ${minSemana - total} partidas en la semana para poder cobrar.`}>
+          {total}/{minSemana} semana
+        </span>
+      );
+    }
+    // Ya cumplió la semana: lo que falta es el último día. Antes de que arranque
+    // se muestra igual, en gris, como aviso de lo que viene.
+    return (
+      <span className={`liga-cupo${esUltimoDia ? " urge" : ""}`} title={`Le faltan ${minDia - (f.ultimoDia ?? 0)} partidas del último día para poder cobrar.`}>
+        {f.ultimoDia ?? 0}/{minDia} {esUltimoDia ? "hoy" : "último día"}
+      </span>
+    );
+  }
 
   const rango = (
     <span className="meta liga-rango">
@@ -206,6 +251,15 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
         <p className="liga-regla">
           Gana el que más <b>netas</b> hace: victorias menos derrotas.{" "}
           <span className="liga-regla-nota">El LP no puntúa — una victoria vale 1 para todos.</span>
+          {/* La condición para cobrar, aparte y en su propio renglón: es una
+              regla distinta de cómo se puntúa, y mezclarlas en la misma frase
+              hacía que no se leyera ninguna. */}
+          {minSemana != null && minDia != null && (
+            <span className="liga-regla-cobro">
+              Para cobrar hay que jugar <b>{minSemana} partidas en la semana</b> y <b>{minDia} el último día</b>
+              {esUltimoDia ? " — que es hoy." : "."}
+            </span>
+          )}
         </p>
       )}
 
@@ -371,6 +425,11 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                               {f.racha.cantidad}
                             </span>
                           )}
+                          {/* Si cobra o qué le falta para cobrar. Va pegado al
+                              récord porque habla de partidas jugadas, y es lo
+                              único que le avisa al que va primero que quedarse
+                              quieto no le alcanza. */}
+                          {cupo(f)}
                         </span>
                       </>
                     ) : (

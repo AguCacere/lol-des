@@ -3064,6 +3064,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .liga-regla b{color:var(--text-primary); font-weight:700;}
 .liga-regla-nota{color:var(--text-muted);}
+/* La condición para cobrar va en renglón propio: es otra regla, no una
+   aclaración de la de arriba, y en la misma línea no se leía ninguna. */
+.liga-regla-cobro{display:block; margin-top:2px; color:var(--text-muted);}
+.liga-regla-cobro b{color:var(--accent); font-weight:700;}
 .liga-tabla{
   background:var(--bg); border-radius:var(--radius-lg); box-shadow:var(--shadow); overflow:hidden;
 }
@@ -3291,6 +3295,17 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .liga-racha.w{color:var(--good); background:var(--good-wash);}
 .liga-racha.l{color:var(--critical); background:var(--critical-wash);}
 .liga-sinjugar{font-size:10.5px; color:var(--text-muted); opacity:0.7; white-space:nowrap;}
+/* Cuánto le falta para cobrar. Chiquito y apagado: no compite con el récord,
+   pero está siempre a la vista — es lo único que le dice al que va primero que
+   quedarse quieto no le alcanza. */
+.liga-cupo{
+  font-family:var(--font-body); font-size:9.5px; font-weight:600; letter-spacing:0.02em;
+  color:var(--text-muted); white-space:nowrap; cursor:help;
+  padding:1px 6px; border-radius:999px; box-shadow:inset 0 0 0 1px var(--border-soft);
+}
+.liga-cupo.ok{color:rgba(52,201,124,0.7); box-shadow:inset 0 0 0 1px rgba(52,201,124,0.2);}
+/* El último día ya corriendo y todavía sin cumplir: ahí sí urge. */
+.liga-cupo.urge{color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent-dim-border);}
 /* El dato de la tabla: lo único que decide el premio.
    El color va en reglas propias y no en `color` acá: .gd-pos/.gd-neg están
    definidas más arriba en el archivo y, a igual especificidad, gana la última

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { exigirSesion } from "@/lib/auth";
 import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
-import { claveDeSemana, esSemanaDeLiga, inicioDeSemana, LIGA_INICIO, tablaDeLaSemana, ventanaDeSemana, lpPorPartida, type Participante, type RecordSemanal, type Snapshot } from "@/lib/liga";
+import { claveDeSemana, esSemanaDeLiga, inicioDeSemana, LIGA_INICIO, tablaDeLaSemana, ventanaDeSemana, ventanaUltimoDia, empezoElUltimoDia, MINIMO_SEMANAL, MINIMO_ULTIMO_DIA, lpPorPartida, type Participante, type RecordSemanal, type Snapshot } from "@/lib/liga";
 import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { roleFromTeamPosition } from "@/lib/mapping";
 
@@ -110,9 +110,13 @@ export async function GET() {
       for (const [v, n] of cuenta) if (n > max) { mejor = v; max = n; }
       return mejor;
     };
+    // El arranque del último día, para contar cuántas jugó ahí. Ver
+    // MINIMO_ULTIMO_DIA: sin las tres del domingo no cobra.
+    const arrancaUltimoDia = ventanaUltimoDia(inicio).desde.getTime();
     const recordPorPuuid = new Map<string, RecordSemanal>();
     for (const [puuid, suyas] of suyasPorPuuid) {
       const victorias = suyas.filter((m) => m.win).length;
+      const ultimoDia = suyas.filter((m) => Date.parse(m.played_at) >= arrancaUltimoDia).length;
       // De la más nueva hacia atrás, contando mientras el resultado no cambie.
       suyas.sort((a, b) => Date.parse(b.played_at) - Date.parse(a.played_at));
       const ultimo = suyas[0].win;
@@ -127,6 +131,7 @@ export async function GET() {
       recordPorPuuid.set(puuid, {
         victorias,
         derrotas: suyas.length - victorias,
+        ultimoDia,
         racha: { resultado: ultimo ? "W" : "L", cantidad },
         champion: masRepetido(suyas.map((m) => m.champion)),
         linea: roleFromTeamPosition(masRepetido(suyas.map((m) => m.team_position))),
@@ -169,6 +174,14 @@ export async function GET() {
     semana: claveDeSemana(inicio),
     desde: desdeVentana.toISOString(),
     hasta: fin.toISOString(),
+    // Las condiciones para cobrar, y si el último día ya arrancó. Van en la
+    // respuesta y no como constantes en el cliente para que cambiar el número
+    // en lib/liga.ts alcance: si el bundle viejo tuviera su propia copia,
+    // durante la ventana de caché la pantalla exigiría un mínimo distinto del
+    // que aplica el cierre.
+    minimoSemanal: MINIMO_SEMANAL,
+    minimoUltimoDia: MINIMO_ULTIMO_DIA,
+    ultimoDia: empezoElUltimoDia(inicio),
     tabla,
     // Para que la tabla pueda pedirle el arte del campeón a Data Dragon.
     ddragonVersion: version,

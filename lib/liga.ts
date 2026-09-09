@@ -72,6 +72,59 @@ export function ventanaDe(inicio: Date): { desde: Date; hasta: Date } {
   };
 }
 
+/**
+ * Cuántas partidas hay que jugar el ÚLTIMO día para llevarse el premio.
+ *
+ * Existe por una jugada que ya se vio: agarrar ventaja el martes y no volver a
+ * jugar para no arriesgarla. Una liga en la que conviene NO jugar está rota, y
+ * el domingo es el día en que eso se nota.
+ *
+ * No arregla el parking de toda la semana —se puede no jugar de martes a
+ * sábado y hacer las tres el domingo a las once de la noche—, para eso haría
+ * falta además un mínimo semanal. Es a propósito: se empieza por lo simple.
+ */
+export const MINIMO_ULTIMO_DIA = 3;
+
+/**
+ * Y cuántas hay que jugar en TODA la semana.
+ *
+ * Es la otra mitad de lo mismo: el mínimo del domingo obliga a aparecer el
+ * último día, pero solo con eso se puede parkear de martes a sábado y hacer
+ * las tres el domingo a la noche. Con las dos condiciones juntas hay que jugar
+ * la semana entera.
+ *
+ * Diez y no quince: quince era el primer número que se habló y sale a algo más
+ * de dos partidas por día, que para este grupo deja a casi todos afuera. Una
+ * semana que cierra sin premio porque nadie llegó al mínimo es peor que no
+ * tener la regla. Está acá arriba y solo, para moverlo sin buscar nada.
+ */
+export const MINIMO_SEMANAL = 10;
+
+/**
+ * Las últimas 24 horas de la semana: el domingo argentino entero.
+ *
+ * Se calcula desde el FIN y no desde el lunes, así vale igual para la primera
+ * semana de la liga, que arrancó un lunes a las 23:30.
+ */
+export function ventanaUltimoDia(inicio: Date): { desde: Date; hasta: Date } {
+  const fin = finDeSemana(inicio);
+  return { desde: new Date(fin.getTime() - 24 * 60 * 60 * 1000), hasta: fin };
+}
+
+/** Si el último día ya arrancó: recién ahí el mínimo del domingo tiene sentido. */
+export function empezoElUltimoDia(inicio: Date, ahora: Date = new Date()): boolean {
+  return ahora.getTime() >= ventanaUltimoDia(inicio).desde.getTime();
+}
+
+/**
+ * El que se lleva el premio: el primero que además cumplió el mínimo del
+ * domingo. Puede no haber ninguno, y esa es una respuesta válida — la semana
+ * se cierra sin premio.
+ */
+export function ganadorDe(tabla: FilaLiga[]): FilaLiga | null {
+  return tabla.find((f) => !f.sinJugar && f.habilitado) ?? null;
+}
+
 /** El lunes 00:00 (hora argentina) de la semana en la que cae `ahora`, como instante real. */
 export function inicioDeSemana(ahora: Date = new Date()): Date {
   // Corriendo el reloj, los campos UTC de esta fecha son la hora argentina.
@@ -133,6 +186,15 @@ export interface FilaLiga {
   derrotas: number;
   /** Si todavía no jugó nada esta semana. Se muestra distinto de un 0 conseguido jugando. */
   sinJugar: boolean;
+  /** Cuántas jugó el último día de la semana. Ver MINIMO_ULTIMO_DIA. */
+  ultimoDia: number;
+  /**
+   * Si cumple las dos condiciones para cobrar: el mínimo del último día y el
+   * de la semana. Sin esto no cobra, por más arriba que esté en la tabla — la
+   * posición sigue siendo la que le dan sus netas, lo que se pierde es el
+   * premio.
+   */
+  habilitado: boolean;
   /** Dónde está parado ahora — el rango de su última foto. Null si no tiene ninguna. */
   rango: { tier: TierKey; division: number; lp: number } | null;
   /**
@@ -277,6 +339,8 @@ export interface RecordSemanal {
   secuencia: boolean[];
   /** Las últimas de la semana, de la más nueva a la más vieja, con su LP. */
   ultimas: PartidaLiga[];
+  /** Cuántas jugó dentro de las últimas 24 horas de la semana. */
+  ultimoDia: number;
 }
 
 /**
@@ -412,8 +476,11 @@ export function tablaDeLaSemana(
     const base = previas.length > 0 ? previas[previas.length - 1] : dentro[0];
     const ultima = dentro.length > 0 ? dentro[dentro.length - 1] : base;
 
-    const { victorias, derrotas, racha, champion, linea, secuencia, ultimas } =
-      recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0, racha: null, champion: null, linea: null, secuencia: [], ultimas: [] };
+    const { victorias, derrotas, racha, champion, linea, secuencia, ultimas, ultimoDia } =
+      recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0, racha: null, champion: null, linea: null, secuencia: [], ultimas: [], ultimoDia: 0 };
+    // Las dos condiciones, juntas: aparecer el último día y haber jugado la
+    // semana. Cualquiera de las dos sola se esquiva.
+    const habilitado = ultimoDia >= MINIMO_ULTIMO_DIA && victorias + derrotas >= MINIMO_SEMANAL;
     // El neto de cada foto contra el punto de partida. Si no hay ninguna foto
     // dentro de la ventana todavía no se movió: línea plana en 0, no un
     // gráfico vacío.
@@ -444,7 +511,7 @@ export function tablaDeLaSemana(
       // Sin una sola foto no hay nada que medir, pero igual va la línea
       // plana en 0: un gráfico vacío parece roto, y "no se movió" es
       // información.
-      filas.push({ ...p, netas: victorias - derrotas, lpNeto: 0, lpRecortado: 0, victorias, derrotas, racha, champion, linea, ultimas, sinJugar: victorias + derrotas === 0, rango, serie: [0, 0], entroTarde });
+      filas.push({ ...p, netas: victorias - derrotas, lpNeto: 0, lpRecortado: 0, victorias, derrotas, racha, champion, linea, ultimas, ultimoDia, habilitado, sinJugar: victorias + derrotas === 0, rango, serie: [0, 0], entroTarde });
       continue;
     }
 
@@ -460,6 +527,8 @@ export function tablaDeLaSemana(
       champion,
       linea,
       ultimas,
+      ultimoDia,
+      habilitado,
       sinJugar: victorias + derrotas === 0,
       rango,
       // Relativa al punto de partida y no en puntos absolutos: lo que la
@@ -535,7 +604,29 @@ export function mensajeDeCierre(inicio: Date, tabla: FilaLiga[]): string {
     return `🏆 **Cerró la semana** (${fechaCorta(inicio)} – ${fechaCorta(fin)}) y no jugó **nadie**. Un papelón. La semana que viene arranca otra.`;
   }
 
-  const g = jugaron[0];
+  // El que cobra es el primero que cumplió los dos mínimos, no el primero de
+  // la tabla. Si nadie los cumplió, la semana se cierra sin premio y el
+  // anuncio lo dice con nombre y apellido: es la única forma de que la regla
+  // se sienta.
+  const g = ganadorDe(tabla);
+  if (!g) {
+    const puntero = jugaron[0];
+    const pp = puntajeDe(puntero);
+    const total = puntero.victorias + puntero.derrotas;
+    const leFalta =
+      total < MINIMO_SEMANAL
+        ? `jugó ${total} en la semana y el mínimo son ${MINIMO_SEMANAL}`
+        : `jugó ${puntero.ultimoDia} el último día y el mínimo son ${MINIMO_ULTIMO_DIA}`;
+    return [
+      `🏆 **CERRÓ LA SEMANA** — ${fechaCorta(inicio)} al ${fechaCorta(fin)}`,
+      "",
+      `Y esta semana **no cobra nadie**. El puntero fue **${puntero.name}** con ${pp >= 0 ? "+" : ""}${pp}, pero ${leFalta}.`,
+      "",
+      `Para llevárselo hay que jugar **${MINIMO_SEMANAL} en la semana** y **${MINIMO_ULTIMO_DIA} el último día**. Se puso justamente para que no se pueda agarrar ventaja y desaparecer.`,
+      "",
+      "El lunes a las 00:00 arranca de cero. 🔁",
+    ].join("\n");
+  }
   // El puntaje del modo activo, no el LP: con MODO_LIGA = "netas" el LP no
   // decide nada y anunciar por LP contradiría a la tabla.
   const pg = puntajeDe(g);
@@ -550,7 +641,20 @@ export function mensajeDeCierre(inicio: Date, tabla: FilaLiga[]): string {
     "",
   ];
 
-  const resto = jugaron.slice(1, 5);
+  // Cuando el que más netas hizo no cobra, el anuncio TIENE que explicarlo o
+  // parece que la tabla está mal.
+  const puntero = jugaron[0];
+  if (puntero.puuid !== g.puuid) {
+    const total = puntero.victorias + puntero.derrotas;
+    lineas.push(
+      total < MINIMO_SEMANAL
+        ? `Arriba terminó **${puntero.name}**, pero jugó ${total} partidas y el mínimo son ${MINIMO_SEMANAL}. No cobra.`
+        : `Arriba terminó **${puntero.name}**, pero el último día jugó ${puntero.ultimoDia} y el mínimo son ${MINIMO_ULTIMO_DIA}. No cobra.`,
+      "",
+    );
+  }
+
+  const resto = jugaron.filter((f) => f.puuid !== g.puuid).slice(0, 4);
   if (resto.length > 0) {
     lineas.push("**Detrás:**");
     for (const [i, f] of resto.entries()) {
