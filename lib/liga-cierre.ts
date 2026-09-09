@@ -77,7 +77,7 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
   const recordPorPuuid = new Map<string, RecordSemanal>();
   for (const m of partidas ?? []) {
     if (Date.parse(m.played_at) < (arranqueDe.get(m.puuid) ?? 0)) continue;
-    const acc = recordPorPuuid.get(m.puuid) ?? { victorias: 0, derrotas: 0, racha: null, champion: null, linea: null, secuencia: [] };
+    const acc = recordPorPuuid.get(m.puuid) ?? { victorias: 0, derrotas: 0, racha: null, champion: null, linea: null, secuencia: [], ultimas: [] };
     if (m.win) acc.victorias++;
     else acc.derrotas++;
     recordPorPuuid.set(m.puuid, acc);

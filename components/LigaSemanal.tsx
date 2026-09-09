@@ -9,6 +9,7 @@ import { SparkChart } from "./SparkChart";
 import { StreakIcon } from "./StreakIcon";
 import { ChampIcon } from "./ChampIcon";
 import { RoleIcon } from "./RoleIcon";
+import { championLabel } from "@/lib/champion-names";
 import { ROLES, tierFor, trendColor } from "@/lib/ladder";
 import type { RoleKey, TierKey } from "@/lib/types";
 
@@ -33,6 +34,16 @@ interface Fila {
   /** Con qué campeón y en qué línea jugó la semana. Opcionales: una respuesta anterior al deploy no los trae. */
   champion?: string | null;
   linea?: RoleKey | null;
+  /** Las últimas partidas con el LP de cada una. Opcional por la ventana de caché del CDN. */
+  ultimas?: PartidaLiga[];
+}
+interface PartidaLiga {
+  matchId: string;
+  champion: string | null;
+  win: boolean;
+  playedAt: string;
+  lp: number | null;
+  sinLp: "varias" | "sin-foto" | null;
 }
 interface DelPlantel {
   puuid: string;
@@ -72,6 +83,19 @@ const horaDe = (iso: string) =>
     timeZone: "America/Argentina/Buenos_Aires",
   });
 
+/** "hoy 21:40" / "ayer 03:12" / "mar 18:05" — corto, para la lista de partidas. */
+function cuando(iso: string): string {
+  const d = new Date(iso);
+  const opts: Intl.DateTimeFormatOptions = { timeZone: "America/Argentina/Buenos_Aires" };
+  const hora = d.toLocaleTimeString("es-AR", { ...opts, hour: "2-digit", minute: "2-digit" });
+  const hoy = new Date().toLocaleDateString("es-AR", opts);
+  const suyo = d.toLocaleDateString("es-AR", opts);
+  if (suyo === hoy) return `hoy ${hora}`;
+  const ayer = new Date(Date.now() - 86400000).toLocaleDateString("es-AR", opts);
+  if (suyo === ayer) return `ayer ${hora}`;
+  return `${d.toLocaleDateString("es-AR", { ...opts, weekday: "short" })} ${hora}`;
+}
+
 /** Cuánto falta para que cierre, en criollo. */
 function loQueFalta(hasta: string): string {
   const ms = Date.parse(hasta) - Date.now();
@@ -98,6 +122,8 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
   const [cargando, setCargando] = useState(true);
   const [admin, setAdmin] = useState(false);
   const [guardando, setGuardando] = useState<string | null>(null);
+  /** Qué fila está abierta mostrando sus últimas partidas. */
+  const [abierta, setAbierta] = useState<string | null>(null);
 
   const cargar = useCallback(async () => {
     try {
@@ -199,9 +225,20 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
               // anterior al deploy, que no trae `netas`.
               const puntaje = f.netas ?? f.victorias - f.derrotas;
               return (
+                <div key={f.puuid} className="liga-grupo">
                 <div
-                  className={`liga-fila${puesto === 1 && !f.sinJugar ? " lider" : ""}${f.sinJugar ? " en-pausa" : ""}`}
-                  key={f.puuid}
+                  className={`liga-fila${puesto === 1 && !f.sinJugar ? " lider" : ""}${f.sinJugar ? " en-pausa" : ""}${
+                    abierta === f.puuid ? " abierta" : ""
+                  }${(f.ultimas?.length ?? 0) > 0 ? " tocable" : ""}`}
+                  role={(f.ultimas?.length ?? 0) > 0 ? "button" : undefined}
+                  tabIndex={(f.ultimas?.length ?? 0) > 0 ? 0 : undefined}
+                  onClick={() => (f.ultimas?.length ?? 0) > 0 && setAbierta(abierta === f.puuid ? null : f.puuid)}
+                  onKeyDown={(e) => {
+                    if ((e.key === "Enter" || e.key === " ") && (f.ultimas?.length ?? 0) > 0) {
+                      e.preventDefault();
+                      setAbierta(abierta === f.puuid ? null : f.puuid);
+                    }
+                  }}
                   // El escalonado de la entrada. Va como variable y no como
                   // clase porque el índice es un número: 40ms entre fila y
                   // fila alcanza para que la tabla se ARME en vez de aparecer.
@@ -334,6 +371,52 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                       </span>
                     )}
                   </span>
+                </div>
+
+                {/* El detalle: partida por partida, con lo que movió cada una.
+                    Existe porque el grupo desconfía del cálculo —y tenía
+                    razón, el LP por victoria no era igual para todos— y la
+                    forma de terminar la discusión es que cualquiera pueda
+                    abrir la fila y verlo. */}
+                {abierta === f.puuid && (f.ultimas?.length ?? 0) > 0 && (
+                  <div className="liga-detalle">
+                    <p className="liga-detalle-titulo">
+                      Sus últimas {f.ultimas!.length} de la semana
+                      <span className="liga-detalle-nota">
+                        El LP no puntúa: la liga se mide en partidas netas, y una victoria vale 1 para todos.
+                      </span>
+                    </p>
+                    {f.ultimas!.map((m) => (
+                      <div className={`liga-partida ${m.win ? "gano" : "perdio"}`} key={m.matchId}>
+                        <span className={`liga-partida-res ${m.win ? "gano" : "perdio"}`}>{m.win ? "V" : "D"}</span>
+                        <ChampIcon champ={m.champion ?? ""} version={d.ddragonVersion ?? null} className="liga-partida-champ" />
+                        <span className="liga-partida-champ-nombre">{m.champion ? championLabel(m.champion) : "—"}</span>
+                        <span className="liga-partida-cuando">{cuando(m.playedAt)}</span>
+                        <span className="liga-partida-netas">{m.win ? "+1" : "−1"}</span>
+                        {m.lp !== null ? (
+                          <span className={`liga-partida-lp ${m.lp > 0 ? "gd-pos" : m.lp < 0 ? "gd-neg" : ""}`}>
+                            {/* El signo menos de verdad (−), el mismo que las
+                                netas de al lado: el guion del toString de un
+                                número queda más corto y se nota en la columna. */}
+                            {m.lp > 0 ? "+" : m.lp < 0 ? "−" : ""}
+                            {Math.abs(m.lp)} LP
+                          </span>
+                        ) : (
+                          <span
+                            className="liga-partida-lp sin"
+                            title={
+                              m.sinLp === "varias"
+                                ? "Cayeron dos o más partidas entre dos fotos de LP, así que no se puede separar cuánto dio cada una. No se inventa un número."
+                                : "No hay una foto de LP que encierre esta partida."
+                            }
+                          >
+                            —
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 </div>
               );
             })}

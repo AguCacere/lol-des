@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { exigirSesion } from "@/lib/auth";
 import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
-import { claveDeSemana, esSemanaDeLiga, inicioDeSemana, LIGA_INICIO, tablaDeLaSemana, ventanaDeSemana, type Participante, type RecordSemanal, type Snapshot } from "@/lib/liga";
+import { claveDeSemana, esSemanaDeLiga, inicioDeSemana, LIGA_INICIO, tablaDeLaSemana, ventanaDeSemana, lpPorPartida, type Participante, type RecordSemanal, type Snapshot } from "@/lib/liga";
 import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { roleFromTeamPosition } from "@/lib/mapping";
 
@@ -77,7 +77,7 @@ export async function GET() {
     // tablaDeLaSemana.
     const { data: partidas } = await supabase
       .from("matches")
-      .select("puuid, win, played_at, champion, team_position")
+      .select("match_id, puuid, win, played_at, champion, team_position")
       .in("puuid", puuids)
       .eq("queue_id", RANKED_SOLO_QUEUE_ID)
       .gte("played_at", desdeVentana.toISOString())
@@ -87,12 +87,19 @@ export async function GET() {
     const arranqueDe = new Map(participantes.map((p) => [p.puuid, Math.max(desdeVentana.getTime(), p.desde?.getTime() ?? 0)]));
     // Se juntan las partidas de cada uno antes de contar, en vez de sumar al
     // vuelo: la racha necesita el ORDEN y la consulta no lo garantiza.
-    const suyasPorPuuid = new Map<string, { win: boolean; played_at: string; champion: string | null; team_position: string | null }[]>();
+    const suyasPorPuuid = new Map<string, { match_id: string; win: boolean; played_at: string; champion: string | null; team_position: string | null }[]>();
     for (const m of partidas ?? []) {
       if (Date.parse(m.played_at) < (arranqueDe.get(m.puuid) ?? 0)) continue;
       const arr = suyasPorPuuid.get(m.puuid) ?? [];
-      arr.push({ win: m.win, played_at: m.played_at, champion: m.champion, team_position: m.team_position });
+      arr.push({ match_id: m.match_id, win: m.win, played_at: m.played_at, champion: m.champion, team_position: m.team_position });
       suyasPorPuuid.set(m.puuid, arr);
+    }
+    // Las fotos de cada uno, para poder atribuirle el LP a cada partida.
+    const fotosPorPuuid = new Map<string, Snapshot[]>();
+    for (const f of (snaps ?? []) as Snapshot[]) {
+      const arr = fotosPorPuuid.get(f.puuid) ?? [];
+      arr.push(f);
+      fotosPorPuuid.set(f.puuid, arr);
     }
     /** El valor que más se repite. En un empate gana el primero, que da igual. */
     const masRepetido = <T,>(valores: (T | null)[]): T | null => {
@@ -126,6 +133,20 @@ export async function GET() {
         // `suyas` quedó ordenada de la más NUEVA a la más vieja por la racha;
         // la curva la necesita al revés, como pasó de verdad.
         secuencia: [...suyas].reverse().map((m) => m.win),
+        // Las últimas cinco, con lo que movió cada una. Es lo que se abre al
+        // tocar la fila: la forma de terminar la discusión sobre el LP es
+        // mostrar partida por partida cuánto dio.
+        ultimas: lpPorPartida(
+          fotosPorPuuid.get(puuid) ?? [],
+          suyas.slice(0, 5).map((m) => ({
+            matchId: m.match_id,
+            champion: m.champion,
+            win: m.win,
+            playedAt: m.played_at,
+            lp: null,
+            sinLp: null,
+          })),
+        ),
       });
     }
 

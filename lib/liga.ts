@@ -153,6 +153,8 @@ export interface FilaLiga {
   /** Con qué campeón y en qué línea jugó la semana. Null si no jugó. */
   champion: string | null;
   linea: RoleKey | null;
+  /** Las últimas partidas de la semana con el LP de cada una, para abrir la fila. */
+  ultimas: PartidaLiga[];
 }
 
 export interface Participante {
@@ -166,6 +168,67 @@ export interface Participante {
    * bastaría con mirar cómo viene la tabla y anotarse solo cuando conviene.
    */
   desde?: Date | null;
+}
+
+/** Una partida de la semana, con lo que le movió el LP. */
+export interface PartidaLiga {
+  matchId: string;
+  champion: string | null;
+  win: boolean;
+  playedAt: string;
+  /**
+   * Lo que sumó o restó esa partida. Null si no se pudo atribuir.
+   *
+   * Sale de comparar dos fotos consecutivas de lp_snapshots: la diferencia de
+   * `wins`/`losses` dice cuántas partidas pasaron en el medio y la de puntos
+   * cuánto se movió. Solo se atribuye cuando en ese tramo hubo UNA sola
+   * partida, que con el cron cada 15 minutos y partidas de ~30 es el caso
+   * normal.
+   *
+   * Si cayeron dos o más en el mismo tramo queda en null y NO se reparte. Un
+   * reparto en partes iguales le pondría +5 a una DERROTA, y todo esto existe
+   * justamente para que el grupo pueda verificar el cálculo: un número
+   * inventado que contradice el resultado destruye lo único que aporta.
+   */
+  lp: number | null;
+  /** Por qué no hay número: "varias" = cayeron juntas en el mismo tramo. Null si sí lo hay. */
+  sinLp: "varias" | "sin-foto" | null;
+}
+
+/**
+ * Le pone a cada partida el LP que movió, cruzando las fotos con los horarios.
+ *
+ * Existe porque el grupo desconfía del cálculo —con razón: el LP por victoria
+ * no es igual para todos— y la forma de terminar la discusión es mostrar
+ * partida por partida cuánto dio cada una.
+ */
+export function lpPorPartida(snapshots: Snapshot[], partidas: PartidaLiga[]): PartidaLiga[] {
+  const fotos = [...snapshots].sort((a, b) => Date.parse(a.captured_at) - Date.parse(b.captured_at));
+  const porMatch = new Map<string, { lp: number | null; sinLp: "varias" | "sin-foto" | null }>();
+
+  for (let i = 1; i < fotos.length; i++) {
+    const a = fotos[i - 1];
+    const b = fotos[i];
+    const jugadas = b.wins - a.wins + (b.losses - a.losses);
+    if (jugadas <= 0) continue;
+    const desde = Date.parse(a.captured_at);
+    const hasta = Date.parse(b.captured_at);
+    const enElTramo = partidas.filter((m) => {
+      const t = Date.parse(m.playedAt);
+      return t > desde && t <= hasta;
+    });
+    if (enElTramo.length === 0) continue;
+    if (enElTramo.length > 1) {
+      for (const m of enElTramo) porMatch.set(m.matchId, { lp: null, sinLp: "varias" });
+      continue;
+    }
+    porMatch.set(enElTramo[0].matchId, { lp: puntos(b) - puntos(a), sinLp: null });
+  }
+
+  return partidas.map((m) => {
+    const v = porMatch.get(m.matchId);
+    return { ...m, lp: v?.lp ?? null, sinLp: v ? v.sinLp : "sin-foto" };
+  });
 }
 
 /** Partidas de la semana, contadas de verdad. Ver la nota en tablaDeLaSemana. */
@@ -190,6 +253,8 @@ export interface RecordSemanal {
    * que ya desconfían del cálculo.
    */
   secuencia: boolean[];
+  /** Las últimas de la semana, de la más nueva a la más vieja, con su LP. */
+  ultimas: PartidaLiga[];
 }
 
 /**
@@ -325,8 +390,8 @@ export function tablaDeLaSemana(
     const base = previas.length > 0 ? previas[previas.length - 1] : dentro[0];
     const ultima = dentro.length > 0 ? dentro[dentro.length - 1] : base;
 
-    const { victorias, derrotas, racha, champion, linea, secuencia } =
-      recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0, racha: null, champion: null, linea: null, secuencia: [] };
+    const { victorias, derrotas, racha, champion, linea, secuencia, ultimas } =
+      recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0, racha: null, champion: null, linea: null, secuencia: [], ultimas: [] };
     // El neto de cada foto contra el punto de partida. Si no hay ninguna foto
     // dentro de la ventana todavía no se movió: línea plana en 0, no un
     // gráfico vacío.
@@ -357,7 +422,7 @@ export function tablaDeLaSemana(
       // Sin una sola foto no hay nada que medir, pero igual va la línea
       // plana en 0: un gráfico vacío parece roto, y "no se movió" es
       // información.
-      filas.push({ ...p, netas: victorias - derrotas, lpNeto: 0, lpRecortado: 0, victorias, derrotas, racha, champion, linea, sinJugar: victorias + derrotas === 0, rango, serie: [0, 0], entroTarde });
+      filas.push({ ...p, netas: victorias - derrotas, lpNeto: 0, lpRecortado: 0, victorias, derrotas, racha, champion, linea, ultimas, sinJugar: victorias + derrotas === 0, rango, serie: [0, 0], entroTarde });
       continue;
     }
 
@@ -372,6 +437,7 @@ export function tablaDeLaSemana(
       racha,
       champion,
       linea,
+      ultimas,
       sinJugar: victorias + derrotas === 0,
       rango,
       // Relativa al punto de partida y no en puntos absolutos: lo que la
