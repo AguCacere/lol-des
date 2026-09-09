@@ -123,6 +123,9 @@ export async function GET() {
         racha: { resultado: ultimo ? "W" : "L", cantidad },
         champion: masRepetido(suyas.map((m) => m.champion)),
         linea: roleFromTeamPosition(masRepetido(suyas.map((m) => m.team_position))),
+        // `suyas` quedó ordenada de la más NUEVA a la más vieja por la racha;
+        // la curva la necesita al revés, como pasó de verdad.
+        secuencia: [...suyas].reverse().map((m) => m.win),
       });
     }
 

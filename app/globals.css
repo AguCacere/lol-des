@@ -3189,12 +3189,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-family:var(--font-stat); font-size:19px; font-weight:800; letter-spacing:-0.02em;
   font-variant-numeric:tabular-nums; text-align:right;
 }
-/* La marca de que el tope actuó. Chiquita y debajo del número, con la
-   explicación entera en el title: es una aclaración, no una acusación. */
-.liga-tope{
-  font-family:var(--font-body); font-size:9px; font-weight:600; letter-spacing:0.04em;
-  text-transform:uppercase; color:var(--text-muted); cursor:help;
+/* El LP real, abajo del puntaje y en chico. Ya no decide nada —puntúan las
+   partidas netas— pero es lo que cada uno mira para entender su semana, así
+   que se muestra como referencia en vez de desaparecer. */
+.liga-lp-ref{
+  font-family:var(--font-mono); font-size:10px; font-weight:600;
+  color:var(--text-muted); cursor:help; letter-spacing:0;
 }
+.liga-puntaje{line-height:1;}
 .liga-lp:not(.gd-pos):not(.gd-neg){color:var(--text-muted);}
 .liga-lp.gd-pos{color:var(--good);}
 .liga-lp.gd-neg{color:var(--critical);}

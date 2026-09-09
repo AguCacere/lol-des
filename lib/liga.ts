@@ -111,7 +111,17 @@ export interface FilaLiga {
   name: string;
   tag: string;
   profileIconUrl: string | null;
-  /** Lo que se mide: puntos ganados (o perdidos) en la semana, YA con el tope por victoria. */
+  /**
+   * Partidas netas: victorias menos derrotas. Es lo que puntúa con
+   * MODO_LIGA = "netas", y vale lo mismo para todos sin importar en qué
+   * cuenta se juegue.
+   */
+  netas: number;
+  /**
+   * El LP neto de la semana, con el tope por victoria. Con MODO_LIGA =
+   * "netas" NO decide nada — se sigue calculando y mostrando como dato de
+   * contexto, porque es lo que la gente mira para entender su semana.
+   */
   lpNeto: number;
   /**
    * Cuánto LP le recortó el tope esta semana. 0 en la enorme mayoría de los
@@ -172,6 +182,42 @@ export interface RecordSemanal {
   champion: string | null;
   /** La línea en la que más jugó DENTRO de la semana. Null si no jugó o si Riot no la dio. */
   linea: RoleKey | null;
+  /**
+   * Los resultados de la semana en orden cronológico (true = ganó). Con
+   * MODO_LIGA = "netas" es lo que dibuja la curva: si el número grande son
+   * partidas netas, la curva tiene que contar lo mismo. Una curva de LP al
+   * lado de un puntaje de netas se contradice — y justo la iban a mirar los
+   * que ya desconfían del cálculo.
+   */
+  secuencia: boolean[];
+}
+
+/**
+ * Con qué se puntúa la liga.
+ *
+ * - "netas": cada victoria vale 1 y cada derrota resta 1. El LP real no entra
+ *   en el marcador.
+ * - "lp": el LP neto de la semana, con el tope por victoria de más abajo.
+ *
+ * Está en "netas" porque el LP no es comparable entre cuentas: Riot le da
+ * bastante más por partida a una cuenta nueva, y con el tope solo se acortaba
+ * la diferencia (sus victorias seguían valiendo 22 contra 18) — el grupo
+ * entero se quejó de eso. Contando partidas netas, una victoria vale
+ * exactamente lo mismo para todos, que es lo que se pidió.
+ *
+ * OJO con lo que esto NO arregla: quien juega en una cuenta muy por debajo de
+ * su nivel gana más PARTIDAS, no solo más LP por partida. Eso no lo empareja
+ * ningún esquema de puntaje; lo único que lo emparejaría es que esa cuenta no
+ * puntúe. Queda dicho para no creer que está resuelto del todo.
+ *
+ * Es un solo valor y está pensado para volver a "lp" cuando el grupo esté
+ * todo en cuentas comparables.
+ */
+export const MODO_LIGA: "netas" | "lp" = "netas";
+
+/** El número con el que se ordena y se corona, según el modo. */
+export function puntajeDe(f: { netas: number; lpNeto: number }): number {
+  return MODO_LIGA === "netas" ? f.netas : f.lpNeto;
 }
 
 /**
@@ -279,8 +325,8 @@ export function tablaDeLaSemana(
     const base = previas.length > 0 ? previas[previas.length - 1] : dentro[0];
     const ultima = dentro.length > 0 ? dentro[dentro.length - 1] : base;
 
-    const { victorias, derrotas, racha, champion, linea } =
-      recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0, racha: null, champion: null, linea: null };
+    const { victorias, derrotas, racha, champion, linea, secuencia } =
+      recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0, racha: null, champion: null, linea: null, secuencia: [] };
     // El neto de cada foto contra el punto de partida. Si no hay ninguna foto
     // dentro de la ventana todavía no se movió: línea plana en 0, no un
     // gráfico vacío.
@@ -288,11 +334,20 @@ export function tablaDeLaSemana(
     // gráfico dibujara el neto crudo, la línea y el "+68" de al lado se
     // contradirían.
     const tramos = base ? [base, ...dentro] : dentro;
-    const acumulada: number[] = [0];
-    for (let i = 1; i < tramos.length; i++) {
-      acumulada.push(netoConTope(tramos.slice(0, i + 1)).neto);
+    let serieNeta: number[];
+    if (MODO_LIGA === "netas") {
+      // Un escalón por partida: +1 ganando, −1 perdiendo. Es literalmente el
+      // puntaje contándose.
+      let acum = 0;
+      const pasos = secuencia.map((gano) => (acum += gano ? 1 : -1));
+      serieNeta = pasos.length > 0 ? [0, ...pasos] : [0, 0];
+    } else {
+      const acumulada: number[] = [0];
+      for (let i = 1; i < tramos.length; i++) {
+        acumulada.push(netoConTope(tramos.slice(0, i + 1)).neto);
+      }
+      serieNeta = acumulada.length > 1 ? acumulada : [0, 0];
     }
-    const serieNeta = acumulada.length > 1 ? acumulada : [0, 0];
     const entroTarde = suDesde > desde ? new Date(suDesde).toISOString() : null;
     const rango = ultima
       ? { tier: tierKeyFromRiot(ultima.tier), division: divisionFromRiot(ultima.division), lp: ultima.lp }
@@ -302,13 +357,14 @@ export function tablaDeLaSemana(
       // Sin una sola foto no hay nada que medir, pero igual va la línea
       // plana en 0: un gráfico vacío parece roto, y "no se movió" es
       // información.
-      filas.push({ ...p, lpNeto: 0, lpRecortado: 0, victorias, derrotas, racha, champion, linea, sinJugar: victorias + derrotas === 0, rango, serie: [0, 0], entroTarde });
+      filas.push({ ...p, netas: victorias - derrotas, lpNeto: 0, lpRecortado: 0, victorias, derrotas, racha, champion, linea, sinJugar: victorias + derrotas === 0, rango, serie: [0, 0], entroTarde });
       continue;
     }
 
     const { neto, recortado } = netoConTope(tramos);
     filas.push({
       ...p,
+      netas: victorias - derrotas,
       lpNeto: neto,
       lpRecortado: recortado,
       victorias,
@@ -331,7 +387,9 @@ export function tablaDeLaSemana(
   // jugar no es lo mismo que un 0 después de veinte partidas.
   return filas.sort((a, b) => {
     if (a.sinJugar !== b.sinJugar) return a.sinJugar ? 1 : -1;
-    if (b.lpNeto !== a.lpNeto) return b.lpNeto - a.lpNeto;
+    const pa = puntajeDe(a);
+    const pb = puntajeDe(b);
+    if (pb !== pa) return pb - pa;
     return a.victorias + a.derrotas - (b.victorias + b.derrotas);
   });
 }
@@ -366,9 +424,15 @@ export function mensajeDeArranque(inicio: Date, premio: string | null): string {
   return [
     "🏆 **ARRANCA LA LIGA DE LA GRIETA** 🏆",
     "",
-    `${cuando}, y se mide una sola cosa: **cuánto LP neto ganás en la semana**.${plata}`,
+    `${cuando}, y se mide una sola cosa: ${
+      MODO_LIGA === "netas"
+        ? "**cuántas partidas netas ganás en la semana** (victorias menos derrotas)"
+        : "**cuánto LP neto ganás en la semana**"
+    }.${plata}`,
     "",
-    "No importa en qué elo estés — importa cuánto te movés. El que sube 200 puntos desde Plata le gana al que sube 50 desde Diamante.",
+    MODO_LIGA === "netas"
+      ? "No importa en qué elo estés ni cuánto LP te dé Riot por partida: una victoria vale lo mismo para todos."
+      : "No importa en qué elo estés — importa cuánto te movés. El que sube 200 puntos desde Plata le gana al que sube 50 desde Diamante.",
     "",
     "**El que reacciona a este mensaje participa.** 👇",
   ].join("\n");
@@ -384,13 +448,17 @@ export function mensajeDeCierre(inicio: Date, tabla: FilaLiga[]): string {
   }
 
   const g = jugaron[0];
-  const signo = g.lpNeto >= 0 ? "+" : "";
+  // El puntaje del modo activo, no el LP: con MODO_LIGA = "netas" el LP no
+  // decide nada y anunciar por LP contradiría a la tabla.
+  const pg = puntajeDe(g);
+  const signo = pg >= 0 ? "+" : "";
+  const unidad = MODO_LIGA === "netas" ? (Math.abs(pg) === 1 ? "partida neta" : "partidas netas") : "puntos";
   const lineas = [
     `🏆 **CERRÓ LA SEMANA** — ${fechaCorta(inicio)} al ${fechaCorta(fin)}`,
     "",
-    g.lpNeto > 0
-      ? `Gana **${g.name}** con **${signo}${g.lpNeto} puntos** en ${g.victorias}V-${g.derrotas}D. A cobrar.`
-      : `Gana **${g.name}**… con **${signo}${g.lpNeto} puntos**. Ganó porque los demás estuvieron peor, que es la victoria más triste que hay.`,
+    pg > 0
+      ? `Gana **${g.name}** con **${signo}${pg} ${unidad}** en ${g.victorias}V-${g.derrotas}D. A cobrar.`
+      : `Gana **${g.name}**… con **${signo}${pg} ${unidad}**. Ganó porque los demás estuvieron peor, que es la victoria más triste que hay.`,
     "",
   ];
 
@@ -398,7 +466,8 @@ export function mensajeDeCierre(inicio: Date, tabla: FilaLiga[]): string {
   if (resto.length > 0) {
     lineas.push("**Detrás:**");
     for (const [i, f] of resto.entries()) {
-      lineas.push(`${i + 2}. ${f.name} — ${f.lpNeto >= 0 ? "+" : ""}${f.lpNeto} (${f.victorias}V-${f.derrotas}D)`);
+      const pf = puntajeDe(f);
+      lineas.push(`${i + 2}. ${f.name} — ${pf >= 0 ? "+" : ""}${pf} (${f.victorias}V-${f.derrotas}D)`);
     }
     lineas.push("");
   }

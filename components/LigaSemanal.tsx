@@ -10,7 +10,6 @@ import { StreakIcon } from "./StreakIcon";
 import { ChampIcon } from "./ChampIcon";
 import { RoleIcon } from "./RoleIcon";
 import { ROLES, tierFor, trendColor } from "@/lib/ladder";
-import { TOPE_LP_POR_VICTORIA } from "@/lib/liga";
 import type { RoleKey, TierKey } from "@/lib/types";
 
 interface Fila {
@@ -18,6 +17,8 @@ interface Fila {
   name: string;
   tag: string;
   profileIconUrl: string | null;
+  /** Partidas netas: lo que puntúa. Opcional por la ventana de caché del CDN. */
+  netas?: number;
   lpNeto: number;
   /** Cuánto le recortó el tope por victoria. Opcional: una respuesta anterior al deploy no lo trae. */
   lpRecortado?: number;
@@ -194,6 +195,9 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
               // —una pestaña vieja contra una API nueva, o al revés— la fila
               // se dibuja sin curva en vez de tirar y llevarse la tabla.
               const serie = f.serie ?? [];
+              // Con guarda: durante la ventana de caché del CDN llega el JSON
+              // anterior al deploy, que no trae `netas`.
+              const puntaje = f.netas ?? f.victorias - f.derrotas;
               return (
                 <div
                   className={`liga-fila${puesto === 1 && !f.sinJugar ? " lider" : ""}${f.sinJugar ? " en-pausa" : ""}`}
@@ -312,18 +316,21 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                     <SparkChart values={serie} width={230} height={34} pad={5} color={trendColor(serie)} lineaCero />
                   </span>
 
-                  <span className={`liga-lp ${f.lpNeto > 0 ? "gd-pos" : f.lpNeto < 0 ? "gd-neg" : ""}`}>
-                    {f.lpNeto > 0 ? "+" : ""}
-                    {f.lpNeto}
-                    {/* Que se vea cuando el tope actuó. Sin esto, cualquiera
-                        que sume el LP a mano ve que no da y piensa que la
-                        tabla está rota. */}
-                    {(f.lpRecortado ?? 0) > 0 && (
-                      <span
-                        className="liga-tope"
-                        title={`Se le descontaron ${f.lpRecortado} LP: ninguna victoria puede sumar más de ${TOPE_LP_POR_VICTORIA}. Una cuenta nueva gana más LP por partida que el resto, y eso no es jugar mejor.`}
-                      >
-                        con tope
+                  {/* El número grande es el PUNTAJE del modo activo. Con
+                      "netas" son victorias menos derrotas: una victoria vale
+                      lo mismo para todos, sin importar cuánto LP le dé Riot a
+                      cada cuenta. El LP real queda abajo, chiquito, porque
+                      sigue siendo lo que cada uno mira para entender su
+                      semana — pero ya no decide nada. */}
+                  <span className={`liga-lp ${puntaje > 0 ? "gd-pos" : puntaje < 0 ? "gd-neg" : ""}`}>
+                    <span className="liga-puntaje">
+                      {puntaje > 0 ? "+" : ""}
+                      {puntaje}
+                    </span>
+                    {!f.sinJugar && (
+                      <span className="liga-lp-ref" title="El LP real de la semana. No puntúa: está solo como referencia.">
+                        {f.lpNeto > 0 ? "+" : ""}
+                        {f.lpNeto} LP
                       </span>
                     )}
                   </span>
