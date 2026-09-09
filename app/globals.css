@@ -3024,8 +3024,21 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .liga{margin-bottom:22px;}
 .liga-rango{display:inline-flex; align-items:baseline; gap:8px; white-space:nowrap;}
 .liga-falta{font-size:11px; color:var(--accent-dim); font-weight:600;}
+/* El MISMO fondo que .ladder, no uno más claro. Las dos tablas se
+   intercambian en el mismo lugar de la pantalla y estaban en colores
+   distintos: el ladder en --bg (#050504) y esta en --surface-raised
+   (#161510), o sea un panel visiblemente más claro que aparecía al tocar el
+   botón. Además vale acá el mismo motivo que está escrito en .ladder: el arte
+   de campeón y las insignias de línea son imágenes opacas con su propio fondo
+   casi negro, y sobre un panel más claro cada una se lee como un cuadrado
+   gris estampado encima en vez de fundirse con la fila.
+
+   Ojo: transparencia de verdad (un rgba) acá no haría nada. El body es un
+   plano liso del mismo --bg, así que no hay nada atrás que se transparente —
+   lo que da la sensación de aire es que la tabla deje de ser una losa más
+   clara, y eso se consigue con el color. */
 .liga-tabla{
-  background:var(--surface-raised); border-radius:var(--radius-sm); box-shadow:var(--shadow-sm); overflow:hidden;
+  background:var(--bg); border-radius:var(--radius-lg); box-shadow:var(--shadow); overflow:hidden;
 }
 /* La misma anatomía que una fila del ladder —puesto, quién, rango, cómo le
    fue, la curva y el número— pero el número de la derecha es el neto de la
