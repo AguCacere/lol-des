@@ -235,6 +235,29 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 @media (max-width:560px){
   /* En pantalla angosta los filtros se van solos a su renglón. */
   .ladder-controls{gap:12px;}
+  /* Y el encabezado deja de ser dos cosas en la misma línea.
+     `space-between` con un título a la izquierda y su bajada colgada a la
+     derecha funciona con 1100px de ancho; en 390 el título se come casi todo
+     el renglón y la bajada queda apretada contra el borde derecho, alineada
+     con nada. Apilados y los dos a la izquierda, se leen como lo que son:
+     un título y su explicación. */
+  .section-head{flex-direction:column; align-items:flex-start; gap:7px; margin:20px 0 14px;}
+  /* Los dos grupos traen `align-self:center` para centrarse VERTICALMENTE
+     contra el título cuando la fila es horizontal. Al apilar, el eje cruzado
+     pasa a ser el horizontal y ese mismo center los mandaba al medio de la
+     pantalla: el título del ladder y sus filtros quedaban centrados y el resto
+     de la app a la izquierda. */
+  .vista-titulo, .ladder-controls{align-self:flex-start;}
+  .section-head h2{font-size:17px;}
+  .section-head .meta{text-align:left;}
+  /* Lo mismo con el rango de fechas de la liga: iba pegado a la derecha
+     mientras todo lo demás arranca a la izquierda. */
+  .liga-rango-solo{justify-content:flex-start; margin:-2px 0 10px;}
+  /* El botón para cruzar a la otra tabla, un punto más chico: al lado de un
+     título de 17px una pastilla de 12,5 con 14px de padding pesa casi igual
+     que el título. */
+  .vista-titulo{gap:10px;}
+  .vista-ir{font-size:12px; padding:6px 12px;}
 }
 
 .sort-select-wrap{display:flex; align-items:center; gap:8px; white-space:nowrap;}
@@ -3450,7 +3473,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .liga-fila{grid-template-columns:34px 30px minmax(0,1fr) 92px 78px; gap:10px; padding:10px 13px;}
   .liga-record{font-size:11px; gap:4px;}
   .liga-record .liga-racha{margin-left:1px;}
-  .liga-regla{font-size:11.5px; line-height:1.45;}
+  .liga-regla{font-size:11.5px; line-height:1.55;}
+  /* En el teléfono la regla queda en dos frases: cómo se puntúa y qué hay que
+     jugar para cobrar. La aclaración del LP se cae — con "cada victoria suma
+     1" arriba ya está dicho que el LP no entra, y era el tercio de un párrafo
+     de cinco renglones que nadie termina de leer. Sigue en la pantalla
+     ancha. */
+  .liga-regla-nota{display:none;}
+  .liga-regla-cobro{margin-top:4px;}
   /* En el teléfono se cae la palabra: "netas" no entra al lado del número, y
      lo que importa ahí es el número. */
   .liga-puntaje-unidad{display:none;}

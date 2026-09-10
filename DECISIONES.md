@@ -159,6 +159,20 @@ sobrante era el nombre: 20px, o sea, no se leía de quién era la fila. Abajo de
 ahora el puesto, el avatar y las netas ocupan dos renglones y en el medio va el nombre
 arriba y el récord abajo. Angostar hasta que algo desaparece no es responsive.
 
+**Dar vuelta un flex a columna cambia qué significa `align-self`.** Los grupos del
+encabezado del ladder traen `align-self:center` para centrarse VERTICALMENTE contra el
+título mientras la fila es horizontal. Al apilar el `.section-head` en el teléfono, el
+eje cruzado pasa a ser el horizontal y ese mismo `center` los mandó al medio de la
+pantalla: el título quedaba centrado y el resto de la app a la izquierda. Cada vez que
+un `flex-direction:row` pasa a `column` hay que revisar los `align-self` de adentro.
+
+**`min-width:0` es viral hacia abajo.** No alcanza con ponerlo en el hijo directo del
+`1fr`: cada flex anidado que tenga que poder achicarse necesita el suyo. En la fila de
+"Últimas partidas" lo tenía `.match-mid` pero no `.match-top-line`, así que el nombre
+del campeón + "Para repasar" + "DERROTA" se desbordaban; y como la fila tiene
+`overflow:hidden`, no aparecía scroll ni ellipsis: se dibujaba **encima** de la columna
+de al lado. Un texto pisando a otro casi siempre es esto.
+
 **Filas padre e hijo tienen que compartir grilla.** En "Enfrentamientos" eran dos
 layouts flex distintos y las barras y los récords quedaban en x diferentes. Una sola
 grilla, y se mide en el DOM a dos anchos.
