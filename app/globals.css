@@ -1647,18 +1647,37 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .match-champ img{width:100%; height:100%; object-fit:cover; display:block;}
 .match-mid{min-width:0;}
-.match-top-line{display:flex; align-items:baseline; gap:8px; margin-bottom:2px;}
-.match-champ-name{font-weight:600; font-size:13px;}
-.match-result{font-size:10.5px; font-weight:700; letter-spacing:0.04em;}
+/* `min-width:0` acá también, no solo en .match-mid. Sin esto el flex se niega
+   a achicarse abajo de su contenido: el nombre del campeón, "Para repasar" y
+   "DERROTA" sumaban más que la columna, la línea se desbordaba y —como la fila
+   tiene overflow:hidden— se dibujaba ENCIMA del KDA y del oro/min. En el
+   teléfono se veía "DERROTA" pisando "322 oro/min". */
+.match-top-line{display:flex; align-items:baseline; gap:8px; margin-bottom:2px; min-width:0;}
+.match-champ-name{
+  font-weight:600; font-size:13px;
+  min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+/* El resultado, pegado al borde derecho de su columna: es lo que lo separa
+   del nombre cuando el nombre es corto, y lo alinea entre filas. */
+.match-result{font-size:10.5px; font-weight:700; letter-spacing:0.04em; flex:none; margin-left:auto;}
 .match-result.w{color:var(--good);}
 .match-result.l{color:var(--critical);}
 .review-badge{
-  display:inline-flex; align-items:center; gap:4px;
+  display:inline-flex; align-items:center; gap:4px; flex:none;
   font-size:10px; font-weight:700; letter-spacing:0.02em;
   color:var(--warn); background:var(--warn-wash);
   border-radius:999px; padding:2px 8px; white-space:nowrap;
 }
 .review-badge svg{width:10px; height:10px; flex:none;}
+@media (max-width:600px){
+  /* En el teléfono la chapa se queda solo con la lupa. El texto son 70px de
+     los ~150 que tiene la línea entera, y entre saber CON QUÉ jugó y leer
+     "Para repasar" al lado de la lupa, gana el nombre del campeón. El motivo
+     sigue estando en el title y adentro del detalle. */
+  .review-badge-txt{display:none;}
+  .review-badge{padding:3px 5px;}
+  .review-badge svg{width:11px; height:11px;}
+}
 /* No wrap: this line packs 5 stats (duración/CS/daño/KP) and a real
    champion name easily runs it past the available width in the profile's
    narrower "Micro" column — left to wrap, it breaks mid-phrase (e.g. "KP"

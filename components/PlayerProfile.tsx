@@ -556,7 +556,10 @@ export function PlayerProfile({
                             {m.flag && (
                               <span className="review-badge" title={m.flag.reasons.join(" · ")}>
                                 <ReviewIcon />
-                                Para repasar
+                                {/* El texto va en su propio span para poder
+                                    esconderlo en el teléfono y dejar la lupa
+                                    sola: son 70px que en 390 no sobran. */}
+                                <span className="review-badge-txt">Para repasar</span>
                               </span>
                             )}
                             <span className={`match-result ${m.win ? "w" : "l"}`}>
