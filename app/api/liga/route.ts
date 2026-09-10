@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { exigirSesion } from "@/lib/auth";
 import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
-import { claveDeSemana, esSemanaDeLiga, inicioDeSemana, LIGA_INICIO, tablaDeLaSemana, ventanaDeSemana, ventanaUltimoDia, empezoElUltimoDia, MINIMO_SEMANAL, MINIMO_ULTIMO_DIA, lpPorPartida, type Participante, type RecordSemanal, type Snapshot } from "@/lib/liga";
+import { claveDeSemana, esSemanaDeLiga, inicioDeSemana, LIGA_INICIO, tablaDeLaSemana, ventanaDeSemana, ventanaUltimoDia, empezoElUltimoDia, puntosDeSecuencia, MINIMO_SEMANAL, MINIMO_ULTIMO_DIA, PUNTOS_VICTORIA, PUNTOS_DERROTA, PUNTOS_EN_RACHA, RACHA_DESDE, lpPorPartida, type Participante, type RecordSemanal, type Snapshot } from "@/lib/liga";
 import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { roleFromTeamPosition } from "@/lib/mapping";
 
@@ -125,6 +125,13 @@ export async function GET() {
         if (m.win !== ultimo) break;
         cantidad++;
       }
+      // De la más vieja a la más nueva, que es como se juega y como hay que
+      // recorrerla para contar las rachas.
+      const enOrden = [...suyas].reverse().map((m) => m.win);
+      // Cuánto valió cada partida, en el mismo orden. Se calcula acá y no en
+      // pantalla porque depende de las partidas ANTERIORES —la racha—, y el
+      // detalle solo muestra las últimas cinco.
+      const valeCadaUna = puntosDeSecuencia(enOrden).cadaUna;
       // Con qué jugó la semana. No es "su campeón" ni "su rol" en general:
       // es lo que eligió ESTA semana, que en una liga de siete días es el
       // dato que explica el número de al lado.
@@ -137,16 +144,19 @@ export async function GET() {
         linea: roleFromTeamPosition(masRepetido(suyas.map((m) => m.team_position))),
         // `suyas` quedó ordenada de la más NUEVA a la más vieja por la racha;
         // la curva la necesita al revés, como pasó de verdad.
-        secuencia: [...suyas].reverse().map((m) => m.win),
+        secuencia: enOrden,
         // Las últimas cinco, con lo que movió cada una. Es lo que se abre al
         // tocar la fila: la forma de terminar la discusión sobre el LP es
         // mostrar partida por partida cuánto dio.
         ultimas: lpPorPartida(
           fotosPorPuuid.get(puuid) ?? [],
-          suyas.slice(0, 5).map((m) => ({
+          suyas.slice(0, 5).map((m, i) => ({
             matchId: m.match_id,
             champion: m.champion,
             win: m.win,
+            // `suyas` va de la más nueva a la más vieja y `valeCadaUna` al
+            // revés: el índice se da vuelta.
+            puntos: valeCadaUna[suyas.length - 1 - i],
             playedAt: m.played_at,
             lp: null,
             sinLp: null,
@@ -181,6 +191,9 @@ export async function GET() {
     // que aplica el cierre.
     minimoSemanal: MINIMO_SEMANAL,
     minimoUltimoDia: MINIMO_ULTIMO_DIA,
+    // La tabla de puntos, por la misma razón: la regla escrita en pantalla
+    // tiene que salir de las mismas constantes que la calculan.
+    puntaje: { victoria: PUNTOS_VICTORIA, derrota: PUNTOS_DERROTA, rachaDesde: RACHA_DESDE, enRacha: PUNTOS_EN_RACHA },
     ultimoDia: empezoElUltimoDia(inicio),
     tabla,
     // Para que la tabla pueda pedirle el arte del campeón a Data Dragon.

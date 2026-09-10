@@ -70,21 +70,36 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
   const arranqueDe = new Map(
     anotados.map((s) => [s.puuid, Math.max(desde.getTime(), s.liga_desde ? Date.parse(s.liga_desde) : 0)]),
   );
-  // La racha va en null a propósito: acá solo se corona al ganador y se manda
-  // el mensaje de cierre, que se decide por LP neto. Con qué racha terminó la
-  // semana es para la tabla en pantalla, no para el anuncio, y calcularla
-  // obligaría a ordenar las partidas de todos para nada.
   // El arranque del último día: sin el mínimo de ese día no se cobra, por más
   // arriba que se haya terminado. Ver MINIMO_ULTIMO_DIA en lib/liga.ts.
   const arrancaUltimoDia = ventanaUltimoDia(anterior).desde.getTime();
-  const recordPorPuuid = new Map<string, RecordSemanal>();
+  // Se agrupan y se ORDENAN por fecha antes de contar. Hasta que la liga
+  // puntuó por rachas alcanzaba con sumar victorias y derrotas al vuelo, sin
+  // mirar el orden; ahora "la cuarta al hilo vale 1,25" depende de en qué
+  // secuencia pasaron, así que el cierre tiene que reconstruirla igual que
+  // /api/liga o coronaría con un puntaje distinto del que muestra la pantalla.
+  const suyasPorPuuid = new Map<string, { win: boolean; played_at: string }[]>();
   for (const m of partidas ?? []) {
     if (Date.parse(m.played_at) < (arranqueDe.get(m.puuid) ?? 0)) continue;
-    const acc = recordPorPuuid.get(m.puuid) ?? { victorias: 0, derrotas: 0, racha: null, champion: null, linea: null, secuencia: [], ultimas: [], ultimoDia: 0 };
-    if (m.win) acc.victorias++;
-    else acc.derrotas++;
-    if (Date.parse(m.played_at) >= arrancaUltimoDia) acc.ultimoDia++;
-    recordPorPuuid.set(m.puuid, acc);
+    const arr = suyasPorPuuid.get(m.puuid) ?? [];
+    arr.push({ win: m.win, played_at: m.played_at });
+    suyasPorPuuid.set(m.puuid, arr);
+  }
+  const recordPorPuuid = new Map<string, RecordSemanal>();
+  for (const [puuid, suyas] of suyasPorPuuid) {
+    suyas.sort((a, b) => Date.parse(a.played_at) - Date.parse(b.played_at));
+    recordPorPuuid.set(puuid, {
+      victorias: suyas.filter((m) => m.win).length,
+      derrotas: suyas.filter((m) => !m.win).length,
+      ultimoDia: suyas.filter((m) => Date.parse(m.played_at) >= arrancaUltimoDia).length,
+      // La racha de cierre va en null: acá solo se corona y se manda el
+      // mensaje, y con qué racha terminó la semana es dato de pantalla.
+      racha: null,
+      champion: null,
+      linea: null,
+      secuencia: suyas.map((m) => m.win),
+      ultimas: [],
+    });
   }
 
   const participantes: Participante[] = anotados.map((s) => ({

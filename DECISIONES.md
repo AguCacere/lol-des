@@ -42,6 +42,21 @@ muestra es el total del tramo con "entre 2", que es medido. El caso se vuelve ra
 mientras el scheduler corra cada 15 minutos; si aparece seguido, el arreglo es bajar
 el intervalo, no inventar el reparto.
 
+**El puntaje depende del ORDEN de las partidas, no solo del total.** Desde que la
+cuarta victoria al hilo vale 1,25, dos personas con el mismo 8V-4D pueden tener
+puntajes distintos. Todo lo que calcule un puntaje tiene que reconstruir la secuencia
+ordenada por `played_at` y pasarla por `puntosDeSecuencia` — `/api/liga` y
+`lib/liga-cierre.ts` lo hacen los dos, y el cierre tuvo que dejar de sumar victorias
+al vuelo justamente por esto. La curva de la fila sale del MISMO recorrido
+(`acumulado`): si el número contara la racha y el gráfico no, la fila se contradiría
+sola.
+
+**El castigo por derrota fija en qué winrate conviene jugar más.** Con −1 el
+equilibrio está en 50% y jugar de más no suma nada; con −0,5 baja a 33% y la liga la
+gana el que tiene más tiempo libre — se probó con una tabla real y el último de esa
+semana (10V-11D) pasaba a primero. Quedó en −0,75, o sea equilibrio en 43%. No es un
+número estético: cambiarlo cambia qué premia la liga.
+
 **El que va primero no es necesariamente el que cobra.** La liga tiene dos mínimos
 (`MINIMO_SEMANAL` = 10, `MINIMO_ULTIMO_DIA` = 3, en `lib/liga.ts`) y el premio lo
 levanta `ganadorDe`, que es el primero de la tabla que además los cumple — puede no

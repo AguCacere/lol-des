@@ -31,11 +31,16 @@ Además, sin pantalla propia:
 desastroso, ahogarse en la fuente, perder contra un Nasus, cruzarse un Teemo. Se
 dispara solo con el refresco.
 
-**La liga semanal** — una competencia interna por **partidas netas** (victorias menos
-derrotas), de lunes a domingo hora argentina, aparte del ladder. El ladder mide dónde
-llegaste; la liga mide cuánto te moviste esta semana. Una victoria vale 1 para todos,
-sin importar cuánto LP dé cada cuenta. Es opt-in: cada uno cuenta desde que se lo
-anota, no desde el lunes.
+**La liga semanal** — una competencia interna por **puntos**, de lunes a domingo hora
+argentina, aparte del ladder. El ladder mide dónde llegaste; la liga mide cuánto te
+moviste esta semana.
+
+Una victoria suma **1** y una derrota resta **0,75**; desde la **cuarta ganada al
+hilo** cada victoria vale **1,25**. El castigo por perder es el que decide a partir de
+qué winrate conviene jugar más: con −1 el equilibrio queda en 50% y jugar de más no
+suma; con −0,5 baja a 33% y gana el que tiene más tiempo libre. Con −0,75 queda en
+43%. El LP no puntúa: una victoria vale lo mismo en cualquier cuenta. Es opt-in: cada
+uno cuenta desde que se lo anota, no desde el lunes.
 
 Para llevarse el premio no alcanza con ir primero: hay que jugar **10 partidas en la
 semana** y **3 el último día**. Es contra el que agarra ventaja el martes y no juega

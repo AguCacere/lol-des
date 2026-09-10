@@ -7,8 +7,9 @@ todo está pensado para seis o siete personas que se conocen y se cargan entre e
 - **Datos**: Riot API + Data Dragon, cacheados en Supabase (Postgres)
 - **Cinco pestañas**: Ranking (ladder + liga semanal), Estadísticas, Cara a cara, Clash, Equipo
 - **Un bot de Discord** que anuncia rachas, ascensos y carga a quien juega mal
-- **Una liga semanal** por partidas netas (V − D), de lunes a domingo hora argentina,
-  con premio. Para cobrarlo hay mínimos: 10 partidas en la semana y 3 el último día
+- **Una liga semanal** por puntos (victoria 1, derrota −0,75, y 1,25 desde la cuarta
+  ganada al hilo), de lunes a domingo hora argentina, con premio. Para cobrarlo hay
+  mínimos: 10 partidas en la semana y 3 el último día
 - **Los datos se refrescan cada 15 minutos**, con un scheduler externo — NO con el cron
   de `vercel.json`, que en el plan Hobby solo puede correr una vez por día
 

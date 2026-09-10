@@ -11,6 +11,7 @@ import { ChampIcon } from "./ChampIcon";
 import { RoleIcon } from "./RoleIcon";
 import { championLabel } from "@/lib/champion-names";
 import { ROLES, tierFor, trendColor } from "@/lib/ladder";
+import { puntajeTexto } from "@/lib/liga";
 import type { RoleKey, TierKey } from "@/lib/types";
 
 interface Fila {
@@ -18,7 +19,9 @@ interface Fila {
   name: string;
   tag: string;
   profileIconUrl: string | null;
-  /** Partidas netas: lo que puntúa. Opcional por la ventana de caché del CDN. */
+  /** El puntaje de la semana: lo que decide. Opcional por la ventana de caché del CDN. */
+  puntos?: number;
+  /** Victorias menos derrotas. Ya no puntúa; queda como cuenta rápida. */
   netas?: number;
   lpNeto: number;
   /** Cuánto le recortó el tope por victoria. Opcional: una respuesta anterior al deploy no lo trae. */
@@ -50,6 +53,8 @@ interface PartidaLiga {
   /** Opcionales por la ventana de caché del CDN: una pestaña vieja no los trae. */
   lpTramo?: number | null;
   juntas?: number;
+  /** Cuánto sumó o restó esta partida: 1, 1,25 o −0,75. */
+  puntos?: number;
 }
 interface DelPlantel {
   puuid: string;
@@ -80,6 +85,8 @@ interface Datos {
   minimoSemanal?: number;
   minimoUltimoDia?: number;
   ultimoDia?: boolean;
+  /** La tabla de puntos, para escribir la regla con los mismos números que la calculan. */
+  puntaje?: { victoria: number; derrota: number; rachaDesde: number; enRacha: number };
 }
 
 const dia = (iso: string) =>
@@ -101,6 +108,16 @@ const horaDe = (iso: string) =>
  */
 function lpTexto(n: number): string {
   return `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n)} LP`;
+}
+
+/** "1,25" y no "1.25": la regla se lee en castellano. */
+function coma(n: number): string {
+  return n.toFixed(2).replace(/\.?0+$/, "").replace(".", ",");
+}
+
+/** "cuarta", "quinta"… para escribir la regla de la racha sin un número suelto. */
+function ordinal(n: number): string {
+  return ["", "primera", "segunda", "tercera", "cuarta", "quinta", "sexta", "séptima"][n] ?? `${n}ª`;
 }
 
 /** La clase de color por signo, que es la misma en todos lados. */
@@ -187,6 +204,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
   const minSemana = d.minimoSemanal ?? null;
   const minDia = d.minimoUltimoDia ?? null;
   const esUltimoDia = d.ultimoDia ?? false;
+  const tp = d.puntaje ?? null;
   // Para escalar las barras de partidas: el que más jugó ocupa todo el ancho.
   const maxPartidas = Math.max(1, ...d.tabla.map((f) => f.victorias + f.derrotas));
 
@@ -249,8 +267,18 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
           primero. Una línea alcanza. */}
       {d.arrancada !== false && (
         <p className="liga-regla">
-          Gana el que más <b>netas</b> hace: victorias menos derrotas.{" "}
-          <span className="liga-regla-nota">El LP no puntúa — una victoria vale 1 para todos.</span>
+          {tp ? (
+            <>
+              Cada victoria suma <b>{coma(tp.victoria)}</b> y cada derrota resta{" "}
+              <b>{coma(Math.abs(tp.derrota))}</b>. Desde la <b>{ordinal(tp.rachaDesde)}</b> ganada al hilo, la victoria
+              vale <b>{coma(tp.enRacha)}</b>.{" "}
+            </>
+          ) : (
+            <>
+              Gana el que más <b>puntos</b> hace en la semana.{" "}
+            </>
+          )}
+          <span className="liga-regla-nota">El LP no puntúa — una victoria vale lo mismo en cualquier cuenta.</span>
           {/* La condición para cobrar, aparte y en su propio renglón: es una
               regla distinta de cómo se puntúa, y mezclarlas en la misma frase
               hacía que no se leyera ninguna. */}
@@ -296,8 +324,9 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
               // se dibuja sin curva en vez de tirar y llevarse la tabla.
               const serie = f.serie ?? [];
               // Con guarda: durante la ventana de caché del CDN llega el JSON
-              // anterior al deploy, que no trae `netas`.
-              const puntaje = f.netas ?? f.victorias - f.derrotas;
+              // anterior al deploy. Se cae a las netas y, si tampoco están, a
+              // la resta a mano.
+              const puntaje = f.puntos ?? f.netas ?? f.victorias - f.derrotas;
               return (
                 <div key={f.puuid} className="liga-grupo">
                 <div
@@ -452,12 +481,11 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                         el premio se perdía entre ellos. La placa además le da
                         piso al 0, que sin fondo parecía un hueco. */}
                     <span className="liga-puntaje">
-                      {puntaje > 0 ? "+" : puntaje < 0 ? "−" : ""}
-                      {Math.abs(puntaje)}
-                      {/* "1 neta", no "1 netas". Es una palabra y nadie la va a
-                          aplaudir, pero un plural mal puesto en el dato más
+                      {puntajeTexto(puntaje)}
+                      {/* "1 punto", no "1 puntos". Es una palabra y nadie la va
+                          a aplaudir, pero un plural mal puesto en el dato más
                           grande de la pantalla se nota. */}
-                      <span className="liga-puntaje-unidad">{Math.abs(puntaje) === 1 ? "neta" : "netas"}</span>
+                      <span className="liga-puntaje-unidad">{Math.abs(puntaje) === 1 ? "punto" : "puntos"}</span>
                     </span>
                     {!f.sinJugar && (
                       <span
@@ -486,7 +514,12 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                         <span className={`liga-partida-res ${m.win ? "gano" : "perdio"}`}>{m.win ? "V" : "D"}</span>
                         <ChampIcon champ={m.champion ?? ""} version={d.ddragonVersion ?? null} className="liga-partida-champ" />
                         <span className="liga-partida-champ-nombre">{m.champion ? championLabel(m.champion) : "—"}</span>
-                        <span className="liga-partida-netas">{m.win ? "+1" : "−1"}</span>
+                        {/* Lo que valió ESA partida. Puede ser 1,25 si fue la
+                            cuarta al hilo o más, así que no se puede deducir
+                            del resultado: viene calculado. */}
+                        <span className="liga-partida-netas">
+                          {puntajeTexto(m.puntos ?? (m.win ? 1 : -1))}
+                        </span>
                         {m.lp !== null ? (
                           <span className={`liga-partida-lp ${tono(m.lp)}`}>
                             <span className="liga-partida-lp-n">{lpTexto(m.lp)}</span>

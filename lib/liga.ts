@@ -165,9 +165,16 @@ export interface FilaLiga {
   tag: string;
   profileIconUrl: string | null;
   /**
-   * Partidas netas: victorias menos derrotas. Es lo que puntúa con
-   * MODO_LIGA = "netas", y vale lo mismo para todos sin importar en qué
-   * cuenta se juegue.
+   * El puntaje de la semana: lo que decide la liga. Sale de la tabla de puntos
+   * —1 por victoria, −0,75 por derrota, 1,25 desde la cuarta al hilo— aplicada
+   * a las partidas EN ORDEN. Vale lo mismo para todos sin importar en qué
+   * cuenta se juegue, que es lo que se pidió cuando el LP daba 30 por victoria
+   * en una cuenta nueva y 18 en una vieja.
+   */
+  puntos: number;
+  /**
+   * Victorias menos derrotas, sin la tabla de puntos. Ya no decide nada; se
+   * calcula igual porque es la cuenta que la gente hace de cabeza.
    */
   netas: number;
   /**
@@ -250,6 +257,13 @@ export interface PartidaLiga {
   lp: number | null;
   /** Por qué no hay número propio: "varias" = cayeron juntas en el mismo tramo. Null si sí lo hay. */
   sinLp: "varias" | "sin-foto" | null;
+  /**
+   * Cuánto sumó o restó esta partida al puntaje: 1, 1,25 (cuarta al hilo o
+   * más) o −0,75. Se guarda por partida y no se recalcula en pantalla porque
+   * depende de la RACHA, o sea de las partidas anteriores, que el detalle de
+   * las últimas cinco no tiene.
+   */
+  puntos: number;
   /**
    * El LP del tramo ENTERO cuando cayeron varias partidas entre las mismas dos
    * fotos: el mismo número en todas ellas, mostrado como lo que es.
@@ -364,11 +378,79 @@ export interface RecordSemanal {
  * Es un solo valor y está pensado para volver a "lp" cuando el grupo esté
  * todo en cuentas comparables.
  */
-export const MODO_LIGA: "netas" | "lp" = "netas";
+export const MODO_LIGA: "puntos" | "netas" | "lp" = "puntos";
+
+/**
+ * La tabla de puntos.
+ *
+ * Una victoria vale 1 y una derrota resta 0,75 — no 1. El castigo por perder
+ * fija en qué winrate te conviene jugar más: con −1 el equilibrio está en 50%
+ * y jugar de más no suma nada; con −0,5 baja a 33% y la liga la gana el que
+ * tiene más tiempo libre (se probó con la tabla de esa semana: el último,
+ * 10V-11D, pasaba a primero). Con −0,75 el equilibrio queda en 43%: jugar
+ * mucho suma, pero solo si ganás más de dos de cada cinco.
+ *
+ * Y desde la CUARTA ganada al hilo cada victoria vale 1,25. Es chico a
+ * propósito —una racha de seis son 0,50 extra, no da vuelta una tabla— y está
+ * para que valga la pena seguir jugando cuando venís bien en vez de guardar la
+ * ventaja.
+ *
+ * OJO con lo que la racha reabre: el que juega en una cuenta muy por debajo de
+ * su nivel encadena seis y siete de rutina, y el que juega en su elo real rara
+ * vez pasa de cuatro. Es la misma ventaja del smurf que se cerró sacando el
+ * LP, más chica. Si se nota, el arreglo es subir RACHA_DESDE o volver
+ * PUNTOS_EN_RACHA a 1.
+ */
+export const PUNTOS_VICTORIA = 1;
+export const PUNTOS_DERROTA = -0.75;
+export const RACHA_DESDE = 4;
+export const PUNTOS_EN_RACHA = 1.25;
+
+/**
+ * Lo que vale cada partida de una secuencia, en orden, y el acumulado.
+ *
+ * Devuelve las dos cosas juntas porque la curva de la fila TIENE que dibujar
+ * el mismo acumulado que el número de al lado: si una cuenta la racha y la
+ * otra no, el gráfico y el puntaje se contradicen en la misma fila.
+ *
+ * `secuencia` va de la partida más VIEJA a la más nueva.
+ */
+export function puntosDeSecuencia(secuencia: boolean[]): { total: number; cadaUna: number[]; acumulado: number[] } {
+  let alHilo = 0;
+  let acum = 0;
+  const cadaUna: number[] = [];
+  const acumulado: number[] = [];
+  for (const gano of secuencia) {
+    if (gano) {
+      alHilo++;
+      cadaUna.push(alHilo >= RACHA_DESDE ? PUNTOS_EN_RACHA : PUNTOS_VICTORIA);
+    } else {
+      alHilo = 0;
+      cadaUna.push(PUNTOS_DERROTA);
+    }
+    acum += cadaUna[cadaUna.length - 1];
+    // Se redondea en cada paso y no al final: 0,75 y 1,25 son exactos en
+    // binario, pero sumarlos veinte veces igual arrastra basura y "3.9999999"
+    // en pantalla es peor que cualquier error de redondeo.
+    acum = Math.round(acum * 100) / 100;
+    acumulado.push(acum);
+  }
+  return { total: acum, cadaUna, acumulado };
+}
 
 /** El número con el que se ordena y se corona, según el modo. */
-export function puntajeDe(f: { netas: number; lpNeto: number }): number {
+export function puntajeDe(f: { puntos: number; netas: number; lpNeto: number }): number {
+  if (MODO_LIGA === "puntos") return f.puntos;
   return MODO_LIGA === "netas" ? f.netas : f.lpNeto;
+}
+
+/**
+ * Cómo se escribe un puntaje: "3,25", "4", "−0,75". Coma decimal y sin ceros
+ * al pepe — un "4,00" en la columna del marcador es ruido.
+ */
+export function puntajeTexto(p: number): string {
+  const abs = Math.abs(p).toFixed(2).replace(/\.?0+$/, "").replace(".", ",");
+  return `${p > 0 ? "+" : p < 0 ? "−" : ""}${abs}`;
 }
 
 /**
@@ -488,8 +570,14 @@ export function tablaDeLaSemana(
     // gráfico dibujara el neto crudo, la línea y el "+68" de al lado se
     // contradirían.
     const tramos = base ? [base, ...dentro] : dentro;
+    // El puntaje y la curva salen de la MISMA pasada por la secuencia. Si el
+    // número contara la racha y el gráfico no, la fila se contradiría sola.
+    const cuenta = puntosDeSecuencia(secuencia);
+    const puntos = MODO_LIGA === "puntos" ? cuenta.total : victorias - derrotas;
     let serieNeta: number[];
-    if (MODO_LIGA === "netas") {
+    if (MODO_LIGA === "puntos") {
+      serieNeta = cuenta.acumulado.length > 0 ? [0, ...cuenta.acumulado] : [0, 0];
+    } else if (MODO_LIGA === "netas") {
       // Un escalón por partida: +1 ganando, −1 perdiendo. Es literalmente el
       // puntaje contándose.
       let acum = 0;
@@ -511,13 +599,14 @@ export function tablaDeLaSemana(
       // Sin una sola foto no hay nada que medir, pero igual va la línea
       // plana en 0: un gráfico vacío parece roto, y "no se movió" es
       // información.
-      filas.push({ ...p, netas: victorias - derrotas, lpNeto: 0, lpRecortado: 0, victorias, derrotas, racha, champion, linea, ultimas, ultimoDia, habilitado, sinJugar: victorias + derrotas === 0, rango, serie: [0, 0], entroTarde });
+      filas.push({ ...p, puntos, netas: victorias - derrotas, lpNeto: 0, lpRecortado: 0, victorias, derrotas, racha, champion, linea, ultimas, ultimoDia, habilitado, sinJugar: victorias + derrotas === 0, rango, serie: serieNeta, entroTarde });
       continue;
     }
 
     const { neto, recortado } = netoConTope(tramos);
     filas.push({
       ...p,
+      puntos,
       netas: victorias - derrotas,
       lpNeto: neto,
       lpRecortado: recortado,
@@ -611,7 +700,7 @@ export function mensajeDeCierre(inicio: Date, tabla: FilaLiga[]): string {
   const g = ganadorDe(tabla);
   if (!g) {
     const puntero = jugaron[0];
-    const pp = puntajeDe(puntero);
+    const pp = puntajeTexto(puntajeDe(puntero));
     const total = puntero.victorias + puntero.derrotas;
     const leFalta =
       total < MINIMO_SEMANAL
@@ -620,7 +709,7 @@ export function mensajeDeCierre(inicio: Date, tabla: FilaLiga[]): string {
     return [
       `🏆 **CERRÓ LA SEMANA** — ${fechaCorta(inicio)} al ${fechaCorta(fin)}`,
       "",
-      `Y esta semana **no cobra nadie**. El puntero fue **${puntero.name}** con ${pp >= 0 ? "+" : ""}${pp}, pero ${leFalta}.`,
+      `Y esta semana **no cobra nadie**. El puntero fue **${puntero.name}** con ${pp}, pero ${leFalta}.`,
       "",
       `Para llevárselo hay que jugar **${MINIMO_SEMANAL} en la semana** y **${MINIMO_ULTIMO_DIA} el último día**. Se puso justamente para que no se pueda agarrar ventaja y desaparecer.`,
       "",
@@ -630,14 +719,13 @@ export function mensajeDeCierre(inicio: Date, tabla: FilaLiga[]): string {
   // El puntaje del modo activo, no el LP: con MODO_LIGA = "netas" el LP no
   // decide nada y anunciar por LP contradiría a la tabla.
   const pg = puntajeDe(g);
-  const signo = pg >= 0 ? "+" : "";
   const unidad = MODO_LIGA === "netas" ? (Math.abs(pg) === 1 ? "partida neta" : "partidas netas") : "puntos";
   const lineas = [
     `🏆 **CERRÓ LA SEMANA** — ${fechaCorta(inicio)} al ${fechaCorta(fin)}`,
     "",
     pg > 0
-      ? `Gana **${g.name}** con **${signo}${pg} ${unidad}** en ${g.victorias}V-${g.derrotas}D. A cobrar.`
-      : `Gana **${g.name}**… con **${signo}${pg} ${unidad}**. Ganó porque los demás estuvieron peor, que es la victoria más triste que hay.`,
+      ? `Gana **${g.name}** con **${puntajeTexto(pg)} ${unidad}** en ${g.victorias}V-${g.derrotas}D. A cobrar.`
+      : `Gana **${g.name}**… con **${puntajeTexto(pg)} ${unidad}**. Ganó porque los demás estuvieron peor, que es la victoria más triste que hay.`,
     "",
   ];
 
@@ -659,7 +747,7 @@ export function mensajeDeCierre(inicio: Date, tabla: FilaLiga[]): string {
     lineas.push("**Detrás:**");
     for (const [i, f] of resto.entries()) {
       const pf = puntajeDe(f);
-      lineas.push(`${i + 2}. ${f.name} — ${pf >= 0 ? "+" : ""}${pf} (${f.victorias}V-${f.derrotas}D)`);
+      lineas.push(`${i + 2}. ${f.name} — ${puntajeTexto(pf)} (${f.victorias}V-${f.derrotas}D)`);
     }
     lineas.push("");
   }
