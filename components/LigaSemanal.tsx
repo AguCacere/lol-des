@@ -254,9 +254,12 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
           {/* La condición para cobrar, aparte y en su propio renglón: es una
               regla distinta de cómo se puntúa, y mezclarlas en la misma frase
               hacía que no se leyera ninguna. */}
+          {/* En negrita van los NÚMEROS y no la frase entera: con las dos
+              condiciones resaltadas, en el teléfono la regla eran tres
+              renglones dorados y pesaba más que la tabla. */}
           {minSemana != null && minDia != null && (
             <span className="liga-regla-cobro">
-              Para cobrar hay que jugar <b>{minSemana} partidas en la semana</b> y <b>{minDia} el último día</b>
+              Para cobrar hay que jugar <b>{minSemana}</b> partidas en la semana y <b>{minDia}</b> el último día
               {esUltimoDia ? " — que es hoy." : "."}
             </span>
           )}

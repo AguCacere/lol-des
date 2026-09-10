@@ -2473,22 +2473,40 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .podium-meta{display:flex; align-items:center; gap:5px; flex-wrap:wrap; justify-content:center;}
 .podium-meta .seg{white-space:nowrap;}
 @media (max-width:760px){
-  /* La barra pasa a una segunda línea a todo el ancho con el total de
-     partidas a su izquierda: apretada en una sola fila quedaba de 40px y
-     dejaba de mostrar la diferencia, que es todo lo que la barra aporta. */
+  /* La barra pasa a una segunda línea a todo el ancho: apretada en una sola
+     fila quedaba de 40px y dejaba de mostrar la diferencia, que es todo lo
+     que la barra aporta.
+
+     El PUESTO ocupa los dos renglones. Antes ocupaba solo el primero y abajo
+     le caía el total de partidas, así que la columna de la izquierda
+     terminaba con dos números pelados uno arriba del otro —"4" y "334"— y se
+     leía como si el segundo fuera otro puesto. El total de partidas se fue al
+     lado de su barra, que es lo que cuenta, y con la palabra al lado: sin el
+     encabezado (que en el teléfono no está) un número solo no dice qué es. */
   .tw-head{display:none;}
   .tw-row{
-    grid-template-columns:26px minmax(0,1fr) 48px 46px;
-    grid-template-areas:"rank name wr net" "games bar bar bar";
-    gap:6px 10px; padding:12px 14px;
+    grid-template-columns:24px 62px minmax(0,1fr) 50px 36px;
+    grid-template-areas:
+      "rank name  name wr  net"
+      "rank games bar  bar bar";
+    gap:7px 9px; padding:12px 14px;
   }
-  .tw-c-rank{grid-area:rank;}
+  .tw-c-rank{grid-area:rank; align-self:center;}
   .tw-c-name{grid-area:name;}
-  .tw-c-games{grid-area:games; font-size:11px; color:var(--text-muted); text-align:center;}
+  .tw-c-games{
+    grid-area:games; align-self:center;
+    font-family:var(--font-body); font-size:9.5px; font-weight:600;
+    color:var(--text-muted); text-align:left; white-space:nowrap;
+  }
+  .tw-c-games::after{content:" partidas";}
   .tw-c-bar{grid-area:bar;}
   .tw-c-wr{grid-area:wr;}
-  .tw-c-net{grid-area:net;}
+  .tw-c-net{grid-area:net; font-size:12px;}
   .tw-avatar{width:30px; height:30px;}
+  /* Sin el tag entran los nombres largos enteros. "compren bitcoin #GOD"
+     salía cortado en "compren bitcoin …" y lo que se perdía era el nombre,
+     no el tag. */
+  .tw-name .player-tag{display:none;}
 }
 
 /* ── Capa de oficio: paleta ⌘K, transiciones y esqueletos ─────────────────── */
@@ -3393,11 +3411,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 @media (max-width:900px){
   /* La curva es lo primero que sobra: es el matiz de CÓMO llegó al neto, y el
      neto está escrito al lado. */
-  .liga-fila{grid-template-columns:42px 36px minmax(120px,220px) 36px 150px minmax(140px,1fr) 100px; gap:11px;}
+  .liga-fila{grid-template-columns:42px 36px minmax(150px,220px) 36px 150px minmax(140px,1fr) 100px; gap:11px;}
   .liga-avatar{width:34px; height:34px; border-radius:10px;}
   .liga-curva{display:none;}
 }
-@media (max-width:640px){
+/* 780 y no 640: con siete columnas la fila necesita 766px para que ninguna
+   baje de su mínimo, así que entre 641 y 766 las columnas se pisaban y la
+   tabla —que tiene overflow:hidden— cortaba el nombre. Se midió: tres nombres
+   cortados a 700px. */
+@media (max-width:780px){
   /* Y después el rango: en un teléfono el nombre y el neto son lo que se
      mira, y el rango de cada uno ya está en el ladder de al lado. */
   /* Se cae también el campeón. Cinco columnas de datos no entran en 390px y
@@ -3409,6 +3431,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .liga-fila{grid-template-columns:34px 30px minmax(0,1fr) 92px 78px; gap:10px; padding:10px 13px;}
   .liga-record{font-size:11px; gap:4px;}
   .liga-record .liga-racha{margin-left:1px;}
+  .liga-regla{font-size:11.5px; line-height:1.45;}
   /* En el teléfono se cae la palabra: "netas" no entra al lado del número, y
      lo que importa ahí es el número. */
   .liga-puntaje-unidad{display:none;}
@@ -3428,8 +3451,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .liga-fila{
     grid-template-columns:26px 30px minmax(0,1fr) 74px;
     grid-template-rows:auto auto;
-    column-gap:9px; row-gap:3px; padding:10px 12px;
+    column-gap:9px; row-gap:2px; padding:9px 12px;
   }
+  /* La marca de "se anotó el martes" pegada al nombre, no flotando entre los
+     dos renglones: en el teléfono cuatro de seis filas la tienen y con aire
+     alrededor parecía un tercer renglón propio en vez de la aclaración del
+     nombre de arriba. */
+  .liga-nombre{line-height:1.25;}
+  .liga-entro{margin-top:-1px;}
   .liga-puesto{grid-column:1; grid-row:1 / span 2;}
   .liga-avatar{grid-column:2; grid-row:1 / span 2; width:32px; height:32px; border-radius:9px; font-size:11px;}
   .liga-nombre{grid-column:3; grid-row:1; font-size:13.5px;}
@@ -3442,9 +3471,13 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 /* Marca de que ese entró a mitad de semana. Va chiquito y al lado del nombre
    porque explica el número de al lado, no compite con él. */
+/* Cuatro de seis filas la tienen, así que no es una excepción: es una línea
+   más de cada fila. Va apagada y en gris —era ámbar al 80% y en el teléfono
+   competía con el nombre de arriba— porque lo que aporta es explicar por qué
+   ese jugó menos, no llamar la atención. */
 .liga-entro{
-  display:block; font-size:10px; font-weight:400; color:var(--warn);
-  opacity:0.8; white-space:nowrap; text-transform:none; letter-spacing:0;
+  display:block; font-size:9.5px; font-weight:400; color:var(--text-muted);
+  opacity:0.75; white-space:nowrap; text-transform:none; letter-spacing:0;
 }
 
 /* "Apoyo al equipo" en el detalle de partida: curación y escudo de un
