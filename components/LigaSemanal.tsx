@@ -226,15 +226,22 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
     if (total < minSemana) {
       return (
         <span className="liga-cupo" title={`Le faltan ${minSemana - total} partidas en la semana para poder cobrar.`}>
-          {total}/{minSemana} semana
+          <b>
+            {total} / {minSemana}
+          </b>{" "}
+          partidas
         </span>
       );
     }
-    // Ya cumplió la semana: lo que falta es el último día. Antes de que arranque
-    // se muestra igual, en gris, como aviso de lo que viene.
+    // Ya cumplió la semana: lo que falta es el último día. Va más apagado que
+    // el de la semana —es la condición chica— salvo cuando el último día ya
+    // está corriendo, que ahí es lo único que le falta.
     return (
-      <span className={`liga-cupo${esUltimoDia ? " urge" : ""}`} title={`Le faltan ${minDia - (f.ultimoDia ?? 0)} partidas del último día para poder cobrar.`}>
-        {f.ultimoDia ?? 0}/{minDia} {esUltimoDia ? "hoy" : "último día"}
+      <span className={`liga-cupo chico${esUltimoDia ? " urge" : ""}`} title={`Le faltan ${minDia - (f.ultimoDia ?? 0)} partidas del último día para poder cobrar.`}>
+        <b>
+          {f.ultimoDia ?? 0} / {minDia}
+        </b>{" "}
+        {esUltimoDia ? "hoy" : "último día"}
       </span>
     );
   }
@@ -267,32 +274,39 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
           van juntos. */}
       <div className="liga-contexto">
         {d.arrancada !== false && (
-        <p className="liga-regla">
-          {tp ? (
-            <>
-              Cada victoria suma <b>{coma(tp.victoria)}</b> y cada derrota resta{" "}
-              <b>{coma(Math.abs(tp.derrota))}</b>. Desde la <b>{ordinal(tp.rachaDesde)}</b> ganada al hilo, la victoria
-              vale <b>{coma(tp.enRacha)}</b>.{" "}
-            </>
-          ) : (
-            <>
-              Gana el que más <b>puntos</b> hace en la semana.{" "}
-            </>
-          )}
-          <span className="liga-regla-nota">El LP no puntúa — una victoria vale lo mismo en cualquier cuenta.</span>
-          {/* La condición para cobrar, aparte y en su propio renglón: es una
-              regla distinta de cómo se puntúa, y mezclarlas en la misma frase
-              hacía que no se leyera ninguna. */}
-          {/* En negrita van los NÚMEROS y no la frase entera: con las dos
-              condiciones resaltadas, en el teléfono la regla eran tres
-              renglones dorados y pesaba más que la tabla. */}
-          {minSemana != null && minDia != null && (
-            <span className="liga-regla-cobro">
-              Para cobrar hay que jugar <b>{minSemana}</b> partidas en la semana y <b>{minDia}</b> el último día
-              {esUltimoDia ? " — que es hoy." : "."}
+          <div className="liga-reglas">
+            {/* De párrafo a tablero. El mismo contenido en prosa eran cuatro
+                renglones que había que LEER; acá cada regla es una ficha y se
+                escanea en un vistazo. El bonus de racha va aparte y en dorado
+                porque no es una regla más: es la mecánica que hace que
+                convenga seguir jugando cuando venís ganando. */}
+            {tp ? (
+              <>
+                <span className="liga-reglas-label">Cómo se puntúa</span>
+                <span className="liga-ficha v">
+                  Victoria <b>+{coma(tp.victoria)}</b>
+                </span>
+                <span className="liga-ficha d">
+                  Derrota <b>−{coma(Math.abs(tp.derrota))}</b>
+                </span>
+                <span className="liga-ficha bonus" title={`Desde la ${ordinal(tp.rachaDesde)} victoria al hilo, cada una vale ${coma(tp.enRacha)} en vez de ${coma(tp.victoria)}.`}>
+                  <StreakIcon result="W" />
+                  {tp.rachaDesde}.ª al hilo <b>+{coma(tp.enRacha)}</b>
+                </span>
+              </>
+            ) : (
+              <span className="liga-reglas-label">Gana el que más puntos hace</span>
+            )}
+            <span className="liga-reglas-nota">
+              El LP no puntúa: va solo de referencia.
+              {minSemana != null && minDia != null && (
+                <>
+                  {" "}Para cobrar hay que jugar <b>{minSemana}</b> partidas en la semana y <b>{minDia}</b> el último
+                  día{esUltimoDia ? ", que es hoy" : ""}.
+                </>
+              )}
             </span>
-          )}
-        </p>
+          </div>
         )}
         {!conEncabezado && <span className="liga-contexto-fecha">{rango}</span>}
       </div>
@@ -328,7 +342,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                 la celda del puesto en blanco. */}
             <span className="col-champ" />
             <span className="col-rango">Rango</span>
-            <span className="col-curva">Cómo viene</span>
+            <span className="col-curva">Evolución</span>
             <span className="col-record">Récord</span>
             <span className="col-puntos">Puntos</span>
           </div>
@@ -467,8 +481,8 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                         </span>
                         <span className="liga-record">
                           <span className="rec-v">{f.victorias}V</span>
-                          <span className="rec-menos" aria-hidden>
-                            −
+                          <span className="rec-sep" aria-hidden>
+                            ·
                           </span>
                           <span className="rec-d">{f.derrotas}D</span>
                           {/* La racha DE LA SEMANA, no la de la season: en una
@@ -504,8 +518,12 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                         letra al lado (récord, racha, LP) y el número que decide
                         el premio se perdía entre ellos. La placa además le da
                         piso al 0, que sin fondo parecía un hueco. */}
+                    {/* El número arriba y la palabra abajo, no uno al lado del
+                        otro: apilados, el número se lee como un marcador y la
+                        palabra como su unidad. Al lado competían por el mismo
+                        renglón y el puntaje perdía contra una palabra. */}
                     <span className="liga-puntaje">
-                      {puntajeTexto(puntaje)}
+                      <span className="liga-puntaje-n">{puntajeTexto(puntaje)}</span>
                       {/* "1 punto", no "1 puntos". Es una palabra y nadie la va
                           a aplaudir, pero un plural mal puesto en el dato más
                           grande de la pantalla se nota. */}
@@ -530,8 +548,8 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                 {abierta === f.puuid && (f.ultimas?.length ?? 0) > 0 && (
                   <div className="liga-detalle">
                     <p className="liga-detalle-titulo">
-                      Sus últimas {f.ultimas!.length} de la semana
-                      <span className="liga-detalle-nota">El LP va de referencia; lo que puntúa es la columna del medio.</span>
+                      Últimas {f.ultimas!.length}
+                      <span className="liga-detalle-nota">Lo que sumó cada una, y el LP que dio.</span>
                     </p>
                     {f.ultimas!.map((m) => (
                       <div className={`liga-partida ${m.win ? "gano" : "perdio"}`} key={m.matchId}>
