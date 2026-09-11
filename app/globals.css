@@ -3447,7 +3447,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    — así que un `color` en la base las pisaba y los números salían todos
    grises. */
 .liga-lp{
-  display:flex; flex-direction:column; align-items:flex-end; gap:2px;
+  display:flex; flex-direction:column; align-items:flex-end; gap:4px;
   font-family:var(--font-stat); font-size:22px; font-weight:800; letter-spacing:-0.02em;
   font-variant-numeric:tabular-nums; text-align:right;
 }
@@ -3463,8 +3463,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    Va a media luz para no competir con la placa de arriba, que es la que
    decide. Colores explícitos porque .gd-pos/.gd-neg están definidas más
    arriba y, a igual especificidad, pierden contra .liga-lp-ref. */
-.liga-lp-ref.gd-pos{color:rgba(52,201,124,0.66);}
-.liga-lp-ref.gd-neg{color:rgba(240,85,95,0.66);}
+.liga-lp-ref.gd-pos{color:rgba(52,201,124,0.55);}
+.liga-lp-ref.gd-neg{color:rgba(240,85,95,0.55);}
 /* El puntaje NO va en caja. Estuvo un rato en placa —fondo teñido y aro— y en
    una columna de seis filas eso son seis rectángulos en fila que se leen como
    botones, encima adentro de una fila que SÍ es cliqueable. La vida se la da
@@ -3485,7 +3485,13 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    adentro del número y era eso —no el tamaño— lo que hacía crecer la fila
    entera al pasar el marcador a dos renglones. */
 .liga-puntaje-n{line-height:0.92;}
+/* La unidad aparece UNA sola vez por columna: si el encabezado de la tabla
+   dice PUNTOS, repetirlo en las seis filas es ruido —y peor, ruido apretado
+   entre el número y el LP, que era lo que hacía ver la celda apelmazada—.
+   Así que acá va escondida y solo se prende abajo de 780, que es justo donde
+   el encabezado desaparece. Una etiqueta o la otra, nunca las dos. */
 .liga-puntaje-unidad{
+  display:none;
   font-family:var(--font-body); font-size:8.5px; font-weight:700;
   letter-spacing:0.09em; text-transform:uppercase; opacity:0.45;
 }
@@ -3556,8 +3562,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    cortados a 700px. */
 @media (max-width:780px){
   /* Y el encabezado se va: de acá para abajo se caen columnas y las etiquetas
-     dejarían de caer arriba de lo que nombran. */
+     dejarían de caer arriba de lo que nombran. Como la columna se queda sin
+     título, la unidad vuelve a la celda. */
   .liga-head{display:none;}
+  .liga-puntaje-unidad{display:block;}
   /* Y después el rango: en un teléfono el nombre y el neto son lo que se
      mira, y el rango de cada uno ya está en el ladder de al lado. */
   /* Se cae también el campeón. Cinco columnas de datos no entran en 390px y
@@ -3577,9 +3585,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
      ancha. */
   .liga-regla-nota{display:none;}
   .liga-regla-cobro{margin-top:4px;}
-  /* En el teléfono se cae la palabra: "netas" no entra al lado del número, y
-     lo que importa ahí es el número. */
-  .liga-puntaje-unidad{display:none;}
+  /* La unidad se queda: acá el encabezado de la tabla no está, y desde que el
+     marcador se apila —el número arriba, la palabra abajo— ya no compite por
+     el mismo renglón, que era el motivo por el que antes se escondía. */
   .liga-lp{font-size:18px;}
   .liga-fila.lider .liga-lp{font-size:20px;}
   .liga-avatar{width:31px; height:31px; border-radius:9px; font-size:11px;}
