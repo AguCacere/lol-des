@@ -232,6 +232,16 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* El rango de fechas cuando la liga vive adentro del ladder y el encabezado
    ya lo puso el interruptor. */
 .liga-rango-solo{display:flex; justify-content:flex-end; margin:-4px 0 10px;}
+/* La regla y las fechas en un solo renglón, la regla a la izquierda y la
+   semana a la derecha. Antes eran dos bandas sueltas con un hueco en el medio:
+   la de las fechas pegada a la derecha sin nada con qué alinearse. */
+.liga-contexto{
+  display:flex; align-items:baseline; justify-content:space-between; gap:20px;
+  margin:0 0 12px;
+}
+.liga-contexto:empty{display:none;}
+.liga-contexto .liga-regla{flex:1 1 auto; min-width:0; margin:0;}
+.liga-contexto-fecha{flex:none;}
 @media (max-width:560px){
   /* En pantalla angosta los filtros se van solos a su renglón. */
   .ladder-controls{gap:12px;}
@@ -3131,6 +3141,16 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .liga-tabla{
   background:var(--bg); border-radius:var(--radius-lg); box-shadow:var(--shadow); overflow:hidden;
 }
+/* El mismo idioma que el encabezado de las otras tablas de la app (.tw-head):
+   10px, mayúsculas, apagado y con una línea abajo. Es lo que convierte seis
+   columnas de datos sueltos en una tabla. */
+.liga-head{
+  padding-top:12px; padding-bottom:8px;
+  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;
+  color:var(--text-muted); border-bottom:1px solid var(--border-soft);
+}
+.liga-head .col-puntos{text-align:right;}
+.liga-head span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 /* La misma anatomía que una fila del ladder —puesto, quién, rango, cómo le
    fue, la curva y el número— pero el número de la derecha es el neto de la
    semana en vez del LP absoluto. */
@@ -3148,7 +3168,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    porque es de donde sale; antes tenía la curva en el medio y la resta no se
    ataba con su resultado. Y la curva, que estaba en el lugar de la derecha
    —el del marcador—, pasa al medio: cuenta el "cómo viene", no quién gana. */
-.liga-fila{
+.liga-fila, .liga-head{
   display:grid;
   grid-template-columns:46px 40px minmax(140px,200px) 38px 158px 190px minmax(160px,1fr) 104px;
   align-items:center; gap:12px; padding:12px 18px;
@@ -3450,10 +3470,17 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-size:12.5px; color:var(--text-secondary); cursor:pointer;
 }
 .liga-admin-fila input{accent-color:var(--accent); width:15px; height:15px; cursor:pointer;}
-@media (max-width:900px){
+/* 1040 y no 900: con las ocho columnas la fila necesita 1036px de viewport
+   para que ninguna baje de su mínimo. Entre 901 y 1035 se pisaban y la tabla
+   —overflow:hidden— cortaba el nombre. Se midió: dos nombres cortados a 950.
+   Las tres bandas y lo que necesita cada una: 8 columnas desde 1036, 7 desde
+   781, y abajo de eso la fila de dos renglones del teléfono. */
+@media (max-width:1040px){
   /* La curva es lo primero que sobra: es el matiz de CÓMO llegó al neto, y el
      neto está escrito al lado. */
-  .liga-fila{grid-template-columns:42px 36px minmax(150px,220px) 36px 150px minmax(140px,1fr) 100px; gap:11px;}
+  .liga-fila, .liga-head{grid-template-columns:42px 36px minmax(130px,220px) 36px 150px minmax(140px,1fr) 100px; gap:11px;}
+  /* La curva se fue, así que su etiqueta también. */
+  .liga-head .col-curva{display:none;}
   .liga-avatar{width:34px; height:34px; border-radius:10px;}
   .liga-curva{display:none;}
 }
@@ -3462,6 +3489,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    tabla —que tiene overflow:hidden— cortaba el nombre. Se midió: tres nombres
    cortados a 700px. */
 @media (max-width:780px){
+  /* Y el encabezado se va: de acá para abajo se caen columnas y las etiquetas
+     dejarían de caer arriba de lo que nombran. */
+  .liga-head{display:none;}
   /* Y después el rango: en un teléfono el nombre y el neto son lo que se
      mira, y el rango de cada uno ya está en el ladder de al lado. */
   /* Se cae también el campeón. Cinco columnas de datos no entran en 390px y

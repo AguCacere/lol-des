@@ -252,20 +252,21 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
     <section className="liga">
       {/* Cuando la liga vive adentro del ladder, el título ya lo puso el
           interruptor de arriba: acá solo queda el rango de fechas. */}
-      {conEncabezado ? (
+      {conEncabezado && (
         <div className="section-head">
           <h2>Liga de la semana</h2>
           {rango}
         </div>
-      ) : (
-        <div className="liga-rango-solo">{rango}</div>
       )}
 
-      {/* La regla, escrita, arriba de todo. Sin esto la pantalla tiene dos
-          números grandes —las netas y el LP— y no dice cuál es el que compite:
-          más de uno estuvo jugando para subir LP creyendo que eso era ir
-          primero. Una línea alcanza. */}
-      {d.arrancada !== false && (
+      {/* Un solo bloque de contexto arriba de la tabla: a la izquierda cómo se
+          puntúa, a la derecha de qué semana estamos hablando. Antes las fechas
+          tenían una banda propia pegadas a la derecha, con la regla en otra
+          abajo: dos renglones sueltos y un hueco en el medio entre el título y
+          la tabla. Son dos datos del mismo tipo —el marco de la competencia— y
+          van juntos. */}
+      <div className="liga-contexto">
+        {d.arrancada !== false && (
         <p className="liga-regla">
           {tp ? (
             <>
@@ -292,7 +293,9 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
             </span>
           )}
         </p>
-      )}
+        )}
+        {!conEncabezado && <span className="liga-contexto-fecha">{rango}</span>}
+      </div>
 
       {d.arrancada === false ? (
         <div className="empty-state">
@@ -308,6 +311,27 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
         </div>
       ) : (
         <div className="liga-tabla">
+          {/* Encabezados de columna, como en las otras tablas de la app. Sin
+              ellos había seis columnas de datos sin una sola palabra que
+              dijera qué era cada una: el arte de campeón, el emblema de rango,
+              una curva y dos números había que adivinarlos. La fila usa la
+              MISMA grilla que las de abajo, así que las etiquetas caen justo
+              arriba de su columna. En el teléfono se esconde: ahí la fila se
+              parte en dos renglones y las columnas ya no coinciden. */}
+          <div className="liga-head" aria-hidden>
+            <span className="col-puesto" />
+            <span className="col-avatar" />
+            <span className="col-nombre">Invocador</span>
+            {/* Sin etiqueta: la columna es el arte de campeón, 38px. "Campeón"
+                entero no entra y "CAM…" cortado se lee peor que nada — el
+                mismo criterio que el encabezado de las otras tablas, que deja
+                la celda del puesto en blanco. */}
+            <span className="col-champ" />
+            <span className="col-rango">Rango</span>
+            <span className="col-curva">Cómo viene</span>
+            <span className="col-record">Récord</span>
+            <span className="col-puntos">Puntos</span>
+          </div>
           {/* Sin esto, la primera noche la tabla mostraba puestos y ceros como
               si la liga estuviera en curso y nadie sumara: parecía rota. */}
           {!yaArranco && (

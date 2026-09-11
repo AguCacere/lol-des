@@ -159,6 +159,15 @@ sobrante era el nombre: 20px, o sea, no se leía de quién era la fila. Abajo de
 ahora el puesto, el avatar y las netas ocupan dos renglones y en el medio va el nombre
 arriba y el récord abajo. Angostar hasta que algo desaparece no es responsive.
 
+**El breakpoint de una grilla se CALCULA, no se elige.** Una fila de N columnas
+necesita `suma de los mínimos + gaps + padding de la fila + padding de la app` para que
+ninguna columna baje de su mínimo; abajo de eso las columnas se pisan y —con
+`overflow:hidden` en la tabla— no aparece scroll ni ellipsis, simplemente se corta el
+texto. La fila de la liga rompió así dos veces: el corte estaba en 640 cuando las siete
+columnas necesitaban 766, y después en 900 cuando las ocho necesitaban 1036. Las dos
+las encontró la medición, no el ojo. Hoy son: 8 columnas desde 1036, 7 desde 781, y
+abajo de eso la fila de dos renglones.
+
 **Dar vuelta un flex a columna cambia qué significa `align-self`.** Los grupos del
 encabezado del ladder traen `align-self:center` para centrarse VERTICALMENTE contra el
 título mientras la fila es horizontal. Al apilar el `.section-head` en el teléfono, el
