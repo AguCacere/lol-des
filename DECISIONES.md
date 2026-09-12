@@ -111,6 +111,24 @@ trece filas. Ahora esa consulta va con `conReintento` (`lib/supabase.ts`), que r
 **solo lo transitorio** —timeouts, gateway, red— y no lo que va a fallar igual la
 segunda vez, como un permiso o una columna mal escrita.
 
+**La base es una Nano: el pool son 15 conexiones y ese es el techo.** Cuando se llena,
+el gateway devuelve **504 hasta en un select de trece filas** — no es que la consulta
+sea cara, es que no consigue conexión. Se vio así en los logs de Supabase: el mismo
+`GET /rest/v1/summoners?select=puuid,last_refreshed_at` con 504 en los cuatro ciclos
+del cron seguidos, y al lado los pesados de verdad (el `matches` con sesenta columnas
+para todos los puuids, el `champion_mastery` con la lista de IN larga). Por eso el
+refresco corre de a 2 y no de a 4: el ciclo tiene quince minutos para catorce
+invocadores, tiempo sobra y lo que falta es pool. Antes de agregar concurrencia o
+consultas nuevas, mirar el pool.
+
+**Borrar-y-volver-a-insertar no es una transacción.** `champion_mastery` se escribía
+con un DELETE de todo lo del puuid y después un INSERT. Cuando el DELETE se comió un
+504 —el cliente se rinde, el servidor a veces igual ejecuta— el INSERT que venía atrás
+chocaba con un 23505 `duplicate key`. Está en los logs, con seis segundos de
+diferencia. Ahora es un upsert por `(puuid, champion_id)` y después un DELETE de lo que
+sobró: hace lo mismo, pero si cualquiera de los dos pasos falla la tabla queda
+consistente y el refresco siguiente la deja al día.
+
 **Cómo se lee un error para saber de quién es.** Todo lo que sale de Riot viene con el
 prefijo `Riot API error <status>:` (`lib/riot.ts`), así que un mensaje pelado como
 "Gateway Timeout" es de Supabase, no de Riot. Eso solo ya descarta media hipótesis sin

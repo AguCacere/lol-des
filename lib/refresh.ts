@@ -722,9 +722,6 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string): Promi
       await supabase.from("summoners").update({ main_champ: resolved[0].name }).eq("puuid", puuid);
     }
 
-    // Replace-not-upsert: a champion that fell out of the top 5 this refresh
-    // (someone else's points overtook it) shouldn't linger as a stale row.
-    await supabase.from("champion_mastery").delete().eq("puuid", puuid);
     const rows = resolved
       .filter((m): m is typeof m & { name: string } => m.name != null)
       .map((m) => ({
@@ -734,8 +731,25 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string): Promi
         level: m.championLevel,
         points: m.championPoints,
       }));
-    if (rows.length > 0) {
-      await supabase.from("champion_mastery").insert(rows);
+    // Upsert y DESPUÉS borrar lo que sobra, en vez de borrar todo y volver a
+    // insertar. Hace lo mismo —un campeón que se cayó del top 5 no queda como
+    // fila vieja— pero es idempotente, y eso importa: el borrar-y-insertar se
+    // rompe solo si el DELETE falla. Pasó, y está en los logs de Supabase: un
+    // 504 en el DELETE a las 23:45:22 y seis segundos después un 23505
+    // "duplicate key value violates unique constraint champion_mastery_pkey"
+    // del INSERT que vino atrás. Dos pedidos que no son una transacción.
+    //
+    // Así, si cualquiera de los dos falla la tabla queda consistente y el
+    // refresco de dentro de quince minutos la deja al día.
+    if (rows.length === 0) {
+      await supabase.from("champion_mastery").delete().eq("puuid", puuid);
+    } else {
+      await supabase.from("champion_mastery").upsert(rows, { onConflict: "puuid,champion_id" });
+      await supabase
+        .from("champion_mastery")
+        .delete()
+        .eq("puuid", puuid)
+        .not("champion_id", "in", `(${rows.map((r) => r.champion_id).join(",")})`);
     }
   } catch {
     // ignore — main_champ falls back to app/api/ladder/route.ts's most-played-in-stored-matches logic,
@@ -1070,7 +1084,16 @@ export async function repairMatches(supabase: SupabaseClient, batchSize = REPAIR
 // instead. A personal Riot API key's rate limit (roughly 20 req/s, 100 per
 // 2 min) has plenty of headroom for a handful of summoners' calls
 // overlapping — this is a wall-clock fix, not a rate-limit workaround.
-const REFRESH_CONCURRENCY = 4;
+/**
+ * Cuántos invocadores se refrescan en paralelo.
+ *
+ * Bajó de 4 a 2 porque la base es una Nano con un pool de 15 conexiones, y
+ * cada `refreshOne` dispara bastantes consultas seguidas: cuatro en paralelo
+ * llenaban el pool y ahí el gateway empieza a devolver 504 hasta en un select
+ * de trece filas (ver DECISIONES.md). El ciclo tiene quince minutos para
+ * catorce invocadores — tiempo sobra, lo que falta es pool.
+ */
+const REFRESH_CONCURRENCY = 2;
 
 /**
  * Refreshes every tracked summoner. With `onlyStale`, skips anyone refreshed
