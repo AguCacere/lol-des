@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { lineAreaGeometry } from "@/lib/chart";
-import { puntajeTexto } from "@/lib/liga";
 
 /**
  * La carrera de la semana: los puntos de todos, día por día, en un solo
@@ -18,10 +17,19 @@ import { puntajeTexto } from "@/lib/liga";
  * la semana, y cruzarlas en el mismo eje no significaría nada. Ver puntosPorDia
  * en lib/liga.ts.
  *
- * Y una sola línea a la vez en color, el resto en gris. Con siete colores a la
- * par no se distingue ninguna —y bajo daltonismo, menos—: el gráfico se
- * convierte en un plato de fideos. Una en foco y seis de contexto es la forma
- * que se lee, y quién está en foco lo elige el que mira.
+ * La primera versión de esto no se entendía, y por tres cosas que se
+ * arreglaron acá:
+ *
+ * 1. NO TENÍA EJE Y. Siete líneas flotando sin una sola marca de cuánto. Una
+ *    altura sin escala no dice nada: se veía que había una arriba y un montón
+ *    abajo, y eso ya lo decía la tabla. Ahora hay grilla con los puntos
+ *    escritos y el cero marcado.
+ * 2. NO SE SABÍA DE QUIÉN ERA CADA LÍNEA sin ir a tocar un chip. Ahora cada
+ *    una termina con el nombre escrito al lado, separados para que no se
+ *    pisen: se leen de arriba abajo en el orden en que van.
+ * 3. ERA MUY CHATA. El viewBox de 620 se estiraba a 1150px reales —casi el
+ *    doble— y eso aplasta las pendientes hasta que todo parece plano. Ahora el
+ *    viewBox arranca cerca del ancho real y es bastante más alto.
  */
 
 export interface CorredorCarrera {
@@ -32,10 +40,20 @@ export interface CorredorCarrera {
   puntos: number;
 }
 
-const W = 620;
-const H = 168;
-const PAD_X = 16;
-const PAD_Y = 14;
+/**
+ * El viewBox. Ancho cerca del que se dibuja de verdad en una pantalla de
+ * escritorio (~1150px): con preserveAspectRatio="none", cuanto más lejos esté,
+ * más se estira todo a lo ancho y más chatas quedan las pendientes.
+ */
+const W = 1000;
+const H = 250;
+/** El pasillo de la derecha donde van los nombres, fuera del dibujo. */
+const PASILLO = 128;
+/** Y el de la izquierda, para los números del eje. */
+const EJE = 34;
+const PAD_Y = 20;
+/** Hasta dónde llega el dibujo. De acá a W está el pasillo de los nombres. */
+const PLOT = W - PASILLO;
 /**
  * Piso de recorrido, en puntos. Un lunes en el que todos están entre −1 y +1
  * no se puede dibujar a fondo de escala: serían montañas sobre nada. Cuatro
@@ -43,6 +61,31 @@ const PAD_Y = 14;
  * verdad.
  */
 const MIN_RECORRIDO = 4;
+/** Cuánto tienen que separarse dos nombres del pasillo para no pisarse. */
+const SEPARACION = 17;
+
+/** "+9,75" / "−1,5" / "0", con coma y con el menos de verdad. */
+function pts(n: number): string {
+  const redondeado = Math.round(n * 100) / 100;
+  if (redondeado === 0) return "0";
+  const cuerpo = Math.abs(redondeado).toString().replace(".", ",");
+  return (redondeado > 0 ? "+" : "−") + cuerpo;
+}
+
+/**
+ * Las marcas del eje: valores redondos, entre tres y cinco. Se eligen de una
+ * lista de pasos "lindos" en vez de dividir el recorrido en partes iguales —
+ * un eje que dice 2,83 y 5,66 es peor que no tener eje.
+ */
+function marcasDelEje(min: number, max: number): number[] {
+  const recorrido = max - min;
+  const paso = [0.5, 1, 2, 2.5, 5, 10, 20, 25, 50].find((p) => recorrido / p <= 5) ?? 100;
+  const marcas: number[] = [];
+  for (let v = Math.ceil(min / paso) * paso; v <= max + 1e-9; v += paso) {
+    marcas.push(Math.round(v * 100) / 100);
+  }
+  return marcas;
+}
 
 export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[]; dias: string[] }) {
   const [enFoco, setEnFoco] = useState<string | null>(null);
@@ -80,25 +123,73 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
   const trazos = utiles.map((c) => {
     const serie = [...c.porDia];
     while (serie.length < largo) serie.push(serie[serie.length - 1]);
-    const g = lineAreaGeometry(serie, W, H, PAD_X, MIN_RECORRIDO, PAD_Y, "recta", escala);
-    return { ...c, serie, line: g.line, last: g.last, points: g.points, yOf: g.yOf };
+    // El ancho que se le pasa es PLOT + EJE con padX = EJE: así los puntos
+    // caen entre EJE y PLOT, y de PLOT a W queda el pasillo de los nombres.
+    const g = lineAreaGeometry(serie, PLOT + EJE, H, EJE, MIN_RECORRIDO, PAD_Y, "recta", escala);
+    return { ...c, line: g.line, last: g.last, points: g.points, yOf: g.yOf };
   });
   const enFocoTrazo = trazos.find((t) => t.puuid === foco.puuid) ?? trazos[0];
-  const yCero = enFocoTrazo.yOf(0);
-  const ceroVisible = yCero > PAD_Y && yCero < H - PAD_Y;
+  const { yOf } = enFocoTrazo;
+
+  /**
+   * Los nombres del pasillo, empujados hacia abajo hasta que ninguno se pise.
+   * Se recorre de arriba abajo y después se acomoda para atrás si el último se
+   * pasó del borde — con seis o siete que terminan casi empatados, sin esto
+   * quedan todos escritos uno encima del otro.
+   */
+  const nombres = trazos
+    .map((t) => ({ puuid: t.puuid, name: t.name, puntos: t.puntos, y: t.last[1] }))
+    .sort((a, b) => a.y - b.y);
+  for (let i = 1; i < nombres.length; i++) {
+    nombres[i].y = Math.max(nombres[i].y, nombres[i - 1].y + SEPARACION);
+  }
+  const sobra = nombres[nombres.length - 1].y - (H - 6);
+  if (sobra > 0) for (const n of nombres) n.y -= sobra;
+
+  const marcas = marcasDelEje(min, max).map((v) => ({ v, y: yOf(v) }));
+
+  // La ventaja del primero sobre el segundo, para decir en una línea qué está
+  // pasando. Sale de los datos, no de una interpretación: es una resta.
+  const orden = [...utiles].sort((a, b) => b.puntos - a.puntos);
+  const ventaja = orden.length > 1 ? orden[0].puntos - orden[1].puntos : null;
 
   return (
     <div className="carrera">
       <div className="carrera-head">
         <span className="carrera-titulo">La carrera</span>
         <span className="carrera-sub">
-          Cómo se fue armando el puntaje de cada uno, día por día. Tocá un nombre para seguirlo.
+          Puntos acumulados, día por día.
+          {ventaja != null && ventaja > 0 && (
+            <>
+              {" "}
+              <b>{orden[0].name}</b> va {pts(ventaja)} arriba del segundo.
+            </>
+          )}
         </span>
       </div>
 
       <div className="carrera-caja">
-        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="carrera-svg" role="img" aria-label="La carrera de la semana">
-          {ceroVisible && <line x1={PAD_X} y1={yCero} x2={W - PAD_X} y2={yCero} className="carrera-cero" vectorEffect="non-scaling-stroke" />}
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="none"
+          className="carrera-svg"
+          role="img"
+          aria-label="Puntos acumulados de cada uno, día por día"
+        >
+          {/* La grilla primero, bien apagada: es la referencia, no el dato. El
+              cero va más marcado que el resto — es la línea que separa la
+              semana ganada de la perdida. */}
+          {marcas.map((m) => (
+            <line
+              key={m.v}
+              x1={EJE}
+              y1={m.y}
+              x2={PLOT}
+              y2={m.y}
+              className={m.v === 0 ? "carrera-cero" : "carrera-grilla"}
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
           {/* Los que NO están en foco, primero, para que queden por debajo. */}
           {trazos
             .filter((t) => t.puuid !== foco.puuid)
@@ -107,39 +198,51 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
             ))}
           <path d={enFocoTrazo.line} className="carrera-linea en-foco" vectorEffect="non-scaling-stroke" />
           {enFocoTrazo.points.map(([x, y], i) => (
-            <circle key={i} cx={x} cy={y} r={2.6} className="carrera-punto" />
+            <circle key={i} cx={x} cy={y} r={3} className="carrera-punto" />
           ))}
         </svg>
 
-        {/* Las etiquetas van en HTML encima del SVG y no adentro: el <text> de
-            un SVG escala con la caja, y con preserveAspectRatio="none" en un
-            celular "mié" cae a 4px. */}
-        <span
-          className="carrera-marca"
-          style={{ left: `${(enFocoTrazo.last[0] / W) * 100}%`, top: `${(enFocoTrazo.last[1] / H) * 100}%` }}
-        >
-          {puntajeTexto(foco.puntos)}
-        </span>
-      </div>
+        {/* Todas las etiquetas van en HTML encima del SVG y no adentro: el
+            <text> de un SVG escala con la caja, y con preserveAspectRatio="none"
+            en un celular "mié" cae a 4px. */}
+        {marcas.map((m) => (
+          <span key={m.v} className="carrera-eje" style={{ top: `${(m.y / H) * 100}%` }}>
+            {pts(m.v)}
+          </span>
+        ))}
 
-      {/* Cada día debajo de SU punto, no repartidos parejo por el ancho: el
-          primer punto de la serie es el arranque en 0 y no lleva etiqueta, así
-          que un reparto parejo los dejaría a todos corridos un lugar. El left
-          se recorta a los costados para que el lunes y el domingo no se salgan
-          de la caja. */}
-      <div className="carrera-dias" aria-hidden>
-        {dias.slice(0, largo - 1).map((d, i) => (
+        {/* El nombre al final de cada línea. Es lo que faltaba: sin esto había
+            que ir a tocar un chip para saber de quién era cada una, y un
+            gráfico que no se entiende sin tocarlo no se entiende. */}
+        {nombres.map((n) => (
           <span
-            key={`${d}-${i}`}
-            style={{ left: `${Math.min(Math.max((enFocoTrazo.points[i + 1][0] / W) * 100, 4), 96)}%` }}
+            key={n.puuid}
+            className={`carrera-nombre${n.puuid === foco.puuid ? " en-foco" : ""}`}
+            style={{ top: `${(n.y / H) * 100}%`, left: `${(PLOT / W) * 100}%` }}
+            onMouseEnter={() => setEnFoco(n.puuid)}
           >
-            {d}
+            <span className="carrera-nombre-txt">{n.name}</span>
+            <span className="carrera-nombre-pts">{pts(n.puntos)}</span>
           </span>
         ))}
       </div>
 
-      {/* La leyenda es también el control: con siete líneas grises, el nombre
-          en foco es lo único que dice de quién es la que está pintada. */}
+      {/* Cada día CENTRADO en su tramo, no debajo del punto: el tramo entre dos
+          puntos ES el día, y el punto es el cierre. Con la etiqueta debajo del
+          punto, "lun" caía sobre el cierre del lunes y se leía corrido. */}
+      <div className="carrera-dias" aria-hidden>
+        {dias.slice(0, largo - 1).map((d, i) => {
+          const medio = (enFocoTrazo.points[i][0] + enFocoTrazo.points[i + 1][0]) / 2;
+          return (
+            <span key={`${d}-${i}`} style={{ left: `${(medio / W) * 100}%` }}>
+              {d}
+            </span>
+          );
+        })}
+      </div>
+
+      {/* Los chips siguen siendo el control —y en el teléfono, donde los
+          nombres del pasillo no entran, también la leyenda. */}
       <div className="carrera-chips">
         {trazos.map((t) => (
           <button
@@ -150,7 +253,7 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
             onMouseEnter={() => setEnFoco(t.puuid)}
           >
             <span className="carrera-chip-nombre">{t.name}</span>
-            <span className="carrera-chip-pts">{puntajeTexto(t.puntos)}</span>
+            <span className="carrera-chip-pts">{pts(t.puntos)}</span>
           </button>
         ))}
       </div>

@@ -224,6 +224,28 @@ chiste es que el salto se vea seco.
 se convierte en un peine. Ahí el gráfico es el respaldo de un número, no el dato en sí,
 y la curva suave sigue siendo la forma correcta.
 
+**Un gráfico sin eje Y no dice nada, y la primera carrera no tenía.** Salió con siete
+líneas flotando sin una sola marca de cuánto: se veía que había una arriba y un montón
+abajo, que es exactamente lo que ya decía la tabla. El usuario lo dijo así: "no se
+entiende qué quiere demostrar". Faltaban tres cosas, y las tres son obligatorias, no
+adornos:
+
+1. **La escala.** Grilla con los puntos escritos y el cero más marcado que el resto. Las
+   marcas salen de una lista de pasos redondos (0,5 · 1 · 2 · 2,5 · 5 · 10…) eligiendo
+   el primero que deje cinco marcas o menos — un eje que dice 2,83 y 5,66 es peor que no
+   tener eje.
+2. **La identidad.** Cada línea termina con el nombre escrito al lado, empujados hacia
+   abajo hasta que ninguno se pisa: se leen de arriba abajo en el orden en que van. Un
+   gráfico que necesita que toques algo para saber de quién es cada línea no se
+   entiende. Abajo de 700px el pasillo no entra (128 de 1000 son 45px reales) y ahí los
+   chips vuelven a ser la leyenda.
+3. **La proporción.** El viewBox de 620 se estiraba a 1150px reales —casi el doble— y
+   eso aplasta las pendientes hasta que todo parece plano. Con 1000x250 el estirón baja
+   a 1,20x, medido.
+
+Y el subtítulo dice la ventaja del primero sobre el segundo. Es una resta, no una
+interpretación, y es lo que hace que se lea sin estudiarlo.
+
 **La liga se cuenta con UNA carrera, no con siete curvitas.** La columna "Evolución"
 tenía una miniatura por fila. Cada una contaba la forma de esa semana por su cuenta,
 pero ninguna podía contar la carrera —quién iba ganando el miércoles, cuándo se escapó
@@ -292,6 +314,17 @@ array vacío. Un invocador recién agregado no tiene snapshots, y ese crash se l
 puesta la tabla entera. Ya tiene guarda; no sacarla.
 
 ## Diseño
+
+**Un dato repetido en todas las filas deja de ser un dato.** La tabla de la liga tenía
+"se anotó el martes" abajo de los seis nombres —se anotaron todos el martes, es la
+primera semana— y "0 / 3 último día" en cinco de seis, porque el último día todavía no
+había empezado y nadie podía haber jugado. Dos renglones y un chip por fila que no
+distinguían a nadie, no se podían accionar y le sumaban alto a cada fila. Ahora "se
+anotó el" se esconde si lo dice TODA la tabla, y el cupo del último día no aparece hasta
+que el último día arranca — la regla ya está escrita arriba, en la tira de reglas. La
+regla general: antes de agregar una insignia a una fila, preguntarse qué filas NO la van
+a tener.
+
 
 **El idioma de las barras es uno solo en toda la app**: el **largo es volumen**, el
 **verde/rojo es récord**. Vale en "Sus líneas", "Cómo arrancás", el pool y la liga.

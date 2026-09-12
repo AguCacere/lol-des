@@ -3212,44 +3212,59 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   background:var(--bg); border-radius:var(--radius-lg); box-shadow:var(--shadow); overflow:hidden;
 }
 
-/* La carrera de la semana: las siete líneas de puntos en una sola caja, arriba
-   de la tabla. Una en color y el resto en gris — con siete colores a la par no
-   se distingue ninguna, y bajo daltonismo menos. Ver LigaCarrera.tsx. */
+/* La carrera de la semana: las líneas de puntos de todos en una sola caja,
+   arriba de la tabla. Una en color y el resto en gris — con siete colores a la
+   par no se distingue ninguna, y bajo daltonismo menos. Ver LigaCarrera.tsx. */
 .carrera{padding:16px 18px 14px; border-bottom:1px solid var(--border-soft);}
-.carrera-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; margin-bottom:12px;}
+.carrera-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; margin-bottom:10px;}
 .carrera-titulo{
   font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;
   color:var(--text-muted);
 }
-.carrera-sub{font-size:11.5px; color:var(--text-muted); opacity:0.85;}
+.carrera-sub{font-size:12px; color:var(--text-muted);}
+.carrera-sub b{color:var(--text-secondary); font-weight:600;}
 .carrera-caja{position:relative;}
-/* Alto fijo y viewBox de 168: preserveAspectRatio="none" estira lo que se aleje
+/* Alto fijo y viewBox de 250: preserveAspectRatio="none" estira lo que se aleje
    de su caja, así que el alto del CSS tiene que ser el del viewBox. */
-.carrera-svg{display:block; width:100%; height:168px; overflow:visible;}
-.carrera-cero{stroke:var(--text-secondary); stroke-width:1; stroke-dasharray:3 3; opacity:0.35;}
-/* Las de contexto: finas y apagadas, pero no invisibles — son la referencia
-   contra la que se lee la que está en foco. */
-.carrera-linea{
-  fill:none; stroke:var(--text-muted); stroke-width:1.4; stroke-opacity:0.3;
-  stroke-linecap:round; stroke-linejoin:round;
-}
-.carrera-linea.en-foco{stroke:var(--accent); stroke-width:2.4; stroke-opacity:1;}
-.carrera-punto{fill:var(--bg); stroke:var(--accent); stroke-width:1.5;}
-/* El puntaje al final de la línea en foco: la etiqueta directa que dice de
-   quién es la línea pintada, sin obligar a mirar los chips. */
-.carrera-marca{
-  position:absolute; transform:translate(-100%, -50%); margin-left:-8px;
-  font-size:11px; font-weight:700; font-variant-numeric:tabular-nums;
-  color:var(--accent); background:var(--bg); padding:1px 5px; border-radius:4px;
+.carrera-svg{display:block; width:100%; height:250px; overflow:visible;}
+/* La grilla, un tono arriba del fondo: es la referencia, no el dato. Sin ella
+   las líneas flotaban sin escala y el gráfico no decía nada. */
+.carrera-grilla{stroke:var(--border-soft); stroke-width:1; opacity:0.75;}
+/* El cero va más marcado: separa la semana ganada de la perdida. */
+.carrera-cero{stroke:var(--text-muted); stroke-width:1; stroke-dasharray:3 3; opacity:0.7;}
+.carrera-eje{
+  position:absolute; left:0; transform:translateY(-50%);
+  font-size:10px; font-variant-numeric:tabular-nums; color:var(--text-muted);
   pointer-events:none; white-space:nowrap;
 }
+/* Las de contexto: finas y apagadas, pero legibles — son contra lo que se lee
+   la que está en foco. */
+.carrera-linea{
+  fill:none; stroke:var(--text-muted); stroke-width:1.5; stroke-opacity:0.42;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+.carrera-linea.en-foco{stroke:var(--accent); stroke-width:2.6; stroke-opacity:1;}
+.carrera-punto{fill:var(--bg); stroke:var(--accent); stroke-width:1.6;}
+/* El nombre al final de cada línea. Es lo que convierte seis líneas grises en
+   una tabla de posiciones que se lee de arriba abajo. */
+.carrera-nombre{
+  position:absolute; display:flex; align-items:baseline; gap:5px;
+  transform:translateY(-50%); margin-left:9px; max-width:118px;
+  font-size:11px; color:var(--text-muted); cursor:default;
+  transition:color .14s ease;
+}
+.carrera-nombre-txt{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.carrera-nombre-pts{font-size:10px; font-variant-numeric:tabular-nums; opacity:0.75; flex:none;}
+.carrera-nombre:hover{color:var(--text-secondary);}
+.carrera-nombre.en-foco{color:var(--accent); font-weight:700;}
+.carrera-nombre.en-foco .carrera-nombre-pts{opacity:1;}
 .carrera-dias{
-  position:relative; height:15px; margin-top:4px;
+  position:relative; height:15px; margin-top:3px;
   font-size:10px; color:var(--text-muted); letter-spacing:0.02em;
 }
 .carrera-dias span{position:absolute; transform:translateX(-50%); white-space:nowrap;}
-/* Los chips son la leyenda Y el control: con siete líneas grises, el nombre en
-   foco es lo único que dice de quién es la pintada. */
+/* Los chips son el control, y en el teléfono —donde el pasillo de nombres no
+   entra— también la leyenda. */
 .carrera-chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;}
 .carrera-chip{
   display:inline-flex; align-items:baseline; gap:6px;
@@ -3265,15 +3280,18 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .carrera-chip-nombre{font-weight:600; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .carrera-chip-pts{font-size:11px; font-variant-numeric:tabular-nums; color:var(--text-muted);}
 .carrera-chip.en-foco .carrera-chip-pts{color:var(--accent);}
+@media (max-width:700px){
+  /* El pasillo de nombres no entra: 128 de 1000 son 45px reales y ahí no hay
+     nombre que se lea. Se cae y los chips quedan de leyenda. */
+  .carrera-nombre{display:none;}
+}
 @media (max-width:560px){
   .carrera{padding:13px 13px 12px;}
-  .carrera-svg{height:132px;}
-  .carrera-sub{display:none;}
+  .carrera-svg{height:186px;}
   /* Los puntos se van en el teléfono. Con preserveAspectRatio="none" el
-     viewBox de 620 entra en 340px y el de 168 en 132: dos compresiones
+     viewBox de 1000 entra en 340px y el de 250 en 186: dos compresiones
      distintas, así que un círculo sale ovalado. Las líneas no sufren (llevan
-     non-scaling-stroke), pero un círculo no tiene cómo. Y acá no hacen falta:
-     los días ya están escritos abajo. */
+     non-scaling-stroke), pero un círculo no tiene cómo. */
   .carrera-punto{display:none;}
 }
 /* El mismo idioma que el encabezado de las otras tablas de la app (.tw-head):

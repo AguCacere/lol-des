@@ -212,6 +212,15 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
   const maxPartidas = Math.max(1, ...d.tabla.map((f) => f.victorias + f.derrotas));
 
   /**
+   * "se anotó el martes" existe para explicar por qué alguien tiene menos
+   * partidas que el resto. Si lo dice TODA la tabla no explica nada: son seis
+   * renglones grises idénticos que le agregan una línea a cada fila y hacen la
+   * tabla más alta sin decir nada. Pasa en la primera semana de la liga, que
+   * es cuando se anotaron todos juntos.
+   */
+  const entraronTodosTarde = d.tabla.length > 0 && d.tabla.every((f) => f.entroTarde);
+
+  /**
    * El estado de cobro de una fila: "cobra" si cumple los dos mínimos, o lo que
    * le falta. Devuelve null cuando la API todavía no manda los mínimos, así una
    * pestaña vieja no muestra un requisito inventado.
@@ -236,15 +245,19 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
         </span>
       );
     }
-    // Ya cumplió la semana: lo que falta es el último día. Va más apagado que
-    // el de la semana —es la condición chica— salvo cuando el último día ya
-    // está corriendo, que ahí es lo único que le falta.
+    // Ya cumplió la semana: lo que falta es el último día. Pero antes de que el
+    // último día ARRANQUE, esta condición dice lo mismo en todas las filas
+    // —"0 / 3 último día"— porque nadie pudo jugarla todavía: seis chips
+    // idénticos que no distinguen a nadie y no se pueden accionar. La regla ya
+    // está escrita arriba, en la tira de reglas. Desde que el último día
+    // empieza sí importa, y ahí es lo único que le falta.
+    if (!esUltimoDia) return null;
     return (
-      <span className={`liga-cupo chico${esUltimoDia ? " urge" : ""}`} title={`Le faltan ${minDia - (f.ultimoDia ?? 0)} partidas del último día para poder cobrar.`}>
+      <span className="liga-cupo chico urge" title={`Le faltan ${minDia - (f.ultimoDia ?? 0)} partidas de hoy para poder cobrar.`}>
         <b>
           {f.ultimoDia ?? 0} / {minDia}
         </b>{" "}
-        {esUltimoDia ? "hoy" : "último día"}
+        hoy
       </span>
     );
   }
@@ -420,7 +433,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                     {f.name} <span className="player-tag">#{f.tag}</span>
                     {/* Que se vea por qué tiene menos partidas que el resto:
                         sin esto, el que entró el miércoles parece que no jugó. */}
-                    {f.entroTarde && (
+                    {f.entroTarde && !entraronTodosTarde && (
                       <span className="liga-entro" title="Solo le cuenta lo que hizo desde que se anotó">
                         se anotó el{" "}
                         {new Date(f.entroTarde).toLocaleDateString("es-AR", {
