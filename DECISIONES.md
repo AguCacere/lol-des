@@ -26,6 +26,26 @@ cambió.
 haya jugado aplana el gráfico: veinte puntos idénticos y después un salto. La
 comparación con la fila anterior es a propósito.
 
+**Y esa comparación necesita que la LECTURA haya salido bien.** `upsertRankSnapshot`
+pedía la última foto y descartaba el `error`, se quedaba solo con el `data`. Con la
+base devolviendo 504 —la caída de septiembre— la lectura volvía vacía, `unchanged`
+quedaba falso y el cron insertaba una fila idéntica a la anterior. En los datos reales
+de "compren bitcoin": nueve filas guardadas en once horas, **cinco de ellas repetidas**
+(`EMERALD IV 63, 178-162` cuatro veces seguidas), y 5 de 8 tramos del gráfico planos.
+Ahora, si la lectura falla, **no se inserta nada** y se pierde la foto de ese ciclo. Es
+el lado barato: la corrida siguiente vuelve a comparar contra la última guardada, así
+que el ascenso o el descenso se avisan quince minutos más tarde pero no se pierden.
+Una foto repetida, en cambio, queda en la base para siempre.
+
+**Lo escrito no se puede desescribir, así que el que lee también filtra.** Las repetidas
+que ya entraron se dejan afuera en `app/api/ladder/route.ts`, al armar `lpHistoryByPuuid`,
+comparando cada fila con la anterior. Se eligió eso y no un `DELETE` porque arregla el
+gráfico sin tocar la base. Mismos `wins` y `losses` entre dos fotos = no se jugó nada en
+el medio, así que filtrarlas no pierde información: ni el pico (mira el máximo) ni el
+Aegis, que de hecho **se ensuciaba** con las repetidas — abre ventanas de LP cero y, si
+una partida caía adentro (Riot tarda en actualizar la entrada de liga), entraba como
+muestra aislada de "esta partida dio 0 LP" y arrastraba las medianas.
+
 **Contadores acumulados ≠ diferencias de ventana.** `lp_snapshots.wins/losses` son
 acumulados de la season. Restar dos puntas solo funciona si **las dos** son válidas;
 con la punta base en 0 sale la season entera — así apareció un "222V-225D en una
@@ -181,12 +201,19 @@ intentar: con un piso de separación se puede evitar que los saques se amontonen
 5 partidas en 2,2 h pasaban del 2,1% del ancho al 7,7%), pero las rectas largas de los
 días sin jugar no las arregla nada.
 
-**Lo que sí está mal del gráfico de LP, y todavía no está arreglado: el LP no se mueve
-solo.** Entre dos snapshots no cambia — se queda quieto y salta de golpe cuando termina
-una partida. O sea que CUALQUIER diagonal entre dos puntos afirma algo que no pasó, haya
-agujero o no. El dibujo fiel es una escalera (plano hasta la partida, salto vertical),
-no una polilínea. Antes de tocarlo de nuevo, mirar los `captured_at` reales de un
-jugador: todo lo anterior se intentó sin ese dato y por eso hubo que revertir.
+**Se miraron los `captured_at` reales y el problema no era el eje: eran fotos
+repetidas.** Nueve filas de "compren bitcoin" en once horas, cinco repetidas, 5 de 8
+tramos planos — el gráfico dibujaba una meseta larga porque más de la mitad de la
+ventana de veinte puntos era relleno. Se arregló en las dos puntas (ver `lp_snapshots`
+en **Datos**). Moraleja del episodio entero: dos intentos de arreglar el gráfico
+tocando el eje —y uno revertido— cuando la pregunta se contestaba con un `select` de
+cuarenta filas.
+
+**Lo que sigue sin arreglar: el LP no se mueve solo.** Entre dos snapshots no cambia —
+se queda quieto y salta de golpe cuando termina una partida. O sea que CUALQUIER
+diagonal entre dos puntos afirma algo que no pasó, haya agujero o no. El dibujo fiel es
+una escalera (plano hasta la partida, salto vertical), no una polilínea. Pendiente, y
+ahora sí sobre datos limpios.
 
 **Cambiar el espaciado del eje rompe el hover si el hover invierte un paso constante.**
 `SparkChart` sacaba el índice con `Math.round((relX - padX) / stepX)`, que asume puntos

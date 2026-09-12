@@ -351,11 +351,36 @@ export async function GET() {
     }
 
     const history = lpHistoryByPuuid.get(row.puuid) ?? [];
+    const tier = tierKeyFromRiot(row.tier);
+    const division = divisionFromRiot(row.division);
+    // Una foto idéntica a la anterior no entra. El que las escribe ya intenta
+    // no repetirlas (ver upsertRankSnapshot en lib/refresh.ts), pero durante la
+    // caída de Supabase la lectura que hacía esa comparación tiraba 504 y el
+    // cron metió repetidas igual: "compren bitcoin" terminó con cinco filas
+    // seguidas de EMERALD IV 63, 178-162. Como el gráfico dibuja las últimas
+    // veinte fotos, esas repetidas le comen la ventana a las de verdad y dejan
+    // una meseta larga en vez del recorrido.
+    //
+    // Se filtra acá y no con un DELETE porque las fotos repetidas ya están
+    // guardadas y esto las deja afuera sin tocar la base. Mismos wins y
+    // losses = no se jugó nada en el medio, así que no se pierde nada: ni el
+    // pico (peakFromHistory mira el máximo) ni el Aegis, que justamente se
+    // ensuciaba cuando una partida caía dentro de una meseta y entraba como
+    // muestra de "cero LP".
+    const ultima = history[history.length - 1];
+    const repetida =
+      ultima &&
+      ultima.lp === row.lp &&
+      ultima.wins === row.wins &&
+      ultima.losses === row.losses &&
+      ultima.tier === tier &&
+      ultima.division === division;
+    if (repetida) continue;
     history.push({
       lp: row.lp,
       capturedAt: row.captured_at,
-      tier: tierKeyFromRiot(row.tier),
-      division: divisionFromRiot(row.division),
+      tier,
+      division,
       wins: row.wins,
       losses: row.losses,
     });

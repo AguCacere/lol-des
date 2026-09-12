@@ -325,14 +325,33 @@ async function checkFlexDisasterAndNotify(supabase: SupabaseClient, puuid: strin
  * mixing SoloQ and Flex rows together here would corrupt both queues' history.
  */
 async function upsertRankSnapshot(supabase: SupabaseClient, puuid: string, entry: RiotLeagueEntry, queueType: string) {
-  const { data: lastSnapshot } = await supabase
-    .from("lp_snapshots")
-    .select("tier, division, lp, wins, losses")
-    .eq("puuid", puuid)
-    .eq("queue_type", queueType)
-    .order("captured_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const { data: lastSnapshot, error: errorUltima } = await conReintento("última foto de rango", () =>
+    supabase
+      .from("lp_snapshots")
+      .select("tier, division, lp, wins, losses")
+      .eq("puuid", puuid)
+      .eq("queue_type", queueType)
+      .order("captured_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+  );
+
+  // Si esta lectura falla NO se inserta nada, y el ciclo se saltea la foto.
+  // Antes el error se descartaba y solo se miraba `data`: con la base
+  // devolviendo 504 —la misma caída que se ve en los logs de Supabase—
+  // `lastSnapshot` volvía vacío, `unchanged` quedaba falso y el cron metía una
+  // fila IDÉNTICA a la anterior. Así quedó el gráfico de "compren bitcoin":
+  // cinco filas seguidas con EMERALD IV 63, 178-162, que se comieron la mitad
+  // de la ventana de veinte puntos y aplastaron el trazo.
+  //
+  // Perder una foto es barato: la próxima corrida vuelve a comparar contra la
+  // última guardada, así que ni el ascenso ni el descenso se pierden, se
+  // avisan quince minutos más tarde. Una foto repetida, en cambio, queda en la
+  // base para siempre.
+  if (errorUltima) {
+    console.warn(`foto de rango salteada (${queueType}): ${errorUltima.message}`);
+    return;
+  }
 
   const unchanged =
     lastSnapshot &&
