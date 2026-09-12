@@ -171,6 +171,28 @@ de la liga, que va 1:1. Y el `<text>` de un SVG escala con la
 caja: una etiqueta legible en desktop queda en 4,7px en mobile. **Las etiquetas van en
 HTML encima del SVG**, no adentro.
 
+**El eje X va por ÍNDICE salvo que se le pasen instantes.** Es lo correcto cuando cada
+punto es una partida —la curva de la liga, los "últimos 20" del ladder—: ahí una partida
+es una partida y el tiempo entre medio no significa nada. Pero la progresión de LP del
+perfil promete fechas en las puntas ("8 sept … 12 sept") y adentro no las cumplía:
+mientras el cron anduvo parejo índice ≈ tiempo, y cuando el scheduler se cayó y quedaron
+horas sin snapshot, el gráfico dibujaba esas horas como una bajada suave y continua que
+nunca pasó. Se le pasa `tiempos` y listo; el resto de los gráficos no se tocan.
+
+**El tiempo puro no se puede usar crudo: el ranked se juega a los saques.** Medido sobre
+una semana real (cinco partidas un sábado en dos horas, después días sin tocar), la X por
+tiempo dejaba esas cinco en el **2,1% del ancho, a tres píxeles una de otra** — imposible
+apuntarles. Por eso `repartirPorTiempo` pone un piso de 12px entre puntos consecutivos:
+el saque pasa a ocupar 7,7% y el hueco de 19 horas 16,5%, o sea el agujero sigue
+leyéndose como agujero pero ninguna partida desaparece adentro de la de al lado.
+
+**Cambiar el espaciado del eje rompe el hover si el hover invierte un paso constante.**
+`SparkChart` sacaba el índice con `Math.round((relX - padX) / stepX)`, que asume puntos
+equiespaciados: con el eje por tiempo, apuntabas a una partida del sábado y el tooltip
+mostraba una del martes. Ahora busca el punto más cercano de verdad — con espaciado
+parejo da exactamente lo mismo. Se verificó apuntando al píxel exacto de los catorce
+puntos en las dos versiones: 14/14 en las dos.
+
 **No fijarle altura a un SVG que se dimensiona solo.** `.lp-svg { height: 118px }`
 contra un SVG que rendereaba ~136px hacía que el gráfico se saliera de su caja y el
 pie de la tarjeta se le montara encima.

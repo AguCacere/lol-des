@@ -19,6 +19,13 @@ interface SparkChartProps {
   /** One React node per value, shown in the hover tooltip — detailed variant only. */
   pointLabels?: React.ReactNode[];
   /**
+   * Instantes de cada valor, para que la X sea el tiempo y no el índice. Ver
+   * `lineAreaGeometry`: solo lo usa la progresión de LP del perfil, donde el
+   * eje promete fechas. En una curva donde cada punto es una partida el índice
+   * es lo correcto y esto no se pasa.
+   */
+  tiempos?: number[];
+  /**
    * Líneas horizontales de referencia sobre valores que no son puntos del
    * gráfico — los límites de división en el caso del LP. Sin ellas la curva
    * es un garabato: se ve que baja, pero no CONTRA QUÉ baja.
@@ -43,6 +50,7 @@ export function SparkChart({
   color,
   variant = "compact",
   pointLabels,
+  tiempos,
   guides,
   lineaCero,
 }: SparkChartProps) {
@@ -72,7 +80,7 @@ export function SparkChart({
   // que vale la pena marcar en un gráfico de veinte.
   const indiceMax = values.indexOf(Math.max(...values));
   const indiceMin = values.indexOf(Math.min(...values));
-  const { line, area, last, points, yOf } = lineAreaGeometry(values, width, height, padX, 10, pad, !detailed);
+  const { line, area, last, points, yOf } = lineAreaGeometry(values, width, height, padX, 10, pad, !detailed, tiempos);
   const gid = "spark-" + useId().replace(/[:]/g, "");
   /**
    * Las guías que realmente entran en la caja, ya pasadas a porcentaje: la
@@ -122,14 +130,26 @@ export function SparkChart({
   const [hover, setHover] = useState<number | null>(null);
   const [containerWidth, setContainerWidth] = useState(width);
   const canHover = detailed && !!pointLabels;
-  const stepX = points.length > 1 ? (width - padX * 2) / (points.length - 1) : 0;
 
   function handleMove(e: React.MouseEvent<SVGSVGElement>) {
-    if (!canHover || !svgRef.current || stepX === 0) return;
+    if (!canHover || !svgRef.current || points.length === 0) return;
     const rect = svgRef.current.getBoundingClientRect();
     const relX = ((e.clientX - rect.left) / rect.width) * width;
-    const idx = Math.round((relX - padX) / stepX);
-    setHover(Math.min(Math.max(idx, 0), points.length - 1));
+    // El punto MÁS CERCANO de verdad, no el que sale de dividir por un paso
+    // parejo. Con el eje por tiempo los puntos no están equiespaciados, así
+    // que invertir un `stepX` constante devolvía el índice equivocado:
+    // apuntabas a una partida del sábado y el tooltip te mostraba una del
+    // martes. Con espaciado parejo da exactamente lo mismo que antes.
+    let idx = 0;
+    let mejor = Infinity;
+    for (let i = 0; i < points.length; i++) {
+      const d = Math.abs(points[i][0] - relX);
+      if (d < mejor) {
+        mejor = d;
+        idx = i;
+      }
+    }
+    setHover(idx);
     setContainerWidth(rect.width);
   }
 
