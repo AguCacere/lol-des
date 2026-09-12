@@ -196,7 +196,7 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
       {/* Primero de todo: es lo que cuenta la partida. Los números de abajo
           la describen, esto la narra. */}
       {hasTimeline && (
-        <Group label="Cómo se dio la partida" icon={<TrendUpIcon />} ancho={<MatchTimeline match={m} />} />
+        <Group label="Cómo se dio la partida" icon={<TrendUpIcon />} ancho={<MatchTimeline match={m} ddragonVersion={ddragonVersion} />} />
       )}
 
       {/* Duración, CS, oro, nivel y fecha eran cinco celdas con su título

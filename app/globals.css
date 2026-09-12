@@ -2230,6 +2230,20 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   margin:6px 2px 0; font-size:12px; color:var(--text-muted); line-height:1.4;
 }
 .match-timeline-golds{display:flex; gap:12px; font-weight:700; font-variant-numeric:tabular-nums;}
+/* El rival de línea, con cara y nombre, adentro de la misma frase. Va en
+   `baseline` para que el texto siga alineado con el resto del pie, y el ícono
+   chiquito para que acompañe sin convertirse en el protagonista del renglón. */
+.match-timeline-vs{display:inline-flex; align-items:center; gap:5px; flex-wrap:wrap;}
+.match-timeline-rival{
+  display:inline-flex; align-items:center; gap:5px;
+  color:var(--text-secondary); font-weight:600;
+}
+.mtg-rival-champ{
+  width:17px; height:17px; border-radius:5px; overflow:hidden; flex:none;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--surface-hover); color:var(--text-muted);
+  font-family:var(--font-mono); font-size:7px; font-weight:700;
+}
 .mtg-min{color:var(--text-muted); font-weight:600; margin-right:4px;}
 @media (max-width:560px){
   /* Mismo alto, menos ancho: las etiquetas se achican para que tres hitos

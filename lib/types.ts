@@ -28,6 +28,17 @@ export interface Tier {
 export interface Match {
   win: boolean;
   champ: string;
+  /**
+   * El campeón del rival de línea. Sale de `opponent_champion`, la misma
+   * columna que alimenta "Cara a cara" — ahí se usaba desde siempre, pero al
+   * detalle de la partida no llegaba.
+   *
+   * Opcional a propósito, no por prolijidad: es un campo NUEVO en la respuesta
+   * y durante la ventana de caché del CDN hay pestañas con el bundle nuevo
+   * recibiendo el JSON viejo, que no lo trae. Tipado así, quien lo lea está
+   * obligado a preguntar antes. Null cuando la partida no guardó quién era.
+   */
+  opponent?: string | null;
   k: number;
   d: number;
   a: number;

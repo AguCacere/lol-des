@@ -685,6 +685,10 @@ export async function GET() {
     arr.push({
       win: row.win,
       champ: row.champion,
+      // Quién le tocó en la línea. Ya estaba guardado y ya se usaba en "Cara a
+      // cara", pero al detalle de la partida no llegaba, así que la diferencia
+      // de oro se leía contra un rival sin nombre.
+      opponent: row.opponent_champion,
       k: row.kills,
       d: row.deaths,
       a: row.assists,

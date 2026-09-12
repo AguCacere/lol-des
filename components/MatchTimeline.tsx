@@ -1,5 +1,7 @@
 import type { Match } from "@/lib/types";
 import { buildMatchStory } from "@/lib/match-story";
+import { championLabel } from "@/lib/champion-names";
+import { ChampIcon } from "./ChampIcon";
 import { InfoTip } from "./InfoTip";
 
 /**
@@ -81,7 +83,7 @@ function pathSuave(pts: { x: number; y: number }[]): string {
   return d;
 }
 
-export function MatchTimeline({ match }: { match: Match }) {
+export function MatchTimeline({ match, ddragonVersion }: { match: Match; ddragonVersion: string | null }) {
   const m = match;
   const historia = buildMatchStory(m);
 
@@ -248,7 +250,21 @@ export function MatchTimeline({ match }: { match: Match }) {
       )}
 
       <p className="match-timeline-pie">
-        <span>Diferencia de oro contra tu rival de línea</span>
+        {/* Con nombre y cara. El dato del rival de línea ya venía guardado y ya
+            se usaba en "Cara a cara", pero acá —que es justo donde se lee la
+            diferencia de oro CONTRA él— decía "tu rival de línea" a secas. Ver
+            que fueron −251 contra un Sion no es lo mismo que contra un Yasuo. */}
+        <span className="match-timeline-vs">
+          Diferencia de oro contra{" "}
+          {m.opponent ? (
+            <span className="match-timeline-rival">
+              <ChampIcon champ={m.opponent} version={ddragonVersion} className="mtg-rival-champ" />
+              {championLabel(m.opponent)}
+            </span>
+          ) : (
+            "tu rival de línea"
+          )}
+        </span>
         {medidas.length > 0 ? (
           <span className="match-timeline-golds">
             {medidas.map((p) => (
