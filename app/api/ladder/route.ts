@@ -37,6 +37,25 @@ interface LadderRow {
   losses: number | null;
 }
 
+/**
+ * Las columnas de `matches` que hacen falta para TODAS las partidas: el pool de
+ * campeones, los récords, el radar por línea, el historial de líneas y los
+ * duos. Son 21.
+ */
+const COLUMNAS_AGREGADO = "match_id, puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, damage_to_champs, gold_earned, vision_score, kill_participation, obj_share, item_build, gold_diff_15, team_position, opponent_champion, game_duration_s, played_at";
+
+/**
+ * Las otras 37, las del detalle de una partida. Solo se leen para las últimas
+ * CINCO de cada jugador —el resto del bucle no las toca— así que pedirlas para
+ * todas las partidas de todos era traer decenas de miles de valores para usar
+ * unos setenta.
+ *
+ * Esto no es microoptimización: la base es una Nano con un pool de 15
+ * conexiones y este select era el pedido más pesado de la app, con 504 propios
+ * en los logs de Supabase. Ver DECISIONES.md.
+ */
+const COLUMNAS_DETALLE = "match_id, puuid, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, champ_level, damage_taken, damage_mitigated, heal_teammates, shield_teammates, wards_placed, wards_killed, control_wards, turret_takedowns, dragon_takedowns, dragon_types, baron_takedowns, herald_takedowns, inhibitor_kills, first_blood, first_tower, summoner1, summoner2, solo_kills, skillshots_hit, damage_per_min, gold_diff_10, gold_diff_20, first_blood_time_s, first_tower_time_s, first_tower_mine, first_dragon_time_s, first_dragon_mine, first_baron_time_s, first_baron_mine";
+
 interface MatchRow {
   match_id: string;
   puuid: string;
@@ -98,6 +117,59 @@ interface MatchRow {
   played_at: string;
 }
 
+/** La fila del agregado: lo que trae COLUMNAS_AGREGADO. */
+/**
+ * El relleno para las partidas que NO están entre las cinco primeras de su
+ * jugador. El bucle no les lee ninguno de estos campos, pero el tipo queda
+ * completo: si mañana alguien mueve el corte de las cinco, va a leer un null
+ * y no un `undefined` silencioso. Lo tipa `Omit<MatchDetalle, ...>`, así que
+ * si se agrega una columna al detalle y se olvida acá, no compila.
+ */
+const DETALLE_VACIO: Omit<MatchDetalle, "match_id" | "puuid"> = {
+  primary_rune: null,
+  primary_style: null,
+  secondary_style: null,
+  double_kills: null,
+  triple_kills: null,
+  quadra_kills: null,
+  penta_kills: null,
+  champ_level: null,
+  damage_taken: null,
+  damage_mitigated: null,
+  heal_teammates: null,
+  shield_teammates: null,
+  wards_placed: null,
+  wards_killed: null,
+  control_wards: null,
+  turret_takedowns: null,
+  dragon_takedowns: null,
+  dragon_types: null,
+  baron_takedowns: null,
+  herald_takedowns: null,
+  inhibitor_kills: null,
+  first_blood: null,
+  first_tower: null,
+  summoner1: null,
+  summoner2: null,
+  solo_kills: null,
+  skillshots_hit: null,
+  damage_per_min: null,
+  gold_diff_10: null,
+  gold_diff_20: null,
+  first_blood_time_s: null,
+  first_tower_time_s: null,
+  first_tower_mine: null,
+  first_dragon_time_s: null,
+  first_dragon_mine: null,
+  first_baron_time_s: null,
+  first_baron_mine: null,
+};
+
+type MatchLite = Pick<MatchRow, "match_id" | "puuid" | "champion" | "win" | "kills" | "deaths" | "assists" | "cs" | "cs_per_min" | "dmg_share" | "damage_to_champs" | "gold_earned" | "vision_score" | "kill_participation" | "obj_share" | "item_build" | "gold_diff_15" | "team_position" | "opponent_champion" | "game_duration_s" | "played_at">;
+
+/** La fila del detalle: lo que trae COLUMNAS_DETALLE, para las últimas cinco. */
+type MatchDetalle = Pick<MatchRow, "match_id" | "puuid" | "primary_rune" | "primary_style" | "secondary_style" | "double_kills" | "triple_kills" | "quadra_kills" | "penta_kills" | "champ_level" | "damage_taken" | "damage_mitigated" | "heal_teammates" | "shield_teammates" | "wards_placed" | "wards_killed" | "control_wards" | "turret_takedowns" | "dragon_takedowns" | "dragon_types" | "baron_takedowns" | "herald_takedowns" | "inhibitor_kills" | "first_blood" | "first_tower" | "summoner1" | "summoner2" | "solo_kills" | "skillshots_hit" | "damage_per_min" | "gold_diff_10" | "gold_diff_20" | "first_blood_time_s" | "first_tower_time_s" | "first_tower_mine" | "first_dragon_time_s" | "first_dragon_mine" | "first_baron_time_s" | "first_baron_mine">;
+
 /**
  * Cuántos CAMPEONES propios se mandan con sus enfrentamientos. Van ordenados
  * por cantidad de partidas, así que cortar acá deja afuera los campeones de
@@ -142,9 +214,10 @@ export async function GET() {
       .order("captured_at", { ascending: true }),
     supabase
       .from("matches")
-      .select(
-        "match_id, puuid, champion, win, kills, deaths, assists, cs, cs_per_min, dmg_share, damage_to_champs, gold_earned, vision_score, kill_participation, obj_share, primary_rune, primary_style, secondary_style, double_kills, triple_kills, quadra_kills, penta_kills, champ_level, damage_taken, damage_mitigated, heal_teammates, shield_teammates, wards_placed, wards_killed, control_wards, turret_takedowns, dragon_takedowns, dragon_types, item_build, baron_takedowns, herald_takedowns, inhibitor_kills, first_blood, first_tower, summoner1, summoner2, solo_kills, skillshots_hit, damage_per_min, gold_diff_10, gold_diff_15, gold_diff_20, first_blood_time_s, first_tower_time_s, first_tower_mine, first_dragon_time_s, first_dragon_mine, first_baron_time_s, first_baron_mine, team_position, opponent_champion, game_duration_s, played_at"
-      )
+      // Solo las columnas que necesita el AGREGADO, no las 58. Las otras 37
+      // —las del detalle de partida— se piden aparte, abajo, y solo para las
+      // filas que de verdad las muestran. Ver COLUMNAS_DETALLE.
+      .select(COLUMNAS_AGREGADO)
       .in("puuid", puuids)
       // Ranked solo/duo only — this table also holds Clash games (queueId
       // 700, see lib/clash.ts's own separate query), which used to leak into
@@ -155,7 +228,7 @@ export async function GET() {
       // comparing two different populations.
       .eq("queue_id", RANKED_SOLO_QUEUE_ID)
       .order("played_at", { ascending: false })
-      .returns<MatchRow[]>(),
+      .returns<MatchLite[]>(),
     supabase
       .from("champion_mastery")
       .select("puuid, champion, level, points")
@@ -184,7 +257,7 @@ export async function GET() {
   const [
     [
       { data: snapshots, error: snapshotsError },
-      { data: matchRows, error: matchesError },
+      { data: matchLite, error: matchesError },
       { data: masteryRows, error: masteryError },
     ],
     liveGameByPuuid,
@@ -204,6 +277,55 @@ export async function GET() {
   if (dbError) {
     return NextResponse.json({ error: `Error leyendo datos de Supabase: ${dbError.message}` }, { status: 500 });
   }
+
+  // ── Las columnas del detalle, solo para las filas que las muestran ────────
+  //
+  // El bucle de abajo lee 37 columnas pesadas ÚNICAMENTE dentro del bloque que
+  // corta en `arr.length >= 5`: las últimas cinco partidas de cada jugador.
+  // Traerlas para todas las partidas de todos era el pedido más caro de la
+  // app —y tiene 504 propios en los logs de Supabase— para usarlas en unas
+  // setenta filas.
+  //
+  // Se eligen acá con la MISMA regla que usa el bucle, recorriendo las filas
+  // en el mismo orden (played_at DESC) y contando hasta cinco por puuid. Si
+  // las dos reglas se separan, a alguna partida le van a faltar los datos del
+  // detalle, así que van juntas y comentadas.
+  const necesitanDetalle: string[] = [];
+  const cuantasVan = new Map<string, number>();
+  for (const row of (matchLite ?? []) as MatchLite[]) {
+    const n = cuantasVan.get(row.puuid) ?? 0;
+    if (n >= 5) continue;
+    cuantasVan.set(row.puuid, n + 1);
+    necesitanDetalle.push(row.match_id);
+  }
+
+  let detalleRows: MatchDetalle[] = [];
+  if (necesitanDetalle.length > 0) {
+    const { data, error } = await supabase
+      .from("matches")
+      .select(COLUMNAS_DETALLE)
+      .in("match_id", [...new Set(necesitanDetalle)])
+      .in("puuid", puuids)
+      .returns<MatchDetalle[]>();
+    if (error) {
+      return NextResponse.json({ error: `Error leyendo el detalle de partidas: ${error.message}` }, { status: 500 });
+    }
+    detalleRows = data ?? [];
+  }
+  const detallePorFila = new Map<string, MatchDetalle>();
+  for (const d of detalleRows) detallePorFila.set(`${d.match_id}|${d.puuid}`, d);
+
+  // Se vuelven a pegar las dos mitades para que el bucle de abajo siga viendo
+  // filas enteras y no haya que tocar ni una línea de su lógica. Las partidas
+  // que NO están entre las cinco primeras de su jugador se completan con
+  // `DETALLE_VACIO`: el bucle nunca les lee esos campos —misma regla de
+  // arriba— así que el valor no se usa, pero el tipo queda completo y nadie
+  // puede leer un `undefined` por accidente.
+  const matchRows: MatchRow[] = ((matchLite ?? []) as MatchLite[]).map((row) => ({
+    ...DETALLE_VACIO,
+    ...(detallePorFila.get(`${row.match_id}|${row.puuid}`) ?? {}),
+    ...row,
+  }));
 
   const masteryPoolByPuuid = new Map<string, MasteryEntry[]>();
   for (const row of masteryRows ?? []) {

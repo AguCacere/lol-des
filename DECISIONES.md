@@ -129,6 +129,23 @@ diferencia. Ahora es un upsert por `(puuid, champion_id)` y después un DELETE d
 sobró: hace lo mismo, pero si cualquiera de los dos pasos falla la tabla queda
 consistente y el refresco siguiente la deja al día.
 
+**El `select` de `matches` del ladder está partido en dos, y las dos mitades tienen que
+usar la MISMA regla.** De las 58 columnas, 21 las necesita el agregado —pool de
+campeones, récords, radar por línea, líneas, duos— para TODAS las partidas; las otras 37
+solo las lee el bloque del detalle, que corta en `arr.length >= 5`: las últimas cinco de
+cada jugador, unas setenta filas contra miles. Traer las 58 para todo era el pedido más
+caro de la app y tiene 504 propios en los logs.
+
+Ahora hay una consulta liviana (`COLUMNAS_AGREGADO`) y otra que pide `COLUMNAS_DETALLE`
+solo para los `match_id` de esas primeras cinco, y las dos mitades se vuelven a pegar
+antes del bucle — así el bucle sigue viendo filas enteras y su lógica quedó intacta. El
+peligro está en la regla: el pre-recorrido que elige los `match_id` cuenta hasta cinco
+por puuid sobre el mismo arreglo y en el mismo orden que el bucle. **Si alguien mueve el
+corte de cinco en un lado y no en el otro, a alguna partida le van a faltar los datos del
+detalle.** Están pegados y comentados a propósito. Las filas que no entran se completan
+con `DETALLE_VACIO`, tipado con `Omit<MatchDetalle, …>`: si se agrega una columna al
+detalle y se olvida ahí, no compila.
+
 **Cómo se lee un error para saber de quién es.** Todo lo que sale de Riot viene con el
 prefijo `Riot API error <status>:` (`lib/riot.ts`), así que un mensaje pelado como
 "Gateway Timeout" es de Supabase, no de Riot. Eso solo ya descarta media hipótesis sin
