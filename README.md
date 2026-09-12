@@ -79,7 +79,7 @@ La base ya tiene que existir: crear el proyecto en Supabase y correr
 
 | Variable | De dónde sale |
 |---|---|
-| `RIOT_API_KEY` | developer.riotgames.com → tu app |
+| `RIOT_API_KEY` | developer.riotgames.com → tu app. **Es una key de aplicación aprobada, no una de desarrollo: NO vence cada 24 horas.** Si todos los invocadores fallan a la vez, no es la key — buscá en otro lado |
 | `RIOT_PLATFORM` | `la2` (LAS) |
 | `RIOT_REGION` | `americas` — routing region de Account-V1 y Match-V5 |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API |

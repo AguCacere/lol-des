@@ -94,6 +94,13 @@ Volibear top, un Veigar support).
 **Subir `OBSERVACIONES_CONFIABLES` de 4 a 14 empeora.** Se midió: 92,6% → 84,9% con
 muestras chicas. No tocarlo sin volver a medir.
 
+**La key de Riot no vence.** Es una key de aplicación aprobada, no una de desarrollo:
+no hay que renovarla cada 24 horas y "se venció la key" NUNCA es la explicación de que
+falle todo junto. Queda escrito porque es la primera hipótesis que aparece cuando los
+catorce fallan a la vez, y es la equivocada: ya se descartó midiendo —un `POST
+/api/refresh` manual devolvió "ok" para los catorce mientras el cron llevaba 55 minutos
+sin actualizar a ninguno.
+
 ## Caché y deploys
 
 **La ventana de caché del CDN.** `/api/ladder` es `s-maxage=60`, `/api/team-digest`

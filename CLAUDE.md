@@ -12,6 +12,9 @@ todo está pensado para seis o siete personas que se conocen y se cargan entre e
   mínimos: 10 partidas en la semana y 3 el último día
 - **Los datos se refrescan cada 15 minutos**, con un scheduler externo — NO con el cron
   de `vercel.json`, que en el plan Hobby solo puede correr una vez por día
+- **La key de Riot NO vence cada 24 horas**: es una key de aplicación aprobada, no una
+  de desarrollo. Nunca hay que "renovarla". Si fallan todos los invocadores a la vez,
+  la causa está en otro lado — casi seguro en el cron o en el camino de escritura
 
 ## Antes de abrir un archivo
 
