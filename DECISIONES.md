@@ -171,27 +171,28 @@ de la liga, que va 1:1. Y el `<text>` de un SVG escala con la
 caja: una etiqueta legible en desktop queda en 4,7px en mobile. **Las etiquetas van en
 HTML encima del SVG**, no adentro.
 
-**El eje X va por ÍNDICE salvo que se le pasen instantes.** Es lo correcto cuando cada
-punto es una partida —la curva de la liga, los "últimos 20" del ladder—: ahí una partida
-es una partida y el tiempo entre medio no significa nada. Pero la progresión de LP del
-perfil promete fechas en las puntas ("8 sept … 12 sept") y adentro no las cumplía:
-mientras el cron anduvo parejo índice ≈ tiempo, y cuando el scheduler se cayó y quedaron
-horas sin snapshot, el gráfico dibujaba esas horas como una bajada suave y continua que
-nunca pasó. Se le pasa `tiempos` y listo; el resto de los gráficos no se tocan.
+**El eje X va por índice, y mover eso a tiempo real YA SE PROBÓ Y SE REVIRTIÓ.** La
+idea era buena en el papel: el gráfico promete fechas en las puntas ("8 sept … 12 sept")
+y adentro no las cumplía, así que un hueco de horas se dibujaba como una bajada suave y
+continua. Pero este grupo juega poco y salteado —siete victorias y tres derrotas en OCHO
+días es un caso real— y con la X por tiempo eso queda como dos rectas larguísimas y medio
+cuadro vacío. Quedó peor que el problema que venía a resolver. Si alguien lo vuelve a
+intentar: con un piso de separación se puede evitar que los saques se amontonen (se midió:
+5 partidas en 2,2 h pasaban del 2,1% del ancho al 7,7%), pero las rectas largas de los
+días sin jugar no las arregla nada.
 
-**El tiempo puro no se puede usar crudo: el ranked se juega a los saques.** Medido sobre
-una semana real (cinco partidas un sábado en dos horas, después días sin tocar), la X por
-tiempo dejaba esas cinco en el **2,1% del ancho, a tres píxeles una de otra** — imposible
-apuntarles. Por eso `repartirPorTiempo` pone un piso de 12px entre puntos consecutivos:
-el saque pasa a ocupar 7,7% y el hueco de 19 horas 16,5%, o sea el agujero sigue
-leyéndose como agujero pero ninguna partida desaparece adentro de la de al lado.
+**Lo que sí está mal del gráfico de LP, y todavía no está arreglado: el LP no se mueve
+solo.** Entre dos snapshots no cambia — se queda quieto y salta de golpe cuando termina
+una partida. O sea que CUALQUIER diagonal entre dos puntos afirma algo que no pasó, haya
+agujero o no. El dibujo fiel es una escalera (plano hasta la partida, salto vertical),
+no una polilínea. Antes de tocarlo de nuevo, mirar los `captured_at` reales de un
+jugador: todo lo anterior se intentó sin ese dato y por eso hubo que revertir.
 
 **Cambiar el espaciado del eje rompe el hover si el hover invierte un paso constante.**
 `SparkChart` sacaba el índice con `Math.round((relX - padX) / stepX)`, que asume puntos
-equiespaciados: con el eje por tiempo, apuntabas a una partida del sábado y el tooltip
-mostraba una del martes. Ahora busca el punto más cercano de verdad — con espaciado
-parejo da exactamente lo mismo. Se verificó apuntando al píxel exacto de los catorce
-puntos en las dos versiones: 14/14 en las dos.
+equiespaciados. Ahora busca el punto más cercano de verdad — con espaciado parejo da
+exactamente el mismo resultado, y deja de depender de que el espaciado SEA parejo. Se
+verificó apuntando al píxel exacto de los catorce puntos: 14/14.
 
 **No fijarle altura a un SVG que se dimensiona solo.** `.lp-svg { height: 118px }`
 contra un SVG que rendereaba ~136px hacía que el gráfico se saliera de su caja y el

@@ -212,7 +212,6 @@ export function PlayerProfile({
   // son LP netos y punto — decirlo así se entiende sin dejar de distinguirlo
   // del número crudo que se ve al lado.
   const lpDeltaUnit = lpCrossedBoundary ? "LP netos" : "LP";
-  const lpTiempos = p.lpHistory.map((h) => Date.parse(h.capturedAt));
   const lpChartColor = trendColor(lpScores);
   const lpEndpointLabel = (point: { tier: Player["tierKey"]; division: number; lp: number }) =>
     lpCrossedBoundary ? `${tierFor(point.tier).name} ${point.division} · ${point.lp} LP` : `${point.lp} LP`;
@@ -474,13 +473,6 @@ export function PlayerProfile({
                     color={lpChartColor}
                     variant="detailed"
                     pointLabels={lpPointLabels}
-                    // La X por tiempo, no por índice: este eje promete fechas
-                    // ("8 sept … 12 sept") y antes el interior no las cumplía.
-                    // Mientras el cron anduvo parejo daba casi igual, pero
-                    // cuando el scheduler se cayó y quedaron horas sin
-                    // snapshot, el gráfico dibujaba esas horas como una bajada
-                    // suave y continua que nunca existió.
-                    tiempos={lpTiempos}
                     guides={lpGuides}
                   />
                 </div>
