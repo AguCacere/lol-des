@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { exigirSesion } from "@/lib/auth";
 import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
-import { claveDeSemana, esSemanaDeLiga, inicioDeSemana, LIGA_INICIO, tablaDeLaSemana, ventanaDeSemana, ventanaUltimoDia, empezoElUltimoDia, puntosDeSecuencia, puntosPorDia, etiquetasDeDias, MINIMO_SEMANAL, MINIMO_ULTIMO_DIA, PUNTOS_VICTORIA, PUNTOS_DERROTA, PUNTOS_EN_RACHA, RACHA_DESDE, lpPorPartida, type Participante, type RecordSemanal, type Snapshot } from "@/lib/liga";
+import { claveDeSemana, esSemanaDeLiga, inicioDeSemana, LIGA_INICIO, tablaDeLaSemana, ventanaDeSemana, ventanaUltimoDia, empezoElUltimoDia, puntosDeSecuencia, puntosPorDia, etiquetasDeDias, diasCorridos, MINIMO_SEMANAL, MINIMO_ULTIMO_DIA, PUNTOS_VICTORIA, PUNTOS_DERROTA, PUNTOS_EN_RACHA, RACHA_DESDE, lpPorPartida, type Participante, type RecordSemanal, type Snapshot } from "@/lib/liga";
 import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { roleFromTeamPosition } from "@/lib/mapping";
 
@@ -202,9 +202,12 @@ export async function GET() {
     // tiene que salir de las mismas constantes que la calculan.
     puntaje: { victoria: PUNTOS_VICTORIA, derrota: PUNTOS_DERROTA, rachaDesde: RACHA_DESDE, enRacha: PUNTOS_EN_RACHA },
     ultimoDia: empezoElUltimoDia(inicio),
-    // Los días ya corridos, para el eje de la carrera. Van del server porque
-    // el huso es argentino y el cliente está en el reloj del que mira.
+    // Los siete días de la semana y cuántos van corridos. Van del server porque
+    // el huso es argentino y el cliente está en el reloj del que mira. El
+    // gráfico se queda con los corridos; la barra de la semana dibuja los
+    // siete, con los que faltan en gris.
     dias: etiquetasDeDias(desdeVentana),
+    diasCorridos: diasCorridos(desdeVentana),
     tabla,
     // Para que la tabla pueda pedirle el arte del campeón a Data Dragon.
     ddragonVersion: version,

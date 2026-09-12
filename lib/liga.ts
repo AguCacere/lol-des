@@ -163,15 +163,16 @@ export function puntosPorDia(
 }
 
 /**
- * Los nombres de los días ya corridos, en hora argentina: "lun", "mar"…
+ * Los nombres de los SIETE días de la semana, en hora argentina: "lun", "mar"…
  *
  * Se arman acá y no en pantalla porque el huso vive de este lado: el cliente
- * está en el reloj del que mira, y alguien viajando vería la carrera corrida
- * un día. Cada etiqueta es el día que CIERRA en ese punto, así que la primera
- * es la del arranque de la semana.
+ * está en el reloj del que mira, y alguien viajando vería la semana corrida un
+ * día. Van los siete y no solo los corridos porque la pantalla dibuja la semana
+ * ENTERA —con los días que faltan en gris— y el gráfico se queda con los
+ * primeros `diasCorridos`, que es lo que tiene datos.
  */
-export function etiquetasDeDias(inicio: Date, ahora: Date = new Date()): string[] {
-  return Array.from({ length: diasCorridos(inicio, ahora) }, (_, d) =>
+export function etiquetasDeDias(inicio: Date): string[] {
+  return Array.from({ length: 7 }, (_, d) =>
     // Corriendo el reloj, los campos UTC de esta fecha son la hora argentina —
     // el mismo truco que inicioDeSemana.
     new Date(inicio.getTime() + d * 86400000 - ARG_OFFSET_MS).toLocaleDateString("es-AR", {

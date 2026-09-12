@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { LigaCarrera } from "./LigaCarrera";
+import { LigaEstado } from "./LigaEstado";
 import { InfoTip } from "./InfoTip";
 import { fetchConClave } from "./Cerradura";
 import { TierEmblem } from "./TierEmblem";
@@ -86,8 +87,9 @@ interface Datos {
   minimoSemanal?: number;
   minimoUltimoDia?: number;
   ultimoDia?: boolean;
-  /** Los días ya corridos de la semana ("lun", "mar"…), para el eje de la carrera. Opcional por la misma razón. */
+  /** Los siete días de la semana ("lun", "mar"…) y cuántos van corridos. Opcionales por la misma razón. */
   dias?: string[];
+  diasCorridos?: number;
   /** La tabla de puntos, para escribir la regla con los mismos números que la calculan. */
   puntaje?: { victoria: number; derrota: number; rachaDesde: number; enRacha: number };
 }
@@ -212,6 +214,21 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
   const maxPartidas = Math.max(1, ...d.tabla.map((f) => f.victorias + f.derrotas));
 
   /**
+   * Cuánto sumó o restó HOY, sacado de la curva por día: el último cierre
+   * menos el anterior.
+   *
+   * Es el dato vivo que a la tabla le faltaba. Todo lo demás —el puntaje, el
+   * récord, el rango— es el acumulado de la semana y no se mueve de un rato
+   * para otro; en una competencia que cierra el domingo, "hoy va +2,25" es lo
+   * que hace que valga la pena volver a mirar.
+   */
+  function loDeHoy(f: Fila): number {
+    const p = f.porDia;
+    if (!p || p.length < 2) return 0;
+    return Math.round((p[p.length - 1] - p[p.length - 2]) * 100) / 100;
+  }
+
+  /**
    * "se anotó el martes" existe para explicar por qué alguien tiene menos
    * partidas que el resto. Si lo dice TODA la tabla no explica nada: son seis
    * renglones grises idénticos que le agregan una línea a cada fila y hacen la
@@ -324,8 +341,26 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
             </span>
           </div>
         )}
-        {!conEncabezado && <span className="liga-contexto-fecha">{rango}</span>}
       </div>
+
+      {/* En qué punto de la semana estamos y quién se lleva el premio. Va
+          ARRIBA de la carrera y de la tabla porque es el marco: primero cuánto
+          falta y qué está en juego, después cómo se dio y por último el
+          marcador. Con guarda por la ventana de caché del CDN: una respuesta
+          anterior al deploy no trae los días. */}
+      {d.arrancada !== false && d.dias && d.dias.length === 7 && (
+        <LigaEstado
+          dias={d.dias}
+          corridos={d.diasCorridos ?? 1}
+          esUltimoDia={esUltimoDia}
+          falta={loQueFalta(d.hasta)}
+          arrancaA={yaArranco ? null : horaDe(d.desde)}
+          minimoSemanal={minSemana}
+          minimoUltimoDia={minDia}
+          tabla={d.tabla}
+        />
+      )}
+      {!conEncabezado && d.arrancada !== false && <span className="liga-contexto-fecha">{rango}</span>}
 
       {d.arrancada === false ? (
         <div className="empty-state">
@@ -397,6 +432,11 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
               // anterior al deploy. Se cae a las netas y, si tampoco están, a
               // la resta a mano.
               const puntaje = f.puntos ?? f.netas ?? f.victorias - f.derrotas;
+              const anterior = i > 0 ? d.tabla[i - 1] : null;
+              const puntajeAnterior = anterior
+                ? anterior.puntos ?? anterior.netas ?? anterior.victorias - anterior.derrotas
+                : null;
+              const empatado = !f.sinJugar && puntajeAnterior != null && puntajeAnterior === puntaje;
               return (
                 <div key={f.puuid} className="liga-grupo">
                 <div
@@ -417,7 +457,22 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                   // fila alcanza para que la tabla se ARME en vez de aparecer.
                   style={{ ["--fila" as string]: i }}
                 >
-                  <span className={`liga-puesto p${puesto <= 3 ? puesto : 0}`}>
+                  <span
+                    className={`liga-puesto p${puesto <= 3 ? puesto : 0}${empatado ? " empatado" : ""}`}
+                    title={
+                      empatado
+                        ? "Empatado en puntos con el de arriba. Adelante va el que lo hizo en menos partidas."
+                        : undefined
+                    }
+                  >
+                    {/* El empate marcado. Con dos en +3 la tabla los ponía uno
+                        arriba del otro sin decir por qué, y en una liga con
+                        premio eso se lee como que el orden es arbitrario. */}
+                    {empatado && (
+                      <span className="liga-empate" aria-label="Empatado en puntos">
+                        =
+                      </span>
+                    )}
                     {puesto === 1 && !f.sinJugar ? (
                       // La corona en vez del "1": el que va ganando la semana
                       // se tiene que ver de un vistazo, no leerse.
@@ -515,6 +570,19 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                             <span className={`liga-racha ${f.racha.resultado === "W" ? "w" : "l"}`}>
                               <StreakIcon result={f.racha.resultado} />
                               {f.racha.cantidad}
+                            </span>
+                          )}
+                          {/* Lo de HOY, cuando hizo algo hoy. Va acá y no en
+                              la columna del puntaje porque habla de actividad,
+                              como la racha, y porque apilar un tercer número
+                              abajo del marcador lo hacía competir consigo
+                              mismo. */}
+                          {loDeHoy(f) !== 0 && (
+                            <span
+                              className={`liga-hoy ${loDeHoy(f) > 0 ? "sube" : "baja"}`}
+                              title="Lo que sumó o restó en el día de hoy"
+                            >
+                              {puntajeTexto(loDeHoy(f))} hoy
                             </span>
                           )}
                           {/* Si cobra o qué le falta para cobrar. Va pegado al

@@ -590,16 +590,32 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-family:var(--font-mono); font-size:7px; font-weight:700;
 }
 .col-tier{display:flex; align-items:center; gap:8px;}
+/* El respaldo para los tiers que todavía no tienen arte propio (hoy: hierro,
+   plata, maestro y arriba). Era un rectángulo liso con dos letras y al lado de
+   los emblemas de verdad se leía como un placeholder roto — "P4" en una caja
+   gris entre dos crestas. Ahora es una insignia: forma de escudo, degradado
+   del color del tier y un aro finito. No es el arte de Riot y no pretende
+   serlo, pero deja de parecer un error. */
 .tier-badge{
-  width:30px;height:30px;border-radius:8px; flex:none;
+  width:30px;height:30px; flex:none;
   display:flex; align-items:center; justify-content:center;
-  font-family:var(--font-display); font-weight:700; font-size:12px;
+  font-family:var(--font-display); font-weight:700; font-size:11px;
+  letter-spacing:-0.02em;
+  /* El escudo: recto arriba, en punta abajo. Cuesta lo mismo que un cuadrado
+     y lee como insignia en vez de como etiqueta. */
+  clip-path:polygon(50% 0%, 100% 14%, 100% 62%, 50% 100%, 0% 62%, 0% 14%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.1), inset 0 6px 10px rgba(255,255,255,0.06);
 }
 /* Real emblem crest — same 30px footprint as the text-badge fallback (kept
    deliberately small/unobtrusive, matching how the rest of the row reads),
    no background/radius/color: the crest is its own irregular shape with its
    own colors and glow baked in, not a flat tinted square. */
-.tier-badge.tier-badge-real{border-radius:0; background:none;}
+/* El emblema de verdad NO se recorta: es su propia forma irregular, con su
+   glow ya horneado. El clip-path del escudo es solo para el respaldo de
+   texto. */
+.tier-badge.tier-badge-real{
+  border-radius:0; background:none; clip-path:none; box-shadow:none;
+}
 .tier-badge-real img{width:100%; height:100%; object-fit:contain; display:block;}
 .tier-text{line-height:1.25;}
 .tier-name{display:block; font-size:13.5px; font-weight:700;}
@@ -3211,6 +3227,87 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .liga-tabla{
   background:var(--bg); border-radius:var(--radius-lg); box-shadow:var(--shadow); overflow:hidden;
 }
+
+/* El marco de la competencia: cuánto falta y quién cobra. Es un PANEL de
+   verdad —fondo, borde y radio— y no texto suelto, porque lo que dice no es
+   una nota al pie: es la regla que decide la plata. Ver LigaEstado.tsx. */
+.estado{
+  display:grid; grid-template-columns:minmax(190px,250px) minmax(0,1fr);
+  gap:18px; margin:0 0 12px; padding:14px 18px;
+  background:var(--surface); border:1px solid var(--border-soft);
+  border-radius:var(--radius-lg);
+}
+.estado-rotulo{
+  display:block; font-size:9.5px; font-weight:700; text-transform:uppercase;
+  letter-spacing:0.09em; color:var(--text-muted); margin-bottom:6px;
+}
+.estado-reloj{
+  display:block; font-family:var(--font-display); font-size:19px; font-weight:700;
+  line-height:1.1; color:var(--text-primary); letter-spacing:-0.015em;
+}
+/* El último día en dorado: es el único momento de la semana en que quedarse
+   quieto te saca el premio, y la pantalla tiene que decirlo sin que lo leas. */
+.estado-reloj.urge{color:var(--accent);}
+
+/* La semana entera en siete casillas. Los días que faltan van en gris y el
+   domingo siempre marcado — es el que decide, y que se vea desde el lunes es
+   justamente el punto. */
+.estado-semana{display:flex; gap:4px; margin-top:10px;}
+.estado-dia{
+  flex:1 1 0; min-width:0; height:22px; border-radius:5px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:9.5px; font-weight:700; letter-spacing:0.02em;
+  background:var(--track); color:var(--text-muted);
+  border:1px solid transparent;
+}
+.estado-dia.pasado{background:var(--surface-hover); color:var(--text-secondary);}
+.estado-dia.hoy{
+  background:var(--accent-wash); border-color:var(--accent-dim);
+  color:var(--accent); box-shadow:0 0 0 1px var(--accent-wash);
+}
+/* El domingo lleva un subrayado dorado aunque falte: es el día del premio. */
+.estado-dia.decide{border-bottom:2px solid var(--accent-dim);}
+.estado-dia.decide.hoy{border-bottom-color:var(--accent);}
+
+.estado-premio{border-left:1px solid var(--border-soft); padding-left:18px; min-width:0;}
+.estado-premio-titulo{
+  display:block; font-size:14.5px; font-weight:650; line-height:1.3;
+  color:var(--text-primary); letter-spacing:-0.01em;
+}
+/* El titular cambia de color según el estado, que es el único lugar de la
+   sección donde el color SÍ es el dato: verde = está resuelto, dorado = hay
+   alguien que puede perderlo, gris = todavía no se juega. */
+.estado-premio.t-ok .estado-premio-titulo{color:var(--good);}
+.estado-premio.t-alerta .estado-premio-titulo{color:var(--accent);}
+.estado-premio-detalle{
+  display:block; margin-top:4px; font-size:12px; line-height:1.5;
+  color:var(--text-secondary);
+}
+.estado-premio-afuera{display:block; margin-top:5px; font-size:11px; color:var(--text-muted);}
+@media (max-width:700px){
+  .estado{grid-template-columns:1fr; gap:13px; padding:13px 14px;}
+  .estado-premio{border-left:none; border-top:1px solid var(--border-soft); padding-left:0; padding-top:12px;}
+  .estado-reloj{font-size:17px;}
+}
+
+/* Lo que sumó o restó HOY. Es el único número de la fila que se mueve de un
+   rato para otro; todo lo demás es el acumulado de la semana. */
+.liga-hoy{
+  display:inline-flex; align-items:center; gap:3px;
+  padding:1px 6px; border-radius:999px; flex:none;
+  font-size:10px; font-weight:700; font-variant-numeric:tabular-nums;
+  border:1px solid transparent; white-space:nowrap;
+}
+.liga-hoy.sube{background:var(--good-wash); color:var(--good); border-color:rgba(52,201,124,0.22);}
+.liga-hoy.baja{background:var(--critical-wash); color:var(--critical); border-color:rgba(240,85,95,0.22);}
+
+/* El empate, marcado. Con dos en +3 la tabla los ponía uno arriba del otro sin
+   decir por qué, y en una liga con premio eso se lee como orden arbitrario. */
+.liga-empate{
+  position:absolute; left:-1px; top:50%; transform:translateY(-50%);
+  font-size:11px; font-weight:700; color:var(--text-muted); opacity:0.8;
+}
+.liga-puesto.empatado{position:relative; padding-left:9px;}
 
 /* La carrera de la semana: las líneas de puntos de todos en una sola caja,
    arriba de la tabla. Una en color y el resto en gris — con siete colores a la

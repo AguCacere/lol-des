@@ -209,20 +209,26 @@ en **Datos**). Moraleja del episodio entero: dos intentos de arreglar el gráfic
 tocando el eje —y uno revertido— cuando la pregunta se contestaba con un `select` de
 cuarenta filas.
 
-**El gráfico grande de LP es una ESCALERA, y eso no se vuelve atrás.** El LP no se
-mueve solo: entre dos fotos se queda quieto y salta de golpe cuando termina una
-partida. Cualquier diagonal entre dos puntos afirma un movimiento gradual que no
-existió — y no es un problema de huecos ni de espaciado, pasa igual entre dos fotos
-pegadas. Por eso el eje por tiempo no lo arreglaba y por eso se revirtió: el problema
-nunca estuvo en la X. El salto se dibuja en la foto NUEVA, que es lo único que se sabe
-(la partida cayó en algún momento del tramo y recién en la segunda foto se la ve);
-ponerlo al principio sería inventar el momento. Verificado sobre el path: 0 diagonales,
-11 tramos horizontales y 9 verticales. Las juntas van en punta y no redondeadas — el
-chiste es que el salto se vea seco.
+**La escalera del LP SE PROBÓ Y SE SACÓ. No volver a intentarla.** El razonamiento era
+correcto: el LP no se mueve solo —entre dos fotos se queda quieto y salta de golpe
+cuando termina una partida— así que cualquier diagonal afirma un movimiento gradual que
+no existió. Se implementó, se verificó sobre el path (0 diagonales, 11 tramos
+horizontales, 9 verticales) y en pantalla quedó horrible: con veinticinco fotos en
+cuatro días —el caso real, el cron corre cada 15 minutos— son veinticinco escaloncitos
+de dos píxeles y el gráfico se lee como un peine, no como una escalada.
 
-**Los chiquitos NO van en escalera.** La sparkline de veinte puntos en una caja de 28px
-se convierte en un peine. Ahí el gráfico es el respaldo de un número, no el dato en sí,
-y la curva suave sigue siendo la forma correcta.
+La lección, que vale más que el caso: **la forma más fiel no es la mejor si a la
+densidad real del dato se vuelve ilegible.** Un gráfico que no se puede leer no
+comunica nada, y eso es peor que la pequeña mentira de la diagonal. La escalera sería
+la forma correcta con cinco o seis fotos; con veinticinco no.
+
+**Y ahora TODOS los gráficos de línea usan la misma forma: la curva suave.** El de LP
+del perfil, las sparklines del ladder y la carrera de la liga. Antes convivían tres
+—recta, curva y escalera— y lo único que se notaba era que cada gráfico parecía de otra
+aplicación. La curva es `smoothLinePath`: cuadrática por el punto medio de cada par
+usando el punto real como control, así que cada tramo queda DENTRO del triángulo de sus
+tres puntos reales y no puede inventar un pico. Eso es lo que la hace aceptable — una
+Catmull-Rom o una bezier suelta sí inventan.
 
 **"Se siente tosco" tiene causas concretas, no es una impresión.** La carrera con eje
 y nombres ya se entendía y seguía viéndose mal. Lo que faltaba, en orden de cuánto
@@ -348,6 +354,41 @@ array vacío. Un invocador recién agregado no tiene snapshots, y ese crash se l
 puesta la tabla entera. Ya tiene guarda; no sacarla.
 
 ## Diseño
+
+**La regla que decide la plata estaba escondida.** La liga se juega por un premio y
+para cobrarlo hay que cumplir dos mínimos, y la pantalla no decía en ningún lado
+**quién los cumple hoy**. El que la abría veía un primer puesto y daba por hecho que ese
+cobra — y puede no ser así: el premio se lo lleva el primero que además cumple, puede no
+haber ninguno y la semana cerrar sin premio. Ese es el drama de toda la cosa y era
+invisible. Ahora el panel de estado (`LigaEstado`) lo dice en un titular, con tres casos
+bien distintos: lo cobra el que va primero (verde), hoy lo cobra OTRO porque el primero
+no cumple (dorado — el caso que justifica el panel entero), o todavía no lo tiene nadie.
+El color acá SÍ es el dato, no decoración.
+
+**Y "7 sept – 13 sept" es un rótulo de archivo, no una cuenta regresiva.** Una
+competencia con fecha de cierre tiene que decir en qué punto de la semana está. La barra
+de siete casillas lo dice de un vistazo —cuántas pasaron, cuál es hoy— y el domingo va
+marcado desde el lunes, porque es el día que decide el premio.
+
+**"Hoy" es el único número de la tabla que se mueve.** Todo lo demás —puntaje, récord,
+rango— es el acumulado de la semana y no cambia de un rato para otro. El chip de "+2,25
+hoy" sale de restar los dos últimos valores de `porDia` y es lo que hace que valga la
+pena volver a mirar la pantalla. Va en la columna del récord y no en la del puntaje:
+habla de actividad, como la racha, y apilar un tercer número abajo del marcador lo hacía
+competir consigo mismo.
+
+**Un empate sin marcar se lee como orden arbitrario.** Con dos en +3 la tabla los ponía
+uno arriba del otro sin decir por qué. En una liga con premio eso destruye la confianza
+en la tabla entera, que es lo único que esa pantalla aporta. Ahora el segundo de un
+empate lleva un "=" con el desempate explicado en el title.
+
+**El respaldo del emblema de rango era un placeholder roto.** Los tiers sin arte propia
+(hierro, plata, maestro y arriba) caían en un rectángulo liso con dos letras, y al lado
+de las crestas de verdad "P4" en una caja gris se leía como un error de carga. Ahora es
+una insignia con forma de escudo (`clip-path`), el color del tier y un aro finito: no es
+el arte de Riot y no pretende serlo, pero deja de parecer roto. **Ojo**: el emblema real
+lleva `clip-path:none` a propósito — es su propia forma irregular con su glow horneado,
+y recortarlo en escudo lo arruina.
 
 **Un dato repetido en todas las filas deja de ser un dato.** La tabla de la liga tenía
 "se anotó el martes" abajo de los seis nombres —se anotaron todos el martes, es la

@@ -192,8 +192,9 @@ descarta.
 pestañas.
 
 - **Ranking** → `LadderTable` (que adentro tiene `LigaSemanal` —y esa a
-  `LigaCarrera`, el gráfico de la semana—, `TierEmblem`, `SparkChart`,
-  `RoleIcon`, `PlayerAvatar`) + `PlayerProfile`.
+  `LigaEstado`, el panel de cierre y premio, y a `LigaCarrera`, el gráfico de la
+  semana—, `TierEmblem`, `SparkChart`, `RoleIcon`, `PlayerAvatar`) +
+  `PlayerProfile`.
   `PlayerProfile` es el más grande: `RadarChart`, `InsightsCard`, `RecentForm`,
   `TiltCard`, `ChampionPool`, `MasteryPool`, `ChampionInsights`, `Matchups`,
   `LineHistory`, `BuildStarts`, `PersonalRecords`, `AegisStats`, `CoachPanel`,
