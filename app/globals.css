@@ -3215,60 +3215,104 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* La carrera de la semana: las líneas de puntos de todos en una sola caja,
    arriba de la tabla. Una en color y el resto en gris — con siete colores a la
    par no se distingue ninguna, y bajo daltonismo menos. Ver LigaCarrera.tsx. */
-.carrera{padding:16px 18px 14px; border-bottom:1px solid var(--border-soft);}
-.carrera-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; margin-bottom:10px;}
-.carrera-titulo{
-  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;
-  color:var(--text-muted);
+.carrera{padding:18px 20px 16px; border-bottom:1px solid var(--border-soft);}
+
+/* Encabezado de tres niveles. Antes era un renglón de 11px con el rótulo, el
+   titular y la explicación adentro, y el bloque entero se leía como una nota
+   al pie de algo. El tamaño y el peso hacen la jerarquía; el color solo
+   acompaña. */
+.carrera-head{margin-bottom:14px;}
+.carrera-rotulo{
+  display:block; font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:0.08em; color:var(--text-muted); margin-bottom:5px;
 }
-.carrera-sub{font-size:12px; color:var(--text-muted);}
-.carrera-sub b{color:var(--text-secondary); font-weight:600;}
+.carrera-titular{
+  display:block; font-size:15.5px; font-weight:650; line-height:1.25;
+  color:var(--text-primary); letter-spacing:-0.01em;
+}
+.carrera-ventaja{color:var(--accent); font-variant-numeric:tabular-nums;}
+.carrera-pie{display:block; margin-top:3px; font-size:11.5px; color:var(--text-muted);}
+
 .carrera-caja{position:relative;}
-/* Alto fijo y viewBox de 250: preserveAspectRatio="none" estira lo que se aleje
-   de su caja, así que el alto del CSS tiene que ser el del viewBox. */
-.carrera-svg{display:block; width:100%; height:250px; overflow:visible;}
-/* La grilla, un tono arriba del fondo: es la referencia, no el dato. Sin ella
-   las líneas flotaban sin escala y el gráfico no decía nada. */
-.carrera-grilla{stroke:var(--border-soft); stroke-width:1; opacity:0.75;}
-/* El cero va más marcado: separa la semana ganada de la perdida. */
-.carrera-cero{stroke:var(--text-muted); stroke-width:1; stroke-dasharray:3 3; opacity:0.7;}
+/* Alto fijo y viewBox de 264: preserveAspectRatio="none" estira lo que se
+   aleje de su caja, así que el alto del CSS tiene que ser el del viewBox. */
+.carrera-svg{display:block; width:100%; height:264px; overflow:visible;}
+
+/* La grilla. Hairlines sólidas y bien apagadas: es la referencia, no el dato.
+   Las columnas marcan el cierre de cada día y son lo que le da estructura de
+   grilla a lo que antes eran líneas flotando. */
+.carrera-columna{stroke:var(--border-soft); stroke-width:1; opacity:0.5;}
+.carrera-grilla{stroke:var(--border-soft); stroke-width:1; opacity:0.9;}
+/* El cero SÍ va punteado: no es grilla, es un umbral —arriba la semana está
+   ganada, abajo perdida— y ahí el punteado dice justamente eso. */
+.carrera-cero{stroke:var(--text-muted); stroke-width:1; stroke-dasharray:3 4; opacity:0.75;}
 .carrera-eje{
   position:absolute; left:0; transform:translateY(-50%);
   font-size:10px; font-variant-numeric:tabular-nums; color:var(--text-muted);
   pointer-events:none; white-space:nowrap;
 }
+.carrera-eje.es-cero{color:var(--text-secondary);}
+
+/* El degradado de abajo de la línea en foco. Los stops van por CSS y no como
+   atributos para que sigan al tema sin pasar el color por props. */
+.carrera-area-arriba{stop-color:var(--accent); stop-opacity:0.16;}
+.carrera-area-medio{stop-color:var(--accent); stop-opacity:0.03;}
+.carrera-area-abajo{stop-color:var(--accent); stop-opacity:0;}
+
 /* Las de contexto: finas y apagadas, pero legibles — son contra lo que se lee
    la que está en foco. */
 .carrera-linea{
-  fill:none; stroke:var(--text-muted); stroke-width:1.5; stroke-opacity:0.42;
+  fill:none; stroke:var(--text-muted); stroke-width:1.5; stroke-opacity:0.4;
   stroke-linecap:round; stroke-linejoin:round;
+  transition:stroke-opacity .16s ease;
 }
 .carrera-linea.en-foco{stroke:var(--accent); stroke-width:2.6; stroke-opacity:1;}
-.carrera-punto{fill:var(--bg); stroke:var(--accent); stroke-width:1.6;}
+/* Trazo ancho e invisible para agarrar el mouse: una línea de 1,5px no se
+   puede apuntar, y un gráfico que no reacciona a nada se siente muerto. */
+.carrera-agarre{fill:none; stroke:transparent; stroke-width:16; cursor:pointer;}
+.carrera-agarre:hover + .carrera-linea{stroke-opacity:0.75;}
+.carrera-punto{fill:var(--bg); stroke:var(--accent); stroke-width:1.8;}
+
 /* El nombre al final de cada línea. Es lo que convierte seis líneas grises en
-   una tabla de posiciones que se lee de arriba abajo. */
+   una tabla de posiciones que se lee de arriba abajo. La marquita adelante lo
+   ata a su línea: sin ella es texto suelto al costado. */
 .carrera-nombre{
-  position:absolute; display:flex; align-items:baseline; gap:5px;
-  transform:translateY(-50%); margin-left:9px; max-width:118px;
-  font-size:11px; color:var(--text-muted); cursor:default;
-  transition:color .14s ease;
+  position:absolute; display:flex; align-items:center; gap:6px;
+  transform:translateY(-50%); margin-left:10px;
+  /* El pasillo son 152 de un viewBox de 1000, o sea 15,2% del ancho REAL de la
+     caja — no 152px. Con un max-width fijo el nombre se salía de la tarjeta en
+     cuanto la pantalla bajaba de ~1100px: medido, "marlboro de diez" se
+     escapaba a 900. */
+  max-width:calc(15.2% - 12px);
+  font-size:11.5px; color:var(--text-muted); cursor:default;
+  transition:color .16s ease;
+}
+.carrera-marca{
+  width:9px; height:2px; border-radius:2px; flex:none;
+  background:var(--text-muted); opacity:0.55;
 }
 .carrera-nombre-txt{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.carrera-nombre-pts{font-size:10px; font-variant-numeric:tabular-nums; opacity:0.75; flex:none;}
+.carrera-nombre-pts{font-size:10.5px; font-variant-numeric:tabular-nums; opacity:0.7; flex:none;}
 .carrera-nombre:hover{color:var(--text-secondary);}
 .carrera-nombre.en-foco{color:var(--accent); font-weight:700;}
+.carrera-nombre.en-foco .carrera-marca{background:var(--accent); height:3px; opacity:1;}
 .carrera-nombre.en-foco .carrera-nombre-pts{opacity:1;}
+
 .carrera-dias{
-  position:relative; height:15px; margin-top:3px;
-  font-size:10px; color:var(--text-muted); letter-spacing:0.02em;
+  position:relative; height:16px; margin-top:5px;
+  font-size:10.5px; color:var(--text-muted); letter-spacing:0.02em;
 }
 .carrera-dias span{position:absolute; transform:translateX(-50%); white-space:nowrap;}
+
 /* Los chips son el control, y en el teléfono —donde el pasillo de nombres no
    entra— también la leyenda. */
-.carrera-chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;}
+.carrera-chips{
+  display:flex; flex-wrap:wrap; gap:6px; margin-top:14px;
+  padding-top:13px; border-top:1px solid var(--border-soft);
+}
 .carrera-chip{
   display:inline-flex; align-items:baseline; gap:6px;
-  padding:4px 9px; border-radius:999px; cursor:pointer;
+  padding:4px 10px; border-radius:999px; cursor:pointer;
   background:var(--surface); border:1px solid var(--border-soft);
   font-size:11.5px; color:var(--text-secondary);
   transition:background .14s ease, border-color .14s ease, color .14s ease;
@@ -3280,16 +3324,23 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .carrera-chip-nombre{font-weight:600; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .carrera-chip-pts{font-size:11px; font-variant-numeric:tabular-nums; color:var(--text-muted);}
 .carrera-chip.en-foco .carrera-chip-pts{color:var(--accent);}
+/* Abajo de 1024 el pasillo se queda sin lugar para las dos cosas, y entre el
+   nombre y el puntaje gana el nombre: el puntaje está en el chip de abajo y en
+   la tabla, el nombre es lo único que ata la línea a una persona. */
+@media (max-width:1024px){
+  .carrera-nombre-pts{display:none;}
+}
 @media (max-width:700px){
-  /* El pasillo de nombres no entra: 128 de 1000 son 45px reales y ahí no hay
-     nombre que se lea. Se cae y los chips quedan de leyenda. */
+  /* El pasillo de nombres ya no entra ni con eso: 152 de 1000 son 53px reales
+     y ahí no hay nombre que se lea. Se cae y los chips quedan de leyenda. */
   .carrera-nombre{display:none;}
 }
 @media (max-width:560px){
-  .carrera{padding:13px 13px 12px;}
-  .carrera-svg{height:186px;}
+  .carrera{padding:14px 14px 13px;}
+  .carrera-svg{height:194px;}
+  .carrera-titular{font-size:14px;}
   /* Los puntos se van en el teléfono. Con preserveAspectRatio="none" el
-     viewBox de 1000 entra en 340px y el de 250 en 186: dos compresiones
+     viewBox de 1000 entra en 340px y el de 264 en 194: dos compresiones
      distintas, así que un círculo sale ovalado. Las líneas no sufren (llevan
      non-scaling-stroke), pero un círculo no tiene cómo. */
   .carrera-punto{display:none;}

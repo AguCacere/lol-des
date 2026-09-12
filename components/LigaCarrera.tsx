@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { lineAreaGeometry } from "@/lib/chart";
 
 /**
@@ -17,19 +17,23 @@ import { lineAreaGeometry } from "@/lib/chart";
  * la semana, y cruzarlas en el mismo eje no significaría nada. Ver puntosPorDia
  * en lib/liga.ts.
  *
- * La primera versión de esto no se entendía, y por tres cosas que se
- * arreglaron acá:
+ * Tres rondas de arreglos, cada una por algo que se vio en pantalla:
  *
- * 1. NO TENÍA EJE Y. Siete líneas flotando sin una sola marca de cuánto. Una
- *    altura sin escala no dice nada: se veía que había una arriba y un montón
- *    abajo, y eso ya lo decía la tabla. Ahora hay grilla con los puntos
- *    escritos y el cero marcado.
- * 2. NO SE SABÍA DE QUIÉN ERA CADA LÍNEA sin ir a tocar un chip. Ahora cada
- *    una termina con el nombre escrito al lado, separados para que no se
- *    pisen: se leen de arriba abajo en el orden en que van.
- * 3. ERA MUY CHATA. El viewBox de 620 se estiraba a 1150px reales —casi el
- *    doble— y eso aplasta las pendientes hasta que todo parece plano. Ahora el
- *    viewBox arranca cerca del ancho real y es bastante más alto.
+ * 1. No tenía EJE Y. Siete líneas flotando sin una marca de cuánto: se veía que
+ *    había una arriba y un montón abajo, o sea lo mismo que ya decía la tabla.
+ * 2. No se sabía DE QUIÉN era cada línea sin ir a tocar un chip. Un gráfico que
+ *    no se entiende sin tocarlo no se entiende.
+ * 3. Quedaba TOSCO: polilínea pelada sobre fondo negro, sin relleno, sin
+ *    jerarquía arriba y sin nada que separara los días. Ahora la curva es
+ *    suave, la que está en foco lleva su degradado abajo, la grilla tiene
+ *    columnas por día y el encabezado tiene tres niveles en vez de un renglón
+ *    con todo apretado.
+ *
+ * La curva suave es `smoothLinePath` (lib/chart.ts), que pasa por el punto
+ * medio de cada par usando el punto real de control: cada tramo queda DENTRO
+ * del triángulo de sus tres puntos reales, así que a diferencia de una
+ * Catmull-Rom nunca se pasa de lo que los datos aguantan. Y los puntos reales
+ * quedan marcados igual, que es lo que mantiene la curva honesta.
  */
 
 export interface CorredorCarrera {
@@ -46,12 +50,12 @@ export interface CorredorCarrera {
  * más se estira todo a lo ancho y más chatas quedan las pendientes.
  */
 const W = 1000;
-const H = 250;
+const H = 264;
 /** El pasillo de la derecha donde van los nombres, fuera del dibujo. */
-const PASILLO = 128;
+const PASILLO = 152;
 /** Y el de la izquierda, para los números del eje. */
-const EJE = 34;
-const PAD_Y = 20;
+const EJE = 40;
+const PAD_Y = 24;
 /** Hasta dónde llega el dibujo. De acá a W está el pasillo de los nombres. */
 const PLOT = W - PASILLO;
 /**
@@ -62,7 +66,7 @@ const PLOT = W - PASILLO;
  */
 const MIN_RECORRIDO = 4;
 /** Cuánto tienen que separarse dos nombres del pasillo para no pisarse. */
-const SEPARACION = 17;
+const SEPARACION = 18;
 
 /** "+9,75" / "−1,5" / "0", con coma y con el menos de verdad. */
 function pts(n: number): string {
@@ -89,6 +93,7 @@ function marcasDelEje(min: number, max: number): number[] {
 
 export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[]; dias: string[] }) {
   const [enFoco, setEnFoco] = useState<string | null>(null);
+  const gid = "carrera-" + useId().replace(/:/g, "");
 
   // Con un solo día corrido —el lunes a la mañana— no hay carrera que dibujar:
   // son siete puntos en la misma vertical. Se espera al segundo cierre.
@@ -125,11 +130,11 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
     while (serie.length < largo) serie.push(serie[serie.length - 1]);
     // El ancho que se le pasa es PLOT + EJE con padX = EJE: así los puntos
     // caen entre EJE y PLOT, y de PLOT a W queda el pasillo de los nombres.
-    const g = lineAreaGeometry(serie, PLOT + EJE, H, EJE, MIN_RECORRIDO, PAD_Y, "recta", escala);
-    return { ...c, line: g.line, last: g.last, points: g.points, yOf: g.yOf };
+    const g = lineAreaGeometry(serie, PLOT + EJE, H, EJE, MIN_RECORRIDO, PAD_Y, "curva", escala);
+    return { ...c, line: g.line, area: g.area, last: g.last, points: g.points, yOf: g.yOf };
   });
   const enFocoTrazo = trazos.find((t) => t.puuid === foco.puuid) ?? trazos[0];
-  const { yOf } = enFocoTrazo;
+  const { yOf, points } = enFocoTrazo;
 
   /**
    * Los nombres del pasillo, empujados hacia abajo hasta que ninguno se pise.
@@ -143,7 +148,7 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
   for (let i = 1; i < nombres.length; i++) {
     nombres[i].y = Math.max(nombres[i].y, nombres[i - 1].y + SEPARACION);
   }
-  const sobra = nombres[nombres.length - 1].y - (H - 6);
+  const sobra = nombres[nombres.length - 1].y - (H - 8);
   if (sobra > 0) for (const n of nombres) n.y -= sobra;
 
   const marcas = marcasDelEje(min, max).map((v) => ({ v, y: yOf(v) }));
@@ -155,16 +160,23 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
 
   return (
     <div className="carrera">
+      {/* Tres niveles y no un renglón con todo adentro: el rótulo dice qué
+          sección es, el titular dice qué está pasando y el pie dice qué se
+          está midiendo. Antes iban los tres apretados en una línea de 11px y
+          el bloque entero se leía como una nota al pie. */}
       <div className="carrera-head">
-        <span className="carrera-titulo">La carrera</span>
-        <span className="carrera-sub">
-          Puntos acumulados, día por día.
-          {ventaja != null && ventaja > 0 && (
+        <span className="carrera-rotulo">La carrera</span>
+        <strong className="carrera-titular">
+          {ventaja != null && ventaja > 0 ? (
             <>
-              {" "}
-              <b>{orden[0].name}</b> va {pts(ventaja)} arriba del segundo.
+              {orden[0].name} va <span className="carrera-ventaja">{pts(ventaja)}</span> arriba del segundo
             </>
+          ) : (
+            "La semana está pareja arriba"
           )}
+        </strong>
+        <span className="carrera-pie">
+          Puntos acumulados al cierre de cada día · tocá un nombre para seguirlo
         </span>
       </div>
 
@@ -176,9 +188,41 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
           role="img"
           aria-label="Puntos acumulados de cada uno, día por día"
         >
-          {/* La grilla primero, bien apagada: es la referencia, no el dato. El
-              cero va más marcado que el resto — es la línea que separa la
-              semana ganada de la perdida. */}
+          <defs>
+            {/* El degradado de abajo de la línea en foco. Se apaga rápido: es
+                para darle cuerpo a la línea, no para leer un área — el dato es
+                la altura de la curva, no la superficie. */}
+            <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" className="carrera-area-arriba" />
+              {/* El stop del medio existe para matar la pared: el relleno
+                  termina en un corte vertical abajo del último punto, y con un
+                  degradado lineal parejo ese corte se ve como un muro. Cayendo
+                  rápido, a media altura ya casi no hay tinta que dibuje el
+                  borde. */}
+              <stop offset="45%" className="carrera-area-medio" />
+              <stop offset="100%" className="carrera-area-abajo" />
+            </linearGradient>
+            {/* El mismo brillo contenido que usa SparkChart: sin él la línea se
+                lee como un pelo plano sobre el fondo. Poco radio a propósito —
+                más se empasta en una mancha abajo del trazo. */}
+            <filter id={`${gid}-glow`} filterUnits="userSpaceOnUse" x={-12} y={-12} width={W + 24} height={H + 24}>
+              <feGaussianBlur stdDeviation="2.4" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          {/* Las columnas de cada día. Son lo que convierte seis líneas
+              flotando en una grilla: sin ellas no había con qué relacionar una
+              altura con un día más que bajando la vista hasta las etiquetas. */}
+          {points.slice(1).map(([x], i) => (
+            <line key={`d${i}`} x1={x} y1={PAD_Y - 8} x2={x} y2={H - PAD_Y + 8} className="carrera-columna" vectorEffect="non-scaling-stroke" />
+          ))}
+          {/* Y la grilla de valores. El cero va aparte y más marcado: es la
+              línea que separa la semana ganada de la perdida, no una marca
+              más. */}
           {marcas.map((m) => (
             <line
               key={m.v}
@@ -190,15 +234,26 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
               vectorEffect="non-scaling-stroke"
             />
           ))}
+
+          {/* El relleno va solo abajo de la que está en foco. Con seis rellenos
+              superpuestos no se ve ninguna línea: se convierte en un manchón. */}
+          <path d={enFocoTrazo.area} fill={`url(#${gid})`} stroke="none" />
+
           {/* Los que NO están en foco, primero, para que queden por debajo. */}
           {trazos
             .filter((t) => t.puuid !== foco.puuid)
             .map((t) => (
-              <path key={t.puuid} d={t.line} className="carrera-linea" vectorEffect="non-scaling-stroke" />
+              <g key={t.puuid} onMouseEnter={() => setEnFoco(t.puuid)}>
+                {/* Un trazo ancho e invisible encima para agarrar el mouse: una
+                    línea de 1,5px es imposible de apuntar, y que el gráfico no
+                    reaccione a nada es la mitad de la sensación de tosco. */}
+                <path d={t.line} className="carrera-agarre" />
+                <path d={t.line} className="carrera-linea" vectorEffect="non-scaling-stroke" />
+              </g>
             ))}
-          <path d={enFocoTrazo.line} className="carrera-linea en-foco" vectorEffect="non-scaling-stroke" />
-          {enFocoTrazo.points.map(([x, y], i) => (
-            <circle key={i} cx={x} cy={y} r={3} className="carrera-punto" />
+          <path d={enFocoTrazo.line} className="carrera-linea en-foco" vectorEffect="non-scaling-stroke" filter={`url(#${gid}-glow)`} />
+          {points.map(([x, y], i) => (
+            <circle key={i} cx={x} cy={y} r={i === points.length - 1 ? 4 : 2.8} className="carrera-punto" />
           ))}
         </svg>
 
@@ -206,14 +261,14 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
             <text> de un SVG escala con la caja, y con preserveAspectRatio="none"
             en un celular "mié" cae a 4px. */}
         {marcas.map((m) => (
-          <span key={m.v} className="carrera-eje" style={{ top: `${(m.y / H) * 100}%` }}>
+          <span key={m.v} className={`carrera-eje${m.v === 0 ? " es-cero" : ""}`} style={{ top: `${(m.y / H) * 100}%` }}>
             {pts(m.v)}
           </span>
         ))}
 
-        {/* El nombre al final de cada línea. Es lo que faltaba: sin esto había
-            que ir a tocar un chip para saber de quién era cada una, y un
-            gráfico que no se entiende sin tocarlo no se entiende. */}
+        {/* El nombre al final de cada línea, con su marquita adelante. Sin la
+            marca el nombre es texto suelto al costado; con ella se lee como la
+            continuación de la línea, que es lo que es. */}
         {nombres.map((n) => (
           <span
             key={n.puuid}
@@ -221,6 +276,7 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
             style={{ top: `${(n.y / H) * 100}%`, left: `${(PLOT / W) * 100}%` }}
             onMouseEnter={() => setEnFoco(n.puuid)}
           >
+            <span className="carrera-marca" aria-hidden />
             <span className="carrera-nombre-txt">{n.name}</span>
             <span className="carrera-nombre-pts">{pts(n.puntos)}</span>
           </span>
@@ -232,7 +288,7 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
           punto, "lun" caía sobre el cierre del lunes y se leía corrido. */}
       <div className="carrera-dias" aria-hidden>
         {dias.slice(0, largo - 1).map((d, i) => {
-          const medio = (enFocoTrazo.points[i][0] + enFocoTrazo.points[i + 1][0]) / 2;
+          const medio = (points[i][0] + points[i + 1][0]) / 2;
           return (
             <span key={`${d}-${i}`} style={{ left: `${(medio / W) * 100}%` }}>
               {d}

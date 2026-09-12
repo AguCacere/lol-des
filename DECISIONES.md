@@ -224,6 +224,40 @@ chiste es que el salto se vea seco.
 se convierte en un peine. Ahí el gráfico es el respaldo de un número, no el dato en sí,
 y la curva suave sigue siendo la forma correcta.
 
+**"Se siente tosco" tiene causas concretas, no es una impresión.** La carrera con eje
+y nombres ya se entendía y seguía viéndose mal. Lo que faltaba, en orden de cuánto
+cambió:
+
+1. **Curva en vez de polilínea.** Los quiebres en punta sobre fondo negro leen como un
+   diagrama técnico. Se usa `smoothLinePath`, que es la cuadrática que ya estaba en el
+   repo: pasa por el punto medio de cada par usando el punto real como control, así
+   que cada tramo queda DENTRO del triángulo de sus tres puntos reales y no puede
+   pasarse —a diferencia de una Catmull-Rom o de una bezier suelta, que inventan un
+   pico que no existe. **Ojo con la contradicción aparente**: el gráfico grande de LP
+   va en ESCALERA y no en curva, y no es incoherencia. Ahí cada punto es una foto de
+   un valor que entre foto y foto no se mueve; acá cada punto es el cierre de un día y
+   el camino real entre dos cierres fueron partidas sueltas que igual no se pueden
+   dibujar. Una recta ya inventaba un camino; la curva inventa el mismo camino pero se
+   lee mejor. Y los puntos reales quedan marcados, que es lo que la mantiene honesta.
+2. **Relleno con degradado abajo de la línea en foco.** Solo de esa: seis rellenos
+   superpuestos son un manchón. El degradado cae rápido (0,16 → 0,03 al 45% → 0) por
+   una razón medida, no estética: el área cierra con un corte vertical abajo del
+   último punto y con un degradado parejo ese corte se ve como una pared.
+3. **Columnas por día.** Verticales en cada cierre. Son lo que convierte líneas
+   flotando en una grilla: sin ellas, relacionar una altura con un día obligaba a
+   bajar la vista hasta las etiquetas.
+4. **Encabezado de tres niveles** (rótulo · titular · pie) en vez de un renglón de 11px
+   con todo adentro, que se leía como una nota al pie de algo.
+5. **Zona de agarre para el mouse.** Un trazo transparente de 16px encima de cada línea:
+   una de 1,5px no se puede apuntar, y un gráfico que no reacciona a nada se siente
+   muerto.
+
+**El pasillo de nombres se mide en %, no en px.** Son 152 de un viewBox de 1000, o sea
+15,2% del ancho REAL de la caja. Con un `max-width` fijo el nombre se salía de la
+tarjeta apenas la pantalla bajaba de ~1100px — medido: "marlboro de diez" se escapaba a
+900. Abajo de 1024 se cae el puntaje del pasillo (está en el chip y en la tabla) y abajo
+de 700 se cae el pasillo entero.
+
 **Un gráfico sin eje Y no dice nada, y la primera carrera no tenía.** Salió con siete
 líneas flotando sin una sola marca de cuánto: se veía que había una arriba y un montón
 abajo, que es exactamente lo que ya decía la tabla. El usuario lo dijo así: "no se
