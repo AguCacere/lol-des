@@ -116,9 +116,24 @@ export function empezoElUltimoDia(inicio: Date, ahora: Date = new Date()): boole
   return ahora.getTime() >= ventanaUltimoDia(inicio).desde.getTime();
 }
 
-/** Cuántos días de la semana ya arrancaron, contando el de hoy. Entre 1 y 7. */
-export function diasCorridos(inicio: Date, ahora: Date = new Date()): number {
-  const corridos = Math.floor((ahora.getTime() - inicio.getTime()) / 86400000) + 1;
+/**
+ * Cuántos días de la semana ya arrancaron, contando el de hoy. Entre 1 y 7.
+ *
+ * La cuadrícula de días es de días CALENDARIO argentinos, y por eso lo primero
+ * que hace es normalizar al lunes 00:00 — pasarle cualquier instante de la
+ * semana da lo mismo.
+ *
+ * Esa normalización no es defensiva de más: ya se rompió. La barra de la semana
+ * marcaba "viernes" un sábado porque se le pasaba el arranque de la VENTANA, y
+ * la primera semana de la liga arrancó un lunes a las 23:30 — así que los
+ * "días" eran bloques de 24 horas corridos desde las 23:30, o sea de viernes
+ * 23:30 a sábado 23:30, etiquetados con el día en que EMPIEZAN. Un bloque que
+ * es 97% sábado se llamaba viernes. Medido: con el arranque de la ventana daba
+ * 5 días corridos, con el lunes 00:00 da 6, que es el correcto.
+ */
+export function diasCorridos(cualquierDiaDeLaSemana: Date, ahora: Date = new Date()): number {
+  const lunes = inicioDeSemana(cualquierDiaDeLaSemana);
+  const corridos = Math.floor((ahora.getTime() - lunes.getTime()) / 86400000) + 1;
   return Math.min(7, Math.max(1, corridos));
 }
 
@@ -142,17 +157,21 @@ export function diasCorridos(inicio: Date, ahora: Date = new Date()): number {
  */
 export function puntosPorDia(
   partidas: { win: boolean; playedAt: string }[],
-  inicio: Date,
+  cualquierDiaDeLaSemana: Date,
   ahora: Date = new Date(),
 ): number[] {
-  const dias = diasCorridos(inicio, ahora);
+  // Días CALENDARIO argentinos, no bloques de 24 horas desde el arranque de la
+  // ventana. Ver diasCorridos: con el arranque, la primera semana de la liga
+  // partía los días a las 23:30 y todo quedaba corrido un día.
+  const lunes = inicioDeSemana(cualquierDiaDeLaSemana);
+  const dias = diasCorridos(lunes, ahora);
   const enOrden = [...partidas].sort((a, b) => Date.parse(a.playedAt) - Date.parse(b.playedAt));
   const { acumulado } = puntosDeSecuencia(enOrden.map((p) => p.win));
   const serie = [0];
   let i = 0;
   let ultimo = 0;
   for (let d = 0; d < dias; d++) {
-    const cierra = inicio.getTime() + (d + 1) * 86400000;
+    const cierra = lunes.getTime() + (d + 1) * 86400000;
     while (i < enOrden.length && Date.parse(enOrden[i].playedAt) < cierra) {
       ultimo = acumulado[i];
       i++;
@@ -171,11 +190,16 @@ export function puntosPorDia(
  * ENTERA —con los días que faltan en gris— y el gráfico se queda con los
  * primeros `diasCorridos`, que es lo que tiene datos.
  */
-export function etiquetasDeDias(inicio: Date): string[] {
+export function etiquetasDeDias(cualquierDiaDeLaSemana: Date): string[] {
+  // Normalizado al lunes 00:00 por la misma razón que diasCorridos: con el
+  // arranque de la ventana, la primera semana etiquetaba cada bloque con el día
+  // en que EMPIEZA, y un bloque de viernes 23:30 a sábado 23:30 se llamaba
+  // viernes siendo 97% sábado.
+  const lunes = inicioDeSemana(cualquierDiaDeLaSemana);
   return Array.from({ length: 7 }, (_, d) =>
     // Corriendo el reloj, los campos UTC de esta fecha son la hora argentina —
     // el mismo truco que inicioDeSemana.
-    new Date(inicio.getTime() + d * 86400000 - ARG_OFFSET_MS).toLocaleDateString("es-AR", {
+    new Date(lunes.getTime() + d * 86400000 - ARG_OFFSET_MS).toLocaleDateString("es-AR", {
       weekday: "short",
       timeZone: "UTC",
     })

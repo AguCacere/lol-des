@@ -10,30 +10,72 @@ export function linePath(pts: [number, number][]): string {
 }
 
 /**
- * Quadratic curve through the midpoint of each consecutive pair, using the
- * real point between them as the control — every segment stays inside the
- * triangle formed by its own 3 real points, so unlike Catmull-Rom this can
- * never overshoot past what the data actually supports (same accuracy
- * concern that ruled out Catmull-Rom for linePath above).
+ * Curva suave que PASA POR TODOS LOS PUNTOS y no se pasa de ninguno.
  *
- * Es la forma de TODOS los gráficos de línea de la app: el de LP del perfil,
- * las sparklines del ladder y la carrera de la liga. Antes convivían tres
- * formas distintas —recta acá, curva allá, escalera en el grande— y eso solo
- * se notaba como que cada gráfico parecía de otra aplicación. La recta se
- * queda para menos de tres puntos, donde una cuadrática no tiene por dónde
- * doblar.
+ * Interpolación cúbica monótona (Fritsch–Carlson). Las dos propiedades que la
+ * hacen la única forma aceptable acá:
+ *
+ * 1. **Interpola**: la curva toca cada punto real. La versión anterior era una
+ *    cuadrática por los PUNTOS MEDIOS usando el punto real como control, y eso
+ *    aproxima, no interpola: la línea nunca pasaba por los puntos de adentro.
+ *    Con el gráfico marcando cada cierre de día con un círculo, los círculos
+ *    quedaban flotando arriba o abajo del trazo. Es la definición de un gráfico
+ *    que miente.
+ * 2. **No sobrepasa**: entre dos puntos la curva se queda entre esos dos
+ *    valores. Es lo que descalificó a Catmull-Rom, que inventa un pico que los
+ *    datos no tienen. Acá lo garantiza el recorte de las tangentes: cuando el
+ *    vector (α, β) se sale del círculo de radio 3, se lo achica.
+ *
+ * Cae a la polilínea con menos de tres puntos, donde no hay curva que armar.
  */
 export function smoothLinePath(pts: [number, number][]): string {
-  if (pts.length < 3) return linePath(pts);
-  let d = `M${pts[0][0].toFixed(2)},${pts[0][1].toFixed(2)}`;
-  for (let i = 1; i < pts.length - 1; i++) {
-    const mx = (pts[i][0] + pts[i + 1][0]) / 2;
-    const my = (pts[i][1] + pts[i + 1][1]) / 2;
-    d += ` Q${pts[i][0].toFixed(2)},${pts[i][1].toFixed(2)} ${mx.toFixed(2)},${my.toFixed(2)}`;
+  const n = pts.length;
+  if (n < 3) return linePath(pts);
+
+  // Pendiente de cada tramo.
+  const h: number[] = [];
+  const delta: number[] = [];
+  for (let i = 0; i < n - 1; i++) {
+    const dx = pts[i + 1][0] - pts[i][0];
+    h.push(dx);
+    delta.push(dx === 0 ? 0 : (pts[i + 1][1] - pts[i][1]) / dx);
   }
-  const last = pts[pts.length - 1];
-  const secondLast = pts[pts.length - 2];
-  d += ` Q${secondLast[0].toFixed(2)},${secondLast[1].toFixed(2)} ${last[0].toFixed(2)},${last[1].toFixed(2)}`;
+
+  // Tangente en cada punto: el promedio de los dos tramos que llegan, salvo en
+  // los picos y los valles —donde los tramos cambian de signo— que van en 0.
+  // Sin eso la curva se pasaría justo en los extremos, que es donde más se nota.
+  const m: number[] = new Array(n);
+  m[0] = delta[0];
+  m[n - 1] = delta[n - 2];
+  for (let i = 1; i < n - 1; i++) {
+    m[i] = delta[i - 1] * delta[i] <= 0 ? 0 : (delta[i - 1] + delta[i]) / 2;
+  }
+
+  // El recorte de Fritsch–Carlson: lo que garantiza que no se pase.
+  for (let i = 0; i < n - 1; i++) {
+    if (delta[i] === 0) {
+      m[i] = 0;
+      m[i + 1] = 0;
+      continue;
+    }
+    const a = m[i] / delta[i];
+    const b = m[i + 1] / delta[i];
+    const largo = a * a + b * b;
+    if (largo > 9) {
+      const t = 3 / Math.sqrt(largo);
+      m[i] = t * a * delta[i];
+      m[i + 1] = t * b * delta[i];
+    }
+  }
+
+  let d = `M${pts[0][0].toFixed(2)},${pts[0][1].toFixed(2)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const c1x = pts[i][0] + h[i] / 3;
+    const c1y = pts[i][1] + (m[i] * h[i]) / 3;
+    const c2x = pts[i + 1][0] - h[i] / 3;
+    const c2y = pts[i + 1][1] - (m[i + 1] * h[i]) / 3;
+    d += ` C${c1x.toFixed(2)},${c1y.toFixed(2)} ${c2x.toFixed(2)},${c2y.toFixed(2)} ${pts[i + 1][0].toFixed(2)},${pts[i + 1][1].toFixed(2)}`;
+  }
   return d;
 }
 

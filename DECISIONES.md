@@ -222,6 +222,21 @@ densidad real del dato se vuelve ilegible.** Un gráfico que no se puede leer no
 comunica nada, y eso es peor que la pequeña mentira de la diagonal. La escalera sería
 la forma correcta con cinco o seis fotos; con veinticinco no.
 
+**La curva suave INTERPOLA: pasa por todos los puntos. La que aproximaba se sacó.**
+La primera versión era una cuadrática por los puntos MEDIOS usando el punto real como
+control. Eso aproxima, no interpola: la línea no pasaba por ninguno de los puntos de
+adentro. Con el gráfico marcando cada cierre de día con un círculo, los círculos
+quedaban flotando arriba o abajo del trazo — un gráfico que se contradice a sí mismo.
+Ahora es interpolación cúbica monótona (Fritsch–Carlson), que da las dos propiedades a
+la vez: toca cada punto Y no se pasa entre dos (que es lo que descalificó a Catmull-Rom,
+que inventa picos). Medido sobre el path renderizado: desvío punto-curva 0,001px y
+sobrepaso 0px.
+
+**La selección de la carrera va por CLICK, no por hover.** Con seis líneas, el hover
+hacía que el resaltado saltara de una a otra con solo cruzar el gráfico: el dibujo se
+movía solo mientras uno intentaba leerlo. El hover quedó nada más como afordancia —la
+línea de abajo del mouse se aclara— que avisa que se puede tocar sin cambiar nada.
+
 **Y ahora TODOS los gráficos de línea usan la misma forma: la curva suave.** El de LP
 del perfil, las sparklines del ladder y la carrera de la liga. Antes convivían tres
 —recta, curva y escalera— y lo único que se notaba era que cada gráfico parecía de otra
@@ -501,6 +516,20 @@ alguien.
 perdida. "Borrar datos del sitio" en DevTools se lleva la cookie puesta.
 
 ## Tiempo
+
+**La cuadrícula de días de la liga es de días CALENDARIO argentinos, y hay que
+normalizar al lunes 00:00.** La barra de la semana marcaba "viernes" un sábado. No era
+la base ni el huso: se le pasaba el arranque de la VENTANA, y la primera semana de la
+liga arrancó un lunes a las 23:30, así que los "días" eran bloques de 24 horas corridos
+desde las 23:30 —de viernes 23:30 a sábado 23:30— etiquetados con el día en que
+EMPIEZAN. Un bloque 97% sábado se llamaba viernes. Medido el sábado 12/9 19:14 ARG: con
+el arranque de la ventana daba 5 días corridos, con el lunes 00:00 da 6.
+
+Ahora `diasCorridos`, `etiquetasDeDias` y `puntosPorDia` normalizan con `inicioDeSemana`
+adentro, así que da igual qué instante de la semana se les pase — el error no se puede
+repetir desde afuera. Probado hora por hora sobre las 168 de la semana: las 168 marcan
+el día que es.
+
 
 **Argentina es UTC-3 todo el año** (no hay horario de verano desde 2009). La
 conversión vive en un solo lugar: `lib/liga.ts`. No duplicarla.

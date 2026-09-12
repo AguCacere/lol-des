@@ -148,9 +148,11 @@ export async function GET() {
         // El acumulado día por día, para la carrera de arriba de la tabla. Se
         // calcula acá porque es el único lugar donde están los `played_at`:
         // `secuencia` ya perdió el cuándo y se quedó solo con el resultado.
+        // `inicio` (el lunes 00:00 argentino) y NO `desdeVentana`: la
+        // cuadrícula de días es de días calendario. Ver diasCorridos.
         porDia: puntosPorDia(
           suyas.map((m) => ({ win: m.win, playedAt: m.played_at })),
-          desdeVentana,
+          inicio,
         ),
         // Las últimas cinco, con lo que movió cada una. Es lo que se abre al
         // tocar la fila: la forma de terminar la discusión sobre el LP es
@@ -206,8 +208,8 @@ export async function GET() {
     // el huso es argentino y el cliente está en el reloj del que mira. El
     // gráfico se queda con los corridos; la barra de la semana dibuja los
     // siete, con los que faltan en gris.
-    dias: etiquetasDeDias(desdeVentana),
-    diasCorridos: diasCorridos(desdeVentana),
+    dias: etiquetasDeDias(inicio),
+    diasCorridos: diasCorridos(inicio),
     tabla,
     // Para que la tabla pueda pedirle el arte del campeón a Data Dragon.
     ddragonVersion: version,

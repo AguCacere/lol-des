@@ -23,6 +23,12 @@ import { lineAreaGeometry } from "@/lib/chart";
  *    había una arriba y un montón abajo, o sea lo mismo que ya decía la tabla.
  * 2. No se sabía DE QUIÉN era cada línea sin ir a tocar un chip. Un gráfico que
  *    no se entiende sin tocarlo no se entiende.
+ * La selección va por CLICK y no por hover. Con seis líneas y seis nombres, el
+ * hover hacía que el resaltado saltara de una a otra con solo cruzar el gráfico
+ * con el mouse: el dibujo se movía solo mientras uno intentaba leerlo. El hover
+ * quedó nada más como afordancia —la línea de abajo del mouse se aclara un
+ * poco— que avisa que se puede tocar sin cambiar nada.
+ *
  * 3. Quedaba TOSCO: polilínea pelada sobre fondo negro, sin relleno, sin
  *    jerarquía arriba y sin nada que separara los días. Ahora la curva es
  *    suave, la que está en foco lleva su degradado abajo, la grilla tiene
@@ -176,7 +182,7 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
           )}
         </strong>
         <span className="carrera-pie">
-          Puntos acumulados al cierre de cada día · tocá un nombre para seguirlo
+          Puntos acumulados al cierre de cada día · clic en un nombre para seguirlo
         </span>
       </div>
 
@@ -243,7 +249,7 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
           {trazos
             .filter((t) => t.puuid !== foco.puuid)
             .map((t) => (
-              <g key={t.puuid} onMouseEnter={() => setEnFoco(t.puuid)}>
+              <g key={t.puuid} onClick={() => setEnFoco(t.puuid)}>
                 {/* Un trazo ancho e invisible encima para agarrar el mouse: una
                     línea de 1,5px es imposible de apuntar, y que el gráfico no
                     reaccione a nada es la mitad de la sensación de tosco. */}
@@ -274,7 +280,7 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
             key={n.puuid}
             className={`carrera-nombre${n.puuid === foco.puuid ? " en-foco" : ""}`}
             style={{ top: `${(n.y / H) * 100}%`, left: `${(PLOT / W) * 100}%` }}
-            onMouseEnter={() => setEnFoco(n.puuid)}
+            onClick={() => setEnFoco(n.puuid)}
           >
             <span className="carrera-marca" aria-hidden />
             <span className="carrera-nombre-txt">{n.name}</span>
@@ -306,7 +312,6 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
             type="button"
             className={`carrera-chip${t.puuid === foco.puuid ? " en-foco" : ""}`}
             onClick={() => setEnFoco(t.puuid)}
-            onMouseEnter={() => setEnFoco(t.puuid)}
           >
             <span className="carrera-chip-nombre">{t.name}</span>
             <span className="carrera-chip-pts">{pts(t.puntos)}</span>
