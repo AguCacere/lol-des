@@ -209,16 +209,53 @@ en **Datos**). Moraleja del episodio entero: dos intentos de arreglar el gráfic
 tocando el eje —y uno revertido— cuando la pregunta se contestaba con un `select` de
 cuarenta filas.
 
-**Lo que sigue sin arreglar: el LP no se mueve solo.** Entre dos snapshots no cambia —
-se queda quieto y salta de golpe cuando termina una partida. O sea que CUALQUIER
-diagonal entre dos puntos afirma algo que no pasó, haya agujero o no. El dibujo fiel es
-una escalera (plano hasta la partida, salto vertical), no una polilínea. Pendiente, y
-ahora sí sobre datos limpios.
+**El gráfico grande de LP es una ESCALERA, y eso no se vuelve atrás.** El LP no se
+mueve solo: entre dos fotos se queda quieto y salta de golpe cuando termina una
+partida. Cualquier diagonal entre dos puntos afirma un movimiento gradual que no
+existió — y no es un problema de huecos ni de espaciado, pasa igual entre dos fotos
+pegadas. Por eso el eje por tiempo no lo arreglaba y por eso se revirtió: el problema
+nunca estuvo en la X. El salto se dibuja en la foto NUEVA, que es lo único que se sabe
+(la partida cayó en algún momento del tramo y recién en la segunda foto se la ve);
+ponerlo al principio sería inventar el momento. Verificado sobre el path: 0 diagonales,
+11 tramos horizontales y 9 verticales. Las juntas van en punta y no redondeadas — el
+chiste es que el salto se vea seco.
+
+**Los chiquitos NO van en escalera.** La sparkline de veinte puntos en una caja de 28px
+se convierte en un peine. Ahí el gráfico es el respaldo de un número, no el dato en sí,
+y la curva suave sigue siendo la forma correcta.
+
+**La liga se cuenta con UNA carrera, no con siete curvitas.** La columna "Evolución"
+tenía una miniatura por fila. Cada una contaba la forma de esa semana por su cuenta,
+pero ninguna podía contar la carrera —quién iba ganando el miércoles, cuándo se escapó
+el primero—, que es la única pregunta que tiene una liga. Para eso las líneas tienen que
+compartir la caja. Ahora van las siete en un gráfico arriba de la tabla, una en color y
+el resto en gris: con siete colores a la par no se distingue ninguna, y bajo daltonismo
+menos. Los chips de abajo son la leyenda Y el control — sin ellos, siete líneas grises
+no dicen de quién es la pintada.
+
+**Y el eje de esa carrera va por DÍA, no por partida.** Cada uno juega una cantidad
+distinta, así que la partida 5 de uno y la 5 de otro pasaron en momentos distintos de la
+semana: cruzarlas en el mismo eje no significa nada. El día es el único eje que
+comparten los siete, son siete puntos (una cantidad que se lee) y no tiene el problema
+de los huecos que hundió el intento del eje por tiempo. El acumulado sale de UNA sola
+pasada por la secuencia entera: el bonus de racha depende del orden, así que contar cada
+día por separado daría otro número que el de la tabla y la carrera terminaría en un
+puesto distinto al del marcador.
+
+**Sacar la columna liberó 190px y hubo que rehacer la aritmética de los cortes.** Con
+siete columnas la banda ancha baja de 1036px a 865, y abajo de eso van las siete
+apretadas. Medido con nombres reales: "ElNegroDeWhatsapp #LAS" pide 170px y entre 780 y
+865 no los tenía — se arregló escondiendo el `#TAG` en esa banda (son 34px y es lo que
+menos identifica de la celda) y bajando el rango de 150 a 144. Verificado en 1280, 900,
+840, 831, 829, 800, 781, 770, 640, 430 y 390: cero cortes en todas.
 
 **Varias curvas una al lado de la otra necesitan la MISMA escala, y el piso de
-`minRange` no alcanza.** `lineAreaGeometry` escala cada serie contra su propio techo
-y su propio piso. En el perfil está bien —hay una sola— pero la columna "Evolución"
-de la liga pone siete, y ponerlas juntas promete que se comparan. El piso de 10 tapa
+`minRange` no alcanza.** Vale igual para la carrera, que es donde vive ahora: las siete
+líneas comparten la caja, así que comparten la escala por definición, pero hay que
+calcularla sobre TODAS y no sobre la que está en foco — si no, cambiar de jugador movería
+el eje y las líneas de los demás saltarían de lugar sin que haya pasado nada. La medición
+que lo motivó, cuando esto era una columna: `lineAreaGeometry` escala cada serie contra
+su propio techo y su propio piso. El piso de 10 tapa
 una parte del problema por accidente (si todos los recorridos son menores a 10, todos
 terminan escalados contra 10), pero deja dos agujeros: el **cero queda a distinta
 altura en cada fila** —medido: 26, 26, 26 y 19,9 en una caja de 30— y en cuanto UNA

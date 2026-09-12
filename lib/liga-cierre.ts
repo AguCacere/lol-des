@@ -95,6 +95,10 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
       // La racha de cierre va en null: acá solo se corona y se manda el
       // mensaje, y con qué racha terminó la semana es dato de pantalla.
       racha: null,
+      // Y el acumulado por día va vacío por lo mismo: la carrera se dibuja en
+      // pantalla, el cierre solo necesita el puntaje final. Calcularlo acá
+      // sería trabajo que nadie mira.
+      porDia: [],
       champion: null,
       linea: null,
       secuencia: suyas.map((m) => m.win),

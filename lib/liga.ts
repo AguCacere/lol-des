@@ -116,6 +116,71 @@ export function empezoElUltimoDia(inicio: Date, ahora: Date = new Date()): boole
   return ahora.getTime() >= ventanaUltimoDia(inicio).desde.getTime();
 }
 
+/** Cuántos días de la semana ya arrancaron, contando el de hoy. Entre 1 y 7. */
+export function diasCorridos(inicio: Date, ahora: Date = new Date()): number {
+  const corridos = Math.floor((ahora.getTime() - inicio.getTime()) / 86400000) + 1;
+  return Math.min(7, Math.max(1, corridos));
+}
+
+/**
+ * El puntaje acumulado al cierre de cada día de la semana, para dibujar la
+ * carrera: quién iba ganando el miércoles y cuándo se escapó el que se escapó.
+ *
+ * Por DÍA y no por partida: cada uno juega una cantidad distinta, así que la
+ * partida número 5 de uno y la número 5 de otro pasaron en momentos distintos
+ * de la semana y cruzarlas en el mismo eje no significaría nada. El día, en
+ * cambio, es el mismo para todos y son siete, que es una cantidad que se lee.
+ *
+ * El acumulado sale de UNA sola pasada por la secuencia entera: el bonus de
+ * racha depende del orden, así que contar cada día por separado daría otro
+ * número que el de la tabla y la carrera terminaría en un puesto distinto al
+ * del marcador.
+ *
+ * Arranca siempre en 0 —el lunes todos empiezan igual— así que devuelve un
+ * valor más que días corridos. Los días sin jugar repiten el anterior, que es
+ * lo que de verdad pasó: no sumó ni perdió nada.
+ */
+export function puntosPorDia(
+  partidas: { win: boolean; playedAt: string }[],
+  inicio: Date,
+  ahora: Date = new Date(),
+): number[] {
+  const dias = diasCorridos(inicio, ahora);
+  const enOrden = [...partidas].sort((a, b) => Date.parse(a.playedAt) - Date.parse(b.playedAt));
+  const { acumulado } = puntosDeSecuencia(enOrden.map((p) => p.win));
+  const serie = [0];
+  let i = 0;
+  let ultimo = 0;
+  for (let d = 0; d < dias; d++) {
+    const cierra = inicio.getTime() + (d + 1) * 86400000;
+    while (i < enOrden.length && Date.parse(enOrden[i].playedAt) < cierra) {
+      ultimo = acumulado[i];
+      i++;
+    }
+    serie.push(ultimo);
+  }
+  return serie;
+}
+
+/**
+ * Los nombres de los días ya corridos, en hora argentina: "lun", "mar"…
+ *
+ * Se arman acá y no en pantalla porque el huso vive de este lado: el cliente
+ * está en el reloj del que mira, y alguien viajando vería la carrera corrida
+ * un día. Cada etiqueta es el día que CIERRA en ese punto, así que la primera
+ * es la del arranque de la semana.
+ */
+export function etiquetasDeDias(inicio: Date, ahora: Date = new Date()): string[] {
+  return Array.from({ length: diasCorridos(inicio, ahora) }, (_, d) =>
+    // Corriendo el reloj, los campos UTC de esta fecha son la hora argentina —
+    // el mismo truco que inicioDeSemana.
+    new Date(inicio.getTime() + d * 86400000 - ARG_OFFSET_MS).toLocaleDateString("es-AR", {
+      weekday: "short",
+      timeZone: "UTC",
+    })
+  );
+}
+
 /**
  * El que se lleva el premio: el primero que además cumplió el mínimo del
  * domingo. Puede no haber ninguno, y esa es una respuesta válida — la semana
@@ -205,16 +270,17 @@ export interface FilaLiga {
   /** Dónde está parado ahora — el rango de su última foto. Null si no tiene ninguna. */
   rango: { tier: TierKey; division: number; lp: number } | null;
   /**
-   * Cómo fue variando el NETO dentro de la semana, para dibujar la curva.
-   * Arranca siempre en 0 —el punto de partida de cada uno— y de ahí sube o
-   * baja. Antes eran los puntos absolutos (2400 y pico), y con eso la curva no
-   * podía "ir en negativo": se veía subir o bajar, pero no contra qué.
+   * El acumulado al cierre de cada día de la semana: lo que dibuja la carrera
+   * que va arriba de la tabla. Arranca siempre en 0 —el lunes todos empiezan
+   * igual— y de ahí sube o baja.
    *
-   * Nunca viene con menos de dos valores: con uno solo no hay línea que
-   * dibujar y la fila quedaba con un gráfico vacío al lado de un 0, que es
-   * justo cuando más falta hace ver la línea plana.
+   * Antes de esto había una `serie` por PARTIDA, una curvita por fila. Contaba
+   * la forma de cada semana por separado pero nunca la carrera, que es la
+   * pregunta de una liga: quién iba ganando el miércoles. Por partida no se
+   * puede, porque la partida 5 de uno y la 5 de otro pasaron en momentos
+   * distintos. Ver puntosPorDia.
    */
-  serie: number[];
+  porDia: number[];
   /** Si entró después de que la semana arrancó, cuándo. Null si compitió desde el principio. */
   entroTarde: string | null;
   /** Con qué racha viene dentro de la semana. Null si no jugó. */
@@ -355,6 +421,8 @@ export interface RecordSemanal {
   ultimas: PartidaLiga[];
   /** Cuántas jugó dentro de las últimas 24 horas de la semana. */
   ultimoDia: number;
+  /** El acumulado al cierre de cada día, para la carrera. Ver puntosPorDia. */
+  porDia: number[];
 }
 
 /**
@@ -558,8 +626,8 @@ export function tablaDeLaSemana(
     const base = previas.length > 0 ? previas[previas.length - 1] : dentro[0];
     const ultima = dentro.length > 0 ? dentro[dentro.length - 1] : base;
 
-    const { victorias, derrotas, racha, champion, linea, secuencia, ultimas, ultimoDia } =
-      recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0, racha: null, champion: null, linea: null, secuencia: [], ultimas: [], ultimoDia: 0 };
+    const { victorias, derrotas, racha, champion, linea, secuencia, ultimas, ultimoDia, porDia } =
+      recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0, racha: null, champion: null, linea: null, secuencia: [], ultimas: [], ultimoDia: 0, porDia: [0] };
     // Las dos condiciones, juntas: aparecer el último día y haber jugado la
     // semana. Cualquiera de las dos sola se esquiva.
     const habilitado = ultimoDia >= MINIMO_ULTIMO_DIA && victorias + derrotas >= MINIMO_SEMANAL;
@@ -574,22 +642,6 @@ export function tablaDeLaSemana(
     // número contara la racha y el gráfico no, la fila se contradiría sola.
     const cuenta = puntosDeSecuencia(secuencia);
     const puntos = MODO_LIGA === "puntos" ? cuenta.total : victorias - derrotas;
-    let serieNeta: number[];
-    if (MODO_LIGA === "puntos") {
-      serieNeta = cuenta.acumulado.length > 0 ? [0, ...cuenta.acumulado] : [0, 0];
-    } else if (MODO_LIGA === "netas") {
-      // Un escalón por partida: +1 ganando, −1 perdiendo. Es literalmente el
-      // puntaje contándose.
-      let acum = 0;
-      const pasos = secuencia.map((gano) => (acum += gano ? 1 : -1));
-      serieNeta = pasos.length > 0 ? [0, ...pasos] : [0, 0];
-    } else {
-      const acumulada: number[] = [0];
-      for (let i = 1; i < tramos.length; i++) {
-        acumulada.push(netoConTope(tramos.slice(0, i + 1)).neto);
-      }
-      serieNeta = acumulada.length > 1 ? acumulada : [0, 0];
-    }
     const entroTarde = suDesde > desde ? new Date(suDesde).toISOString() : null;
     const rango = ultima
       ? { tier: tierKeyFromRiot(ultima.tier), division: divisionFromRiot(ultima.division), lp: ultima.lp }
@@ -599,7 +651,7 @@ export function tablaDeLaSemana(
       // Sin una sola foto no hay nada que medir, pero igual va la línea
       // plana en 0: un gráfico vacío parece roto, y "no se movió" es
       // información.
-      filas.push({ ...p, puntos, netas: victorias - derrotas, lpNeto: 0, lpRecortado: 0, victorias, derrotas, racha, champion, linea, ultimas, ultimoDia, habilitado, sinJugar: victorias + derrotas === 0, rango, serie: serieNeta, entroTarde });
+      filas.push({ ...p, puntos, netas: victorias - derrotas, lpNeto: 0, lpRecortado: 0, victorias, derrotas, racha, champion, linea, ultimas, ultimoDia, habilitado, sinJugar: victorias + derrotas === 0, rango, porDia, entroTarde });
       continue;
     }
 
@@ -620,10 +672,7 @@ export function tablaDeLaSemana(
       habilitado,
       sinJugar: victorias + derrotas === 0,
       rango,
-      // Relativa al punto de partida y no en puntos absolutos: lo que la
-      // liga mide es el neto, así que la curva arranca en 0 y de ahí sube o
-      // baja. Con dos fotos iguales queda plana en 0, que es lo correcto.
-      serie: serieNeta,
+      porDia,
       entroTarde,
     });
   }

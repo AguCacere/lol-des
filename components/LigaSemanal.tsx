@@ -2,15 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { PlayerAvatar } from "./PlayerAvatar";
+import { LigaCarrera } from "./LigaCarrera";
 import { InfoTip } from "./InfoTip";
 import { fetchConClave } from "./Cerradura";
 import { TierEmblem } from "./TierEmblem";
-import { SparkChart } from "./SparkChart";
 import { StreakIcon } from "./StreakIcon";
 import { ChampIcon } from "./ChampIcon";
 import { RoleIcon } from "./RoleIcon";
 import { championLabel } from "@/lib/champion-names";
-import { ROLES, tierFor, trendColor } from "@/lib/ladder";
+import { ROLES, tierFor } from "@/lib/ladder";
 import { puntajeTexto } from "@/lib/liga";
 import type { RoleKey, TierKey } from "@/lib/types";
 
@@ -33,7 +33,8 @@ interface Fila {
   ultimoDia?: number;
   habilitado?: boolean;
   rango: { tier: TierKey; division: number; lp: number } | null;
-  serie: number[];
+  /** El acumulado al cierre de cada día, para la carrera. Opcional por la ventana de caché del CDN. */
+  porDia?: number[];
   entroTarde: string | null;
   /** Con qué racha viene DENTRO de la semana. Opcional: una respuesta anterior al deploy no lo trae. */
   racha?: { resultado: "W" | "L"; cantidad: number } | null;
@@ -85,6 +86,8 @@ interface Datos {
   minimoSemanal?: number;
   minimoUltimoDia?: number;
   ultimoDia?: boolean;
+  /** Los días ya corridos de la semana ("lun", "mar"…), para el eje de la carrera. Opcional por la misma razón. */
+  dias?: string[];
   /** La tabla de puntos, para escribir la regla con los mismos números que la calculan. */
   puntaje?: { victoria: number; derrota: number; rachaDesde: number; enRacha: number };
 }
@@ -209,36 +212,6 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
   const maxPartidas = Math.max(1, ...d.tabla.map((f) => f.victorias + f.derrotas));
 
   /**
-   * Las siete curvas de "Evolución" contra la MISMA escala.
-   *
-   * Antes cada una se escalaba contra su propio techo y su propio piso (es lo
-   * que hace lineAreaGeometry si no le pasan nada), así que la semana de +8 y
-   * la de +1 dibujaban la misma pendiente. Una columna que pone siete curvas
-   * una debajo de la otra promete que se comparan, y esa no comparaba nada:
-   * el que se escapó se veía igual que el que apenas se movió.
-   *
-   * El cero entra siempre porque es contra lo que se lee cada curva y además
-   * hay una línea dibujada ahí (lineaCero).
-   */
-  const escalaCurvas = (() => {
-    const todos = d.tabla.flatMap((f) => f.serie ?? []);
-    let min = Math.min(0, ...todos);
-    let max = Math.max(0, ...todos);
-    // Piso de recorrido. Una semana en la que el grupo entero se movió tres
-    // décimas no se puede dibujar a fondo de escala: serían montañas sobre
-    // nada. Cuatro puntos son cuatro victorias netas, que en esta liga ya es
-    // una semana con diferencias reales — abajo de eso no vale la pena
-    // agrandarlo. Se reparte para los dos lados así el cero no queda contra
-    // el borde.
-    const falta = 4 - (max - min);
-    if (falta > 0) {
-      min -= falta / 2;
-      max += falta / 2;
-    }
-    return { min, max };
-  })();
-
-  /**
    * El estado de cobro de una fila: "cobra" si cumple los dos mínimos, o lo que
    * le falta. Devuelve null cuando la API todavía no manda los mínimos, así una
    * pestaña vieja no muestra un requisito inventado.
@@ -355,6 +328,27 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
         </div>
       ) : (
         <div className="liga-tabla">
+          {/* La carrera, arriba de todo. Va antes de la tabla porque cuenta la
+              semana y la tabla cuenta el marcador de hoy: primero cómo se dio,
+              después quién va ganando.
+
+              Reemplaza a la columna de curvitas que estaba acá abajo, una por
+              fila. Siete miniaturas separadas dicen la forma de cada semana
+              por su cuenta pero nunca la carrera, y encima se comían 190px de
+              una tabla que ya venía apretada. */}
+          {d.dias && d.dias.length >= 2 && (
+            <LigaCarrera
+              dias={d.dias}
+              corredores={d.tabla
+                .filter((f) => !f.sinJugar && f.porDia && f.porDia.length >= 2)
+                .map((f) => ({
+                  puuid: f.puuid,
+                  name: f.name,
+                  porDia: f.porDia ?? [0],
+                  puntos: f.puntos ?? f.netas ?? f.victorias - f.derrotas,
+                }))}
+            />
+          )}
           {/* Encabezados de columna, como en las otras tablas de la app. Sin
               ellos había seis columnas de datos sin una sola palabra que
               dijera qué era cada una: el arte de campeón, el emblema de rango,
@@ -372,7 +366,6 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                 la celda del puesto en blanco. */}
             <span className="col-champ" />
             <span className="col-rango">Rango</span>
-            <span className="col-curva">Evolución</span>
             <span className="col-record">Récord</span>
             <span className="col-puntos">Puntos</span>
           </div>
@@ -387,10 +380,6 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
             const puesto = i + 1;
               const t = f.rango ? tierFor(f.rango.tier) : null;
               const total = f.victorias + f.derrotas;
-              // Con guarda: si alguna vez llega una respuesta sin `serie`
-              // —una pestaña vieja contra una API nueva, o al revés— la fila
-              // se dibuja sin curva en vez de tirar y llevarse la tabla.
-              const serie = f.serie ?? [];
               // Con guarda: durante la ventana de caché del CDN llega el JSON
               // anterior al deploy. Se cae a las netas y, si tampoco están, a
               // la resta a mano.
@@ -484,24 +473,6 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                     ) : (
                       <span className="liga-sinjugar">sin rango</span>
                     )}
-                  </span>
-
-                  {/* Cómo la fue haciendo en la semana. No es la curva de LP
-                      de siempre: acá solo entran las fotos de ESTA semana, así
-                      que se ve si el neto lo hizo de una o remontando.
-                      Va ANTES del récord y no al lado del puntaje: es el
-                      "cómo viene", no el marcador, y pegada a las netas
-                      competía con ellas por ser el dato de la derecha. */}
-                  <span className="liga-curva">
-                    <SparkChart
-                      values={serie}
-                      width={190}
-                      height={30}
-                      pad={4}
-                      color={trendColor(serie)}
-                      lineaCero
-                      escala={escalaCurvas}
-                    />
                   </span>
 
                   {/* El récord, pegado a las netas: es de dónde SALEN. La barra

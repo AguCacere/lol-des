@@ -89,7 +89,13 @@ export function SparkChart({
   // que vale la pena marcar en un gráfico de veinte.
   const indiceMax = values.indexOf(Math.max(...values));
   const indiceMin = values.indexOf(Math.min(...values));
-  const { line, area, last, points, yOf } = lineAreaGeometry(values, width, height, padX, 10, pad, !detailed, escala);
+  // El detallado va en escalera: entre dos fotos el LP no se mueve, así que la
+  // diagonal afirmaba un movimiento gradual que nunca pasó (ver stepPath). Los
+  // chicos siguen en curva suave — veinte escalones en una caja de 28px se
+  // leen como un peine, y ahí el gráfico es el respaldo de un número, no el
+  // dato en sí.
+  const forma = detailed ? "escalera" : "curva";
+  const { line, area, last, points, yOf } = lineAreaGeometry(values, width, height, padX, 10, pad, forma, escala);
   const gid = "spark-" + useId().replace(/[:]/g, "");
   /**
    * Las guías que realmente entran en la caja, ya pasadas a porcentaje: la
@@ -142,7 +148,10 @@ export function SparkChart({
   // Antes el detallado usaba juntas en punta. Con veinte snapshots en pocos
   // días, cada pico es un ángulo agudo y la línea entera se lee como una
   // sierra. Redondear las juntas no cambia un solo valor y saca el ruido.
-  const lineJoin = "round";
+  // La escalera va con junta en punta: sus vértices son ángulos rectos y el
+  // chiste es justamente que el salto se vea seco. Redondearlos le devolvía un
+  // poco de la suavidad que la escalera vino a sacar.
+  const lineJoin = detailed ? "miter" : "round";
   // Area fill: mini's is deliberately the faintest of the three. At compact's
   // 0.45 the wash under a wide card-width curve turned into a solid green
   // block that outweighed the "+260 pts" it's supposed to support.

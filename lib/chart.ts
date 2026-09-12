@@ -36,6 +36,30 @@ export function smoothLinePath(pts: [number, number][]): string {
   return d;
 }
 
+/**
+ * Escalera: plano hasta la foto siguiente y ahí el salto vertical.
+ *
+ * Es la forma FIEL para el LP, y la polilínea nunca lo fue. Entre dos fotos el
+ * LP no se mueve: se queda quieto y salta de golpe cuando termina una partida.
+ * O sea que cualquier diagonal entre dos puntos afirma un movimiento gradual
+ * que no existió — no es un problema de huecos ni de espaciado, pasa incluso
+ * entre dos fotos pegadas.
+ *
+ * El salto se dibuja en la foto NUEVA y no en la vieja porque es lo único que
+ * se sabe: la partida cayó en algún momento del tramo y recién en la segunda
+ * foto se la ve. Poner el salto al principio del tramo sería inventar el
+ * momento exacto.
+ */
+export function stepPath(pts: [number, number][]): string {
+  if (pts.length === 0) return "";
+  let d = `M${pts[0][0].toFixed(2)},${pts[0][1].toFixed(2)}`;
+  for (let i = 1; i < pts.length; i++) {
+    const x = pts[i][0].toFixed(2);
+    d += ` L${x},${pts[i - 1][1].toFixed(2)} L${x},${pts[i][1].toFixed(2)}`;
+  }
+  return d;
+}
+
 export interface LineAreaGeometry {
   line: string;
   area: string;
@@ -67,7 +91,7 @@ export function lineAreaGeometry(
   padX = 6,
   minRange = 10,
   padY = padX,
-  smooth = false,
+  forma: "recta" | "curva" | "escalera" = "recta",
   escala?: { min: number; max: number },
 ): LineAreaGeometry {
   // Con menos de dos valores no hay línea: stepX dividiría por cero y
@@ -91,7 +115,7 @@ export function lineAreaGeometry(
     const y = padY + (1 - (v - min) / range) * (h - padY * 2);
     return [x, y];
   });
-  const line = smooth ? smoothLinePath(pts) : linePath(pts);
+  const line = forma === "curva" ? smoothLinePath(pts) : forma === "escalera" ? stepPath(pts) : linePath(pts);
   const area = `${line} L${pts[pts.length - 1][0].toFixed(1)},${h - padY} L${pts[0][0].toFixed(1)},${h - padY} Z`;
   const yOf = (valor: number) => padY + (1 - (valor - min) / range) * (h - padY * 2);
   return { line, area, last: pts[pts.length - 1], points: pts, yOf };

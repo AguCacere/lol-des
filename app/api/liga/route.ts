@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { exigirSesion } from "@/lib/auth";
 import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
-import { claveDeSemana, esSemanaDeLiga, inicioDeSemana, LIGA_INICIO, tablaDeLaSemana, ventanaDeSemana, ventanaUltimoDia, empezoElUltimoDia, puntosDeSecuencia, MINIMO_SEMANAL, MINIMO_ULTIMO_DIA, PUNTOS_VICTORIA, PUNTOS_DERROTA, PUNTOS_EN_RACHA, RACHA_DESDE, lpPorPartida, type Participante, type RecordSemanal, type Snapshot } from "@/lib/liga";
+import { claveDeSemana, esSemanaDeLiga, inicioDeSemana, LIGA_INICIO, tablaDeLaSemana, ventanaDeSemana, ventanaUltimoDia, empezoElUltimoDia, puntosDeSecuencia, puntosPorDia, etiquetasDeDias, MINIMO_SEMANAL, MINIMO_ULTIMO_DIA, PUNTOS_VICTORIA, PUNTOS_DERROTA, PUNTOS_EN_RACHA, RACHA_DESDE, lpPorPartida, type Participante, type RecordSemanal, type Snapshot } from "@/lib/liga";
 import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { roleFromTeamPosition } from "@/lib/mapping";
 
@@ -145,6 +145,13 @@ export async function GET() {
         // `suyas` quedó ordenada de la más NUEVA a la más vieja por la racha;
         // la curva la necesita al revés, como pasó de verdad.
         secuencia: enOrden,
+        // El acumulado día por día, para la carrera de arriba de la tabla. Se
+        // calcula acá porque es el único lugar donde están los `played_at`:
+        // `secuencia` ya perdió el cuándo y se quedó solo con el resultado.
+        porDia: puntosPorDia(
+          suyas.map((m) => ({ win: m.win, playedAt: m.played_at })),
+          desdeVentana,
+        ),
         // Las últimas cinco, con lo que movió cada una. Es lo que se abre al
         // tocar la fila: la forma de terminar la discusión sobre el LP es
         // mostrar partida por partida cuánto dio.
@@ -195,6 +202,9 @@ export async function GET() {
     // tiene que salir de las mismas constantes que la calculan.
     puntaje: { victoria: PUNTOS_VICTORIA, derrota: PUNTOS_DERROTA, rachaDesde: RACHA_DESDE, enRacha: PUNTOS_EN_RACHA },
     ultimoDia: empezoElUltimoDia(inicio),
+    // Los días ya corridos, para el eje de la carrera. Van del server porque
+    // el huso es argentino y el cliente está en el reloj del que mira.
+    dias: etiquetasDeDias(desdeVentana),
     tabla,
     // Para que la tabla pueda pedirle el arte del campeón a Data Dragon.
     ddragonVersion: version,

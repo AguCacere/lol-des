@@ -89,7 +89,8 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
 - `clash.ts` — agrupa las partidas de Clash (queue 700) en torneos.
 - `timeline.ts` — extrae de los frames de Match-V5 los números de `MatchDetail`.
 - `match-story.ts` — "dónde se dio vuelta la partida", en castellano.
-- `liga.ts` — la liga semanal: ventanas de tiempo, tabla, tabla de puntos
+- `liga.ts` — la liga semanal: ventanas de tiempo, tabla, tabla de puntos y el
+  acumulado por día que dibuja la carrera (`puntosPorDia`, `etiquetasDeDias`)
   (`puntosDeSecuencia`, `PUNTOS_*`, `RACHA_DESDE`), mínimos para cobrar
   (`MINIMO_SEMANAL`, `MINIMO_ULTIMO_DIA`, `ganadorDe`) y mensajes.
 - `liga-cierre.ts` — el cierre idempotente de la semana.
@@ -97,7 +98,8 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
 - `coach.ts` — el prompt del análisis del pool.
 
 **Presentación**
-- `chart.ts` — la geometría de las líneas y áreas de los gráficos.
+- `chart.ts` — la geometría de las líneas y áreas de los gráficos: recta, curva
+  suave o escalera, con escala propia o compartida entre varias series.
 - `metric-info.ts` — los textos de los `InfoTip`.
 - `useImageFallback.ts` — el hook de "si la imagen falla, mostrá un chip".
 - `view-transition.ts` — cambios de vista con View Transition API.
@@ -189,8 +191,9 @@ descarta.
 `versus` · `clash` · `team`), `LiveTray` y `CommandPalette` viven fuera de las
 pestañas.
 
-- **Ranking** → `LadderTable` (que adentro tiene `LigaSemanal`, `TierEmblem`,
-  `SparkChart`, `RoleIcon`, `PlayerAvatar`) + `PlayerProfile`.
+- **Ranking** → `LadderTable` (que adentro tiene `LigaSemanal` —y esa a
+  `LigaCarrera`, el gráfico de la semana—, `TierEmblem`, `SparkChart`,
+  `RoleIcon`, `PlayerAvatar`) + `PlayerProfile`.
   `PlayerProfile` es el más grande: `RadarChart`, `InsightsCard`, `RecentForm`,
   `TiltCard`, `ChampionPool`, `MasteryPool`, `ChampionInsights`, `Matchups`,
   `LineHistory`, `BuildStarts`, `PersonalRecords`, `AegisStats`, `CoachPanel`,
