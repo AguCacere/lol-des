@@ -32,6 +32,21 @@ interface SparkChartProps {
    * etiqueta, así que no tiene el problema del <text> que escala con la caja.
    */
   lineaCero?: boolean;
+  /**
+   * Techo y piso fijos en vez de los de esta serie. Se usa cuando hay varias
+   * curvas juntas que se comparan entre sí —la columna "Evolución" de la
+   * liga— porque escalada cada una contra lo suyo, la semana de +8 y la de +1
+   * dibujan la misma pendiente. Ver lineAreaGeometry.
+   */
+  escala?: { min: number; max: number };
+  /**
+   * Texto corto para el techo y el piso de la ventana, en HTML encima del SVG
+   * (el <text> de un SVG escala con la caja y en un celular cae a 4px). Hasta
+   * ahora esos dos números solo estaban en el tooltip, y en el celular no hay
+   * hover: el gráfico se podía mirar entero sin poder leer un solo valor.
+   * Se pasa uno por punto y el componente elige los dos que marca.
+   */
+  valorDePunto?: (index: number) => string;
 }
 
 /** Smoothed line + gradient area + endpoint dot — used for the "últimos 20" column and the LP chart. */
@@ -45,6 +60,8 @@ export function SparkChart({
   pointLabels,
   guides,
   lineaCero,
+  escala,
+  valorDePunto,
 }: SparkChartProps) {
   // Con menos de dos puntos no hay línea que dibujar, y lineAreaGeometry
   // dividiría por (values.length - 1) = 0 y leería points[0] de un arreglo
@@ -72,7 +89,7 @@ export function SparkChart({
   // que vale la pena marcar en un gráfico de veinte.
   const indiceMax = values.indexOf(Math.max(...values));
   const indiceMin = values.indexOf(Math.min(...values));
-  const { line, area, last, points, yOf } = lineAreaGeometry(values, width, height, padX, 10, pad, !detailed);
+  const { line, area, last, points, yOf } = lineAreaGeometry(values, width, height, padX, 10, pad, !detailed, escala);
   const gid = "spark-" + useId().replace(/[:]/g, "");
   /**
    * Las guías que realmente entran en la caja, ya pasadas a porcentaje: la
@@ -87,6 +104,33 @@ export function SparkChart({
         .map((g) => ({ ...g, y: yOf(g.value) }))
         .filter((g) => g.y >= pad + 6 && g.y <= height - pad - 6)
         .map((g) => ({ label: g.label, pct: (g.y / height) * 100, leftPct: (padX / width) * 100 }));
+  /**
+   * El techo y el piso de la ventana, escritos sobre el punto. Se saltean si
+   * caen en las puntas: el primero ya tiene su elo debajo del gráfico y el
+   * último está en el encabezado, así que ahí la etiqueta sería el mismo
+   * número dos veces.
+   *
+   * El left se recorta a los costados (igual que el tooltip): un pico en el
+   * segundo punto tiene el centro a menos de media etiqueta del borde y se
+   * salía de la tarjeta. Queda apenas corrido del punto, que es mucho menos
+   * molesto que cortado.
+   */
+  const extremos: { key: string; arriba: boolean; texto: string; leftPct: number; topPct: number }[] = [];
+  if (detailed && valorDePunto) {
+    for (const { i, arriba } of [
+      { i: indiceMax, arriba: true },
+      { i: indiceMin, arriba: false },
+    ]) {
+      if (i <= 0 || i >= values.length - 1) continue;
+      extremos.push({
+        key: arriba ? "techo" : "piso",
+        arriba,
+        texto: valorDePunto(i),
+        leftPct: Math.min(Math.max((points[i][0] / width) * 100, 9), 91),
+        topPct: (points[i][1] / height) * 100,
+      });
+    }
+  }
   // Compact's endpoint marker used to feel like a separate button stuck onto
   // the line (big halo ring) — shrunk so it reads as "last value, subtly
   // marked" instead of a UI element competing with the row's own chevron.
@@ -161,7 +205,7 @@ export function SparkChart({
   if (values.length < 2) return null;
 
   return (
-    <div style={canHover || guiasVisibles.length > 0 ? { position: "relative" } : undefined}>
+    <div style={canHover || guiasVisibles.length > 0 || extremos.length > 0 ? { position: "relative" } : undefined}>
       <svg
         ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
@@ -324,6 +368,18 @@ export function SparkChart({
       {guiasVisibles.map((g) => (
         <span key={g.label} className="spark-guide-label" style={{ top: `${g.pct}%`, left: `${g.leftPct}%` }}>
           {g.label}
+        </span>
+      ))}
+      {/* Se esconden mientras el hover está activo: el tooltip tapa la zona y
+          dos números sobre el mismo punto se pisan. En el celular, que es el
+          caso para el que existen, no hay hover y están siempre. */}
+      {extremos.map((e) => (
+        <span
+          key={e.key}
+          className={`spark-extremo${e.arriba ? "" : " abajo"}${hover !== null ? " tapado" : ""}`}
+          style={{ top: `${e.topPct}%`, left: `${e.leftPct}%` }}
+        >
+          {e.texto}
         </span>
       ))}
       {canHover && hover !== null && pointLabels && (

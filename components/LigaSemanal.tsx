@@ -209,6 +209,36 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
   const maxPartidas = Math.max(1, ...d.tabla.map((f) => f.victorias + f.derrotas));
 
   /**
+   * Las siete curvas de "Evolución" contra la MISMA escala.
+   *
+   * Antes cada una se escalaba contra su propio techo y su propio piso (es lo
+   * que hace lineAreaGeometry si no le pasan nada), así que la semana de +8 y
+   * la de +1 dibujaban la misma pendiente. Una columna que pone siete curvas
+   * una debajo de la otra promete que se comparan, y esa no comparaba nada:
+   * el que se escapó se veía igual que el que apenas se movió.
+   *
+   * El cero entra siempre porque es contra lo que se lee cada curva y además
+   * hay una línea dibujada ahí (lineaCero).
+   */
+  const escalaCurvas = (() => {
+    const todos = d.tabla.flatMap((f) => f.serie ?? []);
+    let min = Math.min(0, ...todos);
+    let max = Math.max(0, ...todos);
+    // Piso de recorrido. Una semana en la que el grupo entero se movió tres
+    // décimas no se puede dibujar a fondo de escala: serían montañas sobre
+    // nada. Cuatro puntos son cuatro victorias netas, que en esta liga ya es
+    // una semana con diferencias reales — abajo de eso no vale la pena
+    // agrandarlo. Se reparte para los dos lados así el cero no queda contra
+    // el borde.
+    const falta = 4 - (max - min);
+    if (falta > 0) {
+      min -= falta / 2;
+      max += falta / 2;
+    }
+    return { min, max };
+  })();
+
+  /**
    * El estado de cobro de una fila: "cobra" si cumple los dos mínimos, o lo que
    * le falta. Devuelve null cuando la API todavía no manda los mínimos, así una
    * pestaña vieja no muestra un requisito inventado.
@@ -463,7 +493,15 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                       "cómo viene", no el marcador, y pegada a las netas
                       competía con ellas por ser el dato de la derecha. */}
                   <span className="liga-curva">
-                    <SparkChart values={serie} width={190} height={30} pad={4} color={trendColor(serie)} lineaCero />
+                    <SparkChart
+                      values={serie}
+                      width={190}
+                      height={30}
+                      pad={4}
+                      color={trendColor(serie)}
+                      lineaCero
+                      escala={escalaCurvas}
+                    />
                   </span>
 
                   {/* El récord, pegado a las netas: es de dónde SALEN. La barra

@@ -474,6 +474,10 @@ export function PlayerProfile({
                     variant="detailed"
                     pointLabels={lpPointLabels}
                     guides={lpGuides}
+                    // El techo y el piso escritos sobre el punto. Mismo
+                    // formato que las puntas del pie del gráfico, así los
+                    // cuatro números de la tarjeta se leen igual entre sí.
+                    valorDePunto={(i) => lpEndpointLabel(p.lpHistory[i])}
                   />
                 </div>
                 {/* Cada extremo con su fecha y su elo en la misma columna, y

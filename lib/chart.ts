@@ -52,6 +52,13 @@ export interface LineAreaGeometry {
  * stretched to fill the whole chart height and look like a huge swing. Kept
  * low on purpose: with few real snapshots collected so far, actual LP ranges
  * are often modest (10-20) — a higher floor flattens those real trends too.
+ *
+ * `escala` fuerza el techo y el piso en vez de sacarlos de la serie. Es para
+ * cuando hay VARIAS curvas juntas que se van a comparar entre sí: cada una
+ * escalada contra su propio mínimo y máximo dibuja la misma pendiente para
+ * recorridos completamente distintos, que es justo lo contrario de lo que
+ * promete ponerlas una al lado de la otra. Con `escala` el piso `minRange` no
+ * se aplica: el que la pasa ya decidió el recorrido mirando TODAS las series.
  */
 export function lineAreaGeometry(
   values: number[],
@@ -61,6 +68,7 @@ export function lineAreaGeometry(
   minRange = 10,
   padY = padX,
   smooth = false,
+  escala?: { min: number; max: number },
 ): LineAreaGeometry {
   // Con menos de dos valores no hay línea: stepX dividiría por cero y
   // pts[pts.length - 1] leería de un arreglo vacío. Se devuelve una geometría
@@ -72,13 +80,12 @@ export function lineAreaGeometry(
     return { line: "", area: "", last: punto, points: values.length === 1 ? [punto] : [], yOf: () => y };
   }
 
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = Math.max(max - min, minRange);
+  const min = escala ? escala.min : Math.min(...values);
+  const max = escala ? escala.max : Math.max(...values);
+  // Sin `escala` manda el piso; con `escala` manda lo que pidieron, y el
+  // Math.max es solo para no dividir por cero si llega un techo igual al piso.
+  const range = escala ? Math.max(max - min, 0.0001) : Math.max(max - min, minRange);
   const stepX = (w - padX * 2) / (values.length - 1);
-  // La X por tiempo solo si vienen tantos instantes como valores y el tramo
-  // dura algo. Si todos cayeron en el mismo instante —o si falta alguno— se
-  // vuelve al índice en vez de dividir por cero y apilar todo en un punto.
   const pts: [number, number][] = values.map((v, i) => {
     const x = padX + i * stepX;
     const y = padY + (1 - (v - min) / range) * (h - padY * 2);

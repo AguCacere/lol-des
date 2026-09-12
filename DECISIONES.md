@@ -215,6 +215,31 @@ diagonal entre dos puntos afirma algo que no pasó, haya agujero o no. El dibujo
 una escalera (plano hasta la partida, salto vertical), no una polilínea. Pendiente, y
 ahora sí sobre datos limpios.
 
+**Varias curvas una al lado de la otra necesitan la MISMA escala, y el piso de
+`minRange` no alcanza.** `lineAreaGeometry` escala cada serie contra su propio techo
+y su propio piso. En el perfil está bien —hay una sola— pero la columna "Evolución"
+de la liga pone siete, y ponerlas juntas promete que se comparan. El piso de 10 tapa
+una parte del problema por accidente (si todos los recorridos son menores a 10, todos
+terminan escalados contra 10), pero deja dos agujeros: el **cero queda a distinta
+altura en cada fila** —medido: 26, 26, 26 y 19,9 en una caja de 30— y en cuanto UNA
+semana se pasa de 10 puntos las amplitudes dejan de ser proporcionales. Con
+`escala` compartida: el cero a 22,3 en las cuatro filas, y una semana de +13,5 contra
+una de +7,75 dibujan 18,3 y 10,5 px — razón 1,74, exactamente la de los datos (antes
+eran 22 y 17,1: razón 1,29 para una diferencia real de 1,74). Con `escala` el piso
+`minRange` no se aplica: el que la pasa ya miró todas las series y decide el recorrido
+él (la liga usa 4 puntos, repartidos a los dos lados para que el cero no quede contra
+el borde).
+
+**El tooltip no puede ser la única puerta al dato.** En el celular no hay hover, así
+que el gráfico grande del perfil se podía mirar entero sin poder leer un solo valor.
+El techo y el piso de la ventana ahora van escritos sobre el punto (`valorDePunto` en
+`SparkChart`). Se saltean si caen en las puntas —el primero ya tiene su elo debajo del
+gráfico y el último está en el encabezado— y el `left` se recorta a 9%/91% igual que el
+tooltip: un pico en el segundo punto tiene el centro a menos de media etiqueta del
+borde y se salía de la tarjeta. Se desvanecen mientras hay hover, que si no se pisan
+con el tooltip. Medido a 340px de ancho de tarjeta: 44px de margen en el peor caso,
+sin desbordes.
+
 **Cambiar el espaciado del eje rompe el hover si el hover invierte un paso constante.**
 `SparkChart` sacaba el índice con `Math.round((relX - padX) / stepX)`, que asume puntos
 equiespaciados. Ahora busca el punto más cercano de verdad — con espaciado parejo da
