@@ -1,4 +1,4 @@
-import type { getSupabaseServerClient } from "./supabase";
+import { conReintento, type getSupabaseServerClient } from "./supabase";
 import {
   getLeagueEntriesByPuuid,
   getMatchById,
@@ -1082,8 +1082,13 @@ export async function refreshAllSummoners(
   supabase: SupabaseClient,
   { onlyStale = false }: { onlyStale?: boolean } = {}
 ): Promise<Record<string, string>> {
-  const { data: summoners, error } = await supabase.from("summoners").select("puuid, last_refreshed_at");
-  if (error) throw new Error(error.message);
+  // Con reintento: esta consulta trae trece filas, pero si el gateway de
+  // Supabase se cae acá tira ANTES del bucle y se pierde el ciclo entero para
+  // todos. Ya pasó una noche completa así (ver conReintento en lib/supabase).
+  const { data: summoners, error } = await conReintento("lista de invocadores", () =>
+    supabase.from("summoners").select("puuid, last_refreshed_at"),
+  );
+  if (error) throw new Error(`no se pudo leer la lista de invocadores: ${error.message}`);
 
   const now = Date.now();
   const results: Record<string, string> = {};

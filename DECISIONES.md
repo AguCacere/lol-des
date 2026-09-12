@@ -101,6 +101,21 @@ catorce fallan a la vez, y es la equivocada: ya se descartó midiendo —un `POS
 /api/refresh` manual devolvió "ok" para los catorce mientras el cron llevaba 55 minutos
 sin actualizar a ninguno.
 
+**Un error de Supabase en la primera consulta se lleva puesto el ciclo entero.**
+`refreshAllSummoners` arranca leyendo la lista de invocadores; si esa consulta falla,
+tira antes del bucle y NADIE se refresca — y como los errores por invocador sí están
+atrapados y guardados en `results`, la única señal es una línea de log. Pasó: el cron
+contestaba 200 cada 15 minutos, los catorce quedaban "sin actualizar" y el log decía
+`cron refresh failed: Gateway Timeout`, un 504 del gateway de Supabase en un select de
+trece filas. Ahora esa consulta va con `conReintento` (`lib/supabase.ts`), que reintenta
+**solo lo transitorio** —timeouts, gateway, red— y no lo que va a fallar igual la
+segunda vez, como un permiso o una columna mal escrita.
+
+**Cómo se lee un error para saber de quién es.** Todo lo que sale de Riot viene con el
+prefijo `Riot API error <status>:` (`lib/riot.ts`), así que un mensaje pelado como
+"Gateway Timeout" es de Supabase, no de Riot. Eso solo ya descarta media hipótesis sin
+tocar nada.
+
 ## Caché y deploys
 
 **La ventana de caché del CDN.** `/api/ladder` es `s-maxage=60`, `/api/team-digest`
