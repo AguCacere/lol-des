@@ -405,6 +405,32 @@ el arte de Riot y no pretende serlo, pero deja de parecer roto. **Ojo**: el embl
 lleva `clip-path:none` a propósito — es su propia forma irregular con su glow horneado,
 y recortarlo en escudo lo arruina.
 
+**Un bloque de estadísticas se siente "formulario" cuando dibuja igual tres tipos de
+número que no valen lo mismo.** El detalle de partida tenía trece filas
+etiqueta→valor idénticas, y ahí "% daño del equipo 14%" pesaba exactamente lo mismo que
+"Primera sangre: No". Son tres cosas distintas y ahora se dibujan distinto:
+
+- **Cuotas** (% del daño, participación en kills, participación en objetivos): son "mi
+  porción del equipo". Un 14% suelto es trivia — puede ser excelente de support y un
+  desastre de mid. Van como barra contra la marca del **quinto** (20%, lo que toca si
+  los cinco aportan igual), que es una referencia gratis y que cualquiera entiende. El
+  dorado marca estar por encima; abajo NO va en rojo, porque estar abajo del quinto no
+  es un error: un support tiene que estar abajo. **La participación en kills va sin
+  marca**: no es una quinta parte de nada, es en cuántas kills estuviste, y ponerle un
+  20% sería inventar.
+- **Magnitudes** (daño, visión): ficha con el número grande arriba y la etiqueta chica
+  abajo, que es el orden en que se los mira.
+- **Hechos** (skillshots, solo kills, primera sangre, pentakills, objetivos): chips en
+  un renglón. Los que no pasaron se apagan en vez de desaparecer — un 0 en solo kills
+  es información para el que esperaba tener alguno— salvo los booleanos en falso, que
+  directamente no van: "Primera sangre: No" se comía una fila entera para no decir
+  nada.
+
+**Las fichas van en grilla con `auto-fit`, no en flex.** Con flex, una ficha sola en el
+segundo renglón —el caso del support, que tiene cinco— crecía hasta el ancho completo y
+se leía como un bloque aparte en vez de como la quinta de la fila. `auto-fit` colapsa
+las columnas vacías, así que tres fichas siguen repartiéndose todo el ancho.
+
 **Un dato repetido en todas las filas deja de ser un dato.** La tabla de la liga tenía
 "se anotó el martes" abajo de los seis nombres —se anotaron todos el martes, es la
 primera semana— y "0 / 3 último día" en cinco de seis, porque el último día todavía no

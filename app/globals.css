@@ -1782,21 +1782,102 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    mitigado)"), las etiquetas quedaban a alturas distintas y el bloque se leía
    como números desparramados. En filas, todos los valores caen sobre la misma
    guía a la derecha y el ojo los recorre de una. */
-.match-detail-grid{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:0 34px;}
-.match-detail-stat{
-  display:flex; align-items:baseline; justify-content:space-between; gap:14px; min-width:0;
-  padding:7px 0; border-bottom:1px solid var(--border-soft);
-}
-/* Las dos últimas (una sola en mobile) cierran el bloque sin línea: si no,
-   la última fila queda subrayada contra el título del grupo siguiente. */
-.match-detail-stat:nth-last-child(-n+2){border-bottom:none;}
-.match-detail-stat .k{
+.match-detail-cuerpo{display:flex; flex-direction:column; gap:14px;}
+
+/* UNA CUOTA: qué porción del equipo te tocó. La barra contra la marca del
+   quinto es lo que convierte un "14%" —que solo no dice nada, puede ser
+   excelente de support y un desastre de mid— en algo que se lee sin pensar.
+   Ver Cuota en MatchDetail.tsx. */
+.cuotas{display:flex; flex-direction:column; gap:9px;}
+.cuota{display:grid; grid-template-columns:minmax(0,1fr) 2fr auto; align-items:center; gap:12px;}
+.cuota-k{
   display:flex; align-items:center; gap:4px; min-width:0;
-  font-size:12px; color:var(--text-muted); line-height:1.35;
+  font-size:12px; color:var(--text-muted); line-height:1.3;
 }
-.match-detail-stat .v{
-  font-family:var(--font-stat); font-size:14px; font-weight:700; color:var(--text-primary);
-  font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap; flex:none;
+.cuota-pista{
+  position:relative; height:7px; border-radius:999px; background:var(--track);
+  overflow:visible; min-width:0;
+}
+.cuota-relleno{
+  position:absolute; left:0; top:0; bottom:0; border-radius:999px;
+  background:var(--text-muted); opacity:0.55; min-width:3px;
+  transition:width .2s ease;
+}
+/* Arriba de tu parte: dorado. Es el único color de este bloque que significa
+   algo, y significa "pasaste la marca". Abajo NO va en rojo — estar abajo del
+   quinto no es un error, un support tiene que estar abajo. */
+.cuota-relleno.arriba{background:var(--accent); opacity:1;}
+/* La marca del quinto. Un pelo vertical que cruza la pista entera: tiene que
+   leerse como una referencia del eje, no como parte de la barra. */
+.cuota-ref{
+  position:absolute; top:-3px; bottom:-3px; width:1px; margin-left:-0.5px;
+  background:var(--text-secondary); opacity:0.5;
+}
+.cuota-v{
+  font-family:var(--font-stat); font-size:13.5px; font-weight:700;
+  font-variant-numeric:tabular-nums; color:var(--text-secondary);
+  text-align:right; min-width:38px; flex:none;
+}
+.cuota-v.arriba{color:var(--accent);}
+
+/* UNA FICHA: el número manda y la etiqueta acompaña, que es el orden en que se
+   los mira. Al revés que la fila de formulario, donde los dos pesaban igual. */
+/* Grilla con auto-fit y no flex: con flex, una ficha sola en el segundo
+   renglón —el caso del support, que tiene cinco— crecía hasta el ancho
+   completo y se leía como un bloque aparte en vez de como la quinta de la
+   fila. auto-fit colapsa las columnas vacías, así que tres fichas siguen
+   repartiéndose todo el ancho igual que antes. */
+.fichas{display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:8px;}
+.ficha{
+  min-width:0;
+  padding:9px 12px; border-radius:var(--radius-md);
+  background:var(--surface); border:1px solid var(--border-soft);
+}
+.ficha-v{
+  display:block; font-family:var(--font-stat); font-size:18px; font-weight:700;
+  line-height:1.15; color:var(--text-primary); font-variant-numeric:tabular-nums;
+  letter-spacing:-0.02em;
+}
+.ficha-k{
+  display:flex; align-items:center; gap:4px; margin-top:3px;
+  font-size:11px; color:var(--text-muted); line-height:1.3;
+}
+.ficha-sub{display:block; margin-top:5px; font-size:11px; color:var(--text-secondary); opacity:0.8;}
+/* Verde la curación, azul el escudo: son dos cosas distintas y el color las
+   separa sin necesidad de un ícono más en una tarjeta que ya tiene varios. El
+   filete al costado las agrupa como el par que son, entre las fichas de daño. */
+.ficha.cura{box-shadow:inset 2px 0 0 var(--good);}
+.ficha.escudo{box-shadow:inset 2px 0 0 var(--versus-b);}
+.ficha.cura .ficha-v{color:var(--good);}
+.ficha.escudo .ficha-v{color:var(--versus-b);}
+
+/* LOS HECHOS: cosas que pasaron o no pasaron. Como chips en un renglón, no
+   como filas de formulario: "Primera sangre: No" ocupaba lo mismo que la cuota
+   que define la partida. Lo que no pasó se apaga en vez de desaparecer —un 0
+   en solo kills es información para el que esperaba tener alguno. */
+.hechos{display:flex; align-items:center; flex-wrap:wrap; gap:7px;}
+.hechos-k{
+  display:flex; align-items:center; gap:4px; flex:none;
+  font-size:11px; text-transform:uppercase; letter-spacing:0.06em;
+  font-weight:700; color:var(--text-muted);
+}
+.hecho{
+  display:inline-flex; align-items:center; gap:4px;
+  padding:3px 9px; border-radius:999px;
+  background:var(--surface); border:1px solid var(--border-soft);
+  font-size:11.5px; color:var(--text-secondary); white-space:nowrap;
+}
+.hecho strong{font-family:var(--font-stat); font-weight:700; color:var(--text-primary); font-variant-numeric:tabular-nums;}
+.hecho.en-cero{opacity:0.45;}
+.hecho.en-cero strong{color:var(--text-secondary);}
+.hecho.destacado{background:var(--accent-wash); border-color:var(--accent-dim-border); color:var(--accent);}
+.hecho.destacado strong{color:var(--accent);}
+@media (max-width:560px){
+  /* La etiqueta arriba de la barra: en 360px, tres columnas dejaban la pista
+     en 60px y la barra dejaba de poder compararse con nada. */
+  .cuota{grid-template-columns:minmax(0,1fr) auto; gap:3px 10px;}
+  .cuota-pista{grid-column:1 / -1;}
+  .fichas{grid-template-columns:repeat(auto-fit, minmax(112px, 1fr));}
 }
 .match-detail-stat .v .unit{
   margin-left:5px;
@@ -3894,28 +3975,4 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   opacity:0.75; white-space:nowrap; text-transform:none; letter-spacing:0;
 }
 
-/* "Apoyo al equipo" en el detalle de partida: curación y escudo de un
-   support. Ocupa la fila entera de la grilla porque son dos números de la
-   misma idea — sueltos entre las celdas de daño se leían como dos
-   estadísticas más y no como el par que son. */
-.stat-apoyo{
-  grid-column:1 / -1;
-  display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
-  padding:9px 11px; margin-top:2px;
-  background:var(--surface); border-radius:var(--radius-sm);
-  box-shadow:inset 2px 0 0 var(--good);
-}
-.stat-apoyo-label{
-  display:flex; align-items:center; gap:5px;
-  font-size:11.5px; color:var(--text-muted);
-}
-.stat-apoyo-datos{display:flex; align-items:baseline; gap:18px; flex-wrap:wrap;}
-.stat-apoyo-item{display:flex; align-items:baseline; gap:5px; white-space:nowrap;}
-.stat-apoyo-item .v{
-  font-family:var(--font-stat); font-size:15px; font-weight:800; font-variant-numeric:tabular-nums;
-}
-/* Verde la curación, azul el escudo: son dos cosas distintas y el color las
-   separa sin necesidad de un ícono más en una tarjeta que ya tiene varios. */
-.stat-apoyo-item .v.cura{color:var(--good);}
-.stat-apoyo-item .v.escudo{color:var(--versus-b);}
-.stat-apoyo-item .k{font-size:11px; color:var(--text-muted);}
+

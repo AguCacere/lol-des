@@ -12,25 +12,76 @@ function multikillLabel(m: Match): string | null {
   return m.pentaKills > 0 ? "¡PENTAKILL!" : null;
 }
 
-function Stat({
+/**
+ * Una CUOTA: qué porción del equipo te tocó a vos.
+ *
+ * "% daño del equipo: 14%" en una fila de formulario es trivia — 14% puede ser
+ * excelente de support y un desastre de mid, y el número solo no lo dice. Como
+ * barra contra la marca del **quinto** (20%, lo que toca si los cinco aportan
+ * igual) se lee sin pensarlo: estás arriba o estás abajo de tu parte.
+ *
+ * La referencia es opcional porque no todas las cuotas tienen una: la
+ * participación en kills no es "una quinta parte de algo", es en cuántas de las
+ * kills del equipo estuviste, y ahí inventarle un 20% sería mentir. Esa va como
+ * barra pelada de 0 a 100, que ya significa algo sola.
+ */
+function Cuota({
   label,
+  pct,
   tooltip,
-  wide,
-  children,
+  referencia,
 }: {
   label: string;
+  pct: number;
   tooltip?: string;
-  /** Spans the full grid row — for a MiniBreakdown with enough items that it wraps raggedly in a normal single-column cell. */
-  wide?: boolean;
-  children: React.ReactNode;
+  referencia?: { valor: number; texto: string };
 }) {
+  const ancho = Math.max(0, Math.min(100, pct));
+  const arriba = referencia ? pct >= referencia.valor : false;
   return (
-    <div className={`match-detail-stat${wide ? " wide" : ""}`}>
-      <span className="k">
+    <div className="cuota">
+      <span className="cuota-k">
         {label}
         {tooltip && <InfoTip text={tooltip} />}
       </span>
-      <span className="v">{children}</span>
+      <span className="cuota-pista">
+        <span className={`cuota-relleno${arriba ? " arriba" : ""}`} style={{ width: `${ancho}%` }} />
+        {referencia && <span className="cuota-ref" style={{ left: `${referencia.valor}%` }} title={referencia.texto} />}
+      </span>
+      <span className={`cuota-v${arriba ? " arriba" : ""}`}>{pct}%</span>
+    </div>
+  );
+}
+
+/**
+ * Una FICHA: el número grande arriba y qué es, abajo y chico.
+ *
+ * Es para las magnitudes —daño, visión— que no son cuota de nada y no tienen
+ * contra qué compararse. Al revés que en la fila de formulario, acá el número
+ * manda y la etiqueta acompaña, que es el orden en que se los mira.
+ */
+function Ficha({
+  valor,
+  label,
+  sub,
+  tooltip,
+  tono,
+}: {
+  valor: React.ReactNode;
+  label: string;
+  sub?: React.ReactNode;
+  tooltip?: string;
+  /** Verde la curación, azul el escudo. Son dos cosas distintas y el color las separa sin meter otro ícono. */
+  tono?: "cura" | "escudo";
+}) {
+  return (
+    <div className={`ficha${tono ? ` ${tono}` : ""}`}>
+      <span className="ficha-v">{valor}</span>
+      <span className="ficha-k">
+        {label}
+        {tooltip && <InfoTip text={tooltip} />}
+      </span>
+      {sub && <span className="ficha-sub">{sub}</span>}
     </div>
   );
 }
@@ -153,7 +204,7 @@ function Group({
         {label}
       </h4>
       {ancho}
-      {children && <div className="match-detail-grid">{children}</div>}
+      {children && <div className="match-detail-cuerpo">{children}</div>}
     </div>
   );
 }
@@ -226,74 +277,107 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
       </div>
 
       <Group label="Combate" icon={<ZapIcon />}>
-        <Stat label="% daño del equipo" tooltip={METRIC_INFO.dmgShare}>
-          {m.dmgShare}%
-        </Stat>
-        <Stat label="Daño a campeones">{m.damageToChamps.toLocaleString("es-AR")}</Stat>
-        <Stat label="Kill participation" tooltip={METRIC_INFO.killParticipation}>
-          {m.killParticipation}%
-        </Stat>
-        <Stat label="Daño recibido">
-          {m.damageTaken.toLocaleString("es-AR")}{" "}
-          <span className="unit">({m.damageMitigated.toLocaleString("es-AR")} mitigado)</span>
-        </Stat>
-        {m.damagePerMin != null && <Stat label="Daño / min">{Math.round(m.damagePerMin).toLocaleString("es-AR")}</Stat>}
-        {m.soloKills != null && <Stat label="Solo kills">{m.soloKills}</Stat>}
-        {m.skillshotsHit != null && <Stat label="Skillshots acertados">{m.skillshotsHit}</Stat>}
-        <Stat label="Primera sangre">{m.firstBlood ? "Sí 🩸" : "No"}</Stat>
-        {m.pentaKills > 0 && <Stat label="Pentakills">{m.pentaKills}</Stat>}
+        {/* Primero las cuotas: son las dos que dicen si la partida estuvo bien
+            o mal jugada, y son las únicas que tienen contra qué compararse. */}
+        <div className="cuotas">
+          <Cuota
+            label="Del daño del equipo"
+            pct={m.dmgShare}
+            tooltip={METRIC_INFO.dmgShare}
+            referencia={{ valor: 20, texto: "El 20% es tu quinta parte: lo que te toca si los cinco pegan igual." }}
+          />
+          <Cuota label="De las kills del equipo" pct={m.killParticipation} tooltip={METRIC_INFO.killParticipation} />
+        </div>
 
-        {/* Curación y escudo: solo de support, y solo si Riot mandó los datos.
-            En cualquier otra línea son ruido —un bruiser "cura" con robo de
-            vida y no ayudó a nadie— y acá la cifra es sobre COMPAÑEROS, que es
-            la única que dice lo que un enchanter hizo por el equipo.
-            Ocupa la fila entera: son dos números de la misma idea y sueltos
-            entre los de daño se leían como dos estadísticas más. */}
-        {esSupport && (curacion !== null || escudo !== null) && (
-          <div className="stat-apoyo">
-            <span className="stat-apoyo-label">
-              Apoyo al equipo
-              <InfoTip text="Vida curada y escudo puestos sobre tus COMPAÑEROS, no sobre vos. Riot manda las dos por separado: la curación propia del robo de vida no entra acá. Solo se muestra de support porque en las otras líneas el número no dice nada." />
+        {/* Después las magnitudes, con el número adelante. */}
+        <div className="fichas">
+          <Ficha valor={m.damageToChamps.toLocaleString("es-AR")} label="Daño a campeones" />
+          {m.damagePerMin != null && (
+            <Ficha valor={Math.round(m.damagePerMin).toLocaleString("es-AR")} label="Daño por minuto" />
+          )}
+          <Ficha
+            valor={m.damageTaken.toLocaleString("es-AR")}
+            label="Daño recibido"
+            sub={`${m.damageMitigated.toLocaleString("es-AR")} mitigado`}
+          />
+          {/* Curación y escudo: solo de support, y solo si Riot mandó los datos.
+              En cualquier otra línea son ruido —un bruiser "cura" con robo de
+              vida y no ayudó a nadie— y acá la cifra es sobre COMPAÑEROS, que es
+              la única que dice lo que un enchanter hizo por el equipo. */}
+          {esSupport && curacion !== null && (
+            <Ficha
+              tono="cura"
+              valor={curacion.toLocaleString("es-AR")}
+              label="Curados"
+              tooltip="Vida curada sobre tus COMPAÑEROS, no sobre vos: la curación propia del robo de vida no entra. Solo se muestra de support porque en las otras líneas el número no dice nada."
+            />
+          )}
+          {esSupport && escudo !== null && (
+            <Ficha tono="escudo" valor={escudo.toLocaleString("es-AR")} label="De escudo" />
+          )}
+        </div>
+
+        {/* Y al final los HECHOS: cosas que pasaron o no pasaron. Antes cada una
+            se comía una fila entera del formulario con el mismo peso que el daño
+            del equipo — "Primera sangre: No" ocupaba lo mismo que la cuota que
+            define la partida. Como chips ocupan un renglón entre todas, y las
+            que no pasaron se apagan en vez de desaparecer: un 0 en solo kills
+            es información para el que esperaba tener alguno. */}
+        <div className="hechos">
+          {m.skillshotsHit != null && (
+            <span className={`hecho${m.skillshotsHit === 0 ? " en-cero" : ""}`}>
+              <strong>{m.skillshotsHit}</strong> skillshots
             </span>
-            <span className="stat-apoyo-datos">
-              {curacion !== null && (
-                <span className="stat-apoyo-item">
-                  <span className="v cura">{curacion.toLocaleString("es-AR")}</span>
-                  <span className="k">curados</span>
-                </span>
-              )}
-              {escudo !== null && (
-                <span className="stat-apoyo-item">
-                  <span className="v escudo">{escudo.toLocaleString("es-AR")}</span>
-                  <span className="k">de escudo</span>
-                </span>
-              )}
+          )}
+          {m.soloKills != null && (
+            <span className={`hecho${m.soloKills === 0 ? " en-cero" : ""}`}>
+              <strong>{m.soloKills}</strong> solo {plural(m.soloKills, "kill", "kills")}
             </span>
-          </div>
-        )}
+          )}
+          {m.firstBlood && <span className="hecho destacado">🩸 Primera sangre</span>}
+          {m.pentaKills > 0 && (
+            <span className="hecho destacado">
+              <strong>{m.pentaKills}</strong> {plural(m.pentaKills, "pentakill", "pentakills")}
+            </span>
+          )}
+        </div>
       </Group>
 
       <Group label="Visión y objetivos" icon={<EyeIcon />}>
-        <Stat label="Visión" tooltip={METRIC_INFO.visionScore}>
-          {m.visionScore}
-        </Stat>
-        <Stat label="Participación objetivos" tooltip={METRIC_INFO.objShare}>
-          {m.objShare}%
-        </Stat>
-        <Stat label="Wards" wide>
-          <MiniBreakdown
-            items={[
-              { value: m.wardsPlaced, label: plural(m.wardsPlaced, "puesto", "puestos") },
-              { value: m.wardsKilled, label: plural(m.wardsKilled, "limpiado", "limpiados") },
-              { value: m.controlWards, label: "de control" },
-            ]}
+        <div className="cuotas">
+          <Cuota
+            label="De los objetivos del equipo"
+            pct={m.objShare}
+            tooltip={METRIC_INFO.objShare}
+            referencia={{ valor: 20, texto: "El 20% es tu quinta parte: lo que te toca si los cinco participan igual." }}
           />
-        </Stat>
-        <Stat
-          label="Objetivos"
-          tooltip="Torres, dragones, barones y heraldo cuentan participación (kill o asistencia), no solo si vos diste el golpe final. Inhibidores es la excepción: Riot no expone participación para eso, solo cuenta si lo rompiste vos. Vacas del Vacío no están porque Riot tampoco las separa del resto."
-          wide
-        >
+        </div>
+
+        {/* El puntaje de visión con sus wards pegados abajo: el puntaje SALE de
+            los wards, así que separarlos en dos filas de formulario obligaba a
+            atar dos datos que son uno solo. */}
+        <div className="fichas">
+          <Ficha
+            valor={m.visionScore}
+            label="Puntaje de visión"
+            tooltip={METRIC_INFO.visionScore}
+            sub={
+              <MiniBreakdown
+                items={[
+                  { value: m.wardsPlaced, label: plural(m.wardsPlaced, "puesto", "puestos") },
+                  { value: m.wardsKilled, label: plural(m.wardsKilled, "limpiado", "limpiados") },
+                  { value: m.controlWards, label: "de control" },
+                ]}
+              />
+            }
+          />
+        </div>
+
+        <div className="hechos objetivos">
+          <span className="hechos-k">
+            Objetivos
+            <InfoTip text="Torres, dragones, barones y heraldo cuentan participación (kill o asistencia), no solo si vos diste el golpe final. Inhibidores es la excepción: Riot no expone participación para eso, solo cuenta si lo rompiste vos. Vacas del Vacío no están porque Riot tampoco las separa del resto." />
+          </span>
           <MiniBreakdown
             items={[
               { value: m.turretTakedowns, label: plural(m.turretTakedowns, "torre", "torres") },
@@ -318,7 +402,7 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
               { value: m.inhibitorKills, label: plural(m.inhibitorKills, "inhibidor", "inhibidores") },
             ]}
           />
-        </Stat>
+        </div>
       </Group>
 
       <Group
