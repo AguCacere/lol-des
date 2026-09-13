@@ -31,7 +31,7 @@ cerradura no está puesta, nadie escribe).
 | `/api/team-digest` | GET | Resumen semanal del grupo | no | no | `s-maxage=300` (semana 0) / `3600` |
 | `/api/liga` | GET | Tabla de la liga de la semana | no | no | — |
 | `/api/liga` | POST | Anota o saca gente de la liga | sí | **sí** | — |
-| `/api/liga/anunciar` | POST | Manda el mensaje de arranque a Discord | no | **sí** | — |
+| `/api/liga/anunciar` | POST | Manda el mensaje de arranque a Discord. Con `{tipo:"cierre"}` devuelve la vista previa del anuncio de cierre y no manda nada | no | **sí** | — |
 | `/api/summoners` | POST | Agrega un invocador al grupo | sí | **sí** | — |
 | `/api/refresh` | POST | Refresca uno o todos (cooldown de 2 min) | sí | **sí** | — |
 | `/api/backfill` | POST | Trae partidas viejas de un invocador | sí | **sí** | — |
@@ -93,7 +93,7 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   acumulado por día que dibuja la carrera (`puntosPorDia`, `etiquetasDeDias`)
   (`puntosDeSecuencia`, `PUNTOS_*`, `RACHA_DESDE`), mínimos para cobrar
   (`MINIMO_SEMANAL`, `MINIMO_ULTIMO_DIA`, `ganadorDe`) y mensajes.
-- `liga-cierre.ts` — el cierre idempotente de la semana.
+- `liga-cierre.ts` — el cierre idempotente de la semana. `tablaDeSemanaEnBase` arma la tabla final desde la base y `vistaPreviaDeCierre` devuelve el texto del anuncio sin escribir ni mandar nada.
 - `roast.ts` — las cargadas: plantillas, precedencia y las especiales.
 - `coach.ts` — el prompt del análisis del pool.
 

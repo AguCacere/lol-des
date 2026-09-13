@@ -1,3 +1,4 @@
+import { championLabel } from "./champion-names";
 import { rankScore } from "./ladder";
 import { divisionFromRiot, tierKeyFromRiot } from "./mapping";
 import type { RoleKey, TierKey } from "./types";
@@ -758,7 +759,33 @@ export function mensajeDeArranque(inicio: Date, premio: string | null): string {
   ].join("\n");
 }
 
-/** El anuncio del ganador cuando la semana cierra. */
+/** "A", "A y B", "A, B y C" — la enumeración de siempre, con "y" antes del último. */
+function listaY(nombres: string[]): string {
+  if (nombres.length <= 1) return nombres[0] ?? "";
+  return `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+}
+
+/**
+ * El anuncio del cierre: el podio con una cargada por puesto.
+ *
+ * La versión vieja era un ranking prolijo —"Gana Fulano con +5. Detrás: 2., 3.,
+ * 4."— y un ranking prolijo no lo lee nadie en un canal de amigos. Los textos
+ * de acá los escribió el grupo y son fijos a propósito: el primero se los
+ * garchó a todos, el segundo no le dio el pitulín, el tercero ni pinchó ni
+ * cortó, los del medio son agua y el último nadó en caca.
+ *
+ * Tres cosas que hay que respetar si se toca:
+ *
+ * 1. Los puestos se reparten por POSICIÓN en la tabla, no por premio. Y la
+ *    línea del último arranca recién en el cuarto puesto: con tres jugadores el
+ *    tercero ya tiene la suya, y dos cargadas encima del mismo tipo se leen
+ *    como una sola mal escrita.
+ * 2. Los del medio van SIN números. El chiste es que no los conoce nadie, y
+ *    ponerles el récord al lado los nombra.
+ * 3. Lo del premio va aparte del podio, abajo. Quedar primero y cobrar son dos
+ *    cosas distintas —hay mínimos— y meterlo adentro de la cargada mezcla el
+ *    chiste con la regla, que es justo la que se tiene que entender.
+ */
 export function mensajeDeCierre(inicio: Date, tabla: FilaLiga[]): string {
   const fin = new Date(finDeSemana(inicio).getTime() - 1);
   const jugaron = tabla.filter((f) => !f.sinJugar);
@@ -767,64 +794,64 @@ export function mensajeDeCierre(inicio: Date, tabla: FilaLiga[]): string {
     return `🏆 **Cerró la semana** (${fechaCorta(inicio)} – ${fechaCorta(fin)}) y no jugó **nadie**. Un papelón. La semana que viene arranca otra.`;
   }
 
-  // El que cobra es el primero que cumplió los dos mínimos, no el primero de
-  // la tabla. Si nadie los cumplió, la semana se cierra sin premio y el
-  // anuncio lo dice con nombre y apellido: es la única forma de que la regla
-  // se sienta.
-  const g = ganadorDe(tabla);
-  if (!g) {
-    const puntero = jugaron[0];
-    const pp = puntajeTexto(puntajeDe(puntero));
-    const total = puntero.victorias + puntero.derrotas;
-    const leFalta =
-      total < MINIMO_SEMANAL
-        ? `jugó ${total} en la semana y el mínimo son ${MINIMO_SEMANAL}`
-        : `jugó ${puntero.ultimoDia} el último día y el mínimo son ${MINIMO_ULTIMO_DIA}`;
-    return [
-      `🏆 **CERRÓ LA SEMANA** — ${fechaCorta(inicio)} al ${fechaCorta(fin)}`,
-      "",
-      `Y esta semana **no cobra nadie**. El puntero fue **${puntero.name}** con ${pp}, pero ${leFalta}.`,
-      "",
-      `Para llevárselo hay que jugar **${MINIMO_SEMANAL} en la semana** y **${MINIMO_ULTIMO_DIA} el último día**. Se puso justamente para que no se pueda agarrar ventaja y desaparecer.`,
-      "",
-      "El lunes a las 00:00 arranca de cero. 🔁",
-    ].join("\n");
-  }
-  // El puntaje del modo activo, no el LP: con MODO_LIGA = "netas" el LP no
-  // decide nada y anunciar por LP contradiría a la tabla.
-  const pg = puntajeDe(g);
-  const unidad = MODO_LIGA === "netas" ? (Math.abs(pg) === 1 ? "partida neta" : "partidas netas") : "puntos";
-  const lineas = [
-    `🏆 **CERRÓ LA SEMANA** — ${fechaCorta(inicio)} al ${fechaCorta(fin)}`,
-    "",
-    pg > 0
-      ? `Gana **${g.name}** con **${puntajeTexto(pg)} ${unidad}** en ${g.victorias}V-${g.derrotas}D. A cobrar.`
-      : `Gana **${g.name}**… con **${puntajeTexto(pg)} ${unidad}**. Ganó porque los demás estuvieron peor, que es la victoria más triste que hay.`,
-    "",
-  ];
+  // El puntaje Y el récord. Solo el récord no alcanza: con la tabla de puntos
+  // dos tipos con 5V-3D pueden estar en puestos distintos, y ahí el anuncio
+  // parece mal hecho. Solo el puntaje tampoco: "+4,25" no dice cómo le fue.
+  const marcador = (f: FilaLiga) => `${puntajeTexto(puntajeDe(f))} (${f.victorias}V-${f.derrotas}D)`;
 
-  // Cuando el que más netas hizo no cobra, el anuncio TIENE que explicarlo o
-  // parece que la tabla está mal.
-  const puntero = jugaron[0];
-  if (puntero.puuid !== g.puuid) {
-    const total = puntero.victorias + puntero.derrotas;
+  const lineas = [`🏆 **CERRÓ LA SEMANA** — ${fechaCorta(inicio)} al ${fechaCorta(fin)}`, ""];
+
+  const primero = jugaron[0];
+  const conQue = primero.champion ? ` con **${championLabel(primero.champion)}**` : "";
+  lineas.push(
+    puntajeDe(primero) > 0
+      ? `🥇 **${primero.name}** ganó la liga${conQue} y se los re garchó a todos. Felicidades 👑 — ${marcador(primero)}`
+      : `🥇 **${primero.name}** ganó la liga${conQue}… en verde no terminó nadie, ganó porque los demás estuvieron peor. Felicidades igual 👑 — ${marcador(primero)}`,
+  );
+
+  const ultimo = jugaron.length >= 4 ? jugaron[jugaron.length - 1] : null;
+  if (jugaron[1]) {
+    lineas.push(`🥈 **${jugaron[1].name}** no le dio el pitulín y quedó en segundo lugar — ${marcador(jugaron[1])}`);
+  }
+  if (jugaron[2]) {
+    lineas.push(`🥉 **${jugaron[2].name}** quedó tercero, ni pinchó ni cortó, un tarado jajaja — ${marcador(jugaron[2])}`);
+  }
+  // El medio puede ser UNO solo (con cinco jugadores lo es siempre), así que la
+  // cargada tiene las dos conjugaciones. En plural sobre una persona sola se
+  // nota enseguida que es una plantilla, y ahí el chiste se cae.
+  const medio = ultimo ? jugaron.slice(3, -1) : jugaron.slice(3);
+  if (medio.length === 1) {
+    lineas.push(`🫠 **${medio[0].name}**: ni se le paró el pitito, fue agua, no lo conoce nadie.`);
+  } else if (medio.length > 1) {
     lineas.push(
-      total < MINIMO_SEMANAL
-        ? `Arriba terminó **${puntero.name}**, pero jugó ${total} partidas y el mínimo son ${MINIMO_SEMANAL}. No cobra.`
-        : `Arriba terminó **${puntero.name}**, pero el último día jugó ${puntero.ultimoDia} y el mínimo son ${MINIMO_ULTIMO_DIA}. No cobra.`,
+      `🫠 ${listaY(medio.map((f) => `**${f.name}**`))}: ni se les paró el pitito, fueron agua, no los conoce nadie.`,
+    );
+  }
+  if (ultimo) {
+    lineas.push(`💩 **${ultimo.name}** realmente nadó en caca, quedó último, maleta total. Suerte la próxima — ${marcador(ultimo)}`);
+  }
+
+  // El premio, abajo y aparte. Solo aparece cuando hay algo que aclarar: si el
+  // primero de la tabla cobra, no hace falta decirlo dos veces.
+  const g = ganadorDe(tabla);
+  const leFaltaA = (f: FilaLiga) => {
+    const total = f.victorias + f.derrotas;
+    return total < MINIMO_SEMANAL
+      ? `jugó ${total} en la semana y el mínimo son ${MINIMO_SEMANAL}`
+      : `el último día jugó ${f.ultimoDia} y el mínimo son ${MINIMO_ULTIMO_DIA}`;
+  };
+  if (!g) {
+    lineas.push(
       "",
+      `💸 Y el premio **no lo cobra nadie**: hay que jugar ${MINIMO_SEMANAL} en la semana y ${MINIMO_ULTIMO_DIA} el último día, y no llegó ninguno. Ni **${primero.name}**, que ${leFaltaA(primero)}.`,
+    );
+  } else if (g.puuid !== primero.puuid) {
+    lineas.push(
+      "",
+      `💸 Pero el premio no es de **${primero.name}**: ${leFaltaA(primero)}. Lo cobra **${g.name}**, que sí cumplió.`,
     );
   }
 
-  const resto = jugaron.filter((f) => f.puuid !== g.puuid).slice(0, 4);
-  if (resto.length > 0) {
-    lineas.push("**Detrás:**");
-    for (const [i, f] of resto.entries()) {
-      const pf = puntajeDe(f);
-      lineas.push(`${i + 2}. ${f.name} — ${puntajeTexto(pf)} (${f.victorias}V-${f.derrotas}D)`);
-    }
-    lineas.push("");
-  }
-  lineas.push("El lunes a las 00:00 arranca de cero. 🔁");
+  lineas.push("", "El lunes a las 00:00 arranca de cero. 🔁");
   return lineas.join("\n");
 }
