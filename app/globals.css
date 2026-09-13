@@ -3155,6 +3155,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* Va en HTML por encima del SVG, no adentro: un <text> escala con la caja y
    en pantalla de celular quedaba en 4px. El fondo propio es porque la
    etiqueta cae sobre el área rellena y sin él se lee sobre el color. */
+/* Cuando un extremo ocupa la punta izquierda, la etiqueta se va a la derecha
+   en vez de esconderse: la línea de la guía cruza todo el ancho, así que su
+   texto vive igual de bien en cualquiera de las dos puntas. */
+.spark-guide-label.derecha{transform:translate(-100%, -100%);}
 .spark-guide-label{
   position:absolute; transform:translateY(-100%); margin-top:-3px;
   font-size:9.5px; line-height:1.35; color:var(--text-muted); letter-spacing:0.02em;
@@ -3168,14 +3172,21 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    dato. Un poco más presentes que las guías de división —son un valor real de
    la serie, no una referencia— pero sin llegar a competir con la curva.
    La transición es para que no parpadeen al entrar y salir del hover. */
+/* El techo y el piso de la curva, etiquetados HACIA ADENTRO de la caja. Por
+   fuera se solapaban: el techo es el punto más alto, así que su etiqueta puesta
+   arriba se salía y caía sobre el encabezado del gráfico; el piso es el más
+   bajo y la suya caía sobre el pie. El fondo propio es para que se lean cuando
+   quedan sobre la curva, que ahora es lo normal. */
 .spark-extremo{
   position:absolute; left:0; transform:translate(-50%, -100%); margin-top:-7px;
   font-size:10px; line-height:1.3; font-weight:600; color:var(--text-secondary);
   font-variant-numeric:tabular-nums; letter-spacing:0.01em; white-space:nowrap;
   background:var(--bg); padding:0 4px; border-radius:3px;
+  box-shadow:0 0 0 3px var(--bg);
   pointer-events:none; opacity:1; transition:opacity 0.12s ease;
 }
-.spark-extremo.abajo{ transform:translate(-50%, 0); margin-top:7px; }
+/* El del TECHO, que va debajo de su punto. */
+.spark-extremo.abajo{ transform:translate(-50%, 0); margin-top:8px; }
 .spark-extremo.tapado{ opacity:0; }
 
 /* El pie del gráfico de LP: cada extremo de la curva con su fecha y su elo,

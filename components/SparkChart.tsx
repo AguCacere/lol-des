@@ -104,39 +104,104 @@ export function SparkChart({
    * Una guía pegada al borde de arriba o de abajo se confunde con el marco,
    * así que esa no se dibuja.
    */
-  const guiasVisibles = !detailed
-    ? []
-    : (guides ?? [])
-        .map((g) => ({ ...g, y: yOf(g.value) }))
-        .filter((g) => g.y >= pad + 6 && g.y <= height - pad - 6)
-        .map((g) => ({ label: g.label, pct: (g.y / height) * 100, leftPct: (padX / width) * 100 }));
   /**
-   * El techo y el piso de la ventana, escritos sobre el punto. Se saltean si
+   * El techo y el piso de la ventana, escritos al lado del punto. Se saltean si
    * caen en las puntas: el primero ya tiene su elo debajo del gráfico y el
    * último está en el encabezado, así que ahí la etiqueta sería el mismo
    * número dos veces.
+   *
+   * Van HACIA ADENTRO de la caja y no hacia afuera, que es como estaban y por
+   * eso se solapaban. El techo es por definición el punto más alto del gráfico,
+   * así que su etiqueta puesta arriba se sale de la caja y aterriza sobre el
+   * encabezado ("11V-8D en 4 días"); el piso es el más bajo, y la suya puesta
+   * abajo aterriza sobre el pie ("8 sept · Bronce 1 · 1 LP"). Adentro no hay
+   * con qué chocar salvo la curva, y para eso la etiqueta lleva su propio fondo.
    *
    * El left se recorta a los costados (igual que el tooltip): un pico en el
    * segundo punto tiene el centro a menos de media etiqueta del borde y se
    * salía de la tarjeta. Queda apenas corrido del punto, que es mucho menos
    * molesto que cortado.
    */
-  const extremos: { key: string; arriba: boolean; texto: string; leftPct: number; topPct: number }[] = [];
+  const extremos: {
+    key: string;
+    debajo: boolean;
+    texto: string;
+    leftPct: number;
+    topPct: number;
+    /** Si el punto cae en el primer o el último cuarto, que es donde puede vivir la etiqueta de una guía. */
+    enLaIzquierda: boolean;
+    enLaDerecha: boolean;
+  }[] = [];
   if (detailed && valorDePunto) {
-    for (const { i, arriba } of [
-      { i: indiceMax, arriba: true },
-      { i: indiceMin, arriba: false },
+    for (const { i, debajo } of [
+      // El techo lleva su etiqueta DEBAJO y el piso ARRIBA: al revés de lo que
+      // parece, porque lo que importa es quedar adentro de la caja.
+      { i: indiceMax, debajo: true },
+      { i: indiceMin, debajo: false },
     ]) {
       if (i <= 0 || i >= values.length - 1) continue;
       extremos.push({
-        key: arriba ? "techo" : "piso",
-        arriba,
+        key: debajo ? "techo" : "piso",
+        debajo,
         texto: valorDePunto(i),
-        leftPct: Math.min(Math.max((points[i][0] / width) * 100, 9), 91),
+        // 14% y no 9%: el recorte es HORIZONTAL y la etiqueta mide siempre lo
+        // mismo en píxeles mientras la caja se escala con el ancho. Media
+        // etiqueta (~38px) son 6% del viewBox dibujado a 620px, pero 13,4%
+        // dibujado a 288 — que es el ancho de la tarjeta en un teléfono. Con
+        // 9% se salía 3px de la tarjeta ahí, medido.
+        leftPct: Math.min(Math.max((points[i][0] / width) * 100, 14), 86),
         topPct: (points[i][1] / height) * 100,
+        enLaIzquierda: points[i][0] < width * 0.25,
+        enLaDerecha: points[i][0] > width * 0.75,
       });
     }
   }
+  /**
+   * Las guías que realmente entran en la caja, ya pasadas a porcentaje: la
+   * línea se dibuja adentro del SVG (escala bien) y la etiqueta va en HTML
+   * encima (no escala, así que se lee igual en un monitor que en un celular).
+   * Una guía pegada al borde de arriba o de abajo se confunde con el marco,
+   * así que esa no se dibuja.
+   *
+   * Y se calcula DESPUÉS de los extremos porque la etiqueta de una guía se
+   * cae si un extremo le queda encima. Las dos viven contra el borde izquierdo
+   * —la guía siempre, el extremo cuando su punto cae en el primer cuarto— y en
+   * un celular se montaban. Gana el extremo sin dudarlo: dice "Plata 3 · 90 LP"
+   * contra el "Plata 3" de la guía, o sea lo mismo más el número. La LÍNEA de
+   * la guía se sigue dibujando; lo único que se cae es su texto.
+   *
+   * La etiqueta de la guía se MUEVE DE LADO si un extremo le cae encima, no se
+   * esconde: dice de qué división es esa línea, que es justamente lo que
+   * convierte la curva en una posición real en el ladder. La línea cruza todo
+   * el ancho, así que su texto vive igual de bien en cualquiera de las dos
+   * puntas.
+   *
+   * Se mira el LADO y no la distancia, y eso es a propósito: no hay umbral de
+   * distancia que sirva. El SVG va con `height:auto`, así que se escala entero
+   * con el ancho —un viewBox de 620×132 dibujado en 324px mide 69px de alto, o
+   * sea todo comprimido a 0,52— pero las etiquetas son HTML y miden siempre lo
+   * mismo (~13px de alto más 8 de separación). O sea que la separación en
+   * unidades del viewBox que hace falta DEPENDE del ancho al que se dibuje, y
+   * eso el componente no lo sabe: medido, en la caja más chica hacían falta ~75
+   * unidades de 132. Un umbral así descarta casi siempre; mejor mirar el lado,
+   * que no depende de la escala.
+   */
+  const extremoIzquierda = extremos.some((e) => e.enLaIzquierda);
+  const extremoDerecha = extremos.some((e) => e.enLaDerecha);
+  // Si los dos costados están ocupados no hay a dónde mandarla y se queda
+  // donde estaba: taparse a medias es mejor que no estar.
+  const guiaDerecha = extremoIzquierda && !extremoDerecha;
+  const guiasVisibles = !detailed
+    ? []
+    : (guides ?? [])
+        .map((g) => ({ ...g, y: yOf(g.value) }))
+        .filter((g) => g.y >= pad + 6 && g.y <= height - pad - 6)
+        .map((g) => ({
+          label: g.label,
+          pct: (g.y / height) * 100,
+          leftPct: guiaDerecha ? ((width - padX) / width) * 100 : (padX / width) * 100,
+          derecha: guiaDerecha,
+        }));
   // Compact's endpoint marker used to feel like a separate button stuck onto
   // the line (big halo ring) — shrunk so it reads as "last value, subtly
   // marked" instead of a UI element competing with the row's own chevron.
@@ -372,7 +437,11 @@ export function SparkChart({
         )}
       </svg>
       {guiasVisibles.map((g) => (
-        <span key={g.label} className="spark-guide-label" style={{ top: `${g.pct}%`, left: `${g.leftPct}%` }}>
+        <span
+          key={g.label}
+          className={`spark-guide-label${g.derecha ? " derecha" : ""}`}
+          style={{ top: `${g.pct}%`, left: `${g.leftPct}%` }}
+        >
           {g.label}
         </span>
       ))}
@@ -382,7 +451,7 @@ export function SparkChart({
       {extremos.map((e) => (
         <span
           key={e.key}
-          className={`spark-extremo${e.arriba ? "" : " abajo"}${hover !== null ? " tapado" : ""}`}
+          className={`spark-extremo${e.debajo ? " abajo" : ""}${hover !== null ? " tapado" : ""}`}
           style={{ top: `${e.topPct}%`, left: `${e.leftPct}%` }}
         >
           {e.texto}

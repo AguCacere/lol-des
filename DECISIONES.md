@@ -344,6 +344,33 @@ eran 22 y 17,1: razón 1,29 para una diferencia real de 1,74). Con `escala` el p
 él (la liga usa 4 puntos, repartidos a los dos lados para que el cero no quede contra
 el borde).
 
+**Las etiquetas del techo y el piso van HACIA ADENTRO de la caja.** Por fuera se
+solapaban, y por construcción: el techo es el punto más alto del gráfico, así que su
+etiqueta puesta arriba se sale de la caja y aterriza sobre el encabezado
+("11V-8D en 4 días"); el piso es el más bajo y la suya puesta abajo aterriza sobre el
+pie ("8 sept · Bronce 1 · 1 LP"). Adentro no hay con qué chocar salvo la curva, y para
+eso la etiqueta lleva su propio fondo.
+
+**Y la etiqueta de una guía se MUEVE DE LADO, no se esconde.** Si un extremo cae en el
+primer cuarto, el texto de la guía se va a la punta derecha. La línea cruza todo el
+ancho, así que su texto vive igual de bien en cualquiera de las dos puntas — y
+esconderlo sería peor: es lo que dice de qué división es esa línea.
+
+**El umbral por distancia entre dos etiquetas de un SVG NO EXISTE si el SVG escala.**
+Se intentó dos veces y las dos fallaron, así que queda escrito. `.lp-svg svg` va con
+`height:auto`: el dibujo se escala entero con el ancho —un viewBox de 620×132 dibujado
+en 324px mide 69px de alto, o sea todo comprimido a 0,52— pero las etiquetas son HTML y
+miden siempre lo mismo. O sea que la separación en unidades del viewBox que hace falta
+para que dos no se toquen DEPENDE del ancho al que se dibuje, y el componente no lo
+sabe. Medido: dos etiquetas separadas por 53 unidades quedaban a 28px en el teléfono y
+se montaban; para la caja más chica hacían falta ~75 de 132, más de la mitad del alto.
+La regla que sí sirve mira el LADO, que no depende de la escala.
+
+**Lo mismo vale para el recorte horizontal.** El `leftPct` de un extremo se recorta a
+14%/86% y no a 9%: media etiqueta (~38px) son 6% del viewBox dibujado a 620px pero 13,4%
+dibujado a 288, que es el ancho de la tarjeta en un teléfono. Con 9% se salía 3px de la
+tarjeta ahí, medido.
+
 **El tooltip no puede ser la única puerta al dato.** En el celular no hay hover, así
 que el gráfico grande del perfil se podía mirar entero sin poder leer un solo valor.
 El techo y el piso de la ventana ahora van escritos sobre el punto (`valorDePunto` en
