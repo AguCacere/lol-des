@@ -73,6 +73,20 @@ const PLOT = W - PASILLO;
 const MIN_RECORRIDO = 4;
 /** Cuánto tienen que separarse dos nombres del pasillo para no pisarse. */
 const SEPARACION = 18;
+/**
+ * Cuánto entra en el pasillo la guía que va del final de la línea a su nombre.
+ *
+ * Existe porque los nombres se EMPUJAN para no pisarse, y con seis que terminan
+ * juntos el nombre queda a veinte píxeles de donde termina su línea. Ahí el
+ * nombre deja de señalar nada: es una lista al costado. La guía vuelve a atar
+ * cada nombre a su línea, que es justo lo que se perdía.
+ *
+ * Está en unidades del viewBox y no en píxeles para que la etiqueta HTML
+ * arranque exactamente donde termina la guía a cualquier ancho — con
+ * preserveAspectRatio="none" los píxeles del SVG y los del HTML no son los
+ * mismos, que es el error que ya se cometió con las etiquetas del gráfico de LP.
+ */
+const GUIA = 12;
 
 /** "+9,75" / "−1,5" / "0", con coma y con el menos de verdad. */
 function pts(n: number): string {
@@ -99,6 +113,11 @@ function marcasDelEje(min: number, max: number): number[] {
 
 export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[]; dias: string[] }) {
   const [enFoco, setEnFoco] = useState<string | null>(null);
+  // El resaltado del mouse va por estado y no por `:hover +` en CSS porque
+  // ahora entra por tres lados —la línea, el nombre del pasillo y el chip— y
+  // tiene que aclarar lo mismo desde cualquiera. Solo cambia opacidad y color:
+  // nada se mueve de lugar, que es lo que hacía insoportable el hover viejo.
+  const [resaltado, setResaltado] = useState<string | null>(null);
   const gid = "carrera-" + useId().replace(/:/g, "");
 
   // Con un solo día corrido —el lunes a la mañana— no hay carrera que dibujar:
@@ -149,7 +168,7 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
    * quedan todos escritos uno encima del otro.
    */
   const nombres = trazos
-    .map((t) => ({ puuid: t.puuid, name: t.name, puntos: t.puntos, y: t.last[1] }))
+    .map((t) => ({ puuid: t.puuid, name: t.name, puntos: t.puntos, y: t.last[1], yLinea: t.last[1] }))
     .sort((a, b) => a.y - b.y);
   for (let i = 1; i < nombres.length; i++) {
     nombres[i].y = Math.max(nombres[i].y, nombres[i - 1].y + SEPARACION);
@@ -226,15 +245,26 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
           {points.slice(1).map(([x], i) => (
             <line key={`d${i}`} x1={x} y1={PAD_Y - 8} x2={x} y2={H - PAD_Y + 8} className="carrera-columna" vectorEffect="non-scaling-stroke" />
           ))}
-          {/* Y la grilla de valores. El cero va aparte y más marcado: es la
-              línea que separa la semana ganada de la perdida, no una marca
-              más. */}
+          {/* Y la grilla de valores.
+
+              El cero llegó a ir PUNTEADO, con el color del texto y más opaco
+              que las líneas de la gente, para que se notara que ahí se separa
+              la semana ganada de la perdida. Salió al revés: punteado es un
+              estilo de SERIE, y una línea del color del texto, más marcada que
+              los datos y flotando en el medio del dibujo, se leía como un
+              jugador más —sobre todo cuando el último cruzaba a negativo y le
+              pasaba por al lado—.
+              Ahora es al revés en las tres cosas: sólida, del color de la
+              grilla y MENOS marcada que cualquier línea de datos. Y llega
+              hasta el borde derecho, pasando de largo donde todas las líneas
+              terminan: lo que cruza la caja entera es mobiliario del gráfico,
+              lo que empieza y termina adentro es un dato. */}
           {marcas.map((m) => (
             <line
               key={m.v}
               x1={EJE}
               y1={m.y}
-              x2={PLOT}
+              x2={m.v === 0 ? W : PLOT}
               y2={m.y}
               className={m.v === 0 ? "carrera-cero" : "carrera-grilla"}
               vectorEffect="non-scaling-stroke"
@@ -245,16 +275,48 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
               superpuestos no se ve ninguna línea: se convierte en un manchón. */}
           <path d={enFocoTrazo.area} fill={`url(#${gid})`} stroke="none" />
 
+          {/* Las guías del pasillo, abajo de todo: van del final de cada línea
+              hasta la altura a la que quedó su nombre. Con seis que terminan
+              amontonados los nombres se empujan y dejan de coincidir con su
+              línea; sin esto, el pasillo es una lista al costado y no la
+              continuación de nada. */}
+          {nombres.map((n) => (
+            <path
+              key={`g${n.puuid}`}
+              d={`M${PLOT},${n.yLinea} C${PLOT + GUIA * 0.55},${n.yLinea} ${PLOT + GUIA * 0.45},${n.y} ${PLOT + GUIA},${n.y}`}
+              className={`carrera-guia${n.puuid === foco.puuid ? " en-foco" : ""}${n.puuid === resaltado ? " resaltada" : ""}`}
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+
           {/* Los que NO están en foco, primero, para que queden por debajo. */}
           {trazos
             .filter((t) => t.puuid !== foco.puuid)
             .map((t) => (
-              <g key={t.puuid} onClick={() => setEnFoco(t.puuid)}>
+              <g
+                key={t.puuid}
+                onClick={() => setEnFoco(t.puuid)}
+                onMouseEnter={() => setResaltado(t.puuid)}
+                onMouseLeave={() => setResaltado(null)}
+              >
                 {/* Un trazo ancho e invisible encima para agarrar el mouse: una
                     línea de 1,5px es imposible de apuntar, y que el gráfico no
                     reaccione a nada es la mitad de la sensación de tosco. */}
                 <path d={t.line} className="carrera-agarre" />
-                <path d={t.line} className="carrera-linea" vectorEffect="non-scaling-stroke" />
+                <path
+                  d={t.line}
+                  className={`carrera-linea${t.puuid === resaltado ? " resaltada" : ""}`}
+                  vectorEffect="non-scaling-stroke"
+                />
+                {/* El punto donde termina. Es el ancla que le falta a una línea
+                    gris para poder seguirla: se encuentra el punto, y de ahí
+                    sale la guía al nombre. */}
+                <circle
+                  cx={t.last[0]}
+                  cy={t.last[1]}
+                  r={2.6}
+                  className={`carrera-punta${t.puuid === resaltado ? " resaltada" : ""}`}
+                />
               </g>
             ))}
           <path d={enFocoTrazo.line} className="carrera-linea en-foco" vectorEffect="non-scaling-stroke" filter={`url(#${gid}-glow)`} />
@@ -272,17 +334,18 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
           </span>
         ))}
 
-        {/* El nombre al final de cada línea, con su marquita adelante. Sin la
-            marca el nombre es texto suelto al costado; con ella se lee como la
-            continuación de la línea, que es lo que es. */}
+        {/* El nombre arranca exactamente donde termina su guía. Antes llevaba
+            una marquita propia adelante, que era un sustituto: ahora la guía
+            viene de la línea de verdad y hace ese trabajo mejor. */}
         {nombres.map((n) => (
           <span
             key={n.puuid}
-            className={`carrera-nombre${n.puuid === foco.puuid ? " en-foco" : ""}`}
-            style={{ top: `${(n.y / H) * 100}%`, left: `${(PLOT / W) * 100}%` }}
+            className={`carrera-nombre${n.puuid === foco.puuid ? " en-foco" : ""}${n.puuid === resaltado ? " resaltada" : ""}`}
+            style={{ top: `${(n.y / H) * 100}%`, left: `${((PLOT + GUIA) / W) * 100}%` }}
             onClick={() => setEnFoco(n.puuid)}
+            onMouseEnter={() => setResaltado(n.puuid)}
+            onMouseLeave={() => setResaltado(null)}
           >
-            <span className="carrera-marca" aria-hidden />
             <span className="carrera-nombre-txt">{n.name}</span>
             <span className="carrera-nombre-pts">{pts(n.puntos)}</span>
           </span>
@@ -310,8 +373,10 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
           <button
             key={t.puuid}
             type="button"
-            className={`carrera-chip${t.puuid === foco.puuid ? " en-foco" : ""}`}
+            className={`carrera-chip${t.puuid === foco.puuid ? " en-foco" : ""}${t.puuid === resaltado ? " resaltada" : ""}`}
             onClick={() => setEnFoco(t.puuid)}
+            onMouseEnter={() => setResaltado(t.puuid)}
+            onMouseLeave={() => setResaltado(null)}
           >
             <span className="carrera-chip-nombre">{t.name}</span>
             <span className="carrera-chip-pts">{pts(t.puntos)}</span>

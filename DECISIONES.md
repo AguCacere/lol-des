@@ -207,6 +207,32 @@ cambia esto: apaga el caché de datos de Next, no el del CDN.
 
 ## Gráficos y SVG
 
+**El punteado es un estilo de SERIE, no de eje.** La línea del cero de la carrera iba
+punteada, con el color del texto y a 0,75 de opacidad —más marcada que las líneas de
+la gente, que van a 0,4— justamente para que se notara el umbral. Se leía como un
+jugador más, sobre todo cuando el último cruzaba a negativo y le pasaba por al lado.
+El arreglo va al revés en las tres cosas: **sólida, del color de la grilla y más
+apagada que cualquier línea de datos** (medido: el cero queda en rgb(46,46,45) contra
+rgb(59,59,56) de una línea de contexto). Y el que marca el umbral pasa a ser el
+**número del eje**, que es texto y nadie confunde con una línea. La otra mitad del
+arreglo es de forma y no de color: el cero **cruza la caja entera** y las líneas de
+datos terminan adentro — lo que llega hasta el borde se lee como mobiliario.
+
+**Una etiqueta que se empuja para no pisarse deja de señalar su línea.** Los nombres
+del pasillo de la carrera se corren hacia abajo cuando dos terminan juntos, y con
+seis que llegan amontonados el nombre queda a veinte píxeles de donde termina su
+línea: el pasillo se convierte en una lista al costado y "se pierde de vista" cuál es
+cuál. La solución no es apretar menos, es **dibujar la guía** del final real de la
+línea hasta la altura a la que quedó el nombre, más **un punto en la punta de cada
+línea** que dé el ancla desde donde empezar a seguirla. La guía va en unidades del
+`viewBox` y la etiqueta HTML arranca exactamente donde la guía termina: con
+`preserveAspectRatio="none"` los píxeles del SVG y los del HTML no son los mismos.
+
+**El resaltado que entra por varios lados va por estado, no por `:hover +`.** Con la
+línea, el nombre del pasillo y el chip apuntando todos al mismo corredor, el selector
+CSS solo cubre uno. Y el resaltado no mueve nada de lugar: solo opacidad y color —
+que el dibujo se reacomode bajo el mouse es lo que hizo insoportable el hover viejo.
+
 **`preserveAspectRatio="none"` deforma.** El `viewBox` tiene que estar cerca del
 tamaño real de render o el dibujo se estira. El remedio para una columna fluida es
 `max-width` igual al ancho del viewBox: **estirar es la dirección fea** —engorda el
