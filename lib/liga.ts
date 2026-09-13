@@ -782,9 +782,11 @@ function listaY(nombres: string[]): string {
  *    como una sola mal escrita.
  * 2. Los del medio van SIN números. El chiste es que no los conoce nadie, y
  *    ponerles el récord al lado los nombra.
- * 3. Lo del premio va aparte del podio, abajo. Quedar primero y cobrar son dos
- *    cosas distintas —hay mínimos— y meterlo adentro de la cargada mezcla el
- *    chiste con la regla, que es justo la que se tiene que entender.
+ * 3. El premio NO se nombra acá. Llegó a estar —una línea abajo del podio que
+ *    aclaraba quién cobraba cuando el primero de la tabla no cumplía los
+ *    mínimos— y se sacó a pedido: el anuncio es la cargada y nada más, y la
+ *    explicación de los mínimos la da la app. Quien lo vuelva a poner que sepa
+ *    que ya se probó y no se quiso.
  */
 export function mensajeDeCierre(inicio: Date, tabla: FilaLiga[]): string {
   const fin = new Date(finDeSemana(inicio).getTime() - 1);
@@ -829,27 +831,6 @@ export function mensajeDeCierre(inicio: Date, tabla: FilaLiga[]): string {
   }
   if (ultimo) {
     lineas.push(`💩 **${ultimo.name}** realmente nadó en caca, quedó último, maleta total. Suerte la próxima — ${marcador(ultimo)}`);
-  }
-
-  // El premio, abajo y aparte. Solo aparece cuando hay algo que aclarar: si el
-  // primero de la tabla cobra, no hace falta decirlo dos veces.
-  const g = ganadorDe(tabla);
-  const leFaltaA = (f: FilaLiga) => {
-    const total = f.victorias + f.derrotas;
-    return total < MINIMO_SEMANAL
-      ? `jugó ${total} en la semana y el mínimo son ${MINIMO_SEMANAL}`
-      : `el último día jugó ${f.ultimoDia} y el mínimo son ${MINIMO_ULTIMO_DIA}`;
-  };
-  if (!g) {
-    lineas.push(
-      "",
-      `💸 Y el premio **no lo cobra nadie**: hay que jugar ${MINIMO_SEMANAL} en la semana y ${MINIMO_ULTIMO_DIA} el último día, y no llegó ninguno. Ni **${primero.name}**, que ${leFaltaA(primero)}.`,
-    );
-  } else if (g.puuid !== primero.puuid) {
-    lineas.push(
-      "",
-      `💸 Pero el premio no es de **${primero.name}**: ${leFaltaA(primero)}. Lo cobra **${g.name}**, que sí cumplió.`,
-    );
   }
 
   lineas.push("", "El lunes a las 00:00 arranca de cero. 🔁");
