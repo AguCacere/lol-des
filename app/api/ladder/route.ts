@@ -1240,6 +1240,18 @@ export async function GET() {
       desactualizados,
       ddragonVersion,
     },
-    { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } }
+    // 240 y no 60. Los sesenta segundos eran CINCO VECES más ajustados que
+    // quien consume esto: el cliente recarga el ladder entero cada 5 minutos
+    // (FULL_REFRESH_MS en app/page.tsx) y los datos de abajo solo cambian
+    // cuando escribe el cron, cada 15. O sea que la caché corta obligaba a
+    // rearmar el ladder —que lee TODAS las partidas ranked de los doce, sin
+    // límite— muchas más veces de las que alguien podía notar la diferencia,
+    // y con doce amigos mirando a la vez eso es lo que llena el pool de
+    // conexiones de Supabase y deja al cron sin ninguna. Ver DECISIONES.
+    //
+    // El estado "en vivo" NO depende de esto: lo trae /api/live, que es la
+    // consulta liviana que la pantalla pollea cada 60s justamente para no
+    // tener que recargar el ladder entero.
+    { headers: { "Cache-Control": "public, s-maxage=240, stale-while-revalidate=600" } }
   );
 }

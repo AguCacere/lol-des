@@ -121,6 +121,32 @@ catorce fallan a la vez, y es la equivocada: ya se descartó midiendo —un `POS
 /api/refresh` manual devolvió "ok" para los catorce mientras el cron llevaba 55 minutos
 sin actualizar a ninguno.
 
+**La caché del CDN no es una optimización: es lo que mantiene vivo al cron.** La base
+es una Nano con un pool de 15 conexiones. Cada lectura sin cachear de los doce amigos
+mirando a la vez es una conexión, y cuando el pool se llena el gateway devuelve 504 —
+incluso a un select de doce filas. Ahí el cron se queda sin conexión y NADIE se
+actualiza, que es el síntoma visible ("actualizado hace 31 min" con un cron de 15).
+
+Dos cosas estaban mal y las dos salieron de contar, no de intuir:
+
+- **`/api/liga` no tenía NINGUNA caché** y es la tabla de la pestaña por defecto: cinco
+  consultas —invocadores, fotos de una semana, partidas de la semana, historial y
+  plantel— por cada visita de cada uno.
+- **`/api/ladder` cacheaba 60 segundos**, cinco veces más ajustado que quien lo consume:
+  el cliente recarga el ladder entero cada 5 minutos (`FULL_REFRESH_MS` en
+  `app/page.tsx`) y los datos de abajo solo cambian cuando escribe el cron, cada 15.
+  O sea que se rearmaba el ladder —que lee TODAS las partidas ranked de los doce, sin
+  límite— muchas más veces de las que nadie podía notar.
+
+Las dos quedaron en `s-maxage=240`. **La regla: la caché se elige contra cada cuánto
+cambian los datos (15 minutos), no contra cada cuánto alguien mira.** Y el estado "en
+vivo" no depende de esto: lo trae `/api/live`, que es la consulta liviana que la
+pantalla pollea cada 60s justamente para no recargar el ladder entero.
+
+**Con caché, toda mutación necesita saltearla.** Agregar un invocador o anotar a alguien
+en la liga y después releer devolvía la respuesta cacheada de ANTES del cambio: parecía
+que el botón no había hecho nada. Las dos relecturas post-POST van con `?t=Date.now()`.
+
 **Un error de Supabase en la primera consulta se lleva puesto el ciclo entero.**
 `refreshAllSummoners` arranca leyendo la lista de invocadores; si esa consulta falla,
 tira antes del bucle y NADIE se refresca — y como los errores por invocador sí están

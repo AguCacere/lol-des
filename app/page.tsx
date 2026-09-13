@@ -57,9 +57,16 @@ export default function Home() {
   const [vista, setVista] = useState<"ladder" | "liga">("ladder");
   const [sortKey, setSortKey] = useState<SortKey>("ladder");
 
-  const loadLadder = useCallback(async () => {
+  /**
+   * `forzar` saltea la caché del CDN con un parámetro que cambia. Hace falta
+   * cuando el usuario acaba de HACER algo —agregar un invocador— y espera ver
+   * el resultado: sin esto le vuelve la respuesta cacheada de antes del cambio
+   * y parece que no pasó nada. El refresco periódico no lo usa: ahí lo que se
+   * quiere es justamente aprovechar la caché.
+   */
+  const loadLadder = useCallback(async (forzar = false) => {
     try {
-      const res = await fetch("/api/ladder");
+      const res = await fetch(forzar ? `/api/ladder?t=${Date.now()}` : "/api/ladder");
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "No se pudo cargar el ladder.");
       setPlayers(data.players as Player[]);
@@ -241,7 +248,7 @@ export default function Home() {
       if (!res.ok) throw new Error(data.error ?? "No se pudo agregar el invocador.");
       setAddStatus({ kind: "idle" });
       setFilterText("");
-      await loadLadder();
+      await loadLadder(true);
       setActiveKey(`${data.account.gameName}#${data.account.tagLine}`);
     } catch (err) {
       setAddStatus({

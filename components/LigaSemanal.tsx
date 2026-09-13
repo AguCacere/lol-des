@@ -159,9 +159,14 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
   /** Qué fila está abierta mostrando sus últimas partidas. */
   const [abierta, setAbierta] = useState<string | null>(null);
 
-  const cargar = useCallback(async () => {
+  /**
+   * `forzar` saltea la caché del CDN con un parámetro que cambia. Hace falta
+   * después de anotar o desanotar a alguien: sin esto vuelve la respuesta
+   * cacheada de antes del cambio y parece que el botón no hizo nada.
+   */
+  const cargar = useCallback(async (forzar = false) => {
     try {
-      const res = await fetch("/api/liga");
+      const res = await fetch(forzar ? `/api/liga?t=${Date.now()}` : "/api/liga");
       if (!res.ok) return;
       setD((await res.json()) as Datos);
     } finally {
@@ -181,7 +186,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ puuid, participa }),
       });
-      if (res.ok) await cargar();
+      if (res.ok) await cargar(true);
     } finally {
       setGuardando(null);
     }
