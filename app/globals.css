@@ -1929,18 +1929,23 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    número+palabra separados solo por espacio se leían como una frase larga que
    se corta en cualquier lado al envolver. Con fondo propio, cada uno es una
    unidad y el corte cae siempre entre píldoras. */
-.mini-breakdown{display:flex; flex-wrap:wrap; gap:5px;}
+/* MISMO chip que .hecho, no uno parecido. Convivían dos lenguajes en la misma
+   tarjeta: los de combate con borde y fondo --surface, los de wards y objetivos
+   sin borde y con --surface-raised. A dos columnas quedaron uno al lado del
+   otro y se vio que eran de dos sistemas distintos. */
+.mini-breakdown{display:flex; flex-wrap:wrap; gap:6px;}
 .mini-breakdown-item{
   display:inline-flex; align-items:center; gap:4px; white-space:nowrap;
-  background:var(--surface-raised); border-radius:999px; padding:3px 9px;
-  font-size:11px; color:var(--text-muted);
+  background:var(--surface); border:1px solid var(--border-soft); border-radius:999px;
+  padding:2px 8px; font-size:11px; color:var(--text-secondary);
 }
 /* Un cero no es un dato que valga una píldora prendida: se apaga para que las
    que sí pasaron algo salten a la vista. */
 .mini-breakdown-item.en-cero{opacity:0.45;}
+.mini-breakdown-item.en-cero strong{color:var(--text-secondary);}
 .mini-breakdown-icon{width:12px; height:12px; flex:none;}
 .mini-breakdown-item strong{
-  font-family:var(--font-stat); color:var(--text-primary); font-weight:700; font-size:12.5px;
+  font-family:var(--font-stat); color:var(--text-primary); font-weight:700; font-size:11.5px;
   font-variant-numeric:tabular-nums;
 }
 .gd-pos{color:var(--good);}
@@ -2969,16 +2974,20 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* La lectura de la partida, debajo del gráfico. Barra de color a la izquierda
    según si la línea salió a favor o en contra — es una conclusión, no un dato
    más, y tiene que distinguirse de las cifras de al lado. */
+/* Desde que la tarjeta va a dos columnas, este bloque tiene la mitad del ancho
+   y a 13px la conclusión entraba en tres renglones. Baja a 12 con el interlineado
+   un poco más corto: la frase es la conclusión de la partida y tiene que leerse
+   de un saque, no ocupar un párrafo. */
 .match-story{
-  display:flex; align-items:baseline; flex-wrap:wrap; gap:5px 8px;
-  margin:12px 0 0; padding:10px 13px;
+  display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 7px;
+  margin:10px 0 0; padding:9px 11px;
   background:var(--surface-raised); border-radius:var(--radius-sm);
   border-left:3px solid var(--text-muted);
-  font-size:13px; line-height:1.5; color:var(--text-secondary);
+  font-size:12px; line-height:1.45; color:var(--text-secondary);
 }
 .match-story.good{border-left-color:var(--good);}
 .match-story.bad{border-left-color:var(--critical);}
-.match-story-linea{color:var(--text-primary); font-weight:600;}
+.match-story-linea{color:var(--text-primary); font-weight:600; letter-spacing:-0.005em;}
 .match-story-contexto{color:var(--text-muted);}
 
 /* Navegador de semanas del resumen. Las flechas van a los costados del rango

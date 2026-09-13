@@ -405,6 +405,25 @@ el arte de Riot y no pretende serlo, pero deja de parecer roto. **Ojo**: el embl
 lleva `clip-path:none` a propósito — es su propia forma irregular con su glow horneado,
 y recortarlo en escudo lo arruina.
 
+**Una sola familia de chips en toda la tarjeta.** Convivían dos: los de Combate con
+borde y fondo `--surface`, los de wards y objetivos sin borde y con `--surface-raised`.
+De una columna no se notaba; a dos columnas quedaron uno al lado del otro y se vio que
+eran de dos sistemas distintos. Ahora `.mini-breakdown-item` es idéntico a `.hecho` —
+verificado propiedad por propiedad en el DOM: tamaño, padding, radio, fondo, borde y
+color.
+
+**Y la fila de objetivos no lleva rótulo, igual que la de Combate.** "Torres",
+"dragones" y "barones" ya dicen que son objetivos: la palabra OBJETIVOS adelante era
+redundante y se comía noventa píxeles de la primera fila, que a media columna es lo que
+decide si las cinco píldoras entran en un renglón o en tres. De 3 filas ragged a 1 (o 2
+en el teléfono).
+
+**El signo de pregunta de una fila de chips va ADENTRO del flex, no al lado.** Como
+hermano del contenedor se llevaba un renglón entero para sí solo —arriba o abajo de las
+píldoras, según dónde se lo pusiera— porque el contenedor es ancho y lo empujaba. Se
+probaron las dos posiciones y las dos fallaron igual; la que anda es pasarlo como item
+más del mismo flex (`tip` en `MiniBreakdown`).
+
 **La tarjeta de partida no es una lista, son tres filas.** Eran seis bloques apilados
 —media pantalla de scroll para una partida— y la BUILD estaba al fondo de todo, abajo
 de los números. No tiene sentido: con qué jugaste es parte de cómo se dio la partida, no

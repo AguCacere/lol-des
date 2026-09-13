@@ -100,9 +100,23 @@ function plural(n: number, singular: string, plural: string): string {
   return n === 1 ? singular : plural;
 }
 
-function MiniBreakdown({ items }: { items: { value: number; label: string; icons?: string[] }[] }) {
+function MiniBreakdown({
+  items,
+  tip,
+}: {
+  items: { value: number; label: string; icons?: string[] }[];
+  /**
+   * La aclaración de la fila, si la tiene. Va ADENTRO del flex de las píldoras
+   * y no al lado: como hermano del contenedor se llevaba un renglón entero
+   * para sí solo —arriba o abajo de las píldoras, según dónde se lo pusiera—
+   * porque el contenedor es ancho y lo empujaba. Adentro fluye y envuelve con
+   * ellas, que es lo que uno espera de un signo de pregunta.
+   */
+  tip?: string;
+}) {
   return (
     <span className="v mini-breakdown">
+      {tip && <InfoTip text={tip} />}
       {items.map((it) => (
         <span className={`mini-breakdown-item${it.value === 0 ? " en-cero" : ""}`} key={it.label}>
           {it.icons?.map((src, i) => (
@@ -429,12 +443,15 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
             />
           </div>
 
+          {/* Sin rótulo, igual que la fila de hechos de Combate. "Torres",
+              "dragones" y "barones" ya dicen que son objetivos: la palabra
+              OBJETIVOS adelante era redundante y se comía noventa píxeles de
+              la primera fila, que a media columna es lo que decide si las
+              cinco píldoras entran en un renglón o en dos. La aclaración de
+              cómo se cuentan queda en el signo de pregunta del final. */}
           <div className="hechos objetivos">
-            <span className="hechos-k">
-              Objetivos
-              <InfoTip text="Torres, dragones, barones y heraldo cuentan participación (kill o asistencia), no solo si vos diste el golpe final. Inhibidores es la excepción: Riot no expone participación para eso, solo cuenta si lo rompiste vos. Vacas del Vacío no están porque Riot tampoco las separa del resto." />
-            </span>
             <MiniBreakdown
+              tip="Torres, dragones, barones y heraldo cuentan participación (kill o asistencia), no solo si vos diste el golpe final. Inhibidores es la excepción: Riot no expone participación para eso, solo cuenta si lo rompiste vos. Vacas del Vacío no están porque Riot tampoco las separa del resto."
               items={[
                 { value: m.turretTakedowns, label: plural(m.turretTakedowns, "torre", "torres") },
                 {
