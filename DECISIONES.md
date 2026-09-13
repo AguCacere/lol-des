@@ -405,6 +405,26 @@ el arte de Riot y no pretende serlo, pero deja de parecer roto. **Ojo**: el embl
 lleva `clip-path:none` a propósito — es su propia forma irregular con su glow horneado,
 y recortarlo en escudo lo arruina.
 
+**Un componente que vive adentro de otro se mide con `@container`, no con `@media`.**
+Esto ya se rompió una vez y vale escribirlo entero. La tarjeta de partida pasó a dos
+columnas con `@media (max-width:720px)`, que mide el VIEWPORT — pero la tarjeta no ocupa
+el viewport: vive adentro de la fila del perfil con el ancho que le toque. En un monitor
+de 1400px la tarjeta puede medir 640 y cada columna 290, y ahí el bloque de "cómo se dio
+la partida" —que tiene un eje de tiempo con los hitos ubicados en el minuto real— se
+quedaba sin lugar y apilaba las etiquetas en tres renglones arriba de un gráfico
+aplastado. Desde afuera parecía un problema de diseño; era un breakpoint midiendo la
+cosa equivocada.
+
+El corte quedó en **880px de contenedor** y no menos por una razón medida: es lo que
+hace falta para que cada columna quede en ~430px, que es donde el 22% de `SOLAPE_PCT`
+(`MatchTimeline`) vuelve a valer lo que mide una etiqueta de hito. Con columnas más
+angostas, una separación expresada en PORCENTAJE deja de proteger de las
+superposiciones — el porcentaje es el mismo pero los píxeles no. Verificado en ocho
+anchos de contenedor, de 1120 a 360: cero etiquetas pisadas en todos.
+
+Y la primera fila no va 50/50 sino 1,35fr contra 1fr: el relato lleva el gráfico con su
+eje y la build es una tira de íconos que se arregla con menos.
+
 **Una sola familia de chips en toda la tarjeta.** Convivían dos: los de Combate con
 borde y fondo `--surface`, los de wards y objetivos sin borde y con `--surface-raised`.
 De una columna no se notaba; a dos columnas quedaron uno al lado del otro y se vio que

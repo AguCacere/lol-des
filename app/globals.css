@@ -1782,6 +1782,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    mitigado)"), las etiquetas quedaban a alturas distintas y el bloque se leía
    como números desparramados. En filas, todos los valores caen sobre la misma
    guía a la derecha y el ojo los recorre de una. */
+/* El contenedor contra el que se miden las columnas de adentro. */
+.match-detail{container-type:inline-size; container-name:tarjeta;}
 .match-detail-cuerpo{display:flex; flex-direction:column; gap:12px;}
 
 /* Dos columnas. La tarjeta era una sola columna de seis bloques apilados —
@@ -1789,10 +1791,27 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    de todos los números, cuando con qué jugaste es parte de cómo se dio la
    partida y no una nota al pie. El relato y la build van juntos arriba; los dos
    bloques de números, juntos abajo. En el teléfono se apila igual que antes. */
-.match-dos{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px 20px; align-items:start;}
+/* Una columna por DEFECTO, y dos solo cuando el CONTENEDOR da el ancho. No la
+   pantalla: el contenedor.
+
+   Esto salió mal una vez y vale escribirlo. La primera versión usaba
+   @media (max-width:720px), que mide el viewport — pero esta tarjeta no ocupa
+   el viewport, vive adentro de la fila del perfil con el ancho que le toque.
+   En un monitor de 1400px la tarjeta puede medir 640 y cada columna 290, y ahí
+   el bloque de "cómo se dio la partida" —que tiene un eje de tiempo con los
+   hitos ubicados en el minuto real— se quedaba sin lugar y apilaba las
+   etiquetas en tres renglones arriba de un gráfico aplastado.
+
+   880px de contenedor y no menos: es lo que hace falta para que cada columna
+   quede en ~430, que es donde el 22% de SOLAPE_PCT (ver MatchTimeline) vuelve
+   a valer lo que mide una etiqueta de hito. Con columnas más angostas la
+   separación en porcentaje deja de proteger de las superposiciones. */
+.match-dos{display:grid; grid-template-columns:1fr; gap:0; align-items:start;}
 .match-dos > .match-detail-group{margin:0;}
-@media (max-width:720px){
-  .match-dos{grid-template-columns:1fr; gap:0;}
+@container tarjeta (min-width:880px){
+  /* El relato pide más ancho que la build: lleva el gráfico con su eje de
+     tiempo, y la build es una tira de íconos que se arregla con menos. */
+  .match-dos{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:10px 22px;}
 }
 
 /* UNA CUOTA: qué porción del equipo te tocó. La barra contra la marca del
