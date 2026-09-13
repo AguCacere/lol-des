@@ -15,6 +15,12 @@
  * archivo, no una cuenta regresiva. Una competencia con fecha de cierre tiene
  * que decir en qué punto de la semana está, y la barra de siete días lo dice de
  * un vistazo: cuántos pasaron, cuál es hoy, y que el último es el que decide.
+ *
+ * Lo que este panel NO hace: coronar a nadie con la semana a medio jugar. Si el
+ * que va primero todavía no cumple los mínimos, dice eso —que el primero no
+ * cobra y qué le falta— y se calla el resto. Antes anunciaba al segundo que sí
+ * cumplía ("Hoy lo cobra Fulano") y eso es un ganador que en dos horas puede no
+ * serlo: la tabla está abajo y el que quiera sacar la cuenta la saca.
  */
 
 export interface CorredorEstado {
@@ -87,11 +93,21 @@ export function LigaEstado({
       };
     }
     if (cobra && lider) {
-      // El caso que justifica el panel entero: el que va ganando NO cobra.
+      // El que va primero no cumple y otro sí. Se dice ESO —que el primero
+      // todavía no cobra y qué le falta— y NADA MÁS: coronar al que sí cumple
+      // con la semana a medio jugar es anunciar un ganador que puede no serlo
+      // en dos horas. La tabla está abajo y el que quiera sacar la cuenta la
+      // saca; la pantalla no la saca por él.
+      const jugadas = lider.victorias + lider.derrotas;
+      const faltanSemana = Math.max(0, minimoSemanal - jugadas);
+      const faltanHoy = Math.max(0, minimoUltimoDia - (lider.ultimoDia ?? 0));
+      const loQueFalta = faltanSemana > 0
+        ? `Le ${faltanSemana === 1 ? "falta" : "faltan"} ${faltanSemana} de la semana`
+        : `Le ${faltanHoy === 1 ? "falta" : "faltan"} ${faltanHoy} de hoy`;
       return {
         tono: "alerta",
-        titulo: `Hoy lo cobra ${cobra.name}`,
-        detalle: `${lider.name} va primero pero todavía no cumple los mínimos. Si la semana cerrara ahora, el premio no es suyo.`,
+        titulo: `${lider.name} todavía no cobra`,
+        detalle: `Va primero, pero si la semana cerrara ahora el premio no es suyo. ${loQueFalta}.`,
       };
     }
     if (esUltimoDia) {
