@@ -23,23 +23,23 @@ import { lineAreaGeometry } from "@/lib/chart";
  *    había una arriba y un montón abajo, o sea lo mismo que ya decía la tabla.
  * 2. No se sabía DE QUIÉN era cada línea sin ir a tocar un chip. Un gráfico que
  *    no se entiende sin tocarlo no se entiende.
- * La selección va por CLICK y no por hover. Con seis líneas y seis nombres, el
- * hover hacía que el resaltado saltara de una a otra con solo cruzar el gráfico
- * con el mouse: el dibujo se movía solo mientras uno intentaba leerlo. El hover
- * quedó nada más como afordancia —la línea de abajo del mouse se aclara un
- * poco— que avisa que se puede tocar sin cambiar nada.
- *
  * 3. Quedaba TOSCO: polilínea pelada sobre fondo negro, sin relleno, sin
  *    jerarquía arriba y sin nada que separara los días. Ahora la curva es
  *    suave, la que está en foco lleva su degradado abajo, la grilla tiene
  *    columnas por día y el encabezado tiene tres niveles en vez de un renglón
  *    con todo apretado.
  *
- * La curva suave es `smoothLinePath` (lib/chart.ts), que pasa por el punto
- * medio de cada par usando el punto real de control: cada tramo queda DENTRO
- * del triángulo de sus tres puntos reales, así que a diferencia de una
- * Catmull-Rom nunca se pasa de lo que los datos aguantan. Y los puntos reales
- * quedan marcados igual, que es lo que mantiene la curva honesta.
+ * La selección va por CLICK y no por hover. Con seis líneas, el hover hacía que
+ * el resaltado saltara de una a otra con solo cruzar el gráfico con el mouse:
+ * el dibujo se movía solo mientras uno intentaba leerlo. El hover quedó nada
+ * más como afordancia —la línea de abajo del mouse se aclara un poco— que avisa
+ * que se puede tocar sin cambiar nada.
+ *
+ * La curva suave es `smoothLinePath` (lib/chart.ts): interpolación cúbica
+ * monótona, o sea que PASA por cada punto y no se pasa entre dos. Las dos
+ * propiedades importan acá — la primera porque el gráfico marca cada cierre de
+ * día con un círculo y si la curva no lo toca se contradice sola, la segunda
+ * porque una Catmull-Rom inventaría picos que los datos no tienen.
  */
 
 export interface CorredorCarrera {

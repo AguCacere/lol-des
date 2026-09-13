@@ -405,6 +405,21 @@ el arte de Riot y no pretende serlo, pero deja de parecer roto. **Ojo**: el embl
 lleva `clip-path:none` a propósito — es su propia forma irregular con su glow horneado,
 y recortarlo en escudo lo arruina.
 
+**La tarjeta de partida no es una lista, son tres filas.** Eran seis bloques apilados
+—media pantalla de scroll para una partida— y la BUILD estaba al fondo de todo, abajo
+de los números. No tiene sentido: con qué jugaste es parte de cómo se dio la partida, no
+una nota al pie. Ahora: el encabezado (bandera + duración/CS/oro/nivel), después el
+relato y la build lado a lado, y abajo los dos bloques de números lado a lado. En el
+teléfono se apila igual que antes. Medido a 1000px: de una columna de seis a tres filas,
+707px de alto.
+
+**Y las tres cuotas van JUNTAS, en su propia sección.** Antes había dos en "Combate" y
+una en "Visión", y son exactamente el mismo tipo de número: qué porción del equipo te
+tocó. Separadas no se podían comparar entre ellas; juntas, sobre la misma escala y
+contra la misma marca del quinto, se lee de un vistazo en qué pesaste y en qué no — que
+es la lectura que de verdad describe una partida. Un support con 58% de las kills y 6%
+del daño cuenta una historia; los mismos dos números en dos secciones distintas, no.
+
 **Un bloque de estadísticas se siente "formulario" cuando dibuja igual tres tipos de
 número que no valen lo mismo.** El detalle de partida tenía trece filas
 etiqueta→valor idénticas, y ahí "% daño del equipo 14%" pesaba exactamente lo mismo que

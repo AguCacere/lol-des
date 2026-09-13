@@ -244,12 +244,6 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
         </div>
       )}
 
-      {/* Primero de todo: es lo que cuenta la partida. Los números de abajo
-          la describen, esto la narra. */}
-      {hasTimeline && (
-        <Group label="Cómo se dio la partida" icon={<TrendUpIcon />} ancho={<MatchTimeline match={m} ddragonVersion={ddragonVersion} />} />
-      )}
-
       {/* Duración, CS, oro, nivel y fecha eran cinco celdas con su título
           arriba: quince líneas de alto para cinco números que se leen mejor
           seguidos, como el encabezado de una ficha y no como un formulario. */}
@@ -276,175 +270,197 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
         <span className="match-meta-fecha">{formatRelativeDate(m.playedAt)}</span>
       </div>
 
-      <Group label="Combate" icon={<ZapIcon />}>
-        {/* Primero las cuotas: son las dos que dicen si la partida estuvo bien
-            o mal jugada, y son las únicas que tienen contra qué compararse. */}
+      {/* La narración y la build, lado a lado. Antes la build estaba al FONDO,
+          abajo de todos los números, y no tiene sentido: con qué jugaste es
+          parte de cómo se dio la partida, no una nota al pie. Y la tarjeta
+          entera era una sola columna de seis bloques apilados — media pantalla
+          de scroll para una partida. En dos columnas el relato y la build se
+          leen juntos, que es como se piensan. En el teléfono se apilan. */}
+      <div className="match-dos">
+      {/* Primero de todo: es lo que cuenta la partida. Los números de abajo
+          la describen, esto la narra. */}
+        {hasTimeline && (
+          <Group label="Cómo se dio la partida" icon={<TrendUpIcon />} ancho={<MatchTimeline match={m} ddragonVersion={ddragonVersion} />} />
+        )}
+        <Group
+          label="Build"
+          icon={<ShieldIcon />}
+          ancho={
+            // Runas, hechizos y recorrido eran tres filas apiladas con su
+            // etiqueta cada una: media pantalla de celular para tres datos que
+            // se leen de un vistazo si están juntos. Acá van en una tira, con
+            // la compra completa plegada al final.
+            <div className="build-strip">
+              <div className="build-strip-top">
+                <span
+                  className="build-chip"
+                  title={m.primaryStyle && m.secondaryStyle ? `${m.primaryStyle} / ${m.secondaryStyle}` : undefined}
+                >
+                  {m.primaryRuneIconUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element -- ícono chico de tamaño fijo
+                    <img className="build-icon" src={m.primaryRuneIconUrl} alt="" />
+                  )}
+                  {m.primaryRune ?? "—"}
+                </span>
+                {/* Con íconos van los dos pegados; sin íconos hace falta el
+                    separador o se lee "FlashTeleport". */}
+                <span className="build-chip">
+                  {m.summoner1IconUrl && m.summoner2IconUrl ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element -- ícono chico de tamaño fijo */}
+                      <img className="build-icon" src={m.summoner1IconUrl} alt={m.summoner1 ?? ""} title={m.summoner1 ?? undefined} />
+                      {/* eslint-disable-next-line @next/next/no-img-element -- ícono chico de tamaño fijo */}
+                      <img className="build-icon" src={m.summoner2IconUrl} alt={m.summoner2 ?? ""} title={m.summoner2 ?? undefined} />
+                    </>
+                  ) : (
+                    `${m.summoner1 ?? "—"} / ${m.summoner2 ?? "—"}`
+                  )}
+                </span>
+              </div>
+              <BuildPath items={m.coreBuild} version={ddragonVersion} />
+              <CompraCompleta compra={m.compra} version={ddragonVersion} />
+            </div>
+          }
+        />
+      </div>
+
+      {/* Las tres cuotas JUNTAS, que es la idea nueva de todo esto. Antes había
+          dos en "Combate" y una en "Visión", y son el mismo tipo de número: qué
+          porción del equipo te tocó. Separadas no se podían comparar entre
+          ellas; juntas, sobre la misma escala y contra la misma marca del
+          quinto, se lee de un vistazo en qué pesaste y en qué no — que es la
+          lectura que de verdad describe una partida. */}
+      <Group label="Tu peso en el equipo" icon={<ZapIcon />}>
         <div className="cuotas">
           <Cuota
-            label="Del daño del equipo"
+            label="Del daño a campeones"
             pct={m.dmgShare}
             tooltip={METRIC_INFO.dmgShare}
             referencia={{ valor: 20, texto: "El 20% es tu quinta parte: lo que te toca si los cinco pegan igual." }}
           />
-          <Cuota label="De las kills del equipo" pct={m.killParticipation} tooltip={METRIC_INFO.killParticipation} />
-        </div>
-
-        {/* Después las magnitudes, con el número adelante. */}
-        <div className="fichas">
-          <Ficha valor={m.damageToChamps.toLocaleString("es-AR")} label="Daño a campeones" />
-          {m.damagePerMin != null && (
-            <Ficha valor={Math.round(m.damagePerMin).toLocaleString("es-AR")} label="Daño por minuto" />
-          )}
-          <Ficha
-            valor={m.damageTaken.toLocaleString("es-AR")}
-            label="Daño recibido"
-            sub={`${m.damageMitigated.toLocaleString("es-AR")} mitigado`}
-          />
-          {/* Curación y escudo: solo de support, y solo si Riot mandó los datos.
-              En cualquier otra línea son ruido —un bruiser "cura" con robo de
-              vida y no ayudó a nadie— y acá la cifra es sobre COMPAÑEROS, que es
-              la única que dice lo que un enchanter hizo por el equipo. */}
-          {esSupport && curacion !== null && (
-            <Ficha
-              tono="cura"
-              valor={curacion.toLocaleString("es-AR")}
-              label="Curados"
-              tooltip="Vida curada sobre tus COMPAÑEROS, no sobre vos: la curación propia del robo de vida no entra. Solo se muestra de support porque en las otras líneas el número no dice nada."
-            />
-          )}
-          {esSupport && escudo !== null && (
-            <Ficha tono="escudo" valor={escudo.toLocaleString("es-AR")} label="De escudo" />
-          )}
-        </div>
-
-        {/* Y al final los HECHOS: cosas que pasaron o no pasaron. Antes cada una
-            se comía una fila entera del formulario con el mismo peso que el daño
-            del equipo — "Primera sangre: No" ocupaba lo mismo que la cuota que
-            define la partida. Como chips ocupan un renglón entre todas, y las
-            que no pasaron se apagan en vez de desaparecer: un 0 en solo kills
-            es información para el que esperaba tener alguno. */}
-        <div className="hechos">
-          {m.skillshotsHit != null && (
-            <span className={`hecho${m.skillshotsHit === 0 ? " en-cero" : ""}`}>
-              <strong>{m.skillshotsHit}</strong> skillshots
-            </span>
-          )}
-          {m.soloKills != null && (
-            <span className={`hecho${m.soloKills === 0 ? " en-cero" : ""}`}>
-              <strong>{m.soloKills}</strong> solo {plural(m.soloKills, "kill", "kills")}
-            </span>
-          )}
-          {m.firstBlood && <span className="hecho destacado">🩸 Primera sangre</span>}
-          {m.pentaKills > 0 && (
-            <span className="hecho destacado">
-              <strong>{m.pentaKills}</strong> {plural(m.pentaKills, "pentakill", "pentakills")}
-            </span>
-          )}
-        </div>
-      </Group>
-
-      <Group label="Visión y objetivos" icon={<EyeIcon />}>
-        <div className="cuotas">
+          <Cuota label="De las kills" pct={m.killParticipation} tooltip={METRIC_INFO.killParticipation} />
           <Cuota
-            label="De los objetivos del equipo"
+            label="De los objetivos"
             pct={m.objShare}
             tooltip={METRIC_INFO.objShare}
             referencia={{ valor: 20, texto: "El 20% es tu quinta parte: lo que te toca si los cinco participan igual." }}
           />
         </div>
-
-        {/* El puntaje de visión con sus wards pegados abajo: el puntaje SALE de
-            los wards, así que separarlos en dos filas de formulario obligaba a
-            atar dos datos que son uno solo. */}
-        <div className="fichas">
-          <Ficha
-            valor={m.visionScore}
-            label="Puntaje de visión"
-            tooltip={METRIC_INFO.visionScore}
-            sub={
-              <MiniBreakdown
-                items={[
-                  { value: m.wardsPlaced, label: plural(m.wardsPlaced, "puesto", "puestos") },
-                  { value: m.wardsKilled, label: plural(m.wardsKilled, "limpiado", "limpiados") },
-                  { value: m.controlWards, label: "de control" },
-                ]}
-              />
-            }
-          />
-        </div>
-
-        <div className="hechos objetivos">
-          <span className="hechos-k">
-            Objetivos
-            <InfoTip text="Torres, dragones, barones y heraldo cuentan participación (kill o asistencia), no solo si vos diste el golpe final. Inhibidores es la excepción: Riot no expone participación para eso, solo cuenta si lo rompiste vos. Vacas del Vacío no están porque Riot tampoco las separa del resto." />
-          </span>
-          <MiniBreakdown
-            items={[
-              { value: m.turretTakedowns, label: plural(m.turretTakedowns, "torre", "torres") },
-              {
-                value: m.dragonTakedowns,
-                label: plural(m.dragonTakedowns, "dragón", "dragones"),
-                // Un ícono real por dragón que efectivamente mató este jugador
-                // (Match-V5 timeline, monsterSubType) — Hextech/Chemtech/Elder
-                // no tienen arte propio así que esos kills quedan sin ícono,
-                // pero siguen contando en el número. Si solo asistió (no mató)
-                // o la partida es vieja sin timeline guardado, cae al infernal
-                // genérico, mejor que nada.
-                icons:
-                  m.dragonTypes.length > 0
-                    ? m.dragonTypes.map((t) => DRAGON_ICON_BY_SUBTYPE[t]).filter((src): src is string => !!src)
-                    : m.dragonTakedowns > 0
-                      ? ["/icons/dragons/infernal-48.png"]
-                      : [],
-              },
-              { value: m.baronTakedowns, label: plural(m.baronTakedowns, "barón", "barones") },
-              { value: m.heraldTakedowns, label: plural(m.heraldTakedowns, "heraldo", "heraldos") },
-              { value: m.inhibitorKills, label: plural(m.inhibitorKills, "inhibidor", "inhibidores") },
-            ]}
-          />
-        </div>
       </Group>
 
-      <Group
-        label="Build"
-        icon={<ShieldIcon />}
-        ancho={
-          // Runas, hechizos y recorrido eran tres filas apiladas con su
-          // etiqueta cada una: media pantalla de celular para tres datos que
-          // se leen de un vistazo si están juntos. Acá van en una tira, con
-          // la compra completa plegada al final.
-          <div className="build-strip">
-            <div className="build-strip-top">
-              <span
-                className="build-chip"
-                title={m.primaryStyle && m.secondaryStyle ? `${m.primaryStyle} / ${m.secondaryStyle}` : undefined}
-              >
-                {m.primaryRuneIconUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element -- ícono chico de tamaño fijo
-                  <img className="build-icon" src={m.primaryRuneIconUrl} alt="" />
-                )}
-                {m.primaryRune ?? "—"}
-              </span>
-              {/* Con íconos van los dos pegados; sin íconos hace falta el
-                  separador o se lee "FlashTeleport". */}
-              <span className="build-chip">
-                {m.summoner1IconUrl && m.summoner2IconUrl ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element -- ícono chico de tamaño fijo */}
-                    <img className="build-icon" src={m.summoner1IconUrl} alt={m.summoner1 ?? ""} title={m.summoner1 ?? undefined} />
-                    {/* eslint-disable-next-line @next/next/no-img-element -- ícono chico de tamaño fijo */}
-                    <img className="build-icon" src={m.summoner2IconUrl} alt={m.summoner2 ?? ""} title={m.summoner2 ?? undefined} />
-                  </>
-                ) : (
-                  `${m.summoner1 ?? "—"} / ${m.summoner2 ?? "—"}`
-                )}
-              </span>
-            </div>
-            <BuildPath items={m.coreBuild} version={ddragonVersion} />
-            <CompraCompleta compra={m.compra} version={ddragonVersion} />
+      {/* Y los dos bloques de números, también lado a lado. */}
+      <div className="match-dos">
+        <Group label="Combate" icon={<ZapIcon />}>
+          {/* Primero las cuotas: son las dos que dicen si la partida estuvo bien
+              o mal jugada, y son las únicas que tienen contra qué compararse. */}
+
+          {/* Después las magnitudes, con el número adelante. */}
+          <div className="fichas">
+            <Ficha valor={m.damageToChamps.toLocaleString("es-AR")} label="Daño a campeones" />
+            {m.damagePerMin != null && (
+              <Ficha valor={Math.round(m.damagePerMin).toLocaleString("es-AR")} label="Daño por minuto" />
+            )}
+            <Ficha
+              valor={m.damageTaken.toLocaleString("es-AR")}
+              label="Daño recibido"
+              sub={`${m.damageMitigated.toLocaleString("es-AR")} mitigado`}
+            />
+            {/* Curación y escudo: solo de support, y solo si Riot mandó los datos.
+                En cualquier otra línea son ruido —un bruiser "cura" con robo de
+                vida y no ayudó a nadie— y acá la cifra es sobre COMPAÑEROS, que es
+                la única que dice lo que un enchanter hizo por el equipo. */}
+            {esSupport && curacion !== null && (
+              <Ficha
+                tono="cura"
+                valor={curacion.toLocaleString("es-AR")}
+                label="Curados"
+                tooltip="Vida curada sobre tus COMPAÑEROS, no sobre vos: la curación propia del robo de vida no entra. Solo se muestra de support porque en las otras líneas el número no dice nada."
+              />
+            )}
+            {esSupport && escudo !== null && (
+              <Ficha tono="escudo" valor={escudo.toLocaleString("es-AR")} label="De escudo" />
+            )}
           </div>
-        }
-      />
+
+          {/* Y al final los HECHOS: cosas que pasaron o no pasaron. Antes cada una
+              se comía una fila entera del formulario con el mismo peso que el daño
+              del equipo — "Primera sangre: No" ocupaba lo mismo que la cuota que
+              define la partida. Como chips ocupan un renglón entre todas, y las
+              que no pasaron se apagan en vez de desaparecer: un 0 en solo kills
+              es información para el que esperaba tener alguno. */}
+          <div className="hechos">
+            {m.skillshotsHit != null && (
+              <span className={`hecho${m.skillshotsHit === 0 ? " en-cero" : ""}`}>
+                <strong>{m.skillshotsHit}</strong> skillshots
+              </span>
+            )}
+            {m.soloKills != null && (
+              <span className={`hecho${m.soloKills === 0 ? " en-cero" : ""}`}>
+                <strong>{m.soloKills}</strong> solo {plural(m.soloKills, "kill", "kills")}
+              </span>
+            )}
+            {m.firstBlood && <span className="hecho destacado">🩸 Primera sangre</span>}
+            {m.pentaKills > 0 && (
+              <span className="hecho destacado">
+                <strong>{m.pentaKills}</strong> {plural(m.pentaKills, "pentakill", "pentakills")}
+              </span>
+            )}
+          </div>
+        </Group>
+        <Group label="Visión y objetivos" icon={<EyeIcon />}>
+
+          {/* El puntaje de visión con sus wards pegados abajo: el puntaje SALE de
+              los wards, así que separarlos en dos filas de formulario obligaba a
+              atar dos datos que son uno solo. */}
+          <div className="fichas">
+            <Ficha
+              valor={m.visionScore}
+              label="Puntaje de visión"
+              tooltip={METRIC_INFO.visionScore}
+              sub={
+                <MiniBreakdown
+                  items={[
+                    { value: m.wardsPlaced, label: plural(m.wardsPlaced, "puesto", "puestos") },
+                    { value: m.wardsKilled, label: plural(m.wardsKilled, "limpiado", "limpiados") },
+                    { value: m.controlWards, label: "de control" },
+                  ]}
+                />
+              }
+            />
+          </div>
+
+          <div className="hechos objetivos">
+            <span className="hechos-k">
+              Objetivos
+              <InfoTip text="Torres, dragones, barones y heraldo cuentan participación (kill o asistencia), no solo si vos diste el golpe final. Inhibidores es la excepción: Riot no expone participación para eso, solo cuenta si lo rompiste vos. Vacas del Vacío no están porque Riot tampoco las separa del resto." />
+            </span>
+            <MiniBreakdown
+              items={[
+                { value: m.turretTakedowns, label: plural(m.turretTakedowns, "torre", "torres") },
+                {
+                  value: m.dragonTakedowns,
+                  label: plural(m.dragonTakedowns, "dragón", "dragones"),
+                  // Un ícono real por dragón que efectivamente mató este jugador
+                  // (Match-V5 timeline, monsterSubType) — Hextech/Chemtech/Elder
+                  // no tienen arte propio así que esos kills quedan sin ícono,
+                  // pero siguen contando en el número. Si solo asistió (no mató)
+                  // o la partida es vieja sin timeline guardado, cae al infernal
+                  // genérico, mejor que nada.
+                  icons:
+                    m.dragonTypes.length > 0
+                      ? m.dragonTypes.map((t) => DRAGON_ICON_BY_SUBTYPE[t]).filter((src): src is string => !!src)
+                      : m.dragonTakedowns > 0
+                        ? ["/icons/dragons/infernal-48.png"]
+                        : [],
+                },
+                { value: m.baronTakedowns, label: plural(m.baronTakedowns, "barón", "barones") },
+                { value: m.heraldTakedowns, label: plural(m.heraldTakedowns, "heraldo", "heraldos") },
+                { value: m.inhibitorKills, label: plural(m.inhibitorKills, "inhibidor", "inhibidores") },
+              ]}
+            />
+          </div>
+        </Group>
+      </div>
     </div>
   );
 }

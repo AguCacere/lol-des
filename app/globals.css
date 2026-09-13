@@ -1782,7 +1782,18 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    mitigado)"), las etiquetas quedaban a alturas distintas y el bloque se leía
    como números desparramados. En filas, todos los valores caen sobre la misma
    guía a la derecha y el ojo los recorre de una. */
-.match-detail-cuerpo{display:flex; flex-direction:column; gap:14px;}
+.match-detail-cuerpo{display:flex; flex-direction:column; gap:12px;}
+
+/* Dos columnas. La tarjeta era una sola columna de seis bloques apilados —
+   media pantalla de scroll para una partida— y la build estaba al FONDO, abajo
+   de todos los números, cuando con qué jugaste es parte de cómo se dio la
+   partida y no una nota al pie. El relato y la build van juntos arriba; los dos
+   bloques de números, juntos abajo. En el teléfono se apila igual que antes. */
+.match-dos{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px 20px; align-items:start;}
+.match-dos > .match-detail-group{margin:0;}
+@media (max-width:720px){
+  .match-dos{grid-template-columns:1fr; gap:0;}
+}
 
 /* UNA CUOTA: qué porción del equipo te tocó. La barra contra la marca del
    quinto es lo que convierte un "14%" —que solo no dice nada, puede ser
@@ -1792,7 +1803,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .cuota{display:grid; grid-template-columns:minmax(0,1fr) 2fr auto; align-items:center; gap:12px;}
 .cuota-k{
   display:flex; align-items:center; gap:4px; min-width:0;
-  font-size:12px; color:var(--text-muted); line-height:1.3;
+  font-size:11.5px; color:var(--text-muted); line-height:1.3;
 }
 .cuota-pista{
   position:relative; height:7px; border-radius:999px; background:var(--track);
@@ -1814,7 +1825,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   background:var(--text-secondary); opacity:0.5;
 }
 .cuota-v{
-  font-family:var(--font-stat); font-size:13.5px; font-weight:700;
+  font-family:var(--font-stat); font-size:12.5px; font-weight:700;
   font-variant-numeric:tabular-nums; color:var(--text-secondary);
   text-align:right; min-width:38px; flex:none;
 }
@@ -1827,22 +1838,22 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    completo y se leía como un bloque aparte en vez de como la quinta de la
    fila. auto-fit colapsa las columnas vacías, así que tres fichas siguen
    repartiéndose todo el ancho igual que antes. */
-.fichas{display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:8px;}
+.fichas{display:grid; grid-template-columns:repeat(auto-fit, minmax(116px, 1fr)); gap:7px;}
 .ficha{
   min-width:0;
-  padding:9px 12px; border-radius:var(--radius-md);
+  padding:8px 10px; border-radius:var(--radius-md);
   background:var(--surface); border:1px solid var(--border-soft);
 }
 .ficha-v{
-  display:block; font-family:var(--font-stat); font-size:18px; font-weight:700;
+  display:block; font-family:var(--font-stat); font-size:15.5px; font-weight:700;
   line-height:1.15; color:var(--text-primary); font-variant-numeric:tabular-nums;
   letter-spacing:-0.02em;
 }
 .ficha-k{
-  display:flex; align-items:center; gap:4px; margin-top:3px;
-  font-size:11px; color:var(--text-muted); line-height:1.3;
+  display:flex; align-items:center; gap:4px; margin-top:2px;
+  font-size:10.5px; color:var(--text-muted); line-height:1.3;
 }
-.ficha-sub{display:block; margin-top:5px; font-size:11px; color:var(--text-secondary); opacity:0.8;}
+.ficha-sub{display:block; margin-top:4px; font-size:10.5px; color:var(--text-secondary); opacity:0.8;}
 /* Verde la curación, azul el escudo: son dos cosas distintas y el color las
    separa sin necesidad de un ícono más en una tarjeta que ya tiene varios. El
    filete al costado las agrupa como el par que son, entre las fichas de daño. */
@@ -1858,14 +1869,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .hechos{display:flex; align-items:center; flex-wrap:wrap; gap:7px;}
 .hechos-k{
   display:flex; align-items:center; gap:4px; flex:none;
-  font-size:11px; text-transform:uppercase; letter-spacing:0.06em;
+  font-size:10px; text-transform:uppercase; letter-spacing:0.06em;
   font-weight:700; color:var(--text-muted);
 }
 .hecho{
   display:inline-flex; align-items:center; gap:4px;
-  padding:3px 9px; border-radius:999px;
+  padding:2px 8px; border-radius:999px;
   background:var(--surface); border:1px solid var(--border-soft);
-  font-size:11.5px; color:var(--text-secondary); white-space:nowrap;
+  font-size:11px; color:var(--text-secondary); white-space:nowrap;
 }
 .hecho strong{font-family:var(--font-stat); font-weight:700; color:var(--text-primary); font-variant-numeric:tabular-nums;}
 .hecho.en-cero{opacity:0.45;}
