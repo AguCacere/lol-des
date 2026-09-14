@@ -32,6 +32,7 @@ cerradura no está puesta, nadie escribe).
 | `/api/liga` | GET | Tabla de la liga de la semana, la carrera y la vitrina de campeones | no | no | `s-maxage=240, swr=600` |
 | `/api/liga` | POST | Anota o saca gente de la liga | sí | **sí** | — |
 | `/api/liga/semana` | GET | Cómo terminó una semana vieja: tabla final, carrera y quién cobró | no | no | `s-maxage=21600, swr=86400` |
+| `/api/liga/semana` | POST | Rescata a mano la foto de una semana vieja sin `resumen` | sí | **sí** | — |
 | `/api/liga/anunciar` | POST | Manda el mensaje de arranque a Discord. Con `{tipo:"cierre"}` devuelve la vista previa del anuncio de cierre y no manda nada | no | **sí** | — |
 | `/api/summoners` | POST | Agrega un invocador al grupo | sí | **sí** | — |
 | `/api/refresh` | POST | Refresca uno o todos (cooldown de 2 min) | sí | **sí** | — |
@@ -199,7 +200,10 @@ propia**, solo junta lo que devuelven los módulos de `lib/`.
 - **`coach_reports`** — el caché de los informes de Claude.
 - **`liga_semanas`** — las semanas cerradas de la liga: `semana` (el lunes, PK),
   `ganador_puuid`, `ganador_label`, `puntos` (el puntaje con el que ganó, que es lo
-  que decide), `lp_neto` (contexto, ya no se muestra) y `jugadores`. Una semana
+  que decide), `lp_neto` (contexto, ya no se muestra), `jugadores` y `resumen`
+  (jsonb) — la foto final entera de esa semana, que se escribe al cerrar porque
+  **una semana cerrada no se puede reconstruir después**: el armado en vivo depende
+  de `participa_liga`, que es un estado del presente. Una semana
   registrada acá no se vuelve a anunciar: es el candado de idempotencia del cierre.
 - **`ladder`** — **una vista**, no una tabla: `summoners` con los contadores ya
   agregados. Las columnas nuevas van **al final** o Postgres tira 42P16.

@@ -207,6 +207,26 @@ cambia esto: apaga el caché de datos de Next, no el del CDN.
 
 ## Gráficos y SVG
 
+**Un resultado ya anunciado es un HECHO: se guarda, no se recalcula.** El cartel de
+"cómo terminó el torneo pasado" reconstruía la semana leyendo quién tiene
+`participa_liga = true`, que es un estado del **presente**. El día que se destildó a
+todos para rearmar el formato, una semana que ya había cerrado y tenía campeón
+anunciado se quedó sin participantes y la pantalla dijo que no había jugado nadie. Y
+volver a anotarlos **no lo arregla**: al desanotar se borra `liga_desde`, y al
+reanotar se sella con la fecha de hoy, que filtra todas las partidas viejas. La
+historia se había perdido con un checkbox. Ahora el cierre escribe
+`liga_semanas.resumen` (jsonb) con la foto entera y la pantalla la LEE; el cálculo en
+vivo queda de respaldo para las semanas viejas que no la tienen.
+
+**Un `{ data }` sin `error` convierte una caída en un dato falso.** Las consultas que
+arman la tabla de la liga descartaban el `error` del cliente de Supabase. Cuando una
+falla —el 504 del pool lleno— `data` viene `undefined`, el `?? []` lo vuelve "cero
+partidas" y sale un 200 con todos en "no jugó". No es solo un error invisible: MIENTE
+sobre el marcador, que es lo peor que puede hacer esta pantalla. Van con `throw` y la
+ruta contesta 502 con el motivo. Y un resultado vacío sospechoso (gente anotada, cero
+partidas) **no se cachea**: guardarlo seis horas convierte un parpadeo en una tarde de
+pantalla rota.
+
 **El número que se muestra tiene que ser el que DECIDE.** La vitrina de campeones
 mostraba el `lp_neto` guardado en `liga_semanas` —un "+144" verde al lado del
 ganador— cuando la liga se gana por PUNTOS (`MODO_LIGA = "puntos"`): el tipo había

@@ -217,6 +217,17 @@ create table if not exists liga_semanas (
   -- los puntos tienen decimales (la derrota vale −0,75).
   puntos        numeric,
   jugadores     int not null default 0, -- cuántos participantes jugaron al menos una
+  -- La foto final de esa semana, entera: la tabla con puntaje, V-D, mínimos y
+  -- el acumulado por día de cada uno. Se escribe al cerrar.
+  --
+  -- Existe porque una semana cerrada NO se puede reconstruir después. Se
+  -- reconstruía leyendo quién tiene participa_liga = true, que es un estado del
+  -- PRESENTE: el día que se destildó a todos para rearmar el formato, la semana
+  -- que ya había cerrado se quedó sin participantes y la pantalla dijo que no
+  -- había jugado nadie. Y volver a anotarlos tampoco la arregla, porque
+  -- liga_desde se sella con la fecha de hoy y filtra todas las partidas viejas.
+  -- Un resultado ya anunciado es un HECHO: se guarda, no se recalcula.
+  resumen       jsonb,
   cerrada_at    timestamptz not null default now()
 );
 

@@ -52,12 +52,21 @@ function masRepetido<T>(valores: (T | null)[]): T | null {
  * calcularlo ahí sería trabajo que nadie mira—, pero la pantalla que muestra
  * cómo terminó una semana vieja sí.
  *
- * Devuelve null si no hay nadie anotado.
+ * Con `todosLosTrackeados` ignora quién está anotado HOY y arma la semana con
+ * todo el que tenga partidas de ranked adentro de la ventana. Es el único modo
+ * de rescatar una semana vieja después de que se destildó a los que
+ * compitieron: ahí `participa_liga` y `liga_desde` ya no dicen nada de esa
+ * semana. Se usa solo para reconstruir a mano, nunca para cerrar ni para
+ * mostrar en vivo — puede meter a alguien trackeado que jugó ranked esa semana
+ * sin estar compitiendo, y por eso el que lo corre tiene que mirar si el
+ * resultado coincide con los jugadores que la semana ya tenía registrados.
+ *
+ * Devuelve null si no hay nadie anotado (o, en modo rescate, nadie trackeado).
  */
 export async function tablaDeSemanaEnBase(
   supabase: SupabaseClient,
   inicio: Date,
-  opciones: { conCarrera?: boolean } = {},
+  opciones: { conCarrera?: boolean; todosLosTrackeados?: boolean } = {},
 ): Promise<FilaLiga[] | null> {
   // Las tres consultas de acá abajo TIRAN el error en vez de tragárselo, y eso
   // es a propósito. Antes solo se sacaba `data`: si Supabase fallaba —un 504
@@ -65,10 +74,10 @@ export async function tablaDeSemanaEnBase(
   // salía vacía y la pantalla decía "esa semana no jugó nadie" con un 200
   // limpio. Un error invisible que además MIENTE sobre el dato es peor que una
   // pantalla rota: el que lo mira no tiene forma de saber que hubo un problema.
-  const { data: anotados, error: eAnotados } = await supabase
-    .from("summoners")
-    .select("puuid, game_name, tag_line, liga_desde")
-    .eq("participa_liga", true);
+  const consulta = supabase.from("summoners").select("puuid, game_name, tag_line, liga_desde");
+  const { data: anotados, error: eAnotados } = await (opciones.todosLosTrackeados
+    ? consulta
+    : consulta.eq("participa_liga", true));
   if (eAnotados) throw new Error(`No se pudo leer quiénes compiten: ${eAnotados.message}`);
   if (!anotados || anotados.length === 0) return null;
 
@@ -103,8 +112,14 @@ export async function tablaDeSemanaEnBase(
   if (ePartidas) throw new Error(`No se pudieron leer las partidas de esa semana: ${ePartidas.message}`);
   // Y se filtra por el arranque de CADA uno, no solo por el de la semana: el
   // que se anotó el miércoles no puede llevarse las partidas del lunes.
+  // En modo rescate el arranque de cada uno es el de la semana y nada más: el
+  // `liga_desde` de hoy es posterior a esa semana entera y filtraría TODAS sus
+  // partidas, que es justamente por qué volver a anotarlos no arregla el pasado.
   const arranqueDe = new Map(
-    anotados.map((s) => [s.puuid, Math.max(desde.getTime(), s.liga_desde ? Date.parse(s.liga_desde) : 0)]),
+    anotados.map((s) => [
+      s.puuid,
+      opciones.todosLosTrackeados ? desde.getTime() : Math.max(desde.getTime(), s.liga_desde ? Date.parse(s.liga_desde) : 0),
+    ]),
   );
   // El arranque del último día: sin el mínimo de ese día no se cobra, por más
   // arriba que se haya terminado. Ver MINIMO_ULTIMO_DIA en lib/liga.ts.
@@ -156,7 +171,7 @@ export async function tablaDeSemanaEnBase(
     name: s.game_name,
     tag: s.tag_line,
     profileIconUrl: null,
-    desde: s.liga_desde ? new Date(s.liga_desde) : null,
+    desde: opciones.todosLosTrackeados ? null : s.liga_desde ? new Date(s.liga_desde) : null,
   }));
   return tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], desde, fin, recordPorPuuid);
 }
@@ -180,8 +195,27 @@ export async function tablaDeSemanaEnBase(
  * mismo que dio el cierre: si se armara por otro lado, una semana vieja podría
  * mostrar un ganador distinto del que anunció el bot.
  */
-export async function comoTerminoLaSemana(supabase: SupabaseClient, inicio: Date) {
-  const tabla = (await tablaDeSemanaEnBase(supabase, inicio, { conCarrera: true })) ?? [];
+export interface ResumenSemana {
+  semana: string;
+  dias: string[];
+  ganadorPuuid: string | null;
+  jugadores: number;
+  anotados: number;
+  tabla: {
+    puuid: string;
+    name: string;
+    puntos: number;
+    victorias: number;
+    derrotas: number;
+    ultimoDia: number;
+    habilitado: boolean;
+    champion: string | null;
+    porDia: number[];
+  }[];
+}
+
+/** La foto de una semana a partir de su tabla ya armada. Sin red. */
+export function resumenDeTabla(inicio: Date, tabla: FilaLiga[]): ResumenSemana {
   const jugaron = tabla.filter((f) => !f.sinJugar);
   const g = ganadorDe(tabla);
   return {
@@ -206,6 +240,40 @@ export async function comoTerminoLaSemana(supabase: SupabaseClient, inicio: Date
       porDia: f.porDia,
     })),
   };
+}
+
+/**
+ * La foto de una semana: primero la GUARDADA, y recién si no hay, calculada.
+ *
+ * El orden importa y es la lección del bug: una semana cerrada no se puede
+ * reconstruir después. El armado en vivo sale de quién tiene `participa_liga`
+ * hoy —un estado del PRESENTE— así que el día que se destildó a todos para
+ * rearmar el formato, la semana que ya había cerrado se quedó sin
+ * participantes y la pantalla dijo que no había jugado nadie. Y volver a
+ * anotarlos tampoco la arregla: `liga_desde` se sella con la fecha de hoy y
+ * filtra todas las partidas viejas.
+ *
+ * Un resultado ya anunciado es un hecho. Se guarda al cerrar y se lee.
+ */
+export async function comoTerminoLaSemana(
+  supabase: SupabaseClient,
+  inicio: Date,
+): Promise<ResumenSemana & { guardada: boolean }> {
+  const clave = claveDeSemana(inicio);
+  const { data: fila, error } = await supabase
+    .from("liga_semanas")
+    .select("resumen")
+    .eq("semana", clave)
+    .maybeSingle();
+  // Un error acá NO corta: la columna `resumen` es nueva y las migraciones de
+  // esta base se corren a mano. Si todavía no está, se cae al cálculo en vivo,
+  // que es lo que había antes.
+  if (error) console.error("liga/semana: no se pudo leer el resumen guardado —", error.message);
+  const guardado = (fila?.resumen ?? null) as ResumenSemana | null;
+  if (guardado && Array.isArray(guardado.tabla)) return { ...guardado, guardada: true };
+
+  const tabla = (await tablaDeSemanaEnBase(supabase, inicio, { conCarrera: true })) ?? [];
+  return { ...resumenDeTabla(inicio, tabla), guardada: false };
 }
 
 export async function vistaPreviaDeCierre(
@@ -236,7 +304,10 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
   const { data: yaCerrada } = await supabase.from("liga_semanas").select("semana").eq("semana", clave).maybeSingle();
   if (yaCerrada) return { cerrada: null, ganador: null, lpNeto: null, jugadores: 0, motivo: `${clave} ya estaba cerrada` };
 
-  const tabla = await tablaDeSemanaEnBase(supabase, anterior);
+  // Con la carrera: la foto que se guarda incluye el acumulado por día, que es
+  // lo que dibuja el gráfico del cartel. Es cálculo puro sobre datos que ya
+  // están en memoria, no cuesta una consulta más.
+  const tabla = await tablaDeSemanaEnBase(supabase, anterior, { conCarrera: true });
   if (!tabla) return { cerrada: null, ganador: null, lpNeto: null, jugadores: 0, motivo: "no hay nadie anotado" };
 
   const jugaron = tabla.filter((f) => !f.sinJugar);
@@ -258,16 +329,19 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
     // de contexto y ya no se muestra como si fuera el marcador.
     puntos: ganador ? puntajeDe(ganador) : null,
     jugadores: jugaron.length,
+    // Y la foto entera de la semana. Ver el comentario de `resumen` en
+    // supabase/schema.sql: esto NO se puede reconstruir después.
+    resumen: resumenDeTabla(anterior, tabla),
   };
-  const { puntos, ...sinPuntos } = fila;
-  let { error } = await supabase.from("liga_semanas").insert({ ...sinPuntos, puntos });
+  const { puntos, resumen, ...basicos } = fila;
+  let { error } = await supabase.from("liga_semanas").insert({ ...basicos, puntos, resumen });
   // `puntos` es una columna nueva y las migraciones se corren a mano. Si
   // todavía no está, el cierre NO se puede perder por eso: se reintenta sin
   // ella y se avisa fuerte en el log. En cuanto la migración corra, la primera
   // rama vuelve a funcionar sola.
-  if (error && /puntos/.test(error.message)) {
-    console.error("cerrarSemanasPendientes: falta la columna liga_semanas.puntos — correr la migración de supabase/schema.sql. Se cierra sin el puntaje.");
-    ({ error } = await supabase.from("liga_semanas").insert(sinPuntos));
+  if (error && /(puntos|resumen)/.test(error.message)) {
+    console.error("cerrarSemanasPendientes: faltan columnas de liga_semanas (puntos/resumen) — correr la migración de supabase/schema.sql. Se cierra sin ellas.");
+    ({ error } = await supabase.from("liga_semanas").insert(basicos));
   }
   // Choque de clave = otra corrida ganó la carrera. No es un error: es el
   // candado funcionando.
@@ -281,4 +355,47 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
     lpNeto: ganador?.lpNeto ?? null,
     jugadores: jugaron.length,
   };
+}
+
+/**
+ * Rescata la foto de una semana cerrada que se quedó sin participantes.
+ *
+ * Reconstruye la tabla con TODO el que tenga partidas de ranked en la ventana
+ * —ignorando quién está anotado hoy— y la guarda en `liga_semanas.resumen`.
+ * Devuelve además cuántos jugadores había registrados en el cierre original,
+ * para que el que lo corre pueda ver si coincide antes de creerle: el modo
+ * rescate puede meter a alguien trackeado que jugó ranked esa semana sin estar
+ * compitiendo.
+ *
+ * No inventa un ganador nuevo: `ganador_puuid` y `puntos` de la fila no se
+ * tocan. Lo único que escribe es la foto.
+ */
+export async function rescatarResumen(
+  supabase: SupabaseClient,
+  inicio: Date,
+): Promise<{ semana: string; reconstruidos: number; registrados: number | null; guardado: boolean; motivo?: string }> {
+  const clave = claveDeSemana(inicio);
+  const { data: fila, error: eFila } = await supabase
+    .from("liga_semanas")
+    .select("jugadores")
+    .eq("semana", clave)
+    .maybeSingle();
+  if (eFila) throw new Error(`No se pudo leer la semana: ${eFila.message}`);
+  if (!fila) return { semana: clave, reconstruidos: 0, registrados: null, guardado: false, motivo: "esa semana no está cerrada" };
+
+  const tabla = (await tablaDeSemanaEnBase(supabase, inicio, { conCarrera: true, todosLosTrackeados: true })) ?? [];
+  const resumen = resumenDeTabla(inicio, tabla);
+  if (resumen.tabla.length === 0) {
+    return {
+      semana: clave,
+      reconstruidos: 0,
+      registrados: fila.jugadores ?? null,
+      guardado: false,
+      motivo: "no hay ninguna partida de ranked guardada en esa ventana",
+    };
+  }
+
+  const { error } = await supabase.from("liga_semanas").update({ resumen }).eq("semana", clave);
+  if (error) throw new Error(`No se pudo guardar la foto: ${error.message}`);
+  return { semana: clave, reconstruidos: resumen.tabla.length, registrados: fila.jugadores ?? null, guardado: true };
 }

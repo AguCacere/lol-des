@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { comoTerminoLaSemana } from "@/lib/liga-cierre";
+import { exigirSesion } from "@/lib/auth";
+import { comoTerminoLaSemana, rescatarResumen } from "@/lib/liga-cierre";
 import { esSemanaDeLiga, inicioDeSemana } from "@/lib/liga";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
@@ -11,8 +12,11 @@ import { getSupabaseServerClient } from "@/lib/supabase";
  * torneo. Una pantalla aparte para algo que se mira diez segundos obliga a irse
  * y volver, que es exactamente lo que se pidió evitar.
  *
- * Solo lee. Se pide de a una semana y no todas juntas: son ocho como mucho en la
- * vitrina y nadie las abre todas.
+ * El GET solo lee. Se pide de a una semana y no todas juntas: son ocho como
+ * mucho en la vitrina y nadie las abre todas.
+ *
+ * El POST es el rescate a mano de una semana vieja que se quedó sin foto — ver
+ * `rescatarResumen`. Pide la contraseña porque escribe.
  */
 export const dynamic = "force-dynamic";
 
@@ -65,4 +69,41 @@ export async function GET(req: Request) {
       "Cache-Control": sospechoso ? "no-store" : "public, s-maxage=21600, stale-while-revalidate=86400",
     },
   });
+}
+
+/**
+ * POST /api/liga/semana?semana=2026-09-07 — rescata la foto de esa semana.
+ *
+ * Es de una sola vez y a mano. Reconstruye la tabla con todo el que jugó ranked
+ * en la ventana, ignorando quién está anotado hoy, y la guarda. Mirá que
+ * `reconstruidos` coincida con `registrados` antes de creerle: si no coincide,
+ * la reconstrucción metió (o perdió) gente y conviene no dejarla guardada.
+ */
+export async function POST(req: Request) {
+  const cerrado = exigirSesion(req);
+  if (cerrado) return cerrado;
+
+  const clave = new URL(req.url).searchParams.get("semana");
+  if (!clave || !/^\d{4}-\d{2}-\d{2}$/.test(clave)) {
+    return NextResponse.json({ error: "Falta el parámetro `semana` (YYYY-MM-DD)." }, { status: 400 });
+  }
+  const inicio = inicioDeSemana(new Date(`${clave}T12:00:00Z`));
+  if (Number.isNaN(inicio.getTime()) || !esSemanaDeLiga(inicio)) {
+    return NextResponse.json({ error: "Esa semana no es de la liga." }, { status: 400 });
+  }
+
+  let supabase;
+  try {
+    supabase = getSupabaseServerClient();
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Sin Supabase." }, { status: 500 });
+  }
+
+  try {
+    return NextResponse.json(await rescatarResumen(supabase, inicio));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("liga/semana rescate falló:", message);
+    return NextResponse.json({ error: message }, { status: 502 });
+  }
 }

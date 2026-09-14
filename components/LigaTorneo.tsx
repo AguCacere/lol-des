@@ -150,7 +150,9 @@ export function LigaTorneo({
           <p className="torneo-vacio">
             {datos && (datos.anotados ?? 0) > 0
               ? `Esa semana había ${datos.anotados} anotados pero no hay ninguna partida guardada en esa ventana. Si jugaron, es un problema de datos, no de la semana.`
-              : "Esa semana no había nadie anotado en la liga."}
+              : "Esta semana cerró antes de que se guardara su foto, y los que compitieron ya no están anotados. Se puede rescatar a mano: POST /api/liga/semana?semana=" +
+                (datos?.semana ?? semana) +
+                "."}
           </p>
         ) : (
           <div className={cargando ? "torneo-cuerpo cambiando" : "torneo-cuerpo"}>
