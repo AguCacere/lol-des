@@ -221,7 +221,8 @@ pestañas.
   `SparkChart`, `RoleIcon`, `PlayerAvatar`) + `PlayerProfile`.
   `LigaSemanal` arma la pestaña de la liga de arriba abajo: `LigaEstado` (el panel
   de cuánto falta y quién cobra), `LigaCarrera` (el gráfico de la semana, con un
-  color por jugador), la tabla, y al pie la vitrina de campeones —que no tiene
+  color por jugador), la LISTA de jugadores (`.jug*` — ya no es una tabla: flex, sin
+  encabezado de columnas y con el récord abajo del nombre), y al pie la vitrina de campeones —que no tiene
   componente propio: vive adentro de `LigaSemanal` con las clases `.vitrina*`—.
   Desde la vitrina se abre `LigaTorneo`, el cartel de "cómo terminó" una semana
   vieja: va encima y no en una pantalla propia porque es una foto de diez segundos

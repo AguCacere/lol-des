@@ -207,6 +207,47 @@ cambia esto: apaga el caché de datos de Next, no el del CDN.
 
 ## Gráficos y SVG
 
+**"Se siente formulario" tiene una causa estructural: era una TABLA.** La liga se
+dibujaba con una grilla de siete columnas y una fila de rótulos arriba. Esa forma
+promete algo que en este grupo nadie hace —comparar columna por columna de punta a
+punta— y a cambio hace que seis amigos compitiendo se lean como un reporte. El
+patrón que corresponde es LISTA: se usa tabla cuando hay que comparar atributos
+entre muchos ítems, y lista cuando se lee para abajo y a cada uno le importan pocos
+datos. Lo que lo cambió, en orden de cuánto pesa cada cosa:
+
+1. **Sacar el encabezado de columnas.** Es LA señal de planilla, y cada dato se
+   rotula solo (el emblema dice el rango, "7V · 1D" dice el récord, el marcador
+   lleva "puntos" abajo del número).
+2. **Flex en vez de grid.** Sin columnas fijas no hay casillas que se alineen entre
+   filas. De paso desaparecieron las tres bandas de `@media` que había que calcular
+   para que ninguna columna bajara de su mínimo.
+3. **Siete columnas a tres zonas**: puesto · cara+identidad · marcador. El avatar y
+   el arte del campeón se montan en un solo retrato —eran dos casillas—, y el rango
+   y el récord bajan a vivir abajo del nombre.
+4. **Separador entrado, no marco.** Una hairline entre personas que arranca después
+   del retrato, en vez de un borde que cierra cada fila.
+5. **Ritmo por jerarquía, no por decoración.** Medido: el puntero mide 121px de
+   alto, los que juegan 110 y los que no jugaron 89; y adentro de una fila hay cinco
+   tamaños de letra (27/22 del marcador · 16,5/14,5 del nombre · 14 del récord · 11
+   de la metadata · 9,5/8,5 del LP y la unidad).
+
+**El `1fr` en el texto, otra vez — y ahora con nombre.** Con el bloque del nombre
+estirando, a 1180px quedaban novecientos píxeles de aire entre el nombre y el
+marcador: dos islas que el ojo tenía que unir a mano, que es exactamente lo que se
+siente como columnas. El arreglo no es repartir mejor el sobrante sino **darle a la
+lista un ancho de lectura propio** (1040px) más angosto que la tarjeta. La carrera
+de arriba sí usa los 1180 porque un gráfico de siete líneas los aprovecha; una lista
+de siete personas no. Una columna angosta abajo de un gráfico ancho es una
+jerarquía, no un descuido.
+
+**Lo que se expande CUELGA, no se apila.** El detalle de las últimas partidas era un
+rectángulo con fondo, borde abajo y barra al costado: otra caja del ancho de la
+tarjeta que no se sabía de quién era hasta leerla. Ahora no tiene fondo ni bordes y
+lo que lo ata es la POSICIÓN — entra hasta donde arranca el nombre y un hilo vertical
+baja desde el CENTRO DEL AVATAR de esa persona (medido: 79px desde el borde de la
+lista; desalineado colgaba del número del puesto y no de nadie). La misma idea que un
+hilo de respuestas: la sangría dice de quién es.
+
 **Un resultado ya anunciado es un HECHO: se guarda, no se recalcula.** El cartel de
 "cómo terminó el torneo pasado" reconstruía la semana leyendo quién tiene
 `participa_liga = true`, que es un estado del **presente**. El día que se destildó a

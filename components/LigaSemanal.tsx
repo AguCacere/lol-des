@@ -414,26 +414,13 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                 }))}
             />
           )}
-          {/* Encabezados de columna, como en las otras tablas de la app. Sin
-              ellos había seis columnas de datos sin una sola palabra que
-              dijera qué era cada una: el arte de campeón, el emblema de rango,
-              una curva y dos números había que adivinarlos. La fila usa la
-              MISMA grilla que las de abajo, así que las etiquetas caen justo
-              arriba de su columna. En el teléfono se esconde: ahí la fila se
-              parte en dos renglones y las columnas ya no coinciden. */}
-          <div className="liga-head" aria-hidden>
-            <span className="col-puesto" />
-            <span className="col-avatar" />
-            <span className="col-nombre">Invocador</span>
-            {/* Sin etiqueta: la columna es el arte de campeón, 38px. "Campeón"
-                entero no entra y "CAM…" cortado se lee peor que nada — el
-                mismo criterio que el encabezado de las otras tablas, que deja
-                la celda del puesto en blanco. */}
-            <span className="col-champ" />
-            <span className="col-rango">Rango</span>
-            <span className="col-record">Récord</span>
-            <span className="col-puntos">Puntos</span>
-          </div>
+          {/* NO hay encabezado de columnas, y es la decisión que más cambia
+              esta sección. Una fila de rótulos arriba —INVOCADOR · RANGO ·
+              RÉCORD · PUNTOS— es LA señal de "esto es una planilla": promete
+              columnas para comparar de arriba abajo, cuando lo que se hace acá
+              es leer jugador por jugador. Cada dato se rotula solo: el emblema
+              dice el rango, "7V · 1D" dice el récord y el marcador lleva la
+              palabra "puntos" abajo del número. */}
           {/* Sin esto, la primera noche la tabla mostraba puestos y ceros como
               si la liga estuviera en curso y nadie sumara: parecía rota. */}
           {!yaArranco && (
@@ -457,7 +444,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
               return (
                 <div key={f.puuid} className="liga-grupo">
                 <div
-                  className={`liga-fila${puesto === 1 && !f.sinJugar ? " lider" : ""}${f.sinJugar ? " en-pausa" : ""}${
+                  className={`jug${puesto === 1 && !f.sinJugar ? " lider" : ""}${f.sinJugar ? " en-pausa" : ""}${
                     abierta === f.puuid ? " abierta" : ""
                   }${(f.ultimas?.length ?? 0) > 0 ? " tocable" : ""}`}
                   role={(f.ultimas?.length ?? 0) > 0 ? "button" : undefined}
@@ -471,22 +458,22 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                   }}
                   // El escalonado de la entrada. Va como variable y no como
                   // clase porque el índice es un número: 40ms entre fila y
-                  // fila alcanza para que la tabla se ARME en vez de aparecer.
+                  // fila alcanza para que la lista se ARME en vez de aparecer.
                   style={{ ["--fila" as string]: i }}
                 >
                   <span
-                    className={`liga-puesto p${puesto <= 3 ? puesto : 0}${empatado ? " empatado" : ""}`}
+                    className={`jug-puesto p${puesto <= 3 ? puesto : 0}${empatado ? " empatado" : ""}`}
                     title={
                       empatado
                         ? "Empatado en puntos con el de arriba. Adelante va el que lo hizo en menos partidas."
                         : undefined
                     }
                   >
-                    {/* El empate marcado. Con dos en +3 la tabla los ponía uno
+                    {/* El empate marcado. Con dos en +3 la lista los ponía uno
                         arriba del otro sin decir por qué, y en una liga con
                         premio eso se lee como que el orden es arbitrario. */}
                     {empatado && (
-                      <span className="liga-empate" aria-label="Empatado en puntos">
+                      <span className="jug-empate" aria-label="Empatado en puntos">
                         =
                       </span>
                     )}
@@ -500,145 +487,143 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                       puesto
                     )}
                   </span>
-                  <PlayerAvatar name={f.name} iconUrl={f.profileIconUrl} className="duo-avatar liga-avatar" />
-                  <span className="liga-nombre">
-                    {f.name} <span className="player-tag">#{f.tag}</span>
-                    {/* Que se vea por qué tiene menos partidas que el resto:
-                        sin esto, el que entró el miércoles parece que no jugó. */}
-                    {f.entroTarde && !entraronTodosTarde && (
-                      <span className="liga-entro" title="Solo le cuenta lo que hizo desde que se anotó">
-                        se anotó el{" "}
-                        {new Date(f.entroTarde).toLocaleDateString("es-AR", {
-                          weekday: "long",
-                          timeZone: "America/Argentina/Buenos_Aires",
-                        })}
-                      </span>
+
+                  {/* La cara: el ícono de perfil con el campeón de la semana
+                      montado en la esquina y la línea arriba de él.
+
+                      Eran DOS columnas separadas —avatar y campeón— y esa
+                      separación es mitad del aire de planilla: dos casillas
+                      alineadas con las de las filas de arriba y abajo. Montados
+                      son UN objeto, el retrato de esa persona esta semana, y la
+                      fila arranca con una sola cosa en vez de con dos celdas. */}
+                  <span className="jug-cara">
+                    <PlayerAvatar name={f.name} iconUrl={f.profileIconUrl} className="duo-avatar jug-avatar" />
+                    {f.champion && (
+                      <ChampIcon champ={f.champion} version={d.ddragonVersion ?? null} className="jug-champ" />
                     )}
                   </span>
 
-                  {/* Con qué jugó ESTA semana: el campeón que más eligió y
-                      la línea donde más apareció. Es lo que le pone cara a la
-                      fila —hasta acá la única imagen era el ícono de perfil—
-                      y de paso explica el número: no es lo mismo un +31 de
-                      jungla que uno de support. */}
-                  <span className="liga-jugo">
-                    {f.champion ? (
-                      <>
-                        <ChampIcon champ={f.champion} version={d.ddragonVersion ?? null} className="liga-champ" />
-                        {/* La línea va ENCIMA del arte, no al lado: como dos
-                            cajas separadas competían entre ellas y la de la
-                            línea parecía un segundo campeón. Pegada abajo a la
-                            derecha se lee como lo que es, una etiqueta del
-                            campeón — y de paso la columna ocupa la mitad. */}
-                        {f.linea && (
-                          <span className="liga-linea" title={ROLES[f.linea].label}>
-                            <RoleIcon role={f.linea} />
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      <span className="liga-champ vacio" aria-hidden />
-                    )}
-                  </span>
+                  {/* Quién es, en dos alturas: el nombre manda y abajo va todo
+                      lo que lo describe —rango, LP, línea, desde cuándo
+                      compite— en UNA línea corrida de metadata.
 
-                  {/* Dónde está parado hoy. Es el contexto que le falta al
-                      neto: subir 200 desde Plata no es lo mismo que subir 200
-                      desde Diamante, aunque en esta liga valgan igual. */}
-                  <span className="liga-rango-celda">
-                    {f.rango && t ? (
-                      <>
-                        <TierEmblem tierKey={f.rango.tier} division={f.rango.division} />
-                        <span className="liga-rango-texto">
+                      El rango tenía columna propia, con su emblema, su nombre y
+                      su LP apilados. Como columna obligaba a que todas las
+                      filas reservaran ese ancho aunque el dato sea secundario;
+                      como metadata abajo del nombre se lee de corrido y deja de
+                      pedir su casilla. */}
+                  <span className="jug-quien">
+                    <span className="jug-nombre">
+                      {f.name}
+                      <span className="jug-tag">#{f.tag}</span>
+                    </span>
+                    <span className="jug-meta">
+                      {f.rango && t ? (
+                        <>
+                          <TierEmblem tierKey={f.rango.tier} division={f.rango.division} />
                           <span style={{ color: t.fg }}>
                             {t.name} {f.rango.division}
                           </span>
-                          <span className="liga-rango-lp">{f.rango.lp} LP</span>
+                          <span className="jug-meta-lp">{f.rango.lp} LP</span>
+                        </>
+                      ) : (
+                        <span className="jug-apagado">sin rango</span>
+                      )}
+                      {/* La línea, con su ícono y su nombre en la misma línea
+                          de metadata. Antes era un dot montado sobre el arte
+                          del campeón: con el campeón ya montado sobre el
+                          avatar, un tercer objeto encima era apilar por apilar. */}
+                      {f.linea && (
+                        <span className="jug-meta-linea">
+                          <RoleIcon role={f.linea} />
+                          {ROLES[f.linea].label}
                         </span>
-                      </>
-                    ) : (
-                      <span className="liga-sinjugar">sin rango</span>
-                    )}
-                  </span>
+                      )}
+                      {/* Que se vea por qué tiene menos partidas que el resto:
+                          sin esto, el que entró el miércoles parece que no jugó. */}
+                      {f.entroTarde && !entraronTodosTarde && (
+                        <span className="jug-entro" title="Solo le cuenta lo que hizo desde que se anotó">
+                          desde el{" "}
+                          {new Date(f.entroTarde).toLocaleDateString("es-AR", {
+                            weekday: "long",
+                            timeZone: "America/Argentina/Buenos_Aires",
+                          })}
+                        </span>
+                      )}
+                    </span>
 
-                  {/* El récord, pegado a las netas: es de dónde SALEN. La barra
-                      dice cuánto jugó comparado con el que más jugó, y abajo
-                      las victorias en verde y las derrotas en rojo, para que
-                      la resta se lea sin hacer la cuenta. */}
-                  <span className="liga-vd">
+                    {/* Cómo le fue, en la MISMA columna que el nombre.
+
+                        Tenía zona propia contra el borde derecho, y a 1180px
+                        eso dejaba novecientos píxeles de aire entre el nombre y
+                        el récord: dos islas lejanas que el ojo tenía que unir a
+                        mano, que es exactamente la sensación de columnas. Todo
+                        lo que DESCRIBE a la persona vive abajo de su nombre, y
+                        a la derecha queda una sola cosa —el marcador—. Un
+                        bloque de tres alturas a la izquierda contra un número
+                        grande a la derecha es una lista; dos bloques separados
+                        por un vacío es una tabla a la que le faltan columnas. */}
                     {total > 0 ? (
-                      <>
-                        <span className="liga-barra" aria-hidden>
-                          <span className="liga-barra-total" style={{ width: `${(100 * total) / maxPartidas}%` }}>
-                            <span className="liga-barra-v" style={{ width: `${(100 * f.victorias) / total}%` }} />
-                            <span className="liga-barra-d" />
-                          </span>
-                        </span>
-                        <span className="liga-record">
-                          <span className="rec-v">{f.victorias}V</span>
+                      <span className="jug-forma">
+                        <span className="jug-record">
+                          <b className="rec-v">{f.victorias}</b>
+                          <i>V</i>
                           <span className="rec-sep" aria-hidden>
                             ·
                           </span>
-                          <span className="rec-d">{f.derrotas}D</span>
-                          {/* La racha DE LA SEMANA, no la de la season: en una
-                              competencia de siete días, "ganó las últimas
-                              cuatro" es lo que está pasando ahora. Desde 2,
-                              porque una sola partida no es una racha. */}
-                          {f.racha && f.racha.cantidad >= 2 && (
-                            <span className={`liga-racha ${f.racha.resultado === "W" ? "w" : "l"}`}>
-                              <StreakIcon result={f.racha.resultado} />
-                              {f.racha.cantidad}
+                          <b className="rec-d">{f.derrotas}</b>
+                          <i>D</i>
+                          {/* La barra de volumen es el SUBRAYADO del récord: del
+                              ancho que le toca contra el que más jugó, pegada
+                              abajo. Como bloque aparte era otra cajita. */}
+                          <span className="jug-volumen" aria-hidden>
+                            <span className="jug-volumen-total" style={{ width: `${(100 * total) / maxPartidas}%` }}>
+                              <span className="jug-volumen-v" style={{ width: `${(100 * f.victorias) / total}%` }} />
+                              <span className="jug-volumen-d" />
                             </span>
-                          )}
-                          {/* Lo de HOY, cuando hizo algo hoy. Va acá y no en
-                              la columna del puntaje porque habla de actividad,
-                              como la racha, y porque apilar un tercer número
-                              abajo del marcador lo hacía competir consigo
-                              mismo. */}
-                          {loDeHoy(f) !== 0 && (
-                            <span
-                              className={`liga-hoy ${loDeHoy(f) > 0 ? "sube" : "baja"}`}
-                              title="Lo que sumó o restó en el día de hoy"
-                            >
-                              {puntajeTexto(loDeHoy(f))} hoy
-                            </span>
-                          )}
-                          {/* Si cobra o qué le falta para cobrar. Va pegado al
-                              récord porque habla de partidas jugadas, y es lo
-                              único que le avisa al que va primero que quedarse
-                              quieto no le alcanza. */}
-                          {cupo(f)}
+                          </span>
                         </span>
-                      </>
+                        {/* La racha DE LA SEMANA, no la de la season: en una
+                            competencia de siete días, "ganó las últimas cuatro"
+                            es lo que está pasando ahora. */}
+                        {f.racha && f.racha.cantidad >= 2 && (
+                          <span className={`liga-racha ${f.racha.resultado === "W" ? "w" : "l"}`}>
+                            <StreakIcon result={f.racha.resultado} />
+                            {f.racha.cantidad}
+                          </span>
+                        )}
+                        {loDeHoy(f) !== 0 && (
+                          <span
+                            className={`liga-hoy ${loDeHoy(f) > 0 ? "sube" : "baja"}`}
+                            title="Lo que sumó o restó en el día de hoy"
+                          >
+                            {puntajeTexto(loDeHoy(f))} hoy
+                          </span>
+                        )}
+                        {/* Si cobra o qué le falta: lo único que le avisa al que
+                            va primero que quedarse quieto no le alcanza. */}
+                        {cupo(f)}
+                      </span>
                     ) : (
-                      <span className="liga-sinjugar">todavía no jugó</span>
+                      <span className="jug-apagado">todavía no jugó</span>
                     )}
                   </span>
 
-                  {/* El número grande es el PUNTAJE del modo activo. Con
-                      "netas" son victorias menos derrotas: una victoria vale
-                      lo mismo para todos, sin importar cuánto LP le dé Riot a
-                      cada cuenta. El LP real queda abajo, chiquito, porque
-                      sigue siendo lo que cada uno mira para entender su
-                      semana — pero ya no decide nada. */}
-                  <span className={`liga-lp ${tono(puntaje)}`}>
-                    {/* En placa y no suelto: la columna tiene tres tamaños de
-                        letra al lado (récord, racha, LP) y el número que decide
-                        el premio se perdía entre ellos. La placa además le da
-                        piso al 0, que sin fondo parecía un hueco. */}
-                    {/* El número arriba y la palabra abajo, no uno al lado del
-                        otro: apilados, el número se lee como un marcador y la
-                        palabra como su unidad. Al lado competían por el mismo
-                        renglón y el puntaje perdía contra una palabra. */}
-                    <span className="liga-puntaje">
-                      <span className="liga-puntaje-n">{puntajeTexto(puntaje)}</span>
-                      {/* "1 punto", no "1 puntos". Es una palabra y nadie la va
-                          a aplaudir, pero un plural mal puesto en el dato más
-                          grande de la pantalla se nota. */}
-                      <span className="liga-puntaje-unidad">{Math.abs(puntaje) === 1 ? "punto" : "puntos"}</span>
-                    </span>
+                  {/* El marcador. Sin placa, sin caja y sin columna: es el
+                      número más grande de la fila y con eso alcanza. El LP va
+                      abajo, chiquito, porque sigue siendo lo que cada uno mira
+                      para entender su semana — pero ya no decide nada. */}
+                  <span className={`jug-marcador ${tono(puntaje)}`}>
+                    <span className="jug-pts">{puntajeTexto(puntaje)}</span>
+                    {/* "1 punto", no "1 puntos". Es una palabra y nadie la va a
+                        aplaudir, pero un plural mal puesto en el dato más
+                        grande de la pantalla se nota. Y ahora va SIEMPRE: sin
+                        encabezado de columna, es lo único que dice qué se
+                        cuenta. */}
+                    <span className="jug-unidad">{Math.abs(puntaje) === 1 ? "punto" : "puntos"}</span>
                     {!f.sinJugar && (
                       <span
-                        className={`liga-lp-ref ${tono(f.lpNeto)}`}
+                        className={`jug-lp ${tono(f.lpNeto)}`}
                         title="El LP real de la semana. No puntúa: está solo como referencia."
                       >
                         {lpTexto(f.lpNeto)}

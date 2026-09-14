@@ -3436,17 +3436,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .liga-hoy.sube{background:var(--good-wash); color:var(--good); border-color:rgba(52,201,124,0.22);}
 .liga-hoy.baja{background:var(--critical-wash); color:var(--critical); border-color:rgba(240,85,95,0.22);}
 
-/* El empate, marcado. Con dos en +3 la tabla los ponía uno arriba del otro sin
-   decir por qué, y en una liga con premio eso se lee como orden arbitrario. */
-.liga-empate{
-  position:absolute; left:-1px; top:50%; transform:translateY(-50%);
-  font-size:11px; font-weight:700; color:var(--text-muted); opacity:0.8;
-}
-.liga-puesto.empatado{position:relative; padding-left:9px;}
 
 /* La carrera de la semana: las líneas de puntos de todos en una sola caja,
-   arriba de la tabla. Una en color y el resto en gris — con siete colores a la
-   par no se distingue ninguna, y bajo daltonismo menos. Ver LigaCarrera.tsx. */
+   arriba de la lista. Un color por persona, repartido por puuid — ver
+   coloresDeSeries en lib/chart.ts y el header de LigaCarrera.tsx. */
 .carrera{padding:18px 20px 16px; border-bottom:1px solid var(--border-soft);}
 
 /* Encabezado de tres niveles. Antes era un renglón de 11px con el rótulo, el
@@ -3614,114 +3607,264 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* El mismo idioma que el encabezado de las otras tablas de la app (.tw-head):
    10px, mayúsculas, apagado y con una línea abajo. Es lo que convierte seis
    columnas de datos sueltos en una tabla. */
-.liga-head{
-  padding-top:12px; padding-bottom:8px;
-  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;
-  color:var(--text-muted); border-bottom:1px solid var(--border-soft);
-}
-.liga-head .col-puntos{text-align:right;}
-.liga-head span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-/* La misma anatomía que una fila del ladder —puesto, quién, rango, cómo le
-   fue, la curva y el número— pero el número de la derecha es el neto de la
-   semana en vez del LP absoluto. */
-/* El espacio sobrante va a la BARRA de victorias/derrotas, no al nombre.
-   Antes el nombre era el `1fr` y a 1210px se quedaba con 622px de los que
-   usaba 150: un nombre flotando en medio de un hueco enorme es exactamente
-   lo que hace que una tabla se lea como planilla. La barra, en cambio, es un
-   div con ancho en % — estira sin deformarse y cuanto más larga, mejor
-   cuenta el volumen. La curva NO puede estirar: SparkChart usa
-   preserveAspectRatio="none" y se deformaría (ver DECISIONES.md), así que
-   se queda en los 190px que se le pasan.
+/* ============================================================
+   LA LISTA DE JUGADORES
 
-   El orden de las columnas es la lectura que se busca: puesto → quién →
-   rango → cómo viene → RÉCORD → NETAS. El récord quedó pegado al puntaje
-   porque es de donde sale; antes tenía la curva en el medio y la resta no se
-   ataba con su resultado. Y la curva, que estaba en el lugar de la derecha
-   —el del marcador—, pasa al medio: cuenta el "cómo viene", no quién gana. */
-.liga-fila, .liga-head{
-  display:grid;
-  grid-template-columns:46px 40px minmax(140px,200px) 38px 158px minmax(160px,1fr) 104px;
-  align-items:center; gap:12px; padding:10px 18px;
-  border-bottom:1px solid var(--border-soft);
-  transition:background .14s ease;
+   Era una tabla: grilla de siete columnas, encabezado de rótulos, borde abajo
+   de cada fila y cada dato en su casilla alineada con las de arriba y abajo.
+   Esa forma promete una cosa que acá nadie hace —comparar columna por columna
+   de punta a punta— y a cambio hace que seis amigos compitiendo se lean como
+   un reporte administrativo.
+
+   Ahora es una lista de personas. Lo que cambió, en orden de cuánto pesa:
+
+   1. NO HAY ENCABEZADO. Es la señal más fuerte de "planilla" y cada dato se
+      rotula solo.
+   2. FLEX, NO GRID. Sin columnas fijas no hay casillas que se alineen entre
+      filas, y cada zona ocupa lo que necesita.
+   3. DE SIETE COLUMNAS A TRES ZONAS: puesto · cara+identidad · marcador. El
+      avatar y el campeón se montan en un solo retrato; el rango —que tenía
+      columna propia— y el récord —que tenía la suya, contra el borde derecho—
+      bajan a vivir abajo del nombre. Un bloque de tres alturas a la izquierda
+      contra un número grande a la derecha es una lista; dos bloques separados
+      por novecientos píxeles de aire es una tabla a la que le faltan columnas.
+   4. SEPARADOR, NO MARCO. Una hairline entre personas, entrada desde la
+      izquierda, en vez de un borde que cierra cada fila.
+   5. NADA EN PLACA. El marcador perdió su caja: es el número más grande de la
+      fila y con eso alcanza.
+   6. RITMO. El puntero respira más y tiene el nombre y el número más grandes;
+      el que no jugó ocupa menos alto y va apagado. Todas las filas iguales es
+      justamente lo que se sentía estático.
+   ============================================================ */
+.jug{
+  display:flex; align-items:center; gap:14px;
+  padding:13px 18px; position:relative;
+  /* La lista tiene ANCHO DE LECTURA propio, más angosto que la tarjeta. La
+     carrera de arriba usa los 1180px porque un gráfico de siete líneas los
+     aprovecha; una lista de siete personas no. Sin el tope, el marcador se
+     iba contra el borde derecho y quedaban novecientos píxeles de aire entre
+     el nombre y el número: el ojo tenía que cruzar media pantalla para unir
+     dos datos de la misma persona, que es justo lo que se siente como
+     columnas. Una columna de lectura angosta abajo de un gráfico ancho es una
+     jerarquía, no un descuido. */
+  max-width:1040px;
+  transition:background .16s ease;
 }
-/* Que la fila responda al pasar por encima. Una tabla que no reacciona a
-   nada se siente un PDF. */
-.liga-fila:hover{background:var(--surface-hover);}
-/* El que todavía no jugó no compite: se apaga para que el ojo caiga en los
-   que sí tienen algo en juego. No se esconde —está anotado y merece verse—
-   pero deja de pelear por atención con los que se están moviendo. */
-/* Se apaga con `filter` y NO con `opacity`, aunque opacity sea lo obvio: la
-   animación de entrada de más abajo usa fill-mode `both`, así que su
-   fotograma final deja fijada la opacity y GANA sobre cualquier regla
-   normal — incluido el :hover. Medido: con opacity, pasar el mouse por una
-   fila en pausa no hacía nada. Con filter son propiedades distintas y no se
-   pisan. */
-/* El que todavía no jugó sigue siendo un participante, no una fila
-   deshabilitada: se ve el avatar, el nombre, el rango y su 0. Apagado a 0,72
-   —lo justo para que el ojo caiga primero en los que tienen algo en juego— y
-   al pasar por encima vuelve entero. */
-.liga-fila.en-pausa{filter:opacity(0.72); transition:filter .14s ease, background .14s ease;}
-.liga-fila.en-pausa:hover{filter:none;}
-/* La tabla se ARMA en vez de aparecer de golpe: 40ms entre fila y fila. Es
-   corto a propósito — con seis filas termina en un cuarto de segundo. */
-.liga-fila{animation:liga-entra .32s ease both; animation-delay:calc(var(--fila, 0) * 40ms);}
+/* El separador va como pseudo-elemento y ENTRADO desde la izquierda: una línea
+   de punta a punta vuelve a dibujar el renglón de una tabla. Entrada, se lee
+   como lo que es — el corte entre una persona y la siguiente. */
+.liga-grupo + .liga-grupo > .jug::before{
+  content:""; position:absolute; left:62px; right:18px; top:0; height:1px;
+  background:var(--border-soft);
+}
+.jug:hover{background:var(--surface);}
+.jug.tocable{cursor:pointer;}
+.jug.abierta{background:var(--surface-hover);}
+.jug:focus-visible{outline:2px solid var(--accent); outline-offset:-3px; border-radius:var(--radius-sm);}
+/* El que todavía no jugó no compite: se apaga y ocupa menos alto, así el ojo
+   cae en los que sí tienen algo en juego. No se esconde —está anotado y merece
+   verse— y al pasar por encima vuelve entero.
+   Se apaga con `filter` y NO con `opacity`: la animación de entrada usa
+   fill-mode `both`, así que su fotograma final deja fijada la opacity y gana
+   sobre cualquier regla normal, incluido el hover. Medido: con opacity, pasar
+   el mouse por una fila en pausa no hacía nada. */
+.jug.en-pausa{padding-top:10px; padding-bottom:10px; filter:opacity(0.62); transition:filter .16s ease, background .16s ease;}
+.jug.en-pausa:hover{filter:none;}
+/* La lista se ARMA en vez de aparecer de golpe: 40ms entre una y otra. */
+.jug{animation:liga-entra .32s ease both; animation-delay:calc(var(--fila, 0) * 40ms);}
 @keyframes liga-entra{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
-@media (prefers-reduced-motion:reduce){
-  .liga-fila{animation:none;}
+@media (prefers-reduced-motion:reduce){ .jug{animation:none;} }
+
+/* El puntero. Sin barra al costado ni marco: un baño dorado que se apaga hacia
+   la derecha, más aire, el nombre y el número más grandes y el anillo en el
+   avatar. La jerarquía la hace el TAMAÑO, no una línea que lo encierre. */
+.jug.lider{
+  padding-top:17px; padding-bottom:17px;
+  background:linear-gradient(90deg, var(--accent-wash) 0%, var(--accent-wash-soft) 42%, transparent 100%);
 }
-/* El número del que va ganando pesa más que el resto: es el que hay que
-   mirar primero. */
-.liga-fila.lider .liga-lp{font-size:23px;}
-.liga-avatar{width:38px; height:38px; border-radius:11px; font-size:13px;}
-/* Con qué jugó la semana: el arte del campeón y el ícono de la línea. Es la
-   única imagen de verdad de la fila —el ícono de perfil es un dibujito de
-   Riot, no dice nada del juego— y es lo que hace que la tabla se lea como
-   algo de LoL y no como una planilla. */
-.liga-jugo{position:relative; display:flex; align-items:center; min-width:0;}
-.liga-champ{
-  width:30px; height:30px; border-radius:8px; overflow:hidden; flex:none;
-  display:flex; align-items:center; justify-content:center;
-  background:var(--surface); color:var(--text-muted);
-  font-family:var(--font-mono); font-size:9px; font-weight:700;
+.jug.lider:hover{background:linear-gradient(90deg, var(--accent-wash) 0%, var(--accent-wash) 42%, var(--surface) 100%);}
+.jug.lider .jug-avatar{box-shadow:0 0 0 2px var(--accent);}
+.jug.lider .jug-nombre{color:var(--accent); font-size:16.5px;}
+.jug.lider .jug-pts{font-size:27px;}
+
+/* — El puesto. Número pelado, sin casilla. — */
+.jug-puesto{
+  position:relative; flex:none; width:26px; text-align:center;
+  font-family:var(--font-stat); font-size:15px; font-weight:800;
+  color:var(--text-muted); font-variant-numeric:tabular-nums;
+  transition:color .16s ease;
 }
-/* El hueco del que todavía no jugó: se ve el lugar, sin dibujo. */
-.liga-champ.vacio{background:var(--surface); opacity:0.35;}
-.liga-linea{
+.jug:hover .jug-puesto{color:var(--text-secondary);}
+.jug-puesto svg{width:20px; height:20px; display:block; margin:0 auto;}
+.jug-puesto.p1{color:var(--gold);}
+.jug-puesto.p2{color:var(--text-secondary);}
+.jug-puesto.p3{color:var(--warn);}
+/* El empate marcado: con dos en +3, la lista los pone uno arriba del otro y
+   sin esto se lee como que el orden es arbitrario. */
+.jug-empate{
+  position:absolute; left:-7px; top:50%; transform:translateY(-50%);
+  font-size:10px; font-weight:700; color:var(--text-muted); opacity:0.7; cursor:help;
+}
+
+/* — La cara: el avatar con el campeón de la semana montado en la esquina. Dos
+     columnas que eran dos casillas ahora son UN objeto. — */
+.jug-cara{position:relative; flex:none; display:block; width:44px; height:44px;}
+.jug-avatar{width:44px; height:44px; border-radius:13px; font-size:14px;}
+.jug-champ{
   position:absolute; right:-5px; bottom:-4px;
-  width:16px; height:16px; border-radius:50%;
+  width:22px; height:22px; border-radius:7px; overflow:hidden;
   display:flex; align-items:center; justify-content:center;
-  background:var(--surface-raised); box-shadow:0 0 0 1.5px var(--bg);
+  background:var(--surface-raised); color:var(--text-muted);
+  box-shadow:0 0 0 2px var(--bg);
+  font-family:var(--font-mono); font-size:8px; font-weight:700;
 }
-.liga-linea img{width:11px; height:11px; display:block; opacity:0.9;}
-.liga-rango-celda{display:flex; align-items:center; gap:8px; min-width:0;}
-.liga-rango-celda .tier-emblem,
-.liga-rango-celda img{width:24px; height:24px; flex:none; opacity:0.92;}
-/* Estado del jugador, no marcador: medio punto menos y sin la negrita del
-   resto. El rango dice dónde está parado, las netas dicen quién va ganando. */
-.liga-rango-texto{display:flex; flex-direction:column; gap:1px; min-width:0; font-size:11.5px; font-weight:600; white-space:nowrap;}
-.liga-rango-lp{font-family:var(--font-mono); font-size:9.5px; color:var(--text-muted); opacity:0.85;}
-.liga-vd{display:flex; flex-direction:column; gap:4px; min-width:0;}
-.liga-barra{height:9px; display:block;}
-.liga-barra-total{display:flex; height:100%; min-width:3px; border-radius:999px; overflow:hidden;}
-.liga-barra-v{background:var(--good); opacity:0.8; flex:none;}
-.liga-barra-d{background:var(--critical); opacity:0.55; flex:1 1 auto;}
-.liga-grupo:last-child .liga-fila{border-bottom:none;}
-/* La fila se toca para abrir el detalle. Solo la de quien jugó: abrir una
-   vacía no muestra nada. */
-.liga-fila.tocable{cursor:pointer;}
-.liga-fila.abierta{background:var(--surface-hover);}
-.liga-fila.abierta.lider{background:linear-gradient(90deg, var(--accent-wash) 0%, var(--accent-wash) 45%, var(--surface-hover) 100%);}
-.liga-fila:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
+
+/* — Quién es: el nombre manda, y abajo una línea corrida con todo lo que lo
+     describe. El rango dejó de tener columna. — */
+.jug-quien{display:flex; flex-direction:column; gap:3px; min-width:0; flex:1 1 auto;}
+/* El bloque de identidad no estira al infinito: arriba de ~640px el nombre y
+   su metadata ya entran, y todo lo demás sería aire adentro del bloque. El
+   sobrante va ENTRE el bloque y el marcador, que es donde se lee como respiro
+   y no como una columna vacía. */
+.jug-quien{max-width:640px;}
+.jug-nombre{
+  font-family:var(--font-display); font-size:14.5px; font-weight:700; letter-spacing:-0.01em;
+  color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.jug-tag{margin-left:4px; font-size:11px; font-weight:600; color:var(--text-muted); opacity:0.55;}
+.jug-meta{
+  display:flex; align-items:center; gap:6px; flex-wrap:wrap; row-gap:3px; min-width:0;
+  font-size:11px; font-weight:600; color:var(--text-muted); white-space:nowrap;
+}
+.jug-meta > * + *::before{content:"·"; margin-right:6px; opacity:0.4; font-weight:700;}
+.jug-meta .tier-emblem,
+.jug-meta img.tier-emblem{width:17px; height:17px; flex:none; opacity:0.9;}
+/* El emblema es un dibujo, no un dato de la frase: no lleva el punto separador
+   que sí llevan los de texto. */
+.jug-meta > .tier-emblem + *::before{content:none;}
+.jug-meta-lp{font-family:var(--font-mono); font-size:10px; opacity:0.8;}
+.jug-meta-linea{display:inline-flex; align-items:center; gap:4px;}
+.jug-meta-linea img{width:12px; height:12px; opacity:0.75;}
+.jug-entro{font-style:italic; font-weight:500; opacity:0.75; cursor:help;}
+.jug-apagado{font-size:10.5px; color:var(--text-muted); opacity:0.6; white-space:nowrap; font-style:italic;}
+
+/* — Cómo le fue. Va en la MISMA columna que el nombre, como tercera altura:
+     todo lo que describe a la persona abajo de su nombre, y a la derecha una
+     sola cosa. — */
+.jug-forma{display:flex; align-items:center; gap:7px; flex-wrap:wrap; row-gap:5px; margin-top:5px;}
+/* El número grande y la letra chica: "7" es el dato y "V" su unidad. Antes
+   iban del mismo tamaño y "7V" se leía como una sola palabra gris. */
+.jug-record{
+  position:relative; display:flex; align-items:baseline; gap:2px; padding-bottom:6px;
+  font-family:var(--font-stat); font-weight:800; font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+.jug-record b{font-size:14px; font-weight:800;}
+.jug-record i{font-size:9.5px; font-style:normal; font-weight:700; opacity:0.5; margin-right:4px;}
+.jug-record .rec-v{color:rgba(52,201,124,0.9);}
+.jug-record .rec-d{color:rgba(240,85,95,0.85);}
+.jug-record .rec-sep{font-size:11px; color:var(--text-muted); opacity:0.35; margin-right:4px;}
+/* La barra de volumen SUBRAYA el récord: pegada abajo del número, del ancho
+   que le toca contra el que más jugó. Como bloque aparte era otra cajita. */
+.jug-volumen{
+  position:absolute; left:0; right:0; bottom:0; height:3px;
+  border-radius:999px; background:var(--border-soft);
+}
+.jug-volumen-total{display:flex; height:100%; min-width:3px; border-radius:999px; overflow:hidden;}
+.jug-volumen-v{background:var(--good); opacity:0.85; flex:none;}
+.jug-volumen-d{background:var(--critical); opacity:0.6; flex:1 1 auto;}
+
+
+/* — El marcador. Sin placa: el número más grande de la fila y listo. — */
+.jug-marcador{
+  display:flex; flex-direction:column; align-items:flex-end; flex:none;
+  /* Anclado a la derecha de la columna de lectura: el aire que sobra queda
+     ENTRE el bloque de identidad y el número, que es donde se lee como respiro. */
+  margin-left:auto;
+  min-width:78px; text-align:right; line-height:1;
+}
+.jug-pts{
+  font-family:var(--font-stat); font-size:22px; font-weight:800; letter-spacing:-0.02em;
+  font-variant-numeric:tabular-nums; line-height:0.95;
+  transition:text-shadow .16s ease;
+}
+/* La unidad va SIEMPRE. Sin encabezado de columna es lo único que dice qué se
+   está contando, y apilada abajo del número se lee como su etiqueta. */
+.jug-unidad{
+  margin-top:3px;
+  font-family:var(--font-body); font-size:8.5px; font-weight:700;
+  letter-spacing:0.09em; text-transform:uppercase; color:var(--text-muted); opacity:0.6;
+}
+.jug-lp{
+  margin-top:5px;
+  font-family:var(--font-mono); font-size:9.5px; font-weight:600;
+  color:var(--text-muted); cursor:help;
+}
+.jug-marcador:not(.gd-pos):not(.gd-neg) .jug-pts{color:var(--text-muted);}
+.jug-marcador.gd-pos .jug-pts{color:var(--good); text-shadow:0 0 14px rgba(52,201,124,0.20);}
+.jug-marcador.gd-neg .jug-pts{color:var(--critical); text-shadow:0 0 14px rgba(240,85,95,0.18);}
+.jug:hover .jug-marcador.gd-pos .jug-pts{text-shadow:0 0 22px rgba(52,201,124,0.38);}
+.jug:hover .jug-marcador.gd-neg .jug-pts{text-shadow:0 0 22px rgba(240,85,95,0.34);}
+/* El LP teñido flojo por signo: un "−24 LP" abajo de un "0" tiene que
+   distinguirse de un "+24", pero sin competir con el marcador. */
+.jug-lp.gd-pos{color:rgba(52,201,124,0.55);}
+.jug-lp.gd-neg{color:rgba(240,85,95,0.55);}
+
+/* La racha de la semana. Chip con su ícono, del color del resultado: dice si
+   viene subiendo o cayéndose AHORA, que el puntaje solo no cuenta — un +16
+   puede ser tres ganadas al hilo o una racha que se dio vuelta. */
+.liga-racha{
+  display:inline-flex; align-items:center; gap:3px;
+  font-family:var(--font-stat); font-size:10.5px; font-weight:800; font-variant-numeric:tabular-nums;
+  padding:1px 5px 1px 4px; border-radius:999px;
+}
+.liga-racha svg{width:9px; height:9px; flex:none;}
+.liga-racha.w{color:var(--good); background:var(--good-wash);}
+.liga-racha.l{color:var(--critical); background:var(--critical-wash);}
+/* Cuánto le falta para cobrar. Chiquito y apagado: no compite con el récord,
+   pero está siempre a la vista — es lo único que le dice al que va primero que
+   quedarse quieto no le alcanza. */
+.liga-cupo{
+  font-family:var(--font-body); font-size:10px; font-weight:500; letter-spacing:0.01em;
+  color:var(--text-muted); white-space:nowrap; cursor:help;
+  padding:2px 7px; border-radius:999px; box-shadow:inset 0 0 0 1px var(--border-soft);
+}
+/* El número adelante y en la tipografía de números: "8 / 10 partidas" se lee
+   como un contador. */
+.liga-cupo b{
+  font-family:var(--font-stat); font-weight:800; font-variant-numeric:tabular-nums;
+  color:var(--text-secondary);
+}
+/* La condición del último día es la chica de las dos: se muestra recién cuando
+   la de la semana ya está cumplida, y va más apagada. */
+.liga-cupo.chico{font-size:9.5px; opacity:0.8;}
+.liga-cupo.chico b{color:var(--text-muted);}
+.liga-cupo.ok{color:rgba(52,201,124,0.72); box-shadow:inset 0 0 0 1px rgba(52,201,124,0.22);}
+/* El último día ya corriendo y todavía sin cumplir: ahí sí urge. */
+.liga-cupo.urge{color:var(--accent); opacity:1; box-shadow:inset 0 0 0 1px var(--accent-dim-border);}
+.liga-cupo.urge b{color:var(--accent);}
+
 
 /* Partida por partida, con lo que movió cada una. */
+/* El detalle CUELGA del jugador, no es un bloque abajo.
+
+   Era un rectángulo con fondo propio, borde abajo y una barra dorada al
+   costado: o sea otra caja, del ancho de la tarjeta, que no se sabía de quién
+   era hasta leerla. Ahora no tiene fondo ni bordes — lo que lo ata es la
+   POSICIÓN: entra hasta donde arranca el nombre y un hilo vertical lo baja
+   desde el centro del avatar de esa persona. La misma idea que un hilo de
+   respuestas: la sangría dice de quién es. */
 .liga-detalle{
-  padding:8px 16px 10px 100px; background:var(--surface);
-  border-bottom:1px solid var(--border-soft);
-  /* La guía dorada lo ata visualmente a la fila que lo abrió: sin ella el
-     bloque flotaba y no se sabía de quién era. */
-  box-shadow:inset 3px 0 0 var(--accent-dim);
+  position:relative; max-width:1040px;
+  padding:4px 18px 14px 104px;
   animation:liga-abre .18s ease;
+}
+/* El hilo cae del CENTRO DEL AVATAR de esa persona, no de cualquier lado:
+   medido, ese centro está a 79px del borde de la lista. Desalineado —estaba a
+   39— el hilo no colgaba de nadie, colgaba del número del puesto. */
+.liga-detalle::before{
+  content:""; position:absolute; left:79px; top:0; bottom:20px; width:2px;
+  border-radius:2px; background:var(--accent-dim); opacity:0.45;
 }
 @keyframes liga-abre{from{opacity:0;} to{opacity:1;}}
 @media (prefers-reduced-motion:reduce){ .liga-detalle{animation:none;} }
@@ -3786,158 +3929,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .liga-partida-lp.sin{cursor:help; opacity:0.6;}
 @media (max-width:560px){
-  .liga-detalle{padding-left:16px;}
+  .liga-detalle{padding-left:60px;}
+  .liga-detalle::before{left:38px;}
   /* En el teléfono vuelve a ocupar todo el ancho: ahí no sobra, falta. */
   .liga-partida{grid-template-columns:20px 24px minmax(0,1fr) 34px 108px; gap:9px; width:auto;}
 }
-/* El primero no lleva medalla ni corona: un fondo apenas dorado alcanza para
-   que el ojo lo encuentre sin convertir la tabla en un podio. */
-/* El que va ganando la semana no es "una fila más con fondo distinto": se
-   lleva un degradado que se apaga hacia la derecha, la barra dorada al
-   costado y su avatar con anillo. Es la única fila que tiene algo en juego. */
-.liga-fila.lider{
-  background:linear-gradient(90deg, var(--accent-wash) 0%, var(--accent-wash-soft) 45%, transparent 100%);
-  box-shadow:inset 3px 0 0 var(--accent);
-}
-.liga-fila.lider:hover{
-  background:linear-gradient(90deg, var(--accent-wash) 0%, var(--accent-wash) 45%, var(--surface-hover) 100%);
-}
-.liga-fila.lider .liga-avatar{box-shadow:0 0 0 2px var(--accent);}
-.liga-fila.lider .liga-nombre{color:var(--accent);}
-.liga-puesto{
-  display:flex; align-items:center; justify-content:center;
-  font-family:var(--font-stat); font-size:15px; font-weight:800;
-  color:var(--text-muted); font-variant-numeric:tabular-nums;
-}
-.liga-puesto svg{width:19px; height:19px;}
-.liga-puesto.p1{color:var(--gold);}
-.liga-puesto.p2{color:var(--text-secondary);}
-.liga-puesto.p3{color:var(--warn);}
-/* La display y no la de cuerpo: es el nombre de alguien compitiendo, no una
-   celda de planilla. Medio punto más grande y con el interletrado apretado
-   que usa el resto de los títulos. */
-.liga-nombre{
-  font-family:var(--font-display); font-size:14px; font-weight:700; letter-spacing:-0.01em;
-  color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-}
-/* El récord explica el puntaje de al lado, así que se lee como una cuenta:
-   las victorias del verde de la barra, las derrotas del rojo, y el menos en
-   el medio. Antes era "7V-4D" todo gris del mismo tamaño que cualquier meta,
-   y había que hacer la resta a mano para entender el +3. */
-.liga-record{
-  display:flex; align-items:center; gap:5px; flex-wrap:wrap; row-gap:3px;
-  font-family:var(--font-stat); font-size:11.5px; font-weight:700;
-  font-variant-numeric:tabular-nums; color:var(--text-muted); white-space:nowrap;
-}
-.liga-record .rec-v{color:rgba(52,201,124,0.82);}
-.liga-record .rec-d{color:rgba(240,85,95,0.78);}
-.liga-record .rec-sep{color:var(--text-muted); opacity:0.45; font-weight:700;}
-.liga-record .liga-racha{margin-left:3px;}
-/* La racha de la semana. Chip con su ícono, del color del resultado: es el
-   dato que dice si viene subiendo o cayéndose AHORA, que el neto solo no
-   cuenta — un +16 puede ser tres ganadas al hilo o una racha que se dio
-   vuelta. */
-.liga-racha{
-  display:inline-flex; align-items:center; gap:3px;
-  font-family:var(--font-stat); font-size:10.5px; font-weight:800; font-variant-numeric:tabular-nums;
-  padding:1px 5px 1px 4px; border-radius:999px;
-}
-.liga-racha svg{width:9px; height:9px; flex:none;}
-.liga-racha.w{color:var(--good); background:var(--good-wash);}
-.liga-racha.l{color:var(--critical); background:var(--critical-wash);}
-.liga-sinjugar{font-size:10px; color:var(--text-muted); opacity:0.65; white-space:nowrap; font-style:italic;}
-/* Cuánto le falta para cobrar. Chiquito y apagado: no compite con el récord,
-   pero está siempre a la vista — es lo único que le dice al que va primero que
-   quedarse quieto no le alcanza. */
-.liga-cupo{
-  font-family:var(--font-body); font-size:10px; font-weight:500; letter-spacing:0.01em;
-  color:var(--text-muted); white-space:nowrap; cursor:help;
-  padding:2px 7px; border-radius:999px; box-shadow:inset 0 0 0 1px var(--border-soft);
-}
-/* El número adelante y en la tipografía de números: "8 / 10 partidas" se lee
-   como un contador, "8/10 semana" se leía como una métrica más de la fila. */
-.liga-cupo b{
-  font-family:var(--font-stat); font-weight:800; font-variant-numeric:tabular-nums;
-  color:var(--text-secondary);
-}
-/* La condición del último día es la chica de las dos: se muestra recién
-   cuando la de la semana ya está cumplida, y va más apagada. */
-.liga-cupo.chico{font-size:9.5px; opacity:0.8;}
-.liga-cupo.chico b{color:var(--text-muted);}
-.liga-cupo.ok{color:rgba(52,201,124,0.72); box-shadow:inset 0 0 0 1px rgba(52,201,124,0.22);}
-/* El último día ya corriendo y todavía sin cumplir: ahí sí urge. */
-.liga-cupo.urge{color:var(--accent); opacity:1; box-shadow:inset 0 0 0 1px var(--accent-dim-border);}
-.liga-cupo.urge b{color:var(--accent);}
-/* El dato de la tabla: lo único que decide el premio.
-   El color va en reglas propias y no en `color` acá: .gd-pos/.gd-neg están
-   definidas más arriba en el archivo y, a igual especificidad, gana la última
-   — así que un `color` en la base las pisaba y los números salían todos
-   grises. */
-.liga-lp{
-  display:flex; flex-direction:column; align-items:flex-end; gap:4px;
-  font-family:var(--font-stat); font-size:22px; font-weight:800; letter-spacing:-0.02em;
-  font-variant-numeric:tabular-nums; text-align:right;
-}
-/* El LP real, abajo del puntaje y en chico. Ya no decide nada —puntúan las
-   partidas netas— pero es lo que cada uno mira para entender su semana, así
-   que se muestra como referencia en vez de desaparecer. */
-.liga-lp-ref{
-  font-family:var(--font-mono); font-size:10px; font-weight:600;
-  color:var(--text-muted); cursor:help; letter-spacing:0;
-}
-/* Teñido flojo por signo. Antes era gris siempre y un "−24 LP" debajo de un
-   "0" no se distinguía de un "+24": el dato de referencia se leía al revés.
-   Va a media luz para no competir con la placa de arriba, que es la que
-   decide. Colores explícitos porque .gd-pos/.gd-neg están definidas más
-   arriba y, a igual especificidad, pierden contra .liga-lp-ref. */
-.liga-lp-ref.gd-pos{color:rgba(52,201,124,0.55);}
-.liga-lp-ref.gd-neg{color:rgba(240,85,95,0.55);}
-/* El puntaje NO va en caja. Estuvo un rato en placa —fondo teñido y aro— y en
-   una columna de seis filas eso son seis rectángulos en fila que se leen como
-   botones, encima adentro de una fila que SÍ es cliqueable. La vida se la da
-   la luz, no el marco: un resplandor del color del signo que se aviva al pasar
-   por la fila, y la palabra al lado diciendo qué se cuenta.
-   El tamaño quedó en 20px y el resplandor bajo a propósito: pasó por 25 y
-   hacía ruido. En una tabla de seis filas el número no necesita gritar, ya es
-   lo único grande de su columna. */
-/* Apilado: el número arriba y la unidad abajo. Al lado uno del otro, el
-   número y la palabra se peleaban el mismo renglón y el marcador se leía como
-   media línea de texto; apilados, el número es el dato y "PUNTOS" es su
-   etiqueta. */
-.liga-puntaje{
-  display:inline-flex; flex-direction:column; align-items:flex-end; gap:0; line-height:1;
-  transition:text-shadow .16s ease;
-}
-/* line-height debajo de 1: apilado, el interlineado normal le agregaba aire
-   adentro del número y era eso —no el tamaño— lo que hacía crecer la fila
-   entera al pasar el marcador a dos renglones. */
-.liga-puntaje-n{line-height:0.92;}
-/* La unidad aparece UNA sola vez por columna: si el encabezado de la tabla
-   dice PUNTOS, repetirlo en las seis filas es ruido —y peor, ruido apretado
-   entre el número y el LP, que era lo que hacía ver la celda apelmazada—.
-   Así que acá va escondida y solo se prende abajo de 780, que es justo donde
-   el encabezado desaparece. Una etiqueta o la otra, nunca las dos. */
-.liga-puntaje-unidad{
-  display:none;
-  font-family:var(--font-body); font-size:8.5px; font-weight:700;
-  letter-spacing:0.09em; text-transform:uppercase; opacity:0.45;
-}
-/* El LP, un escalón más abajo todavía: separado del marcador por su propio
-   aire y en mono, para que se lea como el dato de contexto que es. */
-.liga-lp .liga-lp-ref{margin-top:0; font-size:9.5px;}
-.liga-lp:not(.gd-pos):not(.gd-neg){color:var(--text-muted);}
-.liga-lp.gd-pos{color:var(--good);}
-.liga-lp.gd-neg{color:var(--critical);}
-.liga-lp.gd-pos .liga-puntaje{text-shadow:0 0 14px rgba(52,201,124,0.20);}
-.liga-lp.gd-neg .liga-puntaje{text-shadow:0 0 14px rgba(240,85,95,0.18);}
-.liga-fila:hover .liga-lp.gd-pos .liga-puntaje{text-shadow:0 0 20px rgba(52,201,124,0.36);}
-.liga-fila:hover .liga-lp.gd-neg .liga-puntaje{text-shadow:0 0 20px rgba(240,85,95,0.33);}
-@media (prefers-reduced-motion:reduce){ .liga-puntaje{transition:none;} }
-/* La vitrina de campeones. Era una línea de log —la clave ISO de la semana, el
-   Riot ID con tag y un número verde a la derecha— y se leía como el pie de una
-   tabla, no como el registro de quién ganó plata. El campeón vigente pasa a
-   tener cara, nombre grande y su marcador; las semanas viejas quedan compactas
-   abajo, que es donde merecen estar. */
 .vitrina{
   margin-top:12px; padding:11px 12px 12px;
   background:var(--surface); border-radius:var(--radius-sm);
@@ -4117,88 +4113,44 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-size:12.5px; color:var(--text-secondary); cursor:pointer;
 }
 .liga-admin-fila input{accent-color:var(--accent); width:15px; height:15px; cursor:pointer;}
-/* Las bandas de la tabla y lo que necesita cada una. Con la columna de la
-   curva afuera —ahora la carrera va arriba, en un gráfico solo— quedaron siete
-   columnas y la banda ancha bajó de 1036px a 830. Abajo de eso las siete se
-   aprietan (766px) y abajo de 780 va la fila de dos renglones del teléfono.
-   Los números salen de sumar los mínimos + los gaps + el padding de la fila +
-   el de la página, y están medidos: antes de hacer esa cuenta había dos bandas
-   en las que las columnas se pisaban y la tabla —overflow:hidden— cortaba el
-   nombre. */
+/* La lista en pantallas chicas.
+
+   Con la grilla de siete columnas había que calcular tres bandas y medir en
+   cuál se pisaban las columnas. Con flex eso se terminó: cada zona ocupa lo
+   que necesita y lo único que hay que decidir es QUÉ SE CAE y cuándo. */
 @media (max-width:865px){
-  .liga-fila, .liga-head{grid-template-columns:42px 36px minmax(130px,220px) 36px 144px minmax(140px,1fr) 100px; gap:11px;}
-  .liga-avatar{width:34px; height:34px; border-radius:10px;}
-  /* Y el #TAG se va. Es lo que menos identifica de la celda —en este grupo son
-     todos del mismo servidor— y son 34px que decidían si el nombre entraba o
-     se cortaba. Medido: "ElNegroDeWhatsapp #LAS" pide 170px y sin el tag pide
-     136, que es lo que hace que entre hasta el layout del teléfono. */
-  .liga-nombre .player-tag{display:none;}
+  .jug{gap:12px; padding-left:14px; padding-right:14px;}
+  .jug-cara, .jug-avatar{width:40px; height:40px;}
+  /* El #TAG se va. Es lo que menos identifica —en este grupo son todos del
+     mismo servidor— y son los 34px que deciden si el nombre entra o se corta.
+     Medido: "ElNegroDeWhatsapp #LAS" pide 170px y sin el tag pide 136. */
+  .jug-tag{display:none;}
+  .liga-grupo + .liga-grupo > .jug::before{left:54px; right:14px;}
 }
-/* 780 y no 640: con siete columnas la fila necesita 766px para que ninguna
-   baje de su mínimo, así que entre 641 y 766 las columnas se pisaban y la
-   tabla —que tiene overflow:hidden— cortaba el nombre. Se midió: tres nombres
-   cortados a 700px. */
 @media (max-width:780px){
-  /* Y el encabezado se va: de acá para abajo se caen columnas y las etiquetas
-     dejarían de caer arriba de lo que nombran. Como la columna se queda sin
-     título, la unidad vuelve a la celda. */
-  .liga-head{display:none;}
-  .liga-puntaje-unidad{display:block;}
-  /* Y después el rango: en un teléfono el nombre y el neto son lo que se
-     mira, y el rango de cada uno ya está en el ladder de al lado. */
-  /* Se cae también el campeón. Cinco columnas de datos no entran en 390px y
-     algo tiene que salir: entre el arte del campeón y el NOMBRE del jugador,
-     sale el arte. Antes no salía nada y el resultado era peor que elegir —
-     la columna del nombre se comprimía a 20px y en el teléfono las filas no
-     decían de quién eran. */
-  .liga-jugo{display:none;}
-  .liga-fila{grid-template-columns:34px 30px minmax(0,1fr) 112px 78px; gap:10px; padding:10px 13px;}
-  .liga-record{font-size:11px; gap:4px;}
-  .liga-record .liga-racha{margin-left:1px;}
-  .liga-regla{font-size:11.5px; line-height:1.55;}
-  /* En el teléfono la regla queda en dos frases: cómo se puntúa y qué hay que
-     jugar para cobrar. La aclaración del LP se cae — con "cada victoria suma
-     1" arriba ya está dicho que el LP no entra, y era el tercio de un párrafo
-     de cinco renglones que nadie termina de leer. Sigue en la pantalla
-     ancha. */
-  .liga-regla-nota{display:none;}
-  .liga-regla-cobro{margin-top:4px;}
-  /* La unidad se queda: acá el encabezado de la tabla no está, y desde que el
-     marcador se apila —el número arriba, la palabra abajo— ya no compite por
-     el mismo renglón, que era el motivo por el que antes se escondía. */
-  .liga-lp{font-size:18px;}
-  .liga-fila.lider .liga-lp{font-size:20px;}
-  .liga-avatar{width:31px; height:31px; border-radius:9px; font-size:11px;}
-  .liga-puesto{font-size:13px;}
-  .liga-puesto svg{width:16px; height:16px;}
-  .liga-rango-celda{display:none;}
+  /* Se cae el nombre de la línea, que es la metadata más prescindible: el
+     ícono ya está en el retrato del campeón. */
+  .jug-meta-linea span, .jug-meta-linea{gap:0;}
+  .jug-meta-linea{font-size:0;}
+  .jug-meta-linea img{width:13px; height:13px;}
+  .jug-pts{font-size:20px;}
+  .jug.lider .jug-pts{font-size:23px;}
+  .jug-volumen{width:68px;}
 }
-/* En el teléfono la fila pasa a DOS renglones en vez de seguir angostando
-   columnas. Con todo en una línea el nombre se quedaba con 20px —o sea, no se
-   leía de quién era la fila— y el récord es demasiado importante para tirarlo:
-   es de dónde salen las netas. Así que puesto, avatar y netas ocupan los dos
-   renglones, y en el medio va el nombre arriba y el récord abajo. */
+/* En el teléfono la persona pasa a DOS renglones. No se angosta nada: el
+   récord baja entero abajo del nombre, entrado hasta donde arranca el nombre,
+   así el bloque sigue leyéndose como UNA persona y no como dos filas. */
 @media (max-width:480px){
-  .liga-fila{
-    grid-template-columns:26px 30px minmax(0,1fr) 74px;
-    grid-template-rows:auto auto;
-    column-gap:9px; row-gap:2px; padding:9px 12px;
-  }
-  /* La marca de "se anotó el martes" pegada al nombre, no flotando entre los
-     dos renglones: en el teléfono cuatro de seis filas la tienen y con aire
-     alrededor parecía un tercer renglón propio en vez de la aclaración del
-     nombre de arriba. */
-  .liga-nombre{line-height:1.25;}
-  .liga-entro{margin-top:-1px;}
-  .liga-puesto{grid-column:1; grid-row:1 / span 2;}
-  .liga-avatar{grid-column:2; grid-row:1 / span 2; width:32px; height:32px; border-radius:9px; font-size:11px;}
-  .liga-nombre{grid-column:3; grid-row:1; font-size:13.5px;}
-  .liga-vd{grid-column:3; grid-row:2;}
-  .liga-lp{grid-column:4; grid-row:1 / span 2; font-size:19px;}
-  .liga-puesto{font-size:13px;}
-  .liga-puesto svg{width:16px; height:16px;}
-  .liga-barra{height:7px;}
-  .liga-record{font-size:11px;}
+  .jug{flex-wrap:wrap; row-gap:8px; padding:11px 12px;}
+  .jug-cara, .jug-avatar{width:36px; height:36px; border-radius:11px; font-size:12px;}
+  .jug-champ{width:19px; height:19px; border-radius:6px;}
+  .jug-puesto{width:20px; font-size:13px;}
+  .jug-puesto svg{width:16px; height:16px;}
+  .jug-nombre{font-size:13.5px;}
+  .jug.lider .jug-nombre{font-size:15px;}
+  .jug-marcador{min-width:64px;}
+  .jug-pts{font-size:19px;}
+  .liga-grupo + .liga-grupo > .jug::before{left:44px; right:12px;}
 }
 /* Marca de que ese entró a mitad de semana. Va chiquito y al lado del nombre
    porque explica el número de al lado, no compite con él. */
