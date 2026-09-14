@@ -3,7 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabase";
 import { exigirSesion } from "@/lib/auth";
 import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
 import { claveDeSemana, esSemanaDeLiga, inicioDeSemana, LIGA_INICIO, tablaDeLaSemana, ventanaDeSemana, ventanaUltimoDia, empezoElUltimoDia, puntosDeSecuencia, puntosPorDia, etiquetasDeDias, diasCorridos, MINIMO_SEMANAL, MINIMO_ULTIMO_DIA, PUNTOS_VICTORIA, PUNTOS_DERROTA, PUNTOS_EN_RACHA, RACHA_DESDE, lpPorPartida, type Participante, type RecordSemanal, type Snapshot } from "@/lib/liga";
-import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
+import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { roleFromTeamPosition } from "@/lib/mapping";
 
 /**
@@ -107,6 +107,10 @@ export async function GET() {
         .select("match_id, puuid, win, played_at, champion, team_position")
         .in("puuid", puuids)
         .eq("queue_id", RANKED_SOLO_QUEUE_ID)
+        // Sin los remakes. Riot no los cuenta —ni LP, ni victoria, ni derrota—
+        // y la liga sí los estaba contando: un punto o −0,75 por una partida de
+        // cuatro minutos que nunca se jugó. Ver DURACION_MINIMA_S.
+        .gte("game_duration_s", DURACION_MINIMA_S)
         .gte("played_at", desdeVentana.toISOString())
         .lt("played_at", fin.toISOString());
       // Las dos de arriba se chequean juntas acá: sin fotos el marcador queda

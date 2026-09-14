@@ -48,6 +48,11 @@ suma; con −0,5 baja a 33% y gana el que tiene más tiempo libre. Con −0,75 q
 43%. El LP no puntúa: una victoria vale lo mismo en cualquier cuenta. Es opt-in: cada
 uno cuenta desde que se lo anota, no desde el lunes.
 
+**Los remakes no cuentan**, ni para los puntos ni para las 10 partidas del mínimo. Riot
+tampoco los cuenta —no dan ni quitan LP— aunque en su API vengan con el resultado puesto.
+Toda partida de menos de cinco minutos queda afuera en toda la app, así que el récord del
+ladder y el de la liga dicen lo mismo.
+
 Para llevarse el premio no alcanza con ir primero: hay que jugar **10 partidas en la
 semana** y **3 el último día**. Es contra el que agarra ventaja el martes y no juega
 más para no arriesgarla. Si el puntero no llega a los mínimos, cobra el primero que

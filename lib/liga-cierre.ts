@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendDiscordNotification } from "./discord";
-import { RANKED_SOLO_QUEUE_ID } from "./refresh";
+import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "./refresh";
 import { claveDeSemana, esSemanaDeLiga, etiquetasDeDias, type FilaLiga, ganadorDe, inicioDeSemana, mensajeDeCierre, puntajeDe, puntosPorDia, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot, ventanaDe, ventanaUltimoDia } from "./liga";
 
 /**
@@ -107,6 +107,10 @@ export async function tablaDeSemanaEnBase(
     .select("puuid, win, played_at, champion")
     .in("puuid", puuids)
     .eq("queue_id", RANKED_SOLO_QUEUE_ID)
+    // El MISMO filtro de remakes que /api/liga. Si el cierre contara partidas
+    // que la tabla en vivo no cuenta, el campeón que anuncia el bot podría no
+    // ser el que la gente vio ganar toda la semana.
+    .gte("game_duration_s", DURACION_MINIMA_S)
     .gte("played_at", desde.toISOString())
     .lt("played_at", fin.toISOString());
   if (ePartidas) throw new Error(`No se pudieron leer las partidas de esa semana: ${ePartidas.message}`);

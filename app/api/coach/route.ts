@@ -4,7 +4,7 @@ import { dossierHash, generateCoachReport, type CoachDossier, type CoachReport }
 import { computeMatchups, type MatchupSample } from "@/lib/matchups";
 import { roleFromTeamPosition } from "@/lib/mapping";
 import { ROLES, tierFor } from "@/lib/ladder";
-import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
+import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { exigirSesion } from "@/lib/auth";
 import { winrateExacto } from "@/lib/winrate";
 
@@ -80,6 +80,10 @@ export async function POST(req: Request) {
     .select("champion, win, opponent_champion, kills, deaths, assists, gold_diff_15, team_position")
     .eq("puuid", summoner.puuid)
     .eq("queue_id", RANKED_SOLO_QUEUE_ID)
+    // Sin remakes: cuatro minutos sin farmear le hunden el CS por minuto y el
+    // gold diff a los 15 que no existe, y el consejo sale de ahí. Ver
+    // DURACION_MINIMA_S.
+    .gte("game_duration_s", DURACION_MINIMA_S)
     .returns<(MatchRow & { team_position: string | null })[]>();
   if (matchesError) {
     return NextResponse.json({ error: `Error leyendo partidas: ${matchesError.message}` }, { status: 500 });

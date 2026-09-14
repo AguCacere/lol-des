@@ -77,6 +77,12 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
 - `refresh.ts` — todo lo que escribe partidas. **Sus puertas son `refreshOne`,
   `backfillOne`, `repairMatches` y `refreshAllSummoners`**; adentro, `buildMatchRow`
   (línea ~385) es el único lugar donde se arma una fila de `matches`.
+  También vive acá la regla de **qué partida cuenta**: `RANKED_SOLO_QUEUE_ID`,
+  `DURACION_MINIMA_S` (el corte de remake) y `esRemake`. Los remakes se guardan pero se
+  filtran al LEER —un `.gte("game_duration_s", DURACION_MINIMA_S)` en cada consulta que
+  cuenta partidas— así que arreglar esto no necesitó ni migración ni backfill. Toda
+  consulta nueva sobre `matches` que cuente victorias, derrotas o promedios tiene que
+  llevar ese filtro; ver DECISIONES → Riot.
 - `mapping.ts` — tiers de League-V4 → los `TierKey` de la UI.
 
 **Cálculo puro** (sin red ni base: entran datos, salen números)

@@ -98,6 +98,43 @@ empezaron antes del corte.
 
 ## Riot
 
+**Un remake trae `win` puesto, y no significa nada.** Cuando a alguien no le carga el
+juego y a los tres minutos el equipo vota /remake, Riot **no cuenta esa partida**: ni LP,
+ni victoria, ni derrota en el récord de la cuenta. Pero en el payload de Match-V5 viene
+igual con `win: true` para el equipo que quedó completo y `win: false` para el que perdió
+al que se cayó, y la app se lo creía. La liga sumaba un punto de un lado y restaba 0,75
+del otro por una partida de cuatro minutos que nunca se jugó; el bot cargaba por una
+derrota que Riot no anotó; y las rachas se partían solas.
+
+Pasó dos semanas seguidas. Medido con la tabla de puntos de la liga: una victoria, un
+remake contado como derrota y otra victoria daban **+1,25** en vez de **+2**; al del otro
+lado, el mismo remake contado como victoria lo dejaba en **−0,5** en vez de **−1,5**. Y un
+remake en el medio de cuatro ganadas al hilo cortaba el bono de racha: **+3,25** en lugar
+de **+4,25**.
+
+**El corte va en la DURACIÓN (`DURACION_MINIMA_S = 300`), no en el flag de Riot**, aunque
+el flag (`gameEndedInEarlySurrender`) sea más preciso. La razón es que tiene que valer
+para las filas YA guardadas, y en la base lo único que hay es `game_duration_s`: guardar
+el flag pedía una columna nueva más un repaso de toda la historia contra la API. Con la
+duración, el arreglo es un `.gte()` en cada consulta y corrige lo viejo y lo nuevo sin
+tocar el esquema ni pedirle nada a Riot. Cinco minutos no es ambiguo: una ranked no puede
+terminar antes —el nexo no se cae tan rápido y el voto de rendirse recién se habilita a
+los 15— así que todo lo que dura menos es un remake o una partida que cortó el servidor,
+y ninguna de las dos cuenta. Donde SÍ está el payload a mano (la cargada, que lo baja
+igual) se usan las dos cosas: `esRemake` en `lib/refresh.ts`.
+
+**Va en TODAS las consultas que cuentan partidas, no solo en la liga.** Si el ladder
+contara los remakes y la liga no, el récord del mismo jugador diría dos cosas distintas
+en dos pestañas. Están filtrados `/api/liga`, `lib/liga-cierre.ts`, `/api/ladder`,
+`/api/team-digest`, `/api/coach`, el aviso de racha y la búsqueda de la peor partida.
+La única excepción es `/api/roast` **pedida con un `match_id` explícito**: si alguien
+pasa el id a mano, que conteste de esa partida y no "no la encuentro".
+
+**Las semanas ya cerradas no cambian.** El cierre guarda su `resumen` y la vitrina lo lee
+de ahí, así que una liga que el bot ya anunció se queda con los números que se anunciaron
+—ver "un resultado anunciado es un HECHO"—. Para recalcular una a propósito está el POST
+de `/api/liga/semana`.
+
 **Spectator-V5 no dice en qué línea juega nadie.** `teamPosition` llega recién con
 Match-V5, cuando la partida terminó. Para la partida en vivo se estima en
 `lib/live-roles.ts`.

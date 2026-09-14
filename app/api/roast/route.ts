@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { isDisaster, roastMessage, worstDisaster, type RoastCandidate } from "@/lib/roast";
-import { candidatasDeFlex, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
+import { candidatasDeFlex, DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { exigirSesion } from "@/lib/auth";
 
 /** Cuántas partidas recientes se miran cuando no se pasa un matchId puntual. */
@@ -114,7 +114,15 @@ export async function POST(req: Request) {
     .eq("queue_id", RANKED_SOLO_QUEUE_ID);
   query = matchId
     ? query.eq("match_id", matchId)
-    : query.order("played_at", { ascending: false }).limit(VENTANA);
+    // Los remakes quedan afuera de la BÚSQUEDA de la peor, pero no de un
+    // pedido explícito por match_id: si alguien pasa el id a mano, que la ruta
+    // conteste de esa partida y no "no la encuentro". Cuatro minutos donde
+    // nadie hizo nada dejan un 0/2/0 que gana la pulseada de "la peor" sin que
+    // haya pasado nada. Ver DURACION_MINIMA_S.
+    : query
+        .gte("game_duration_s", DURACION_MINIMA_S)
+        .order("played_at", { ascending: false })
+        .limit(VENTANA);
 
   const { data: filas, error } = await query.returns<Fila[]>();
   if (error) {

@@ -133,6 +133,14 @@ export interface RiotParticipant {
   teamId: number;
   championName: string;
   win: boolean;
+  /**
+   * Si la partida terminó en remake. Riot lo manda en true para los diez
+   * cuando alguien no cargó y el equipo votó /remake a los tres minutos, y en
+   * ese caso el `win` de acá arriba NO significa nada: la partida no da LP ni
+   * entra en el récord de la cuenta. Opcional porque es de Match-V5 moderno y
+   * una partida vieja puede no traerlo — ahí decide la duración. Ver esRemake.
+   */
+  gameEndedInEarlySurrender?: boolean;
   kills: number;
   deaths: number;
   assists: number;

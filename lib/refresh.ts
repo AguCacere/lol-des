@@ -37,8 +37,47 @@ export const CLASH_QUEUE_ID = 700;
  * quince minutos sin guardar qué se cargó.
  */
 export const RANKED_FLEX_QUEUE_ID = 440;
+/**
+ * Menos que esto y no fue una partida: fue un remake.
+ *
+ * Cuando a alguien no le carga el juego, a los tres minutos el equipo puede
+ * votar /remake y la partida se cancela. Riot NO la cuenta: no da ni quita LP
+ * y no toca el récord de victorias y derrotas de la cuenta. Pero en el payload
+ * de Match-V5 igual viene con `win` puesto —true para el equipo que quedó
+ * completo, false para el que perdió al que se cayó— y esta app se lo estaba
+ * creyendo. Resultado: la liga sumaba un punto o restaba 0,75 por una partida
+ * de cuatro minutos que nunca pasó, el bot cargaba a alguien por una derrota
+ * que Riot no le anotó, y las rachas se cortaban solas.
+ *
+ * El corte va en la DURACIÓN y no en el flag `gameEndedInEarlySurrender` de
+ * Riot porque tiene que valer también para las filas ya guardadas, y en la
+ * base lo único que hay es `game_duration_s`. Guardar el flag pedía una
+ * columna nueva más un repaso por toda la historia con la API de Riot; la
+ * duración arregla lo viejo y lo nuevo sin tocar el esquema.
+ *
+ * Cinco minutos es un corte cómodo y no es ambiguo: una ranked de verdad no
+ * puede terminar antes: el nexo no se cae tan rápido y el voto de rendirse
+ * recién se habilita a los 15. Todo lo que dura menos es un remake o una
+ * partida que el servidor cortó, y ninguna de las dos cuenta para nadie.
+ *
+ * Donde SÍ tenemos el payload de Riot a mano (la cargada, que lo baja igual)
+ * se usa además el flag, que es la palabra del que manda. Ver esRemake.
+ */
+export const DURACION_MINIMA_S = 300;
+
 /** Below this, a win/loss streak doesn't get a Discord ping — see checkStreakAndNotify. */
 const STREAK_NOTIFY_THRESHOLD = 3;
+
+/**
+ * Si esta partida hay que descartarla. Se le cree primero a Riot y después al
+ * reloj: el flag es explícito, la duración es la red que agarra lo que el flag
+ * no cubre (una partida que cortó el servidor no la marca como early surrender
+ * pero tampoco cuenta).
+ */
+export function esRemake(match: RiotMatch): boolean {
+  if (match.info.participants.some((p) => p.gameEndedInEarlySurrender)) return true;
+  return match.info.gameDuration < DURACION_MINIMA_S;
+}
 
 /** "Nombre#TAG" for a puuid — only looked up on the rare path that's actually about to send a Discord message, not on every refresh. */
 async function summonerLabel(supabase: SupabaseClient, puuid: string): Promise<string | null> {
@@ -90,6 +129,11 @@ async function checkStreakAndNotify(supabase: SupabaseClient, puuid: string) {
     .select("win, deaths, played_at, game_duration_s")
     .eq("puuid", puuid)
     .eq("queue_id", RANKED_SOLO_QUEUE_ID)
+    // Los remakes no cortan ni alargan una racha. Un /remake en el medio de
+    // cuatro derrotas al hilo venía con `win: true` para la mitad del lobby y
+    // le partía la racha al que la tenía; al otro lado, se la alargaba. Riot no
+    // cuenta esa partida, así que acá tampoco existe. Ver DURACION_MINIMA_S.
+    .gte("game_duration_s", DURACION_MINIMA_S)
     .order("played_at", { ascending: false })
     .limit(20);
   if (!recent || recent.length < STREAK_NOTIFY_THRESHOLD) return;
@@ -216,6 +260,12 @@ const FLEX_MAX_CANDIDATAS = 3;
 
 /** La partida de Riot convertida en candidata a cargada, sin pasar por la base. */
 function candidataDeMatch(puuid: string, matchId: string, match: RiotMatch): RoastCandidate | null {
+  // Un remake no se carga. Son cuatro minutos donde nadie hizo nada: el 0/2/0
+  // que quedó no es un desastre, es una partida que no pasó, y salía elegida
+  // como "la peor" justamente porque los números son malos. Acá tenemos el
+  // payload de Riot, así que además del reloj vale su flag.
+  if (esRemake(match)) return null;
+
   const me = match.info.participants.find((p) => p.puuid === puuid);
   if (!me) return null;
 

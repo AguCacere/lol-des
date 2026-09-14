@@ -3,7 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabase";
 import { rankScore, tierFor } from "@/lib/ladder";
 import { tierKeyFromRiot, divisionFromRiot } from "@/lib/mapping";
 import { profileIconUrl, getLatestVersion } from "@/lib/ddragon";
-import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
+import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import type { TeamDigest, TeamDigestResumen } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -79,6 +79,9 @@ export async function GET(req: Request) {
       .from("matches")
       .select("puuid, champion, win, kills, deaths, assists, gold_diff_10, gold_diff_15, gold_diff_20, played_at")
       .eq("queue_id", RANKED_SOLO_QUEUE_ID)
+      // Sin remakes: el resumen del grupo cuenta las mismas partidas que el
+      // ladder y que la liga. Ver DURACION_MINIMA_S.
+      .gte("game_duration_s", DURACION_MINIMA_S)
       .gte("played_at", windowStart.toISOString())
       .lt("played_at", windowEnd.toISOString())
       .returns<MatchRow[]>(),

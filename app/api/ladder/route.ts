@@ -8,7 +8,7 @@ import { divisionFromRiot, normalizeRole, roleFromTeamPosition, tierKeyFromRiot 
 import { historialDeLineas, type PartidaConLinea } from "@/lib/lineas";
 import { getLiveGamesByPuuid } from "@/lib/live";
 import { getLatestVersion, profileIconUrl, runeIconUrlByName, summonerSpellIconUrlByName } from "@/lib/ddragon";
-import { RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
+import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { computeAegisStats } from "@/lib/aegis";
 import { computeRecentForm, type FormSample } from "@/lib/form";
 import { computeRadar, metricasPropias, RADAR_METRICS, type MetricStats, type RadarMetric } from "@/lib/radar";
@@ -227,6 +227,14 @@ export async function GET() {
       // numbers into "partida más larga"/"mejor KDA"/etc. was silently
       // comparing two different populations.
       .eq("queue_id", RANKED_SOLO_QUEUE_ID)
+      // Y sin remakes, por la misma razón que sin Clash: son otra población.
+      // Riot no los cuenta como partida —ni LP, ni victoria, ni derrota— así
+      // que una ranked de cuatro minutos acá metía una derrota que la cuenta
+      // del jugador no tiene, y de paso arrastraba el KDA, el CS por minuto y
+      // el pool de campeones. Si esto no filtrara, el récord del ladder y el
+      // de la liga dirían cosas distintas del mismo jugador. Ver
+      // DURACION_MINIMA_S.
+      .gte("game_duration_s", DURACION_MINIMA_S)
       .order("played_at", { ascending: false })
       .returns<MatchLite[]>(),
     supabase
