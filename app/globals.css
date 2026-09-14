@@ -3612,18 +3612,36 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .carrera-chip-nombre{font-weight:600; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .carrera-chip-pts{font-size:11px; font-variant-numeric:tabular-nums; color:var(--text-muted);}
 .carrera-chip.en-foco .carrera-chip-pts{color:var(--text-secondary);}
-/* Abajo de 1024 el pasillo se queda sin lugar para las dos cosas, y entre el
-   nombre y el puntaje gana el nombre: el puntaje está en el chip de abajo y en
-   la tabla, el nombre es lo único que ata la línea a una persona. */
-@media (max-width:1024px){
+/* Entre 700 y 1024 el pasillo no da para las dos cosas, y ahí gana el nombre:
+   el puntaje también está en el chip de abajo y en la tabla, mientras que el
+   nombre es lo único que ata la línea a una persona.
+
+   El tope de abajo importa: de 700 para abajo esta regla NO tiene que aplicar,
+   porque ahí el que se cae es el nombre y el puntaje pasa a ser lo único que
+   queda. Sin el `min-width` las dos reglas se sumaban y el final de cada línea
+   se quedaba sin nada. */
+@media (max-width:1024px) and (min-width:701px){
   .carrera-nombre-pts{display:none;}
 }
 @media (max-width:700px){
-  /* El pasillo de nombres ya no entra ni con eso: 152 de 1000 son 53px reales
-     y ahí no hay nombre que se lea. Se cae y los chips quedan de leyenda. */
-  .carrera-nombre{display:none;}
-  /* Y con los nombres afuera, la guía no va a ninguna parte. */
-  .carrera-guia{display:none;}
+  /* El NOMBRE ya no entra: 152 de 1000 son unos 50px reales y ahí no hay nombre
+     que se lea. El puntaje sí —"−1,5" son treinta píxeles— y es lo que no puede
+     faltar: sin él cada línea termina en una punta muda, se ve que alguien
+     subió pero no cuánto, y el número que el gráfico viene a contar hay que ir
+     a buscarlo a otro lado. Los nombres los pone la fila de chips, que en el
+     teléfono pasa a ser la leyenda. */
+  .carrera-nombre-txt{display:none;}
+  /* Sin el nombre al lado ya no hay dos cosas que acomodar en el pasillo, así
+     que el número no necesita tope de ancho ni quedarse apagado: es la etiqueta,
+     no el acompañamiento. */
+  .carrera-nombre{max-width:none; margin-left:3px; gap:0;}
+  .carrera-nombre-pts{font-size:11px; opacity:1;}
+  /* Sin interlineado de sobra, porque abajo el alto del gráfico se achica y el
+     que separa las etiquetas NO: SEPARACION son 18 unidades de un viewBox de
+     264, así que cuando el SVG pasa a medir 194px reales esas 18 unidades valen
+     13 píxeles. Con el interlineado normal la etiqueta mide 15 y dos seguidas
+     se pisaban —medido, un par a 560px y para abajo—. A 11px justos entran. */
+  .carrera-nombre{line-height:1;}
 }
 @media (max-width:560px){
   .carrera{padding:14px 14px 13px;}

@@ -476,8 +476,26 @@ cambió:
 **El pasillo de nombres se mide en %, no en px.** Son 152 de un viewBox de 1000, o sea
 15,2% del ancho REAL de la caja. Con un `max-width` fijo el nombre se salía de la
 tarjeta apenas la pantalla bajaba de ~1100px — medido: "marlboro de diez" se escapaba a
-900. Abajo de 1024 se cae el puntaje del pasillo (está en el chip y en la tabla) y abajo
-de 700 se cae el pasillo entero.
+900. Abajo de 1024 se cae el puntaje del pasillo, porque entre las dos cosas el que ata
+la línea a una persona es el nombre.
+
+**Pero abajo de 700 se cae el NOMBRE, no la etiqueta.** La primera versión apagaba el
+pasillo entero con el argumento de que 152 de 1000 son unos 50px reales y ahí no hay
+nombre que se lea. La mitad era cierta y la conclusión no: en el teléfono cada línea
+terminaba en una punta muda, se veía que alguien había subido pero no cuánto, y el número
+que el gráfico viene a contar había que ir a buscarlo abajo. Las dos reglas —"sin puntaje"
+de 1024 y "sin nombre" de 700— se sumaban y no quedaba nada. En 50px no entra
+"marlboro de diez" pero "−1,25" entra de sobra, así que en el teléfono el que se queda es
+el puntaje y los nombres pasan a la fila de chips, que ahí es la leyenda. Por eso el
+`@media (max-width:1024px)` lleva además `(min-width:701px)`: sin ese tope de abajo las
+dos reglas vuelven a pisarse.
+
+**Y las etiquetas necesitan menos interlineado cuando el gráfico se achica.** `SEPARACION`
+son 18 unidades de un viewBox de 264, pero abajo de 560 el SVG pasa a medir 194px reales:
+esas 18 unidades valen 13px y una etiqueta con interlineado normal mide 15. Medido, un par
+se pisaba a 560 y para abajo. Con `line-height:1` entran justas. **La trampa general: todo
+lo que separa cosas DENTRO del viewBox se achica con él, y el texto HTML de encima no** —
+son dos sistemas de medida y hay que acordarse de que no escalan juntos.
 
 **Un gráfico sin eje Y no dice nada, y la primera carrera no tenía.** Salió con siete
 líneas flotando sin una sola marca de cuánto: se veía que había una arriba y un montón
