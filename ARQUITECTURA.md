@@ -1,8 +1,8 @@
 # Arquitectura
 
 El mapa del proyecto. Está para **decidir qué NO abrir**: si la pregunta se contesta
-acá, no hace falta leer `lib/refresh.ts` (1082 líneas) ni `app/api/ladder/route.ts`
-(1074). Esos dos son el 80% del gasto de tokens de una sesión y casi siempre son
+acá, no hace falta leer `lib/refresh.ts` (1196 líneas) ni `app/api/ladder/route.ts`
+(1257). Esos dos son el 80% del gasto de tokens de una sesión y casi siempre son
 evitables.
 
 ## Forma general
@@ -24,12 +24,12 @@ cerradura no está puesta, nadie escribe).
 
 | Ruta | Método | Qué hace | Escribe | Sesión | Cache-Control |
 |---|---|---|---|---|---|
-| `/api/ladder` | GET | El plato fuerte: arma los `Player` completos | no | no | `s-maxage=60` |
+| `/api/ladder` | GET | El plato fuerte: arma los `Player` completos | no | no | `s-maxage=240, swr=600` |
 | `/api/live` | GET | Solo quién está en partida ahora (poll de 60s) | no | no | — |
 | `/api/live-detail` | GET | Los diez de una partida en vivo, con líneas estimadas | no | no | `s-maxage=120` |
 | `/api/clash` | GET | Torneos de Clash agrupados | no | no | `s-maxage=300` |
 | `/api/team-digest` | GET | Resumen semanal del grupo | no | no | `s-maxage=300` (semana 0) / `3600` |
-| `/api/liga` | GET | Tabla de la liga de la semana | no | no | — |
+| `/api/liga` | GET | Tabla de la liga de la semana, la carrera y la vitrina de campeones | no | no | `s-maxage=240, swr=600` |
 | `/api/liga` | POST | Anota o saca gente de la liga | sí | **sí** | — |
 | `/api/liga/anunciar` | POST | Manda el mensaje de arranque a Discord. Con `{tipo:"cierre"}` devuelve la vista previa del anuncio de cierre y no manda nada | no | **sí** | — |
 | `/api/summoners` | POST | Agrega un invocador al grupo | sí | **sí** | — |
@@ -45,6 +45,12 @@ cerradura no está puesta, nadie escribe).
 \* `/api/coach` con `{ peek: true }` **no** pide sesión: solo mira el caché de
 `coach_reports` y nunca llama al modelo. Es lo que hace el panel al abrirse. Generar
 un informe nuevo sí pide sesión — era el agujero concreto que motivó la cerradura.
+
+Las dos cachés de 240 segundos no son un ajuste fino: son el remedio de la caída de
+septiembre. El pool de Supabase Nano tiene 15 conexiones, `/api/liga` hacía cinco
+consultas por visita de cada uno y el cron se quedaba sin ninguna (ver `DECISIONES.md`).
+La ventana se elige contra cada cuánto CAMBIAN los datos —el cron escribe cada 15
+minutos—, no contra cada cuánto alguien mira.
 
 Las que tardan (`refresh`, `backfill`, `repair`, `coach`) declaran
 `maxDuration = 300`. Las que dependen de la hora o del pedido declaran
@@ -89,17 +95,24 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
 - `clash.ts` — agrupa las partidas de Clash (queue 700) en torneos.
 - `timeline.ts` — extrae de los frames de Match-V5 los números de `MatchDetail`.
 - `match-story.ts` — "dónde se dio vuelta la partida", en castellano.
-- `liga.ts` — la liga semanal: ventanas de tiempo, tabla, tabla de puntos y el
-  acumulado por día que dibuja la carrera (`puntosPorDia`, `etiquetasDeDias`)
-  (`puntosDeSecuencia`, `PUNTOS_*`, `RACHA_DESDE`), mínimos para cobrar
-  (`MINIMO_SEMANAL`, `MINIMO_ULTIMO_DIA`, `ganadorDe`) y mensajes.
+- `liga.ts` — la liga semanal: ventanas de tiempo (`inicioDeSemana`, `ventanaDe`,
+  `ventanaUltimoDia`), la tabla (`tablaDeLaSemana`), la tabla de puntos
+  (`puntosDeSecuencia`, `PUNTOS_*`, `RACHA_DESDE`, `MODO_LIGA`), el acumulado por día
+  que dibuja la carrera (`puntosPorDia`, `diasCorridos`, `etiquetasDeDias`), los
+  mínimos para cobrar (`MINIMO_SEMANAL`, `MINIMO_ULTIMO_DIA`, `ganadorDe`) y los dos
+  mensajes de Discord: `mensajeDeArranque` y `mensajeDeCierre` —el podio con una
+  cargada por puesto, que no habla del premio a propósito—.
 - `liga-cierre.ts` — el cierre idempotente de la semana. `tablaDeSemanaEnBase` arma la tabla final desde la base y `vistaPreviaDeCierre` devuelve el texto del anuncio sin escribir ni mandar nada.
 - `roast.ts` — las cargadas: plantillas, precedencia y las especiales.
 - `coach.ts` — el prompt del análisis del pool.
 
 **Presentación**
-- `chart.ts` — la geometría de las líneas y áreas de los gráficos: recta, curva
-  suave o escalera, con escala propia o compartida entre varias series.
+- `chart.ts` — la geometría de las líneas y áreas de los gráficos: recta o curva
+  suave (cúbica monótona: pasa por cada punto y no se pasa entre dos), con escala
+  propia o compartida entre varias series. Y la paleta de series: `PALETA_SERIES`
+  —ocho colores en orden fijo, validados contra el fondo real— y `coloresDeSeries`,
+  que los reparte por ID ordenado para que el color siga a la PERSONA y no a su
+  puesto en la tabla.
 - `metric-info.ts` — los textos de los `InfoTip`.
 - `useImageFallback.ts` — el hook de "si la imagen falla, mostrá un chip".
 - `view-transition.ts` — cambios de vista con View Transition API.
@@ -115,7 +128,7 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
 
 ```
 cron externo (cada 15 min) →  /api/cron/refresh ─┐
-botón "Actualizar"        →  /api/refresh       ─┴→ refreshAllSummoners
+curl / consola            →  /api/refresh       ─┴→ refreshAllSummoners
                                                          │
                                                          ↓  por cada invocador
                                                      refreshOne
@@ -178,7 +191,10 @@ propia**, solo junta lo que devuelven los módulos de `lib/`.
   Solo inserta si algo cambió respecto de la fila anterior.
 - **`champion_mastery`** — la maestría de Riot por campeón.
 - **`coach_reports`** — el caché de los informes de Claude.
-- **`liga_semanas`** — las semanas cerradas de la liga, con su campeón.
+- **`liga_semanas`** — las semanas cerradas de la liga: `semana` (el lunes, PK),
+  `ganador_puuid`, `ganador_label`, `puntos` (el puntaje con el que ganó, que es lo
+  que decide), `lp_neto` (contexto, ya no se muestra) y `jugadores`. Una semana
+  registrada acá no se vuelve a anunciar: es el candado de idempotencia del cierre.
 - **`ladder`** — **una vista**, no una tabla: `summoners` con los contadores ya
   agregados. Las columnas nuevas van **al final** o Postgres tira 42P16.
 
@@ -191,10 +207,12 @@ descarta.
 `versus` · `clash` · `team`), `LiveTray` y `CommandPalette` viven fuera de las
 pestañas.
 
-- **Ranking** → `LadderTable` (que adentro tiene `LigaSemanal` —y esa a
-  `LigaEstado`, el panel de cierre y premio, y a `LigaCarrera`, el gráfico de la
-  semana—, `TierEmblem`, `SparkChart`, `RoleIcon`, `PlayerAvatar`) +
-  `PlayerProfile`.
+- **Ranking** → `LadderTable` (que adentro tiene `LigaSemanal`, `TierEmblem`,
+  `SparkChart`, `RoleIcon`, `PlayerAvatar`) + `PlayerProfile`.
+  `LigaSemanal` arma la pestaña de la liga de arriba abajo: `LigaEstado` (el panel
+  de cuánto falta y quién cobra), `LigaCarrera` (el gráfico de la semana, con un
+  color por jugador), la tabla, y al pie la vitrina de campeones —que no tiene
+  componente propio: vive adentro de `LigaSemanal` con las clases `.vitrina*`—.
   `PlayerProfile` es el más grande: `RadarChart`, `InsightsCard`, `RecentForm`,
   `TiltCard`, `ChampionPool`, `MasteryPool`, `ChampionInsights`, `Matchups`,
   `LineHistory`, `BuildStarts`, `PersonalRecords`, `AegisStats`, `CoachPanel`,

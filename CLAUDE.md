@@ -25,11 +25,16 @@ Los dos archivos más caros del repo y por dónde entrar sin leerlos enteros:
 
 | Archivo | Líneas | La puerta |
 |---|---|---|
-| `lib/refresh.ts` | ~1090 | `refreshOne` (el ciclo por jugador) y `buildMatchRow` (arma la fila de partida) |
-| `app/api/ladder/route.ts` | ~1080 | Un solo `GET` sin exports: queries en paralelo → un recorrido que llena Maps por puuid → un `.map` final que delega a `lib/` |
+| `lib/refresh.ts` | ~1200 | `refreshOne` (el ciclo por jugador) y `buildMatchRow` (arma la fila de partida) |
+| `app/api/ladder/route.ts` | ~1260 | Un solo `GET` sin exports: queries en paralelo → un recorrido que llena Maps por puuid → un `.map` final que delega a `lib/` |
+| `lib/liga.ts` | ~840 | `tablaDeLaSemana` (el marcador), `puntosDeSecuencia` (la tabla de puntos) y `mensajeDeCierre` (el podio de Discord) |
+| `components/LigaSemanal.tsx` | ~830 | Los cuatro bloques de la pestaña: `LigaEstado`, `LigaCarrera`, la tabla y la vitrina de campeones |
 
 **`DECISIONES.md`** tiene las trampas ya pisadas. Vale la pena antes de tocar gráficos,
 el esquema, la caché o los husos horarios — cada una está ahí porque ya rompió algo.
+Tiene además dos cosas marcadas como **probadas y descartadas** (la escalera del LP, el
+"una en color y el resto grises" de la carrera): antes de reimplementar algo que parece
+obvio, buscar si ya está ahí.
 
 ## Cómo se habla
 
@@ -56,6 +61,10 @@ Sobre leer:
 Sobre verificar:
 
 - Fixtures de prueba en `app/vt/page.tsx`. **Se borran antes de commitear.**
+- **Los colores de un gráfico no se eligen a ojo: se validan.** Si hay que distinguir
+  varias series, se usa `PALETA_SERIES` (`lib/chart.ts`) en su orden, y si hay que
+  tocarla se corre el validador de la skill `dataviz` contra el fondo real (`#050504`),
+  no se razona sobre el resultado.
 - Capturas solo si el cambio es visual. Y cuando saques una, **medí en el DOM** —
   `getBoundingClientRect`, `getComputedStyle`— en vez de creerle a la imagen: el hot
   reload devuelve frames viejos y ya hizo "arreglar" dos veces algo que funcionaba.

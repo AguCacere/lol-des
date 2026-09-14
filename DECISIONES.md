@@ -307,26 +307,18 @@ línea de abajo del mouse se aclara— que avisa que se puede tocar sin cambiar 
 **Y ahora TODOS los gráficos de línea usan la misma forma: la curva suave.** El de LP
 del perfil, las sparklines del ladder y la carrera de la liga. Antes convivían tres
 —recta, curva y escalera— y lo único que se notaba era que cada gráfico parecía de otra
-aplicación. La curva es `smoothLinePath`: cuadrática por el punto medio de cada par
-usando el punto real como control, así que cada tramo queda DENTRO del triángulo de sus
-tres puntos reales y no puede inventar un pico. Eso es lo que la hace aceptable — una
-Catmull-Rom o una bezier suelta sí inventan.
+aplicación. `stepPath` y la opción `"escalera"` ya no existen en `lib/chart.ts`.
 
 **"Se siente tosco" tiene causas concretas, no es una impresión.** La carrera con eje
 y nombres ya se entendía y seguía viéndose mal. Lo que faltaba, en orden de cuánto
 cambió:
 
 1. **Curva en vez de polilínea.** Los quiebres en punta sobre fondo negro leen como un
-   diagrama técnico. Se usa `smoothLinePath`, que es la cuadrática que ya estaba en el
-   repo: pasa por el punto medio de cada par usando el punto real como control, así
-   que cada tramo queda DENTRO del triángulo de sus tres puntos reales y no puede
-   pasarse —a diferencia de una Catmull-Rom o de una bezier suelta, que inventan un
-   pico que no existe. **Ojo con la contradicción aparente**: el gráfico grande de LP
-   va en ESCALERA y no en curva, y no es incoherencia. Ahí cada punto es una foto de
-   un valor que entre foto y foto no se mueve; acá cada punto es el cierre de un día y
-   el camino real entre dos cierres fueron partidas sueltas que igual no se pueden
-   dibujar. Una recta ya inventaba un camino; la curva inventa el mismo camino pero se
-   lee mejor. Y los puntos reales quedan marcados, que es lo que la mantiene honesta.
+   diagrama técnico. Se usa `smoothLinePath` (ver arriba: cúbica monótona, pasa por
+   cada punto y no se pasa entre dos). Que invente el camino entre dos cierres de día
+   es aceptable porque una recta ya lo inventaba igual: entre un cierre y el otro
+   hubo partidas sueltas que no se pueden dibujar en un eje por día. Y los puntos
+   reales quedan marcados con un círculo, que es lo que la mantiene honesta.
 2. **Relleno con degradado abajo de la línea en foco.** Solo de esa: seis rellenos
    superpuestos son un manchón. El degradado cae rápido (0,16 → 0,03 al 45% → 0) por
    una razón medida, no estética: el área cierra con un corte vertical abajo del
@@ -372,10 +364,51 @@ interpretación, y es lo que hace que se lea sin estudiarlo.
 tenía una miniatura por fila. Cada una contaba la forma de esa semana por su cuenta,
 pero ninguna podía contar la carrera —quién iba ganando el miércoles, cuándo se escapó
 el primero—, que es la única pregunta que tiene una liga. Para eso las líneas tienen que
-compartir la caja. Ahora van las siete en un gráfico arriba de la tabla, una en color y
-el resto en gris: con siete colores a la par no se distingue ninguna, y bajo daltonismo
-menos. Los chips de abajo son la leyenda Y el control — sin ellos, siete líneas grises
-no dicen de quién es la pintada.
+compartir la caja. Ahora van las siete en un gráfico arriba de la tabla. Los chips de
+abajo son la leyenda Y el control.
+
+**Y cada una lleva SU color. La versión de "una en color y el resto grises" se
+probó y se cambió.** El argumento de entonces era que con siete colores a la par no
+se distingue ninguna, y no era falso: es exactamente el problema que tiene una paleta
+elegida a ojo. Pero la forma de énfasis tenía un agujero peor —en el medio del
+dibujo, donde cuatro líneas se cruzan, no se podía seguir NINGUNA de las grises, que
+es literalmente lo que reportó el usuario: "perdés la visión de la línea"—. Lo que
+hace viable el color no es el gusto sino el método:
+
+- **Los colores no se eligen, se toman de una paleta categórica documentada, en su
+  orden documentado.** El orden ES el mecanismo de separación; reordenar o retocar un
+  hex lo rompe. Están en `PALETA_SERIES` (`lib/chart.ts`).
+- **Y se validan con el script, contra el fondo REAL.** No se razona sobre si una
+  paleta es segura para daltonismo: se corre el validador. Contra `#050504`, los
+  siete primeros pasan banda de luminosidad, piso de croma, separación con protanopia
+  y deuteranopia (ΔE 8,4 el peor par vecino), piso de visión normal (ΔE 19,3) y
+  contraste (todos ≥ 3:1).
+- **Lo que NO pasa queda escrito.** El chequeo de todos-contra-todos falla: magenta y
+  aguamarina colapsan con deuteranopia si quedan pegados (ΔE 1,6) y violeta y azul
+  están justos con visión normal (ΔE 9,8). Se banca porque acá el color NUNCA es lo
+  único que identifica una línea: cada una termina en su nombre escrito, los chips son
+  leyenda y la que está en foco va a 2,6px con relleno y brillo contra 1,5px del
+  resto. **Si alguna vez se usa esta paleta donde el color sea lo único, hay que bajar
+  la cantidad de series — no cambiar los colores.**
+
+**El color sigue a la PERSONA, nunca a su puesto.** Se reparte por PUUID ordenado y no
+por posición en la tabla. Si saliera del puesto, el día que dos se pasan
+intercambiarían de color y la pantalla diría que cambiaron de persona. El precio es
+que si entra alguien nuevo al grupo, los que ordenan después de él corren un lugar y
+cambian de color una vez; con un grupo fijo de seis pasa casi nunca, y la alternativa
+—guardar el color en la base— es una columna y una migración para un problema que
+todavía no existe.
+
+**Dos reglas de color que se rompieron al pasar de gris a paleta**, y que valen para
+cualquier gráfico del repo:
+
+- **El texto lleva tinta de texto, nunca el color de la serie.** El nombre en foco
+  estaba pintado del amarillo de la app; ahora va en blanco y la identidad la lleva la
+  marca de al lado (la guía). Un nombre de color sobre negro además se lee peor.
+- **La opacidad no es la que hace la jerarquía cuando hay color.** Las líneas de
+  contexto estaban a 0,4 cuando eran todas grises; con colores saturados sobre negro,
+  a 0,4 se vuelven barro. Subieron a 0,6 y el énfasis lo hace el GROSOR —1,5 contra
+  2,6— más el relleno.
 
 **Y el eje de esa carrera va por DÍA, no por partida.** Cada uno juega una cantidad
 distinta, así que la partida 5 de uno y la 5 de otro pasaron en momentos distintos de la

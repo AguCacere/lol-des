@@ -31,6 +31,12 @@ Además, sin pantalla propia:
 desastroso, ahogarse en la fuente, perder contra un Nasus, cruzarse un Teemo. Se
 dispara solo con el refresco.
 
+Los domingos a la noche, cuando cierra la semana, manda el **podio de la liga**: una
+cargada por puesto —el primero se los garchó a todos, el segundo no le dio el
+pitulín, el tercero ni pinchó ni cortó, los del medio son agua y el último nadó en
+caca—. Se puede mirar antes de que salga sin mandar nada, con
+`POST /api/liga/anunciar` y `{"tipo":"cierre"}`.
+
 **La liga semanal** — una competencia interna por **puntos**, de lunes a domingo hora
 argentina, aparte del ladder. El ladder mide dónde llegaste; la liga mide cuánto te
 moviste esta semana.
@@ -46,6 +52,13 @@ Para llevarse el premio no alcanza con ir primero: hay que jugar **10 partidas e
 semana** y **3 el último día**. Es contra el que agarra ventaja el martes y no juega
 más para no arriesgarla. Si el puntero no llega a los mínimos, cobra el primero que
 sí; si no llega nadie, la semana cierra sin premio.
+
+En pantalla la liga son cuatro bloques, de arriba abajo: el **panel de estado**
+(cuánto falta para que cierre, los siete días de la semana y en cuál estamos, y si el
+que va primero cobra o qué le falta), **la carrera** —los puntos de todos día por día
+en un solo gráfico, un color por persona, clic en un nombre para seguirlo—, **la
+tabla** y, al pie, **la vitrina de campeones**: el vigente con su foto y con cuánta
+gente compitió, y las semanas anteriores abajo.
 
 **La cerradura** — todo lo que escribe (agregar invocadores, refrescar, generar
 informes con Claude, anotar gente en la liga) pide una contraseña compartida. Lo que
