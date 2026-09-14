@@ -41,6 +41,8 @@ interface Datos {
   dias: string[];
   ganadorPuuid: string | null;
   jugadores: number;
+  /** Cuántos estaban anotados esa semana, jugaran o no. Ver el vacío de abajo. */
+  anotados?: number;
   tabla: FilaTorneo[];
 }
 
@@ -141,7 +143,15 @@ export function LigaTorneo({
         ) : cargando && !datos ? (
           <p className="torneo-vacio">Buscando esa semana…</p>
         ) : !datos || datos.tabla.length === 0 ? (
-          <p className="torneo-vacio">Esa semana no jugó nadie.</p>
+          // "No jugó nadie" y "había gente anotada y no aparece ninguna
+          // partida" son dos cosas distintas, y la segunda es un bug. Decir la
+          // primera en los dos casos es lo que hizo que una consulta fallada se
+          // leyera como un dato.
+          <p className="torneo-vacio">
+            {datos && (datos.anotados ?? 0) > 0
+              ? `Esa semana había ${datos.anotados} anotados pero no hay ninguna partida guardada en esa ventana. Si jugaron, es un problema de datos, no de la semana.`
+              : "Esa semana no había nadie anotado en la liga."}
+          </p>
         ) : (
           <div className={cargando ? "torneo-cuerpo cambiando" : "torneo-cuerpo"}>
             {/* El titular. Quedar primero y cobrar son dos cosas distintas y acá

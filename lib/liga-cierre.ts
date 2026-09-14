@@ -59,10 +59,17 @@ export async function tablaDeSemanaEnBase(
   inicio: Date,
   opciones: { conCarrera?: boolean } = {},
 ): Promise<FilaLiga[] | null> {
-  const { data: anotados } = await supabase
+  // Las tres consultas de acá abajo TIRAN el error en vez de tragárselo, y eso
+  // es a propósito. Antes solo se sacaba `data`: si Supabase fallaba —un 504
+  // del pool lleno, que en esta base ya pasó— `data` venía undefined, la tabla
+  // salía vacía y la pantalla decía "esa semana no jugó nadie" con un 200
+  // limpio. Un error invisible que además MIENTE sobre el dato es peor que una
+  // pantalla rota: el que lo mira no tiene forma de saber que hubo un problema.
+  const { data: anotados, error: eAnotados } = await supabase
     .from("summoners")
     .select("puuid, game_name, tag_line, liga_desde")
     .eq("participa_liga", true);
+  if (eAnotados) throw new Error(`No se pudo leer quiénes compiten: ${eAnotados.message}`);
   if (!anotados || anotados.length === 0) return null;
 
   // La ventana real de esa semana: puede arrancar más tarde que el lunes si es
@@ -70,7 +77,7 @@ export async function tablaDeSemanaEnBase(
   const { desde, hasta: fin } = ventanaDe(inicio);
   const desdeAntes = new Date(desde.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString();
   const puuids = anotados.map((s) => s.puuid);
-  const { data: snaps } = await supabase
+  const { data: snaps, error: eSnaps } = await supabase
     .from("lp_snapshots")
     .select("puuid, tier, division, lp, wins, losses, captured_at")
     .in("puuid", puuids)
@@ -78,12 +85,13 @@ export async function tablaDeSemanaEnBase(
     .gte("captured_at", desdeAntes)
     .lt("captured_at", fin.toISOString())
     .order("captured_at");
+  if (eSnaps) throw new Error(`No se pudieron leer las fotos de LP: ${eSnaps.message}`);
 
   // Las victorias y las derrotas se cuentan de las partidas REALES de la
   // ventana. Los contadores de lp_snapshots son acumulados de la season y
   // restarlos da bien solo si las dos puntas son válidas — ver la nota en
   // tablaDeLaSemana.
-  const { data: partidas } = await supabase
+  const { data: partidas, error: ePartidas } = await supabase
     .from("matches")
     // `champion` entra solo para el anuncio: el mensaje de cierre nombra con
     // qué campeón ganó la liga el que la ganó. No toca el puntaje.
@@ -92,6 +100,7 @@ export async function tablaDeSemanaEnBase(
     .eq("queue_id", RANKED_SOLO_QUEUE_ID)
     .gte("played_at", desde.toISOString())
     .lt("played_at", fin.toISOString());
+  if (ePartidas) throw new Error(`No se pudieron leer las partidas de esa semana: ${ePartidas.message}`);
   // Y se filtra por el arranque de CADA uno, no solo por el de la semana: el
   // que se anotó el miércoles no puede llevarse las partidas del lunes.
   const arranqueDe = new Map(
@@ -180,6 +189,11 @@ export async function comoTerminoLaSemana(supabase: SupabaseClient, inicio: Date
     dias: etiquetasDeDias(inicio),
     ganadorPuuid: g?.puuid ?? null,
     jugadores: jugaron.length,
+    // Cuántos estaban anotados esa semana, jugaran o no. Va aparte de
+    // `jugadores` para que una tabla vacía pueda explicarse: "no había nadie
+    // anotado" y "los seis anotados no tienen partidas guardadas en esa
+    // ventana" son dos problemas distintos y el segundo es un bug.
+    anotados: tabla.length,
     tabla: jugaron.map((f) => ({
       puuid: f.puuid,
       name: f.name,

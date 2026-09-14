@@ -24,10 +24,19 @@ export async function GET() {
     { error: err instanceof Error ? err.message : "Sin Supabase." }, { status: 500 });
   }
 
-  const { data: todos } = await supabase
+  // Las tres consultas que arman la tabla TIRAN el error en vez de tragárselo.
+  // Antes solo se sacaba `data`: cuando Supabase fallaba —un 504 del pool
+  // lleno, que en esta base ya pasó— venía undefined y la liga se dibujaba con
+  // todos en "no jugó". Un 200 que miente sobre el marcador es peor que una
+  // pantalla rota, porque nadie se entera de que hubo un problema.
+  const { data: todos, error: eTodos } = await supabase
       .from("summoners")
       .select("puuid, game_name, tag_line, profile_icon_id, participa_liga, liga_desde")
       .order("game_name");
+  if (eTodos) {
+    console.error("liga: no se pudo leer summoners —", eTodos.message);
+    return NextResponse.json({ error: `No se pudo leer quiénes compiten: ${eTodos.message}` }, { status: 502 });
+  }
 
   const inicio = inicioDeSemana();
   // `desde` puede no ser el lunes: la primera semana empieza cuando arrancó la
@@ -63,7 +72,7 @@ export async function GET() {
       // última foto previa al arranque, y esa cae fuera de la ventana.
       const desdeAntes = new Date(desdeVentana.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString();
       const puuids = anotados.map((s) => s.puuid);
-      const { data: snaps } = await supabase
+      const { data: snaps, error: eSnaps } = await supabase
         .from("lp_snapshots")
         .select("puuid, tier, division, lp, wins, losses, captured_at")
         .in("puuid", puuids)
@@ -76,13 +85,21 @@ export async function GET() {
       // ventana. Los contadores de lp_snapshots son acumulados de la season y
       // restarlos da bien solo si las dos puntas son válidas — ver la nota en
       // tablaDeLaSemana.
-      const { data: partidas } = await supabase
+      const { data: partidas, error: ePartidas } = await supabase
         .from("matches")
         .select("match_id, puuid, win, played_at, champion, team_position")
         .in("puuid", puuids)
         .eq("queue_id", RANKED_SOLO_QUEUE_ID)
         .gte("played_at", desdeVentana.toISOString())
         .lt("played_at", fin.toISOString());
+      // Las dos de arriba se chequean juntas acá: sin fotos el marcador queda
+      // sin LP y sin partidas queda sin puntaje, y en los dos casos la tabla
+      // sale entera mal.
+      const fallo = eSnaps ?? ePartidas;
+      if (fallo) {
+        console.error("liga: no se pudo leer la semana —", fallo.message);
+        return NextResponse.json({ error: `No se pudo leer la semana: ${fallo.message}` }, { status: 502 });
+      }
       // Se filtra por el arranque de CADA uno y no solo por el de la semana: el
       // que se anotó el miércoles no puede llevarse las partidas del lunes.
       const arranqueDe = new Map(participantes.map((p) => [p.puuid, Math.max(desdeVentana.getTime(), p.desde?.getTime() ?? 0)]));

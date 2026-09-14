@@ -40,12 +40,29 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Sin Supabase." }, { status: 500 });
   }
 
-  const datos = await comoTerminoLaSemana(supabase, inicio);
+  // Sin este try, una consulta que falla sale como 200 con la tabla vacía y la
+  // pantalla dice "esa semana no jugó nadie" — un error invisible que encima
+  // miente sobre el dato.
+  let datos;
+  try {
+    datos = await comoTerminoLaSemana(supabase, inicio);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("liga/semana falló:", message);
+    return NextResponse.json({ error: message }, { status: 502 });
+  }
+  // Una semana con gente anotada y CERO partidas casi siempre es una consulta
+  // que falló, no una semana en la que nadie jugó. Esa no se cachea: guardar
+  // seis horas un resultado vacío convierte un parpadeo de la base en una tarde
+  // entera de pantalla rota, y es exactamente lo que pasó la primera vez.
+  const sospechoso = datos.tabla.length === 0 && datos.anotados > 0;
   return NextResponse.json(datos, {
     // Una semana CERRADA ya no cambia: lo único que la movería es un repair que
     // rellene partidas viejas, y eso pasa una vez cada muchas lunas. Seis horas
     // de CDN para que abrir el cartel cuatro veces seguidas no toque la base
     // cuatro veces — el pool de Nano es de 15 conexiones y ya se llenó una vez.
-    headers: { "Cache-Control": "public, s-maxage=21600, stale-while-revalidate=86400" },
+    headers: {
+      "Cache-Control": sospechoso ? "no-store" : "public, s-maxage=21600, stale-while-revalidate=86400",
+    },
   });
 }
