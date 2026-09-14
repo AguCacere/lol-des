@@ -3926,21 +3926,71 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .liga-fila:hover .liga-lp.gd-pos .liga-puntaje{text-shadow:0 0 20px rgba(52,201,124,0.36);}
 .liga-fila:hover .liga-lp.gd-neg .liga-puntaje{text-shadow:0 0 20px rgba(240,85,95,0.33);}
 @media (prefers-reduced-motion:reduce){ .liga-puntaje{transition:none;} }
-.liga-historial{
-  margin-top:12px; padding:11px 14px;
+/* La vitrina de campeones. Era una línea de log —la clave ISO de la semana, el
+   Riot ID con tag y un número verde a la derecha— y se leía como el pie de una
+   tabla, no como el registro de quién ganó plata. El campeón vigente pasa a
+   tener cara, nombre grande y su marcador; las semanas viejas quedan compactas
+   abajo, que es donde merecen estar. */
+.vitrina{
+  margin-top:12px; padding:11px 12px 12px;
   background:var(--surface); border-radius:var(--radius-sm);
+  /* Acotada y no a todo el ancho de la tarjeta. Con la tarjeta en 1150 y dos
+     cosas cortas —un nombre a la izquierda y un número a la derecha— quedaban
+     novecientos píxeles de aire en el medio y la fila se leía partida en dos.
+     Un bloque de pie angosto abajo de una tabla ancha es una jerarquía; una
+     banda vacía de punta a punta es un error de maquetación. */
+  max-width:640px;
 }
-.liga-historial-label{
-  display:block; margin-bottom:7px;
+.vitrina-label{
+  display:block; margin-bottom:9px;
   font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-muted);
 }
-.liga-historial-fila{
-  display:flex; align-items:baseline; gap:10px; padding:3px 0;
-  font-size:11.5px; color:var(--text-secondary);
+
+/* El vigente. El baño de accent y el trofeo son lo único que lo separa de una
+   fila más, y alcanza: es UNA fila, no hace falta gritar. */
+.vitrina-vigente{
+  display:flex; align-items:center; gap:10px;
+  padding:9px 11px; border-radius:var(--radius-sm);
+  background:var(--accent-wash-soft); box-shadow:inset 2px 0 0 var(--accent);
 }
-.liga-historial-semana{font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted); flex:none;}
-.liga-historial-ganador{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.liga-historial-lp{font-family:var(--font-stat); font-weight:700; font-variant-numeric:tabular-nums; flex:none;}
+.vitrina-trofeo{font-size:15px; line-height:1; flex:none;}
+.vitrina-avatar{width:34px; height:34px; border-radius:10px; font-size:12px; box-shadow:0 0 0 2px var(--accent);}
+.vitrina-quien{display:flex; flex-direction:column; gap:2px; flex:1 1 auto; min-width:0;}
+.vitrina-nombre{
+  font-size:13.5px; font-weight:700; color:var(--text-primary); letter-spacing:-0.01em;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.vitrina-meta{font-size:11px; color:var(--text-muted);}
+/* El marcador. Antes era el LP NETO sin rotular, al lado de un tipo que había
+   ganado por PUNTOS: el número contradecía a la tabla de la que salía. Ahora
+   son los puntos, y el LP solo aparece en las semanas viejas que se cerraron
+   antes de que el puntaje se guardara — y ahí va con su "LP" escrito. */
+.vitrina-pts{
+  font-family:var(--font-stat); font-weight:700; font-size:14px;
+  font-variant-numeric:tabular-nums; flex:none;
+}
+.vitrina-pts.es-lp{font-size:12px; opacity:0.8;}
+
+/* Las semanas viejas: compactas, sin foto y sin trofeo. */
+.vitrina-viejas{margin-top:4px;}
+.vitrina-fila{
+  display:flex; align-items:baseline; gap:10px; padding:5px 11px;
+  font-size:11.5px; color:var(--text-secondary); border-top:1px solid var(--border-soft);
+}
+.vitrina-fila:first-child{border-top:none;}
+/* Ancho fijo para que los nombres arranquen todos en la misma columna: "28
+   sept – 4 oct" y "7 – 13 sept" no miden lo mismo y sin esto la lista queda
+   escalonada. */
+.vitrina-fila-semana{font-size:10.5px; color:var(--text-muted); flex:none; min-width:104px;}
+.vitrina-fila-quien{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.vitrina-fila .vitrina-pts{font-size:12px;}
+/* Cuántas veces ganó cada uno. Sale solo cuando alguien repite: con una semana
+   por campeonato, "ganó 3 veces" es LA estadística de la vitrina, pero antes de
+   que se repita ninguno la línea diría lo mismo que la lista de arriba. */
+.vitrina-repiten{
+  display:block; margin-top:9px; padding-top:8px; border-top:1px solid var(--border-soft);
+  font-size:11px; color:var(--text-muted);
+}
 /* El pie: quiénes compiten y cuántos todavía no jugaron. Va en una línea
    sola con el botón para que se lea como una frase y no como dos controles. */
 .liga-pie{display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-top:12px;}

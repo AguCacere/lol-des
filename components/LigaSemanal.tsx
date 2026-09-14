@@ -80,7 +80,18 @@ interface Datos {
   hasta: string;
   tabla: Fila[];
   plantel: DelPlantel[];
-  historial: { semana: string; ganador_label: string | null; lp_neto: number | null; jugadores: number }[];
+  /** La vitrina de campeones, de la semana más nueva a la más vieja. */
+  historial: {
+    semana: string;
+    puuid: string | null;
+    nombre: string | null;
+    iconUrl: string | null;
+    /** El puntaje con el que ganó: lo que decide la liga. Null en las semanas anteriores a que se guardara. */
+    puntos: number | null;
+    /** El LP neto. Ya no decide nada; se muestra rotulado para las semanas viejas. */
+    lpNeto: number | null;
+    jugadores: number;
+  }[];
   /** Para el arte de campeón. Opcional por la misma razón. */
   ddragonVersion?: string | null;
   /** Los dos mínimos para cobrar y si el último día ya arrancó. Opcionales por la caché del CDN. */
@@ -113,6 +124,25 @@ const horaDe = (iso: string) =>
  */
 function lpTexto(n: number): string {
   return `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n)} LP`;
+}
+
+/**
+ * "7 – 13 sept" a partir del lunes guardado ("2026-09-07").
+ *
+ * Se formatea en UTC y NO en hora argentina, al revés que todo lo demás de este
+ * archivo: la clave de la semana es una fecha de calendario, no un instante, y
+ * `new Date("2026-09-07")` ya es medianoche UTC — pasarla por
+ * America/Argentina/Buenos_Aires la corre tres horas atrás y la vitrina diría
+ * que la semana arrancó un domingo.
+ */
+function rangoDeSemana(clave: string): string {
+  const lunes = new Date(`${clave}T00:00:00Z`);
+  if (Number.isNaN(lunes.getTime())) return clave;
+  const domingo = new Date(lunes.getTime() + 6 * 86400000);
+  const mes = (d: Date) => d.toLocaleDateString("es-AR", { month: "short", timeZone: "UTC" }).replace(".", "");
+  return mes(lunes) === mes(domingo)
+    ? `${lunes.getUTCDate()} – ${domingo.getUTCDate()} ${mes(domingo)}`
+    : `${lunes.getUTCDate()} ${mes(lunes)} – ${domingo.getUTCDate()} ${mes(domingo)}`;
 }
 
 /** "1,25" y no "1.25": la regla se lee en castellano. */
@@ -691,23 +721,68 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
         </div>
       )}
 
-      {d.arrancada && d.historial.length > 0 && (
-        <div className="liga-historial">
-          <span className="liga-historial-label">Campeones anteriores</span>
-          {d.historial.map((h) => (
-            <div className="liga-historial-fila" key={h.semana}>
-              <span className="liga-historial-semana">{h.semana}</span>
-              <span className="liga-historial-ganador">{h.ganador_label ?? "nadie jugó"}</span>
-              {h.lp_neto !== null && (
-                <span className={`liga-historial-lp ${h.lp_neto >= 0 ? "gd-pos" : "gd-neg"}`}>
-                  {h.lp_neto >= 0 ? "+" : ""}
-                  {h.lp_neto}
+      {/* La vitrina. Era una línea de log —la clave ISO de la semana, el Riot ID
+          con tag y un "+144" verde— y tenía un problema peor que el aspecto: ese
+          número era el LP NETO, y la liga se gana por PUNTOS. Un tipo que ganó
+          con +10,25 aparecía con un +144 al lado, contradiciendo a la tabla de
+          la que había salido.
+
+          La forma sale del patrón de vitrina que usan las ligas de fantasy: el
+          campeón vigente va destacado y con cara, las semanas viejas quedan
+          compactas debajo, y cuando alguien gana más de una vez eso se cuenta
+          —que en una liga SEMANAL es la estadística que importa rápido—. */}
+      {d.arrancada && d.historial.length > 0 && (() => {
+        const [vigente, ...viejas] = d.historial;
+        const veces = new Map<string, number>();
+        for (const h of d.historial) if (h.nombre) veces.set(h.nombre, (veces.get(h.nombre) ?? 0) + 1);
+        const repiten = [...veces.entries()].filter(([, n]) => n > 1).sort((a, b) => b[1] - a[1]);
+        /* El marcador de cada semana. Los puntos primero, que son los que
+           deciden; el LP solo en las semanas viejas que se cerraron antes de que
+           el puntaje se guardara, y ahí va ROTULADO —"+144 LP"— para que no se
+           lea como si fuera el puntaje. */
+        const marcador = (h: Datos["historial"][number]) =>
+          h.puntos != null ? (
+            <span className={`vitrina-pts ${tono(h.puntos)}`}>{puntajeTexto(h.puntos)}</span>
+          ) : h.lpNeto != null ? (
+            <span className={`vitrina-pts es-lp ${tono(h.lpNeto)}`}>{lpTexto(h.lpNeto)}</span>
+          ) : null;
+        return (
+          <div className="vitrina">
+            <span className="vitrina-label">Campeones anteriores</span>
+
+            <div className="vitrina-vigente">
+              <span className="vitrina-trofeo" aria-hidden>🏆</span>
+              <PlayerAvatar name={vigente.nombre ?? "?"} iconUrl={vigente.iconUrl} className="duo-avatar vitrina-avatar" />
+              <span className="vitrina-quien">
+                <strong className="vitrina-nombre">{vigente.nombre ?? "No ganó nadie"}</strong>
+                <span className="vitrina-meta">
+                  {rangoDeSemana(vigente.semana)}
+                  {vigente.jugadores > 0 && ` · entre ${vigente.jugadores}`}
                 </span>
-              )}
+              </span>
+              {marcador(vigente)}
             </div>
-          ))}
-        </div>
-      )}
+
+            {viejas.length > 0 && (
+              <div className="vitrina-viejas">
+                {viejas.map((h) => (
+                  <div className="vitrina-fila" key={h.semana}>
+                    <span className="vitrina-fila-semana">{rangoDeSemana(h.semana)}</span>
+                    <span className="vitrina-fila-quien">{h.nombre ?? "no ganó nadie"}</span>
+                    {marcador(h)}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {repiten.length > 0 && (
+              <span className="vitrina-repiten">
+                {repiten.map(([n, v]) => `${n} ganó ${v} veces`).join(" · ")}
+              </span>
+            )}
+          </div>
+        );
+      })()}
 
       {/* El pie dice quiénes están en carrera. Los que todavía no jugaron se
           cuentan aparte a propósito: es la parte que dice "esto no está

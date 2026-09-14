@@ -207,6 +207,21 @@ cambia esto: apaga el caché de datos de Next, no el del CDN.
 
 ## Gráficos y SVG
 
+**El número que se muestra tiene que ser el que DECIDE.** La vitrina de campeones
+mostraba el `lp_neto` guardado en `liga_semanas` —un "+144" verde al lado del
+ganador— cuando la liga se gana por PUNTOS (`MODO_LIGA = "puntos"`): el tipo había
+ganado con +10,25 y la vitrina lo contradecía con un número cuatro veces más grande
+sacado de otra unidad. Se agregó `liga_semanas.puntos` y el LP quedó de contexto. Las
+semanas viejas que no lo tienen muestran el LP **rotulado** ("+144 LP"), que es lo
+mínimo para que no se lea como si fuera el puntaje.
+
+**Una columna nueva en una base que se migra a mano se lee con `select("*")`.** Entre
+el deploy y el momento en que el usuario corre el SQL, un `select` con la lista de
+columnas falla ENTERO y la sección desaparece de la pantalla sin decir por qué. Y el
+`insert` del cierre, que sí tiene que nombrarla, reintenta sin ella y avisa en el log:
+perder el cierre de la semana por una migración pendiente es mucho peor que cerrarla
+sin un dato de adorno.
+
 **El punteado es un estilo de SERIE, no de eje.** La línea del cero de la carrera iba
 punteada, con el color del texto y a 0,75 de opacidad —más marcada que las líneas de
 la gente, que van a 0,4— justamente para que se notara el umbral. Se leía como un

@@ -209,7 +209,13 @@ create table if not exists liga_semanas (
   semana        date primary key,       -- el LUNES de esa semana, en hora argentina
   ganador_puuid text references summoners(puuid) on delete set null,
   ganador_label text,                   -- el nombre tal como se anunció: sobrevive a que se borre el invocador
-  lp_neto       int,
+  lp_neto       int,                    -- el LP neto del ganador. Ya no decide nada (ver MODO_LIGA): queda de contexto
+  -- El puntaje con el que ganó, que es lo que DECIDE la liga (MODO_LIGA =
+  -- "puntos"). Se agregó después: hasta que existió, la vitrina de campeones
+  -- mostraba el lp_neto —un "+144" al lado de un tipo que había ganado con
+  -- +10,25— y contradecía a la tabla de la que salió. Numeric y no int porque
+  -- los puntos tienen decimales (la derrota vale −0,75).
+  puntos        numeric,
   jugadores     int not null default 0, -- cuántos participantes jugaron al menos una
   cerrada_at    timestamptz not null default now()
 );

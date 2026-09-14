@@ -180,12 +180,37 @@ export async function GET() {
       tabla = tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], desdeVentana, fin, recordPorPuuid);
   }
 
-  // El historial de campeones. Poco y al final, que es lo que merece.
+  // La vitrina de campeones.
+  //
+  // Va con `select("*")` y no con la lista de columnas a propósito: `puntos` es
+  // una columna nueva y las migraciones de esta base se corren a mano. Con la
+  // lista explícita, un deploy antes de que la migración corra hace fallar el
+  // select entero y la vitrina DESAPARECE de la pantalla sin decir por qué. Con
+  // `*` vienen las columnas que existan y el que falte se lee como null. La
+  // tabla tiene siete columnas chicas y el limit es 8: no hay nada que ahorrar.
   const { data: historial } = await supabase
       .from("liga_semanas")
-      .select("semana, ganador_label, lp_neto, jugadores")
+      .select("*")
       .order("semana", { ascending: false })
       .limit(8);
+  // El ganador se enriquece acá y no en el cliente: la foto sale de `todos`,
+  // que ya está en memoria, y el nombre se separa del tag porque en una vitrina
+  // el "#Arg" no aporta nada y se come el ancho.
+  const porPuuid = new Map((todos ?? []).map((s) => [s.puuid, s]));
+  const vitrina = (historial ?? []).map((h) => {
+    const s = h.ganador_puuid ? porPuuid.get(h.ganador_puuid) : null;
+    const label: string | null = h.ganador_label ?? null;
+    return {
+      semana: h.semana as string,
+      puuid: (h.ganador_puuid as string | null) ?? null,
+      // El label guardado es el respaldo: sobrevive a que se borre el invocador.
+      nombre: s?.game_name ?? (label ? label.split("#")[0] : null),
+      iconUrl: version && s?.profile_icon_id != null ? profileIconUrl(version, s.profile_icon_id) : null,
+      puntos: (h.puntos as number | null) ?? null,
+      lpNeto: (h.lp_neto as number | null) ?? null,
+      jugadores: (h.jugadores as number | null) ?? 0,
+    };
+  });
 
   return NextResponse.json(
     {
@@ -223,7 +248,7 @@ export async function GET() {
         tag: s.tag_line,
         participa: Boolean(s.participa_liga),
       })),
-      historial: historial ?? [],
+      historial: vitrina,
     },
     {
       // La liga NO tenía caché y es la tabla de la pestaña por defecto: cinco

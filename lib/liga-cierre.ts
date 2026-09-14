@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendDiscordNotification } from "./discord";
 import { RANKED_SOLO_QUEUE_ID } from "./refresh";
-import { claveDeSemana, esSemanaDeLiga, type FilaLiga, ganadorDe, inicioDeSemana, mensajeDeCierre, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot, ventanaDe, ventanaUltimoDia } from "./liga";
+import { claveDeSemana, esSemanaDeLiga, type FilaLiga, ganadorDe, inicioDeSemana, mensajeDeCierre, puntajeDe, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot, ventanaDe, ventanaUltimoDia } from "./liga";
 
 /**
  * El cierre de la semana, separado de la ruta para poder llamarlo también
@@ -189,13 +189,26 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
   // Se registra ANTES de mandar el mensaje. Si Discord falla, la semana queda
   // cerrada igual y no se reintenta: es preferible perder un anuncio a que el
   // cron del día siguiente lo publique de nuevo.
-  const { error } = await supabase.from("liga_semanas").insert({
+  const fila = {
     semana: clave,
     ganador_puuid: ganador?.puuid ?? null,
     ganador_label: ganador ? `${ganador.name}#${ganador.tag}` : null,
     lp_neto: ganador?.lpNeto ?? null,
+    // El puntaje con el que ganó: es lo que DECIDE la liga. El lp_neto queda
+    // de contexto y ya no se muestra como si fuera el marcador.
+    puntos: ganador ? puntajeDe(ganador) : null,
     jugadores: jugaron.length,
-  });
+  };
+  const { puntos, ...sinPuntos } = fila;
+  let { error } = await supabase.from("liga_semanas").insert({ ...sinPuntos, puntos });
+  // `puntos` es una columna nueva y las migraciones se corren a mano. Si
+  // todavía no está, el cierre NO se puede perder por eso: se reintenta sin
+  // ella y se avisa fuerte en el log. En cuanto la migración corra, la primera
+  // rama vuelve a funcionar sola.
+  if (error && /puntos/.test(error.message)) {
+    console.error("cerrarSemanasPendientes: falta la columna liga_semanas.puntos — correr la migración de supabase/schema.sql. Se cierra sin el puntaje.");
+    ({ error } = await supabase.from("liga_semanas").insert(sinPuntos));
+  }
   // Choque de clave = otra corrida ganó la carrera. No es un error: es el
   // candado funcionando.
   if (error) return { cerrada: null, ganador: null, lpNeto: null, jugadores: 0, motivo: `no se registró: ${error.message}` };
