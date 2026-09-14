@@ -3495,44 +3495,43 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    es texto y nadie lo confunde con una línea. */
 .carrera-eje.es-cero{color:var(--text-secondary); font-weight:700;}
 
-/* El degradado de abajo de la línea en foco. Los stops van por CSS y no como
-   atributos para que sigan al tema sin pasar el color por props. */
-.carrera-area-arriba{stop-color:var(--accent); stop-opacity:0.16;}
-.carrera-area-medio{stop-color:var(--accent); stop-opacity:0.03;}
-.carrera-area-abajo{stop-color:var(--accent); stop-opacity:0;}
+/* Cada línea lleva SU color, que entra por atributo desde el componente (ver
+   coloresDeSeries en lib/chart.ts). Acá queda solo lo que no depende de quién
+   es: grosor, opacidad y remates. El degradado de abajo de la que está en foco
+   también va inline, porque tiene que ser del color de su línea.
 
-/* Las de contexto: finas y apagadas, pero legibles — son contra lo que se lee
-   la que está en foco. */
+   Las de contexto van a 0,6 y no más abajo: con colores saturados sobre negro,
+   apagarlas hasta el 0,4 que tenían cuando eran todas grises las volvía barro.
+   La jerarquía la hace el GROSOR —1,5 contra 2,6— y el relleno, no la opacidad. */
 .carrera-linea{
-  fill:none; stroke:var(--text-muted); stroke-width:1.5; stroke-opacity:0.4;
+  fill:none; stroke-width:1.5; stroke-opacity:0.6;
   stroke-linecap:round; stroke-linejoin:round;
-  transition:stroke-opacity .16s ease;
+  transition:stroke-opacity .16s ease, stroke-width .16s ease;
 }
-.carrera-linea.en-foco{stroke:var(--accent); stroke-width:2.6; stroke-opacity:1;}
+.carrera-linea.en-foco{stroke-width:2.6; stroke-opacity:1;}
 /* El resaltado del mouse. Va por clase y no por `:hover +` porque ahora entra
    por tres lados —la línea, el nombre y el chip— y desde cualquiera tiene que
    aclarar la misma línea. */
-.carrera-linea.resaltada{stroke-opacity:0.9; stroke-width:2;}
+.carrera-linea.resaltada{stroke-opacity:1; stroke-width:2;}
 /* Trazo ancho e invisible para agarrar el mouse: una línea de 1,5px no se
    puede apuntar, y un gráfico que no reacciona a nada se siente muerto. */
 .carrera-agarre{fill:none; stroke:transparent; stroke-width:16; cursor:pointer;}
-.carrera-punto{fill:var(--bg); stroke:var(--accent); stroke-width:1.8;}
+.carrera-punto{fill:var(--bg); stroke-width:1.8;}
 /* El punto donde termina cada línea de contexto. Es el ancla que le faltaba a
    una gris para poder seguirla: primero se encuentra dónde termina, y de ahí
    sale la guía hasta el nombre. */
 .carrera-punta{
-  fill:var(--bg); stroke:var(--text-muted); stroke-width:1.4; stroke-opacity:0.55;
+  fill:var(--bg); stroke-width:1.4; stroke-opacity:0.85;
   transition:stroke-opacity .16s ease;
 }
 .carrera-punta.resaltada{stroke-opacity:1;}
 /* La guía del final de la línea al nombre. Más apagada que la línea a
    propósito: es la que ata, no la que se lee. */
 .carrera-guia{
-  fill:none; stroke:var(--text-muted); stroke-width:1; stroke-opacity:0.3;
+  fill:none; stroke-width:1; stroke-opacity:0.45;
   transition:stroke-opacity .16s ease;
 }
-.carrera-guia.resaltada{stroke-opacity:0.7;}
-.carrera-guia.en-foco{stroke:var(--accent); stroke-opacity:0.85;}
+.carrera-guia.resaltada,.carrera-guia.en-foco{stroke-opacity:0.9;}
 
 /* El nombre al final de cada línea. Es lo que convierte seis líneas grises en
    una tabla de posiciones que se lee de arriba abajo. La marquita adelante lo
@@ -3552,7 +3551,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .carrera-nombre-txt{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .carrera-nombre-pts{font-size:10.5px; font-variant-numeric:tabular-nums; opacity:0.7; flex:none;}
 .carrera-nombre.resaltada{color:var(--text-primary);}
-.carrera-nombre.en-foco{color:var(--accent); font-weight:700;}
+/* El nombre en foco NO se pinta del color de su línea: el texto va siempre con
+   tinta de texto y la identidad la lleva la marca de al lado —acá, la guía—.
+   Un nombre de color sobre negro además se lee peor que uno blanco. */
+.carrera-nombre.en-foco{color:var(--text-primary); font-weight:700;}
 .carrera-nombre.en-foco .carrera-nombre-pts{opacity:1;}
 
 .carrera-dias{
@@ -3576,11 +3578,16 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .carrera-chip:hover,.carrera-chip.resaltada{background:var(--surface-hover); color:var(--text-primary);}
 .carrera-chip.en-foco{
-  background:var(--accent-wash); border-color:var(--accent); color:var(--text-primary);
+  background:var(--surface-hover); color:var(--text-primary);
+  /* El borde lo pinta el componente con el color de esa persona. */
 }
+/* La marquita del chip: es la leyenda del gráfico. Sin esto el color de cada
+   línea no está escrito en ninguna parte y en el teléfono —donde el pasillo de
+   nombres no entra— no habría con qué relacionar una línea con alguien. */
+.carrera-chip-marca{width:9px; height:9px; border-radius:3px; flex:none; align-self:center;}
 .carrera-chip-nombre{font-weight:600; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .carrera-chip-pts{font-size:11px; font-variant-numeric:tabular-nums; color:var(--text-muted);}
-.carrera-chip.en-foco .carrera-chip-pts{color:var(--accent);}
+.carrera-chip.en-foco .carrera-chip-pts{color:var(--text-secondary);}
 /* Abajo de 1024 el pasillo se queda sin lugar para las dos cosas, y entre el
    nombre y el puntaje gana el nombre: el puntaje está en el chip de abajo y en
    la tabla, el nombre es lo único que ata la línea a una persona. */

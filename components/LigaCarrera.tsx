@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { lineAreaGeometry } from "@/lib/chart";
+import { coloresDeSeries, lineAreaGeometry } from "@/lib/chart";
 
 /**
  * La carrera de la semana: los puntos de todos, día por día, en un solo
@@ -34,6 +34,20 @@ import { lineAreaGeometry } from "@/lib/chart";
  * el dibujo se movía solo mientras uno intentaba leerlo. El hover quedó nada
  * más como afordancia —la línea de abajo del mouse se aclara un poco— que avisa
  * que se puede tocar sin cambiar nada.
+ *
+ * Y cada uno tiene su COLOR. Antes era una sola línea en el amarillo de la app
+ * y el resto todas grises iguales: se veía cuál estaba seleccionada y nada más,
+ * y en el medio del dibujo —donde cuatro se cruzan— no había forma de seguir
+ * ninguna. El color sale de `coloresDeSeries` (lib/chart.ts), repartido por
+ * PUUID ordenado y no por puesto en la tabla: si saliera del puesto, el día que
+ * dos se pasan intercambiarían de color y la pantalla diría que cambiaron de
+ * persona.
+ *
+ * El color no es lo único que identifica a nadie, y eso es a propósito: con seis
+ * o siete series, dos colores de la paleta se confunden con daltonismo si quedan
+ * pegados (ver PALETA_SERIES). Cada línea termina en su nombre escrito, los
+ * chips de abajo son leyenda, y la que está en foco va casi al doble de grosor
+ * con su relleno abajo. El color acelera la lectura; no la sostiene solo.
  *
  * La curva suave es `smoothLinePath` (lib/chart.ts): interpolación cúbica
  * monótona, o sea que PASA por cada punto y no se pasa entre dos. Las dos
@@ -149,6 +163,9 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
   // (una respuesta vieja del CDN, alguien que se anotó ayer): se repite su
   // último valor hasta el final, que es lo que de verdad pasó — no jugó y no
   // se movió.
+  // El color de cada uno, por PUUID y no por puesto. Ver coloresDeSeries.
+  const colores = coloresDeSeries(utiles.map((c) => c.puuid));
+
   const largo = Math.max(...utiles.map((c) => c.porDia.length));
   const trazos = utiles.map((c) => {
     const serie = [...c.porDia];
@@ -156,10 +173,11 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
     // El ancho que se le pasa es PLOT + EJE con padX = EJE: así los puntos
     // caen entre EJE y PLOT, y de PLOT a W queda el pasillo de los nombres.
     const g = lineAreaGeometry(serie, PLOT + EJE, H, EJE, MIN_RECORRIDO, PAD_Y, "curva", escala);
-    return { ...c, line: g.line, area: g.area, last: g.last, points: g.points, yOf: g.yOf };
+    return { ...c, color: colores.get(c.puuid) ?? "", line: g.line, area: g.area, last: g.last, points: g.points, yOf: g.yOf };
   });
   const enFocoTrazo = trazos.find((t) => t.puuid === foco.puuid) ?? trazos[0];
   const { yOf, points } = enFocoTrazo;
+  const colorFoco = enFocoTrazo.color;
 
   /**
    * Los nombres del pasillo, empujados hacia abajo hasta que ninguno se pise.
@@ -168,7 +186,7 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
    * quedan todos escritos uno encima del otro.
    */
   const nombres = trazos
-    .map((t) => ({ puuid: t.puuid, name: t.name, puntos: t.puntos, y: t.last[1], yLinea: t.last[1] }))
+    .map((t) => ({ puuid: t.puuid, name: t.name, puntos: t.puntos, color: t.color, y: t.last[1], yLinea: t.last[1] }))
     .sort((a, b) => a.y - b.y);
   for (let i = 1; i < nombres.length; i++) {
     nombres[i].y = Math.max(nombres[i].y, nombres[i - 1].y + SEPARACION);
@@ -217,15 +235,18 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
             {/* El degradado de abajo de la línea en foco. Se apaga rápido: es
                 para darle cuerpo a la línea, no para leer un área — el dato es
                 la altura de la curva, no la superficie. */}
+            {/* Los stops van con el color del que está en FOCO y por eso son
+                inline y no clases de CSS: el relleno tiene que ser del mismo
+                color que su línea, y ese color cambia con el que se elige. */}
             <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" className="carrera-area-arriba" />
+              <stop offset="0%" stopColor={colorFoco} stopOpacity={0.2} />
               {/* El stop del medio existe para matar la pared: el relleno
                   termina en un corte vertical abajo del último punto, y con un
                   degradado lineal parejo ese corte se ve como un muro. Cayendo
                   rápido, a media altura ya casi no hay tinta que dibuje el
                   borde. */}
-              <stop offset="45%" className="carrera-area-medio" />
-              <stop offset="100%" className="carrera-area-abajo" />
+              <stop offset="45%" stopColor={colorFoco} stopOpacity={0.04} />
+              <stop offset="100%" stopColor={colorFoco} stopOpacity={0} />
             </linearGradient>
             {/* El mismo brillo contenido que usa SparkChart: sin él la línea se
                 lee como un pelo plano sobre el fondo. Poco radio a propósito —
@@ -285,6 +306,7 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
               key={`g${n.puuid}`}
               d={`M${PLOT},${n.yLinea} C${PLOT + GUIA * 0.55},${n.yLinea} ${PLOT + GUIA * 0.45},${n.y} ${PLOT + GUIA},${n.y}`}
               className={`carrera-guia${n.puuid === foco.puuid ? " en-foco" : ""}${n.puuid === resaltado ? " resaltada" : ""}`}
+              stroke={n.color}
               vectorEffect="non-scaling-stroke"
             />
           ))}
@@ -306,6 +328,7 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
                 <path
                   d={t.line}
                   className={`carrera-linea${t.puuid === resaltado ? " resaltada" : ""}`}
+                  stroke={t.color}
                   vectorEffect="non-scaling-stroke"
                 />
                 {/* El punto donde termina. Es el ancla que le falta a una línea
@@ -316,12 +339,19 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
                   cy={t.last[1]}
                   r={2.6}
                   className={`carrera-punta${t.puuid === resaltado ? " resaltada" : ""}`}
+                  stroke={t.color}
                 />
               </g>
             ))}
-          <path d={enFocoTrazo.line} className="carrera-linea en-foco" vectorEffect="non-scaling-stroke" filter={`url(#${gid}-glow)`} />
+          <path
+            d={enFocoTrazo.line}
+            className="carrera-linea en-foco"
+            stroke={colorFoco}
+            vectorEffect="non-scaling-stroke"
+            filter={`url(#${gid}-glow)`}
+          />
           {points.map(([x, y], i) => (
-            <circle key={i} cx={x} cy={y} r={i === points.length - 1 ? 4 : 2.8} className="carrera-punto" />
+            <circle key={i} cx={x} cy={y} r={i === points.length - 1 ? 4 : 2.8} className="carrera-punto" stroke={colorFoco} />
           ))}
         </svg>
 
@@ -374,10 +404,14 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
             key={t.puuid}
             type="button"
             className={`carrera-chip${t.puuid === foco.puuid ? " en-foco" : ""}${t.puuid === resaltado ? " resaltada" : ""}`}
+            style={t.puuid === foco.puuid ? { borderColor: t.color } : undefined}
             onClick={() => setEnFoco(t.puuid)}
             onMouseEnter={() => setResaltado(t.puuid)}
             onMouseLeave={() => setResaltado(null)}
           >
+            {/* La marquita del chip es lo que convierte los chips en leyenda:
+                sin ella el color de la línea no está escrito en ningún lado. */}
+            <span className="carrera-chip-marca" style={{ background: t.color }} aria-hidden />
             <span className="carrera-chip-nombre">{t.name}</span>
             <span className="carrera-chip-pts">{pts(t.puntos)}</span>
           </button>
