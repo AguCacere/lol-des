@@ -3631,11 +3631,32 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
      a buscarlo a otro lado. Los nombres los pone la fila de chips, que en el
      teléfono pasa a ser la leyenda. */
   .carrera-nombre-txt{display:none;}
-  /* Sin el nombre al lado ya no hay dos cosas que acomodar en el pasillo, así
-     que el número no necesita tope de ancho ni quedarse apagado: es la etiqueta,
-     no el acompañamiento. */
-  .carrera-nombre{max-width:none; margin-left:3px; gap:0;}
-  .carrera-nombre-pts{font-size:11px; opacity:1;}
+  /* Y el número se CLAVA al borde derecho de la caja en vez de arrancar donde
+     termina la guía y crecer hacia afuera.
+
+     El `left` sigue viniendo del componente en el estilo inline; lo que se
+     agrega acá es el `right:0`. Con las dos puntas fijas, la caja de la
+     etiqueta ocupa el pasillo entero y el número se va contra el borde con
+     `flex-end`. La diferencia importa: arrancando desde la izquierda, el ancho
+     del texto decide si entra o no, y en el pasillo del teléfono entran unos
+     50px mientras "−1,25" mide 33 — cualquier cosa que agrande un poco el
+     texto (el tamaño de fuente del sistema, el zoom de accesibilidad de iOS,
+     una tipografía que cae distinta) lo empuja fuera de la tarjeta, y fuera de
+     la tarjeta no se ve nada. Anclado a la derecha no hay ancho que lo saque:
+     si algún día no entra, se desborda hacia ADENTRO del dibujo, donde por lo
+     menos se lee.
+
+     De yapa, los cinco números quedan alineados en una columna en vez de en
+     cinco escalones, que es como se leen los números de verdad. */
+  .carrera-nombre{
+    right:0; margin-left:0; max-width:none; gap:0;
+    justify-content:flex-end; text-align:right;
+  }
+  /* Es la ÚNICA etiqueta que queda en el pasillo, así que deja de hablar en voz
+     baja: con el nombre al lado tenía sentido que el número fuera el apagado de
+     los dos, solo ya no acompaña a nadie. */
+  .carrera-nombre-pts{font-size:11px; opacity:1; color:var(--text-secondary);}
+  .carrera-nombre.en-foco .carrera-nombre-pts{color:var(--text-primary);}
   /* Sin interlineado de sobra, porque abajo el alto del gráfico se achica y el
      que separa las etiquetas NO: SEPARACION son 18 unidades de un viewBox de
      264, así que cuando el SVG pasa a medir 194px reales esas 18 unidades valen

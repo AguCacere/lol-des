@@ -490,6 +490,18 @@ el puntaje y los nombres pasan a la fila de chips, que ahí es la leyenda. Por e
 `@media (max-width:1024px)` lleva además `(min-width:701px)`: sin ese tope de abajo las
 dos reglas vuelven a pisarse.
 
+**Y en el teléfono la etiqueta se ancla al borde derecho, no al final de la guía.**
+Arrancando desde la izquierda y creciendo hacia afuera, el que decide si entra es el
+ancho del texto: en el pasillo del teléfono hay unos 50px y "−1,25" mide 33, así que
+cualquier cosa que agrande un poco la letra —el tamaño de fuente del sistema, el zoom de
+accesibilidad de iOS, una tipografía que cae distinta a la que uno probó— la empuja fuera
+de la tarjeta, y fuera de la tarjeta no se ve nada. Con `right:0` sumado al `left` que ya
+pone el componente, la caja ocupa el pasillo entero y el número se va contra el borde con
+`flex-end`: no hay ancho que lo saque, y si algún día no entrara se desborda hacia ADENTRO
+del dibujo, donde por lo menos se lee. **La regla general: una etiqueta al borde de algo
+se ancla al borde, no se la posiciona y se reza.** Probado agrandando la fuente un 55%
+(11px → 17px): las cinco siguen dentro de la tarjeta y de la pantalla a 390 y a 360.
+
 **Y las etiquetas necesitan menos interlineado cuando el gráfico se achica.** `SEPARACION`
 son 18 unidades de un viewBox de 264, pero abajo de 560 el SVG pasa a medir 194px reales:
 esas 18 unidades valen 13px y una etiqueta con interlineado normal mide 15. Medido, un par
