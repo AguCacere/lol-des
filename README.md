@@ -126,6 +126,14 @@ mantiene el ladder al día. `POST /api/refresh` existe para dispararlo a mano de
 consola o con `curl` (pide sesión, y tiene un cooldown de dos minutos por invocador),
 pero ninguna pantalla lo llama.
 
+**Una partida tarda en aparecer, y es normal.** Riot demora en publicarla, el cron corre
+cada 15 minutos y el CDN guarda la respuesta hasta 4 más — con el `stale-while-revalidate`,
+la primera visita después de que vence esa ventana todavía recibe la copia vieja. Entre
+la partida y la pantalla puede haber veinte minutos sin que nada esté roto. Por eso el
+ladder y la liga muestran cada uno **su propio "actualizado hace X"**: son dos respuestas
+con dos cachés distintas y pueden tener edades distintas. Si algo parece trabado, el log
+de `/api/cron/refresh` (línea `cron refresh done:`) dice cómo le fue a cada invocador.
+
 ## Estructura
 
 ```

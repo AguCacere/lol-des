@@ -3372,8 +3372,21 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    ningún bloque, y por eso se leía pegada de otra pantalla. */
 .estado-semana-rotulo{
   grid-column:1 / -1;
+  /* Dos datos independientes, no un texto con cola: el período a la izquierda
+     y la edad a la derecha. La holgura va ENTRE los dos, que es donde estira
+     bien; meterla adentro de cualquiera de los dos los desarma. En angosto
+     bajan uno debajo del otro en vez de comerse las letras. */
+  display:flex; align-items:baseline; justify-content:space-between;
+  flex-wrap:wrap; gap:2px 14px;
   font-family:var(--font-display); font-size:12.5px; font-weight:700;
   letter-spacing:0.01em; color:var(--text-secondary);
+}
+/* Deliberadamente más liviana y más apagada que el rango: es un dato de
+   servicio, no del campeonato. Si pesara igual competiría con la fecha por un
+   lugar que ya es de la fecha. */
+.estado-frescura{
+  font-size:11px; font-weight:500; letter-spacing:0;
+  color:var(--text-muted); cursor:help;
 }
 .estado-rotulo{
   display:block; font-size:9.5px; font-weight:700; text-transform:uppercase;

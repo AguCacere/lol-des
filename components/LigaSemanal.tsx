@@ -93,6 +93,12 @@ interface Datos {
   }[];
   /** Para el arte de campeón. Opcional por la misma razón. */
   ddragonVersion?: string | null;
+  /**
+   * Cuándo se escribieron por última vez estos números. Opcional por la
+   * ventana de caché del CDN: una pestaña vieja contra la API nueva no lo
+   * trae, y ahí lo correcto es no mostrar nada — no inventar una hora.
+   */
+  actualizado?: string | null;
   /** Los dos mínimos para cobrar y si el último día ya arrancó. Opcionales por la caché del CDN. */
   minimoSemanal?: number;
   minimoUltimoDia?: number;
@@ -189,6 +195,22 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
   useEffect(() => {
     cargar();
   }, [cargar]);
+
+  /**
+   * Un tick cada 30 segundos, SOLO para que el "actualizado hace X" envejezca
+   * en pantalla. No vuelve a pedir nada: es una resta contra el reloj del que
+   * mira.
+   *
+   * Sin esto el cartel se congela en el minuto en que cargó la pestaña y dice
+   * "hace 1 min" durante media hora — un reloj parado marcando una hora
+   * plausible, que es peor que no tener reloj. Y ese es justo el caso que este
+   * cartel viene a resolver: la pestaña que quedó abierta.
+   */
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   async function anotar(puuid: string, participa: boolean) {
     setGuardando(puuid);
@@ -368,6 +390,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
       {d.arrancada !== false && d.dias && d.dias.length === 7 && (
         <LigaEstado
           rango={rangoTexto}
+          actualizado={d.actualizado ?? null}
           dias={d.dias}
           corridos={d.diasCorridos ?? 1}
           esUltimoDia={esUltimoDia}

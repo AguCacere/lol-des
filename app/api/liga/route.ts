@@ -31,7 +31,7 @@ export async function GET() {
   // pantalla rota, porque nadie se entera de que hubo un problema.
   const { data: todos, error: eTodos } = await supabase
       .from("summoners")
-      .select("puuid, game_name, tag_line, profile_icon_id, participa_liga, liga_desde")
+      .select("puuid, game_name, tag_line, profile_icon_id, participa_liga, liga_desde, last_refreshed_at")
       .order("game_name");
   if (eTodos) {
     console.error("liga: no se pudo leer summoners —", eTodos.message);
@@ -44,6 +44,23 @@ export async function GET() {
   const { desde: desdeVentana, hasta: fin } = ventanaDeSemana();
 
   const anotados = (todos ?? []).filter((s) => s.participa_liga);
+
+  // Cuándo se escribieron por última vez los datos que esta respuesta usa.
+  //
+  // El TopBar ya muestra un "actualizado hace X", pero ese sale de
+  // /api/ladder, que es OTRA respuesta con OTRA entrada de caché. Las dos se
+  // cachean 240s por su cuenta y vencen cuando se les canta, así que el cartel
+  // de arriba puede decir "recién" mientras esta tabla es la de hace cuatro
+  // minutos. Un reloj que mide otra cosa es peor que no tener reloj: la liga
+  // necesita el suyo, atado al cuerpo que se está leyendo.
+  //
+  // El MÁS RECIENTE de los anotados, igual criterio que el ladder y por la
+  // misma razón: last_refreshed_at se escribe al final de refreshOne, así que
+  // uno que falla no la actualiza nunca y con el mínimo su fecha vieja se
+  // llevaba puesto el cartel de todos (ver app/api/ladder/route.ts). Quién
+  // está trabado ya lo avisa el TopBar aparte.
+  const refrescos = anotados.map((s) => s.last_refreshed_at).filter((t): t is string => t != null);
+  const actualizado = refrescos.length > 0 ? refrescos.reduce((max, t) => (t > max ? t : max)) : null;
   // Una sola consulta de versión para todos, y si Data Dragon no contesta la
   // tabla sale igual sin avatares — no vale romper la liga por un ícono.
   const version = await getLatestVersion().catch(() => null);
@@ -259,6 +276,12 @@ export async function GET() {
       tabla,
       // Para que la tabla pueda pedirle el arte del campeón a Data Dragon.
       ddragonVersion: version,
+      // Va como marca de tiempo y no como "hace X minutos" ya escrito: este
+      // cuerpo lo puede servir el CDN cuatro minutos después de armarlo, y un
+      // texto fijo mentiría justo en esos cuatro minutos. Con la marca, el
+      // reloj del que mira hace la resta y el cartel ENVEJECE con la respuesta
+      // cacheada, que es exactamente lo que se quiere que muestre.
+      actualizado,
       // Todos los trackeados, para que el panel de administración pueda anotar y
       // desanotar sin pedir el ladder entero.
       plantel: (todos ?? []).map((s) => ({

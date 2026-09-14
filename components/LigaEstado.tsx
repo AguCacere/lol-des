@@ -23,6 +23,8 @@
  * serlo: la tabla está abajo y el que quiera sacar la cuenta la saca.
  */
 
+import { formatRelativeTime } from "@/lib/ladder";
+
 export interface CorredorEstado {
   name: string;
   victorias: number;
@@ -36,6 +38,14 @@ export interface CorredorEstado {
 interface Props {
   /** El rango de la semana, ya escrito ("14 sept – 20 sept"). */
   rango: string;
+  /**
+   * Cuándo se escribieron estos números, en ISO. Null si no se sabe.
+   *
+   * Llega como marca y no como texto ya armado a propósito: el que lo escribe
+   * es el cliente, con SU reloj, y así el cartel envejece solo mientras la
+   * pestaña queda abierta. Ver el tick de LigaSemanal.
+   */
+  actualizado: string | null;
   /** Los siete nombres de día, de lunes a domingo. */
   dias: string[];
   /** Cuántos ya arrancaron, contando el de hoy. Entre 1 y 7. */
@@ -64,6 +74,7 @@ function listaCorta(nombres: string[], tope = 2): string {
 
 export function LigaEstado({
   rango,
+  actualizado,
   dias,
   corridos,
   esUltimoDia,
@@ -144,7 +155,28 @@ export function LigaEstado({
           nada: el único elemento de la sección que no era ni la regla, ni el
           panel, ni el gráfico, ni la lista. Acá adentro es lo que siempre fue,
           el título de esta semana. */}
-      <span className="estado-semana-rotulo">{rango}</span>
+      <span className="estado-semana-rotulo">
+        {rango}
+        {/* La edad de los números, al lado del período que cubren. Las dos
+            cosas enmarcan lo mismo —una dice QUÉ se está mirando, la otra
+            CUÁN vieja está— así que van en el mismo renglón y no en una caja
+            nueva.
+
+            Existe porque sin esto no había forma de distinguir "el cron viene
+            atrasado" de "esto se rompió": pasó de verdad, se miró el gráfico,
+            los números no se habían movido, y no había nada en pantalla que
+            dijera de cuándo eran. El "actualizado" del TopBar no sirve acá —
+            sale de /api/ladder, que es otra respuesta con otra caché, y puede
+            decir "recién" con esta tabla cuatro minutos atrás. */}
+        {actualizado && (
+          <span
+            className="estado-frescura"
+            title="Los datos se refrescan cada 15 minutos. Esta pantalla puede estar hasta 4 minutos atrás de ese refresco, por la caché."
+          >
+            actualizado {formatRelativeTime(actualizado)}
+          </span>
+        )}
+      </span>
       <div className="estado-tiempo">
         <span className="estado-rotulo">{arrancaA ? "Arranca" : esUltimoDia ? "Último día" : "Cierra el domingo"}</span>
         <strong className={`estado-reloj${esUltimoDia ? " urge" : ""}`}>{arrancaA ? arrancaA : falta}</strong>

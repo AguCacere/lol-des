@@ -147,6 +147,33 @@ pantalla pollea cada 60s justamente para no recargar el ladder entero.
 en la liga y después releer devolvía la respuesta cacheada de ANTES del cambio: parecía
 que el botón no había hecho nada. Las dos relecturas post-POST van con `?t=Date.now()`.
 
+**Cada respuesta cacheada necesita su PROPIO cartel de "actualizado hace".** El TopBar
+ya mostraba uno, pero sale de `/api/ladder`; la liga se lee de `/api/liga`. Son dos
+entradas de caché distintas que vencen cada una por su lado, así que el cartel de arriba
+podía decir "recién" con la tabla de abajo cuatro minutos atrás. Un reloj que mide otra
+respuesta es peor que no tener reloj: da confianza en un número viejo. `/api/liga`
+manda ahora su propio `actualizado` y el panel de la liga lo escribe.
+
+Dos detalles que hacen que sirva. **Va como marca de tiempo ISO, no como texto ya
+armado**: el cuerpo lo puede servir el CDN cuatro minutos después de haberlo calculado,
+y un "hace 2 min" escrito en el server mentiría exactamente en esos cuatro minutos —
+con la marca, la resta la hace el reloj del que mira y el cartel envejece junto con la
+respuesta cacheada. Y **el cliente tiene un tick de 30s** cuyo único trabajo es volver
+a dibujar ese texto: sin él la etiqueta se congela en el minuto en que cargó la pestaña
+y dice "hace 1 min" durante media hora, que es justo el caso —la pestaña que quedó
+abierta— que el cartel viene a resolver.
+
+**El camino completo de una partida hasta la pantalla son cinco esperas, no una.** Se
+midió una que "tardó" y no había nada roto: Riot tarda en publicar la partida (1-3 min),
+el scheduler externo corre cada 15, la corrida en sí tarda ~30s (medido: trece
+invocadores, todos `ok`, 28 segundos), el CDN sirve hasta 240s de su copia, y encima el
+`stale-while-revalidate=600` hace que **la primera visita después de que vence los 240s
+todavía reciba la vieja** mientras busca la nueva por detrás. Ese último escalón es el
+que hace que se sienta roto en vez de lento: recargás y está viejo, recargás de nuevo y
+ahí sí. Peor caso ~20-25 minutos, todo esperado. Antes de tocar nada, mirar el log de
+`/api/cron/refresh`: la línea `cron refresh done:` lista el resultado invocador por
+invocador y dice si la corrida fue el problema o no lo fue.
+
 **Un error de Supabase en la primera consulta se lleva puesto el ciclo entero.**
 `refreshAllSummoners` arranca leyendo la lista de invocadores; si esa consulta falla,
 tira antes del bucle y NADIE se refresca — y como los errores por invocador sí están
