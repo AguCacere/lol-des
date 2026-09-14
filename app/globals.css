@@ -3969,7 +3969,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-family:var(--font-stat); font-weight:700; font-size:14px;
   font-variant-numeric:tabular-nums; flex:none;
 }
-.vitrina-pts.es-lp{font-size:12px; opacity:0.8;}
+/* La cuenta de títulos, para las semanas que cerraron sin puntaje guardado.
+   Gris y con la copa: comparte columna con el puntaje de la semana y tiene que
+   quedar claro que no es lo mismo. */
+.vitrina-pts.es-titulos{font-size:12.5px; color:var(--text-secondary); font-weight:650;}
 
 /* Las semanas viejas: compactas, sin foto y sin trofeo. */
 .vitrina-viejas{margin-top:4px;}

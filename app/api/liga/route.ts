@@ -207,7 +207,9 @@ export async function GET() {
       nombre: s?.game_name ?? (label ? label.split("#")[0] : null),
       iconUrl: version && s?.profile_icon_id != null ? profileIconUrl(version, s.profile_icon_id) : null,
       puntos: (h.puntos as number | null) ?? null,
-      lpNeto: (h.lp_neto as number | null) ?? null,
+      // El lp_neto se sigue guardando pero no se manda: el LP no se mide en
+      // esta liga, así que en la vitrina era un número de una unidad que no
+      // compite puesto ahí por no dejar el lugar vacío.
       jugadores: (h.jugadores as number | null) ?? 0,
     };
   });

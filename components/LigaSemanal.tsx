@@ -88,8 +88,6 @@ interface Datos {
     iconUrl: string | null;
     /** El puntaje con el que ganó: lo que decide la liga. Null en las semanas anteriores a que se guardara. */
     puntos: number | null;
-    /** El LP neto. Ya no decide nada; se muestra rotulado para las semanas viejas. */
-    lpNeto: number | null;
     jugadores: number;
   }[];
   /** Para el arte de campeón. Opcional por la misma razón. */
@@ -736,16 +734,26 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
         const veces = new Map<string, number>();
         for (const h of d.historial) if (h.nombre) veces.set(h.nombre, (veces.get(h.nombre) ?? 0) + 1);
         const repiten = [...veces.entries()].filter(([, n]) => n > 1).sort((a, b) => b[1] - a[1]);
-        /* El marcador de cada semana. Los puntos primero, que son los que
-           deciden; el LP solo en las semanas viejas que se cerraron antes de que
-           el puntaje se guardara, y ahí va ROTULADO —"+144 LP"— para que no se
-           lea como si fuera el puntaje. */
-        const marcador = (h: Datos["historial"][number]) =>
-          h.puntos != null ? (
-            <span className={`vitrina-pts ${tono(h.puntos)}`}>{puntajeTexto(h.puntos)}</span>
-          ) : h.lpNeto != null ? (
-            <span className={`vitrina-pts es-lp ${tono(h.lpNeto)}`}>{lpTexto(h.lpNeto)}</span>
-          ) : null;
+        /* El marcador de cada semana: el puntaje con el que ganó, que es lo que
+           decide la liga.
+
+           Las semanas que cerraron ANTES de que el puntaje se guardara no lo
+           tienen. Ahí llegó a mostrarse el `lp_neto` rotulado ("+144 LP") y se
+           sacó: el LP no se mide en esta liga, así que poner un número de una
+           unidad que no compite es ruido por no dejar el lugar vacío. En su
+           lugar va la cuenta de títulos del que ganó esa semana —"1 🏆"—, que
+           es el otro dato que una vitrina tiene para decir. Va en gris y con la
+           copa justamente para que no se lea como el puntaje de la semana. */
+        const marcador = (h: Datos["historial"][number]) => {
+          if (h.puntos != null) return <span className={`vitrina-pts ${tono(h.puntos)}`}>{puntajeTexto(h.puntos)}</span>;
+          const titulos = h.nombre ? (veces.get(h.nombre) ?? 0) : 0;
+          if (titulos === 0) return null;
+          return (
+            <span className="vitrina-pts es-titulos" aria-label={`${titulos} ${titulos === 1 ? "título" : "títulos"}`}>
+              {titulos} <span aria-hidden>🏆</span>
+            </span>
+          );
+        };
         return (
           <div className="vitrina">
             <span className="vitrina-label">Campeones anteriores</span>
