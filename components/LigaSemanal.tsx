@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { LigaCarrera } from "./LigaCarrera";
 import { LigaEstado } from "./LigaEstado";
+import { LigaTorneo } from "./LigaTorneo";
 import { InfoTip } from "./InfoTip";
 import { fetchConClave } from "./Cerradura";
 import { TierEmblem } from "./TierEmblem";
@@ -12,7 +13,7 @@ import { ChampIcon } from "./ChampIcon";
 import { RoleIcon } from "./RoleIcon";
 import { championLabel } from "@/lib/champion-names";
 import { ROLES, tierFor } from "@/lib/ladder";
-import { puntajeTexto } from "@/lib/liga";
+import { puntajeTexto, rangoDeSemana } from "@/lib/liga";
 import type { RoleKey, TierKey } from "@/lib/types";
 
 interface Fila {
@@ -124,25 +125,6 @@ function lpTexto(n: number): string {
   return `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n)} LP`;
 }
 
-/**
- * "7 – 13 sept" a partir del lunes guardado ("2026-09-07").
- *
- * Se formatea en UTC y NO en hora argentina, al revés que todo lo demás de este
- * archivo: la clave de la semana es una fecha de calendario, no un instante, y
- * `new Date("2026-09-07")` ya es medianoche UTC — pasarla por
- * America/Argentina/Buenos_Aires la corre tres horas atrás y la vitrina diría
- * que la semana arrancó un domingo.
- */
-function rangoDeSemana(clave: string): string {
-  const lunes = new Date(`${clave}T00:00:00Z`);
-  if (Number.isNaN(lunes.getTime())) return clave;
-  const domingo = new Date(lunes.getTime() + 6 * 86400000);
-  const mes = (d: Date) => d.toLocaleDateString("es-AR", { month: "short", timeZone: "UTC" }).replace(".", "");
-  return mes(lunes) === mes(domingo)
-    ? `${lunes.getUTCDate()} – ${domingo.getUTCDate()} ${mes(domingo)}`
-    : `${lunes.getUTCDate()} ${mes(lunes)} – ${domingo.getUTCDate()} ${mes(domingo)}`;
-}
-
 /** "1,25" y no "1.25": la regla se lee en castellano. */
 function coma(n: number): string {
   return n.toFixed(2).replace(/\.?0+$/, "").replace(".", ",");
@@ -186,6 +168,8 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
   const [guardando, setGuardando] = useState<string | null>(null);
   /** Qué fila está abierta mostrando sus últimas partidas. */
   const [abierta, setAbierta] = useState<string | null>(null);
+  /** Qué semana vieja está abierta en el cartel de "cómo terminó". Null = ninguna. */
+  const [torneo, setTorneo] = useState<string | null>(null);
 
   /**
    * `forzar` saltea la caché del CDN con un parámetro que cambia. Hace falta
@@ -756,9 +740,29 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
         };
         return (
           <div className="vitrina">
-            <span className="vitrina-label">Campeones anteriores</span>
+            {/* El botón va acá arriba y no adentro de cada fila: una fila con
+                un botón adentro es un control, y estas son un registro que se
+                lee. Igual cada fila abre SU semana al tocarla — el botón es la
+                afordancia, el click en la fila es el atajo. */}
+            <div className="vitrina-head">
+              <span className="vitrina-label">Campeones anteriores</span>
+              <button type="button" className="vitrina-ver" onClick={() => setTorneo(vigente.semana)}>
+                Ver cómo terminó
+              </button>
+            </div>
 
-            <div className="vitrina-vigente">
+            <div
+              className="vitrina-vigente"
+              onClick={() => setTorneo(vigente.semana)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setTorneo(vigente.semana);
+                }
+              }}
+            >
               <span className="vitrina-trofeo" aria-hidden>🏆</span>
               <PlayerAvatar name={vigente.nombre ?? "?"} iconUrl={vigente.iconUrl} className="duo-avatar vitrina-avatar" />
               <span className="vitrina-quien">
@@ -774,7 +778,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
             {viejas.length > 0 && (
               <div className="vitrina-viejas">
                 {viejas.map((h) => (
-                  <div className="vitrina-fila" key={h.semana}>
+                  <div className="vitrina-fila" key={h.semana} onClick={() => setTorneo(h.semana)}>
                     <span className="vitrina-fila-semana">{rangoDeSemana(h.semana)}</span>
                     <span className="vitrina-fila-quien">{h.nombre ?? "no ganó nadie"}</span>
                     {marcador(h)}
@@ -787,6 +791,10 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
               <span className="vitrina-repiten">
                 {repiten.map(([n, v]) => `${n} ganó ${v} veces`).join(" · ")}
               </span>
+            )}
+
+            {torneo && (
+              <LigaTorneo semanas={d.historial.map((h) => h.semana)} inicial={torneo} onCerrar={() => setTorneo(null)} />
             )}
           </div>
         );

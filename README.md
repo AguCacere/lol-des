@@ -131,7 +131,7 @@ pero ninguna pantalla lo llama.
 ```
 app/
   page.tsx          # la única página: 5 pestañas, todo entra por fetch a /api/*
-  api/              # 16 route handlers (ver ARQUITECTURA.md)
+  api/              # 17 route handlers (ver ARQUITECTURA.md)
 components/         # ~40 componentes, agrupados por pestaña en ARQUITECTURA.md
 lib/                # Riot, cálculo puro, presentación e infraestructura
 supabase/

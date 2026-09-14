@@ -125,7 +125,21 @@ function marcasDelEje(min: number, max: number): number[] {
   return marcas;
 }
 
-export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[]; dias: string[] }) {
+export function LigaCarrera({
+  corredores,
+  dias,
+  cerrada = false,
+}: {
+  corredores: CorredorCarrera[];
+  dias: string[];
+  /**
+   * Si la semana ya terminó. Solo cambia el TIEMPO VERBAL del titular: el
+   * mismo gráfico se usa para la semana en curso y para una vieja en el cartel
+   * de "cómo terminó", y ahí "Fulano va +5 arriba" de algo que cerró hace un
+   * mes es directamente falso.
+   */
+  cerrada?: boolean;
+}) {
   const [enFoco, setEnFoco] = useState<string | null>(null);
   // El resaltado del mouse va por estado y no por `:hover +` en CSS porque
   // ahora entra por tres lados —la línea, el nombre del pasillo y el chip— y
@@ -212,8 +226,11 @@ export function LigaCarrera({ corredores, dias }: { corredores: CorredorCarrera[
         <strong className="carrera-titular">
           {ventaja != null && ventaja > 0 ? (
             <>
-              {orden[0].name} va <span className="carrera-ventaja">{pts(ventaja)}</span> arriba del segundo
+              {orden[0].name} {cerrada ? "terminó" : "va"} <span className="carrera-ventaja">{pts(ventaja)}</span> arriba
+              del segundo
             </>
+          ) : cerrada ? (
+            "La semana terminó pareja arriba"
           ) : (
             "La semana está pareja arriba"
           )}

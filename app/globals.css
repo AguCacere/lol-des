@@ -3948,15 +3948,25 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
      banda vacía de punta a punta es un error de maquetación. */
   max-width:640px;
 }
+.vitrina-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:9px;}
 .vitrina-label{
-  display:block; margin-bottom:9px;
+  display:block;
   font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-muted);
 }
+/* El botón del cartel. Apagado a propósito: lo que importa de la vitrina es
+   quién ganó, no el control para mirar el detalle. */
+.vitrina-ver{
+  padding:3px 9px; border-radius:999px; cursor:pointer; flex:none;
+  background:transparent; border:1px solid var(--border-soft);
+  font-family:inherit; font-size:10.5px; color:var(--text-muted);
+  transition:color .14s ease, border-color .14s ease, background .14s ease;
+}
+.vitrina-ver:hover{color:var(--text-primary); background:var(--surface-hover);}
 
 /* El vigente. El baño de accent y el trofeo son lo único que lo separa de una
    fila más, y alcanza: es UNA fila, no hace falta gritar. */
 .vitrina-vigente{
-  display:flex; align-items:center; gap:10px;
+  display:flex; align-items:center; gap:10px; cursor:pointer;
   padding:9px 11px; border-radius:var(--radius-sm);
   background:var(--accent-wash-soft); box-shadow:inset 2px 0 0 var(--accent);
 }
@@ -3984,10 +3994,12 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* Las semanas viejas: compactas, sin foto y sin trofeo. */
 .vitrina-viejas{margin-top:4px;}
 .vitrina-fila{
-  display:flex; align-items:baseline; gap:10px; padding:5px 11px;
+  display:flex; align-items:baseline; gap:10px; padding:5px 11px; cursor:pointer;
   font-size:11.5px; color:var(--text-secondary); border-top:1px solid var(--border-soft);
 }
 .vitrina-fila:first-child{border-top:none;}
+.vitrina-fila:hover,.vitrina-vigente:hover{background:var(--surface-hover);}
+.vitrina-vigente:hover{background:var(--accent-wash);}
 /* Ancho fijo para que los nombres arranquen todos en la misma columna: "28
    sept – 4 oct" y "7 – 13 sept" no miden lo mismo y sin esto la lista queda
    escalonada. */
@@ -3997,6 +4009,89 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* Cuántas veces ganó cada uno. Sale solo cuando alguien repite: con una semana
    por campeonato, "ganó 3 veces" es LA estadística de la vitrina, pero antes de
    que se repita ninguno la línea diría lo mismo que la lista de arriba. */
+/* El cartel de "cómo terminó". Mismo patrón que la cerradura: fondo oscuro con
+   desenfoque y una caja centrada. Va encima y no en una pantalla propia porque
+   es una foto que se mira diez segundos — mandar a otra página por eso obliga a
+   irse de la liga y volver. */
+.torneo-fondo{
+  position:fixed; inset:0; z-index:70; display:flex; align-items:center; justify-content:center;
+  padding:20px; background:rgba(0,0,0,0.7); backdrop-filter:blur(3px);
+}
+.torneo-caja{
+  display:flex; flex-direction:column; width:100%; max-width:1000px;
+  max-height:calc(100vh - 40px); overflow-y:auto;
+  background:var(--bg); border:1px solid var(--border-soft);
+  border-radius:var(--radius-lg); box-shadow:var(--shadow);
+}
+.torneo-head{
+  display:flex; align-items:center; justify-content:space-between; gap:14px;
+  padding:14px 18px; border-bottom:1px solid var(--border-soft);
+  position:sticky; top:0; background:var(--bg); z-index:1;
+}
+.torneo-titulo{display:flex; flex-direction:column; gap:2px; min-width:0;}
+.torneo-rotulo{
+  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-muted);
+}
+.torneo-titulo strong{font-size:16px; font-weight:700; color:var(--text-primary); letter-spacing:-0.01em;}
+.torneo-nav{display:flex; align-items:center; gap:6px; flex:none;}
+.torneo-nav button{
+  width:28px; height:28px; border-radius:var(--radius-sm); cursor:pointer;
+  background:var(--surface); border:1px solid var(--border-soft);
+  color:var(--text-secondary); font-family:inherit; font-size:15px; line-height:1;
+  transition:color .14s ease, background .14s ease;
+}
+.torneo-nav button:hover:not(:disabled){color:var(--text-primary); background:var(--surface-hover);}
+.torneo-nav button:disabled{opacity:0.32; cursor:default;}
+.torneo-nav-cuenta{
+  font-size:10.5px; color:var(--text-muted); font-variant-numeric:tabular-nums; padding:0 2px;
+}
+.torneo-cerrar{margin-left:6px;}
+.torneo-vacio{margin:0; padding:28px 18px; font-size:12.5px; color:var(--text-muted);}
+.torneo-cuerpo{display:flex; flex-direction:column;}
+/* Al cambiar de semana el contenido viejo se queda mientras llega el nuevo, un
+   toque apagado. Vaciarlo y poner "cargando" hace saltar el alto del cartel
+   entero y se siente peor que esperar medio segundo. */
+.torneo-cuerpo.cambiando{opacity:0.45; transition:opacity .12s ease;}
+.torneo-campeon{
+  padding:13px 18px; font-size:13px; line-height:1.5; color:var(--text-secondary);
+  border-bottom:1px solid var(--border-soft);
+}
+.torneo-campeon strong{color:var(--text-primary); font-weight:700;}
+.torneo-copa{margin-right:6px;}
+.torneo-nota{color:var(--text-muted); font-size:12px;}
+/* La carrera adentro del cartel no lleva su propio borde de abajo: ya está la
+   tabla separada por el suyo. */
+.torneo-cuerpo .carrera{border-bottom:1px solid var(--border-soft);}
+
+.torneo-tabla{padding:6px 10px 12px;}
+.torneo-fila{
+  display:flex; align-items:center; gap:12px; padding:7px 8px;
+  border-top:1px solid var(--border-soft); font-size:12.5px; color:var(--text-secondary);
+}
+.torneo-fila:first-child{border-top:none;}
+.torneo-fila.campeon{background:var(--accent-wash-soft); border-radius:var(--radius-sm); box-shadow:inset 2px 0 0 var(--accent);}
+.torneo-puesto{
+  width:18px; flex:none; text-align:right;
+  font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;
+}
+.torneo-nombre{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-primary);}
+.torneo-vd{flex:none; font-size:11.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+/* Si cobraba o no: es la mitad del drama de la liga y sin esto la tabla es un
+   ranking cualquiera. */
+.torneo-minimos{
+  flex:none; padding:1px 7px; border-radius:999px; font-size:10px;
+  background:var(--surface); color:var(--text-muted);
+}
+.torneo-minimos.cumple{color:var(--good); background:var(--good-wash);}
+.torneo-pts{
+  flex:none; min-width:52px; text-align:right;
+  font-family:var(--font-stat); font-weight:700; font-size:13px; font-variant-numeric:tabular-nums;
+}
+@media (max-width:560px){
+  .torneo-fondo{padding:10px;}
+  .torneo-vd,.torneo-minimos{display:none;}
+}
+
 .vitrina-repiten{
   display:block; margin-top:9px; padding-top:8px; border-top:1px solid var(--border-soft);
   font-size:11px; color:var(--text-muted);

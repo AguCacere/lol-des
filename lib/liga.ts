@@ -729,6 +729,25 @@ function fechaCorta(d: Date): string {
   });
 }
 
+/**
+ * "7 – 13 sept" a partir de la clave de una semana ("2026-09-07").
+ *
+ * Se formatea en UTC y NO en hora argentina, al revés que todo lo demás que
+ * escribe fechas en este repo: la clave de una semana es una fecha de
+ * CALENDARIO, no un instante, y `new Date("2026-09-07")` ya es medianoche UTC —
+ * pasarla por America/Argentina/Buenos_Aires la corre tres horas atrás y la
+ * pantalla diría que la semana arrancó un domingo.
+ */
+export function rangoDeSemana(clave: string): string {
+  const lunes = new Date(`${clave}T00:00:00Z`);
+  if (Number.isNaN(lunes.getTime())) return clave;
+  const domingo = new Date(lunes.getTime() + 6 * 86400000);
+  const mes = (d: Date) => d.toLocaleDateString("es-AR", { month: "short", timeZone: "UTC" }).replace(".", "");
+  return mes(lunes) === mes(domingo)
+    ? `${lunes.getUTCDate()} – ${domingo.getUTCDate()} ${mes(domingo)}`
+    : `${lunes.getUTCDate()} ${mes(lunes)} – ${domingo.getUTCDate()} ${mes(domingo)}`;
+}
+
 /** El anuncio de que arranca la liga. Se manda a mano una sola vez, desde la app. */
 export function mensajeDeArranque(inicio: Date, premio: string | null): string {
   const { desde, hasta } = ventanaDe(inicio);

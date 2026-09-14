@@ -7,7 +7,7 @@ evitables.
 
 ## Forma general
 
-Una sola página cliente (`app/page.tsx`) con cinco pestañas, y 16 route handlers.
+Una sola página cliente (`app/page.tsx`) con cinco pestañas, y 17 route handlers.
 **No hay Server Components de datos**: todo entra por `fetch` a `/api/*` desde el
 navegador. El servidor solo existe en las rutas.
 
@@ -31,6 +31,7 @@ cerradura no está puesta, nadie escribe).
 | `/api/team-digest` | GET | Resumen semanal del grupo | no | no | `s-maxage=300` (semana 0) / `3600` |
 | `/api/liga` | GET | Tabla de la liga de la semana, la carrera y la vitrina de campeones | no | no | `s-maxage=240, swr=600` |
 | `/api/liga` | POST | Anota o saca gente de la liga | sí | **sí** | — |
+| `/api/liga/semana` | GET | Cómo terminó una semana vieja: tabla final, carrera y quién cobró | no | no | `s-maxage=21600, swr=86400` |
 | `/api/liga/anunciar` | POST | Manda el mensaje de arranque a Discord. Con `{tipo:"cierre"}` devuelve la vista previa del anuncio de cierre y no manda nada | no | **sí** | — |
 | `/api/summoners` | POST | Agrega un invocador al grupo | sí | **sí** | — |
 | `/api/refresh` | POST | Refresca uno o todos (cooldown de 2 min) | sí | **sí** | — |
@@ -102,7 +103,12 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   mínimos para cobrar (`MINIMO_SEMANAL`, `MINIMO_ULTIMO_DIA`, `ganadorDe`) y los dos
   mensajes de Discord: `mensajeDeArranque` y `mensajeDeCierre` —el podio con una
   cargada por puesto, que no habla del premio a propósito—.
-- `liga-cierre.ts` — el cierre idempotente de la semana. `tablaDeSemanaEnBase` arma la tabla final desde la base y `vistaPreviaDeCierre` devuelve el texto del anuncio sin escribir ni mandar nada.
+- `liga-cierre.ts` — el cierre idempotente de la semana. `tablaDeSemanaEnBase` arma
+  la tabla final desde la base —con `{conCarrera:true}` calcula también el acumulado
+  por día—, `vistaPreviaDeCierre` devuelve el texto del anuncio sin escribir ni mandar
+  nada, y `comoTerminoLaSemana` la foto que muestra el cartel del torneo pasado. Los
+  tres salen del mismo armado a propósito: si la pantalla armara la tabla por su
+  cuenta, una semana vieja podría mostrar un ganador distinto del que anunció el bot.
 - `roast.ts` — las cargadas: plantillas, precedencia y las especiales.
 - `coach.ts` — el prompt del análisis del pool.
 
@@ -213,6 +219,9 @@ pestañas.
   de cuánto falta y quién cobra), `LigaCarrera` (el gráfico de la semana, con un
   color por jugador), la tabla, y al pie la vitrina de campeones —que no tiene
   componente propio: vive adentro de `LigaSemanal` con las clases `.vitrina*`—.
+  Desde la vitrina se abre `LigaTorneo`, el cartel de "cómo terminó" una semana
+  vieja: va encima y no en una pantalla propia porque es una foto de diez segundos
+  y mandar a otra página obliga a irse de la liga y volver.
   `PlayerProfile` es el más grande: `RadarChart`, `InsightsCard`, `RecentForm`,
   `TiltCard`, `ChampionPool`, `MasteryPool`, `ChampionInsights`, `Matchups`,
   `LineHistory`, `BuildStarts`, `PersonalRecords`, `AegisStats`, `CoachPanel`,

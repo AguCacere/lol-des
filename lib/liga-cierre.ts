@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendDiscordNotification } from "./discord";
 import { RANKED_SOLO_QUEUE_ID } from "./refresh";
-import { claveDeSemana, esSemanaDeLiga, type FilaLiga, ganadorDe, inicioDeSemana, mensajeDeCierre, puntajeDe, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot, ventanaDe, ventanaUltimoDia } from "./liga";
+import { claveDeSemana, esSemanaDeLiga, etiquetasDeDias, type FilaLiga, ganadorDe, inicioDeSemana, mensajeDeCierre, puntajeDe, puntosPorDia, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot, ventanaDe, ventanaUltimoDia } from "./liga";
 
 /**
  * El cierre de la semana, separado de la ruta para poder llamarlo también
@@ -47,9 +47,18 @@ function masRepetido<T>(valores: (T | null)[]): T | null {
  * copias de este armado se irían de sincronía el día que cambie el puntaje y
  * la vista previa mostraría un mensaje que no es el que va a salir.
  *
+ * Con `conCarrera` calcula además el acumulado por día de cada uno, que es lo
+ * que dibuja el gráfico. El cierre no lo pide —solo necesita el puntaje final y
+ * calcularlo ahí sería trabajo que nadie mira—, pero la pantalla que muestra
+ * cómo terminó una semana vieja sí.
+ *
  * Devuelve null si no hay nadie anotado.
  */
-export async function tablaDeSemanaEnBase(supabase: SupabaseClient, inicio: Date): Promise<FilaLiga[] | null> {
+export async function tablaDeSemanaEnBase(
+  supabase: SupabaseClient,
+  inicio: Date,
+  opciones: { conCarrera?: boolean } = {},
+): Promise<FilaLiga[] | null> {
   const { data: anotados } = await supabase
     .from("summoners")
     .select("puuid, game_name, tag_line, liga_desde")
@@ -116,7 +125,13 @@ export async function tablaDeSemanaEnBase(supabase: SupabaseClient, inicio: Date
       // Y el acumulado por día va vacío por lo mismo: la carrera se dibuja en
       // pantalla, el cierre solo necesita el puntaje final. Calcularlo acá
       // sería trabajo que nadie mira.
-      porDia: [],
+      // El acumulado por día solo cuando alguien lo va a mirar. Y se calcula
+      // con el FIN de esa semana como "ahora": con la fecha de hoy, una semana
+      // vieja daría siete días corridos igual, pero una semana que todavía
+      // corre daría los que van — y acá siempre se quiere la semana entera.
+      porDia: opciones.conCarrera
+        ? puntosPorDia(suyas.map((m) => ({ win: m.win, playedAt: m.played_at })), inicio, new Date(fin.getTime() - 1))
+        : [],
       // El campeón de la semana sí se calcula: es lo único de este bloque que
       // sale en el anuncio ("ganó la liga con Yasuo"). La línea no, que ahí no
       // se nombra.
@@ -148,6 +163,37 @@ export async function tablaDeSemanaEnBase(supabase: SupabaseClient, inicio: Date
  * Sirve también para la semana EN CURSO —que todavía no terminó— justamente
  * para eso: mirar cómo quedaría el anuncio si cerrara ahora.
  */
+/**
+ * Cómo terminó una semana: la tabla final, los días y quién cobró.
+ *
+ * Es lo que mira el cartel de "cómo terminó el torneo pasado". Va acá y no en
+ * una ruta aparte con sus propias queries porque tiene que dar EXACTAMENTE lo
+ * mismo que dio el cierre: si se armara por otro lado, una semana vieja podría
+ * mostrar un ganador distinto del que anunció el bot.
+ */
+export async function comoTerminoLaSemana(supabase: SupabaseClient, inicio: Date) {
+  const tabla = (await tablaDeSemanaEnBase(supabase, inicio, { conCarrera: true })) ?? [];
+  const jugaron = tabla.filter((f) => !f.sinJugar);
+  const g = ganadorDe(tabla);
+  return {
+    semana: claveDeSemana(inicio),
+    dias: etiquetasDeDias(inicio),
+    ganadorPuuid: g?.puuid ?? null,
+    jugadores: jugaron.length,
+    tabla: jugaron.map((f) => ({
+      puuid: f.puuid,
+      name: f.name,
+      puntos: puntajeDe(f),
+      victorias: f.victorias,
+      derrotas: f.derrotas,
+      ultimoDia: f.ultimoDia,
+      habilitado: f.habilitado,
+      champion: f.champion,
+      porDia: f.porDia,
+    })),
+  };
+}
+
 export async function vistaPreviaDeCierre(
   supabase: SupabaseClient,
   inicio: Date,
