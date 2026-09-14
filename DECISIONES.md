@@ -207,6 +207,22 @@ cambia esto: apaga el caché de datos de Next, no el del CDN.
 
 ## Gráficos y SVG
 
+**Una caja suelta en una sección sin cajas se lee como pegada de otra pantalla.**
+Cuando la lista de la liga dejó de tener marcos, los chips de la leyenda del gráfico
+quedaron siendo lo ÚNICO encerrado en píldoras con borde de toda la sección: siete
+botones en fila entre un gráfico sin marcos y una lista sin marcos. Siguen siendo
+`<button>` —son el control que elige a quién seguir— pero dejaron de vestirse como
+uno: al elegido lo marca el peso de la letra y su marquita más grande. Y el aire
+entre chips subió a 18px, porque sin marco lo que los separa es el espacio.
+
+**Un dato repetido a cuarenta píxeles del otro no es redundancia: es una línea que no
+pertenece a ningún bloque.** "14 sept – 20 sept · faltan 6 días" vivía suelto entre
+las reglas y el panel de estado, y el panel decía "faltan 6 días" en grande justo
+abajo. Medido con `innerText`: el mismo texto dos veces en la misma pantalla. La
+fecha pasó a ser el TÍTULO del panel —que es lo que siempre fue, el marco de la
+semana— y la cuenta regresiva quedó una sola vez. Se fueron con eso `.liga-rango`,
+`.liga-falta`, `.liga-contexto-fecha` y `.liga-rango-solo`, que quedaron muertas.
+
 **"Se siente formulario" tiene una causa estructural: era una TABLA.** La liga se
 dibujaba con una grilla de siete columnas y una fila de rótulos arriba. Esa forma
 promete algo que en este grupo nadie hace —comparar columna por columna de punta a

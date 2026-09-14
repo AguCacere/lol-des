@@ -414,14 +414,15 @@ export function LigaCarrera({
       </div>
 
       {/* Los chips siguen siendo el control —y en el teléfono, donde los
-          nombres del pasillo no entran, también la leyenda. */}
+          nombres del pasillo no entran, también la leyenda—, pero ya no se
+          visten de botón: al que está elegido lo marca el peso de la letra y su
+          marquita más grande, no un aro de su color. Ver .carrera-chip. */}
       <div className="carrera-chips">
         {trazos.map((t) => (
           <button
             key={t.puuid}
             type="button"
             className={`carrera-chip${t.puuid === foco.puuid ? " en-foco" : ""}${t.puuid === resaltado ? " resaltada" : ""}`}
-            style={t.puuid === foco.puuid ? { borderColor: t.color } : undefined}
             onClick={() => setEnFoco(t.puuid)}
             onMouseEnter={() => setResaltado(t.puuid)}
             onMouseLeave={() => setResaltado(null)}

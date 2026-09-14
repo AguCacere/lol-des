@@ -235,7 +235,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 /* El rango de fechas cuando la liga vive adentro del ladder y el encabezado
    ya lo puso el interruptor. */
-.liga-rango-solo{display:flex; justify-content:flex-end; margin:-4px 0 10px;}
 /* La regla y las fechas en un solo renglón, la regla a la izquierda y la
    semana a la derecha. Antes eran dos bandas sueltas con un hueco en el medio:
    la de las fechas pegada a la derecha sin nada con qué alinearse. */
@@ -248,7 +247,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* Alineada con la PRIMERA línea de fichas, no con el bloque entero: las
    fichas tienen 3px de padding arriba y sin este empujón la fecha quedaba
    flotando un poco más alta que todo lo demás. */
-.liga-contexto-fecha{flex:none; padding-top:3px;}
 /* Abajo de 700 se apilan, y la fecha va ARRIBA: en una fila, la fecha se
    llevaba su ancho completo y a las fichas les quedaban 150px, así que se
    apilaban de a una y las reglas ocupaban nueve renglones antes de la tabla.
@@ -256,7 +254,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    donde corresponde en escritorio— y acá tiene que quedar primera. */
 @media (max-width:700px){
   .liga-contexto{flex-direction:column-reverse; align-items:flex-start; gap:8px;}
-  .liga-contexto-fecha{padding-top:0;}
   .liga-reglas{gap:6px;}
   .liga-ficha{font-size:10.5px; padding:2px 8px;}
   .liga-reglas-label{flex-basis:100%; margin-right:0;}
@@ -282,7 +279,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .section-head .meta{text-align:left;}
   /* Lo mismo con el rango de fechas de la liga: iba pegado a la derecha
      mientras todo lo demás arranca a la izquierda. */
-  .liga-rango-solo{justify-content:flex-start; margin:-2px 0 10px;}
   /* El botón para cruzar a la otra tabla, un punto más chico: al lado de un
      título de 17px una pastilla de 12,5 con 14px de padding pesa casi igual
      que el título. */
@@ -3155,7 +3151,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   background:rgba(200,155,60,0.09); border:1px solid rgba(200,155,60,0.22);
   font-size:12px; color:var(--text-secondary); line-height:1.5;
 }
-.liga-falta.por-arrancar{color:var(--accent);}
 /* Va en HTML por encima del SVG, no adentro: un <text> escala con la caja y
    en pantalla de celular quedaba en 4px. El fondo propio es porque la
    etiqueta cae sobre el área rellena y sin él se lee sobre el color. */
@@ -3305,10 +3300,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    no como una lista más: el puesto adelante, el número que se pelea al final
    y grande, y el líder marcado. */
 .liga{margin-bottom:22px;}
-.liga-rango{display:inline-flex; align-items:baseline; gap:8px; white-space:nowrap;}
 /* Un poco más de presencia que el rango de fechas: es lo único del header
    que mete urgencia, y en una liga de siete días eso es la mitad del asunto. */
-.liga-falta{font-size:11.5px; color:var(--accent); font-weight:700;}
 /* El MISMO fondo que .ladder, no uno más claro. Las dos tablas se
    intercambian en el mismo lugar de la pantalla y estaban en colores
    distintos: el ladder en --bg (#050504) y esta en --surface-raised
@@ -3368,9 +3361,19 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    una nota al pie: es la regla que decide la plata. Ver LigaEstado.tsx. */
 .estado{
   display:grid; grid-template-columns:minmax(190px,250px) minmax(0,1fr);
-  gap:18px; margin:0 0 12px; padding:14px 18px;
+  gap:8px 18px; margin:0 0 12px; padding:13px 18px 15px;
   background:var(--surface); border:1px solid var(--border-soft);
   border-radius:var(--radius-lg);
+}
+/* El rango de la semana, como título del panel. Ocupa las dos columnas y va
+   arriba de todo: estaba suelto AFUERA, en gris, con su propio "faltan 6 días"
+   al lado —el mismo dato que el reloj de acá abajo pone en grande cuarenta
+   píxeles después—. Era la única línea de la sección que no pertenecía a
+   ningún bloque, y por eso se leía pegada de otra pantalla. */
+.estado-semana-rotulo{
+  grid-column:1 / -1;
+  font-family:var(--font-display); font-size:12.5px; font-weight:700;
+  letter-spacing:0.01em; color:var(--text-secondary);
 }
 .estado-rotulo{
   display:block; font-size:9.5px; font-weight:700; text-transform:uppercase;
@@ -3558,22 +3561,37 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 
 /* Los chips son el control, y en el teléfono —donde el pasillo de nombres no
    entra— también la leyenda. */
+/* Y el aire entre chips es más grande que el de adentro: sin marco, lo que los
+   separa es el espacio. Con 6px de gap y sin caja se leerían como una frase
+   corrida. */
 .carrera-chips{
-  display:flex; flex-wrap:wrap; gap:6px; margin-top:14px;
+  display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:14px;
   padding-top:13px; border-top:1px solid var(--border-soft);
 }
+/* La leyenda SIN caja.
+
+   Eran píldoras con fondo y borde, y cuando la lista de abajo dejó de tener
+   cajas quedaron como lo único encerrado de toda la sección: siete botones en
+   fila abajo de un gráfico sin marcos y arriba de una lista sin marcos. Se
+   leían pegados de otra pantalla.
+
+   Siguen siendo <button> —son el control que elige a quién seguir, y eso no se
+   toca— pero dejan de vestirse como uno. Lo que marca al elegido es el PESO de
+   la letra y su color, igual que en el resto de la sección; el marco no hacía
+   falta para nada más que para parecer un formulario. */
 .carrera-chip{
-  display:inline-flex; align-items:baseline; gap:6px;
-  padding:4px 10px; border-radius:999px; cursor:pointer;
-  background:var(--surface); border:1px solid var(--border-soft);
-  font-size:11.5px; color:var(--text-secondary);
-  transition:background .14s ease, border-color .14s ease, color .14s ease;
+  display:inline-flex; align-items:baseline; gap:7px;
+  padding:3px 2px; border-radius:6px; cursor:pointer;
+  background:transparent; border:none;
+  font-size:11.5px; color:var(--text-muted);
+  transition:color .14s ease;
 }
-.carrera-chip:hover,.carrera-chip.resaltada{background:var(--surface-hover); color:var(--text-primary);}
-.carrera-chip.en-foco{
-  background:var(--surface-hover); color:var(--text-primary);
-  /* El borde lo pinta el componente con el color de esa persona. */
-}
+.carrera-chip:hover,.carrera-chip.resaltada{color:var(--text-primary);}
+/* El elegido: la letra entera y la marquita más grande. Nada de fondo ni aro. */
+.carrera-chip.en-foco{color:var(--text-primary);}
+.carrera-chip.en-foco .carrera-chip-nombre{font-weight:700;}
+.carrera-chip.en-foco .carrera-chip-marca{width:11px; height:11px; border-radius:4px;}
+.carrera-chip:focus-visible{outline:2px solid var(--accent); outline-offset:1px;}
 /* La marquita del chip: es la leyenda del gráfico. Sin esto el color de cada
    línea no está escrito en ninguna parte y en el teléfono —donde el pasillo de
    nombres no entra— no habría con qué relacionar una línea con alguien. */

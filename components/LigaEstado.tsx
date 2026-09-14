@@ -34,6 +34,8 @@ export interface CorredorEstado {
 }
 
 interface Props {
+  /** El rango de la semana, ya escrito ("14 sept – 20 sept"). */
+  rango: string;
   /** Los siete nombres de día, de lunes a domingo. */
   dias: string[];
   /** Cuántos ya arrancaron, contando el de hoy. Entre 1 y 7. */
@@ -61,6 +63,7 @@ function listaCorta(nombres: string[], tope = 2): string {
 }
 
 export function LigaEstado({
+  rango,
   dias,
   corridos,
   esUltimoDia,
@@ -133,6 +136,15 @@ export function LigaEstado({
 
   return (
     <div className="estado">
+      {/* El rango de fechas, como rótulo del panel entero.
+
+          Estaba suelto arriba, en gris, con su propio "faltan 6 días" al lado
+          — el mismo dato que este panel ya pone en grande cuarenta píxeles más
+          abajo. Dos veces lo mismo, y encima una línea que no pertenecía a
+          nada: el único elemento de la sección que no era ni la regla, ni el
+          panel, ni el gráfico, ni la lista. Acá adentro es lo que siempre fue,
+          el título de esta semana. */}
+      <span className="estado-semana-rotulo">{rango}</span>
       <div className="estado-tiempo">
         <span className="estado-rotulo">{arrancaA ? "Arranca" : esUltimoDia ? "Último día" : "Cierra el domingo"}</span>
         <strong className={`estado-reloj${esUltimoDia ? " urge" : ""}`}>{arrancaA ? arrancaA : falta}</strong>

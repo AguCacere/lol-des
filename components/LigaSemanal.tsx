@@ -296,23 +296,23 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
     );
   }
 
-  const rango = (
-    <span className="meta liga-rango">
-      {dia(d.desde)} – {dia(new Date(Date.parse(d.hasta) - 1).toISOString())}
-      <span className={`liga-falta${yaArranco ? "" : " por-arrancar"}`}>
-        {yaArranco ? loQueFalta(d.hasta) : `arranca ${horaDe(d.desde)}`}
-      </span>
-    </span>
-  );
+  /**
+   * "14 sept – 20 sept". Sin el "faltan N días" al lado, que es lo que estaba
+   * duplicado: el panel de estado lo pone en grande treinta píxeles más abajo.
+   */
+  const rangoTexto = `${dia(d.desde)} – ${dia(new Date(Date.parse(d.hasta) - 1).toISOString())}`;
 
   return (
     <section className="liga">
       {/* Cuando la liga vive adentro del ladder, el título ya lo puso el
           interruptor de arriba: acá solo queda el rango de fechas. */}
+      {/* El encabezado se queda solo con el título. La fecha y el "faltan N
+          días" que iban acá al lado pasaron al panel de estado, que es donde
+          pertenecen: los tres son el marco de la semana y estaban repartidos en
+          dos lugares diciendo lo mismo. */}
       {conEncabezado && (
         <div className="section-head">
           <h2>Liga de la semana</h2>
-          {rango}
         </div>
       )}
 
@@ -367,6 +367,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
           anterior al deploy no trae los días. */}
       {d.arrancada !== false && d.dias && d.dias.length === 7 && (
         <LigaEstado
+          rango={rangoTexto}
           dias={d.dias}
           corridos={d.diasCorridos ?? 1}
           esUltimoDia={esUltimoDia}
@@ -377,7 +378,6 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
           tabla={d.tabla}
         />
       )}
-      {!conEncabezado && d.arrancada !== false && <span className="liga-contexto-fecha">{rango}</span>}
 
       {d.arrancada === false ? (
         <div className="empty-state">
