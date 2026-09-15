@@ -44,7 +44,7 @@ cerradura no está puesta, nadie escribe).
 | `/api/roast` | POST | Dispara la cargada de Discord | no | **sí** | — |
 | `/api/login` | GET/POST/DELETE | Estado de sesión / entrar / salir | no | no | — |
 | `/api/cron/refresh` | GET | Cada 15 min: refresca a todos | sí | `CRON_SECRET` | — |
-| `/api/cron/liga` | GET | Cron de lunes: cierra la semana | sí | `CRON_SECRET` | — |
+| `/api/cron/liga` | GET | Cierra la semana. Ya NO está en `vercel.json` (le dio el lugar al parte diario): queda para pegarle a mano | sí | `CRON_SECRET` | — |
 
 \* `/api/coach` con `{ peek: true }` **no** pide sesión: solo mira el caché de
 `coach_reports` y nunca llama al modelo. Es lo que hace el panel al abrirse. Generar

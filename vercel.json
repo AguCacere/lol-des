@@ -5,8 +5,8 @@
       "schedule": "0 12 * * *"
     },
     {
-      "path": "/api/cron/liga",
-      "schedule": "0 3 * * 1"
+      "path": "/api/liga/diario",
+      "schedule": "55 2 * * *"
     }
   ]
 }

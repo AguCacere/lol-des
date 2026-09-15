@@ -13,6 +13,12 @@ import { cerrarSemanasPendientes } from "@/lib/liga-cierre";
  * (externo, cada 15 minutos — ver app/api/cron/refresh/route.ts) hace este
  * mismo cierre, y leer /api/liga también. Este queda como red de contención.
  *
+ * Por eso mismo YA NO ESTÁ EN vercel.json. El plan Hobby deja dos crons y el
+ * segundo lugar se lo llevó el parte diario de la liga, que sí necesita un
+ * disparador propio —nadie más lo llama— mientras que el cierre tiene otros
+ * dos caminos que lo hacen igual. La ruta queda para pegarle a mano si alguna
+ * vez hace falta forzar un cierre.
+ *
  * Lo que hace que esto sea seguro es la tabla liga_semanas: una semana ya
  * registrada no se vuelve a anunciar, por más veces que corra.
  */

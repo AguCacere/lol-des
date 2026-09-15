@@ -124,18 +124,28 @@ todos, trae partidas nuevas, guarda snapshots de LP, dispara las notificaciones 
 Discord y de paso cierra la semana de la liga si terminó.
 
 No sale de `vercel.json`: el plan Hobby de Vercel **solo permite un cron por día**,
-que para una liga semanal por LP es demasiado poco. Las entradas que hay en
-`vercel.json` (`/api/cron/refresh` a las 12:00 UTC y `/api/cron/liga` los lunes a las
-03:00 UTC) quedan como red de contención por si el scheduler externo se cae.
+que para una liga semanal por LP es demasiado poco. La entrada de `/api/cron/refresh`
+a las 12:00 UTC que hay en `vercel.json` queda como red de contención por si el
+scheduler externo se cae.
 
 La ruta contesta al toque y hace el trabajo en segundo plano con `after()`: los
 schedulers gratuitos cortan la espera a los 30 segundos, bastante menos de lo que
 puede tardar un refresco completo.
 
-**`/api/liga/diario` corre una vez por día, a las 23:55 argentinas** (02:55 UTC), con el
-mismo `CRON_SECRET` y el mismo scheduler externo. Manda el parte diario de la liga. Es
-seguro pegarle de más: decide solo si hay algo para decir, y los días que no —domingos y
-días sin partidas— contesta `{"mandado":false}` sin escribir en Discord.
+**`/api/liga/diario` corre una vez por día, a las 23:55 argentinas** (`55 2 * * *` UTC),
+y este **sí sale de `vercel.json`**: es lo único que necesita un disparador diario y
+diario es justo lo que el plan Hobby sabe hacer. Vercel le manda el `CRON_SECRET` solo,
+sin configurar nada afuera. En Hobby el disparo es "dentro de esa hora", o sea entre las
+23:00 y las 23:59 argentinas — siempre el mismo día argentino, que es lo único que
+importa acá.
+
+Le sacó el lugar a `/api/cron/liga` (Hobby permite dos crons). No se pierde nada: el
+cierre de la semana ya lo hace el cron de refresco cada 15 minutos, y leer `/api/liga`
+también. El parte diario, en cambio, no tiene otro camino. La ruta `/api/cron/liga`
+sigue existiendo para pegarle a mano.
+
+Es seguro dispararlo de más: decide solo si hay algo para decir, y los días que no
+—domingos y días sin partidas— contesta `{"mandado":false}` sin escribir en Discord.
 
 **No hay botón de "Actualizar" en la app**: el cron de 15 minutos es lo único que
 mantiene el ladder al día. `POST /api/refresh` existe para dispararlo a mano desde la
