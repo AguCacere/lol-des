@@ -390,6 +390,17 @@ export interface PartidaLiga {
    */
   duracionS?: number;
   /**
+   * La partida está en la lista pero no puntúa: se le fue un compañero y la
+   * liga no cobra lo que Riot no cobra (ver `ally_afk` en el esquema).
+   *
+   * Aparece igual, y eso es a propósito. La primera versión la filtraba en el
+   * servidor, como a los remakes, y en pantalla quedaba un agujero: una
+   * derrota que pasó y no está en ningún lado parece que la app se comió una
+   * partida. Acá el desglose es la PRUEBA de dónde sale el puntaje, así que
+   * una partida que no cuenta tiene que poder verse no contando.
+   */
+  anulada?: boolean;
+  /**
    * Lo que sumó o restó ESA partida sola. Null si cayó junta con otras.
    *
    * Sale de comparar dos fotos consecutivas de lp_snapshots: la diferencia de

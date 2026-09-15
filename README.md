@@ -67,10 +67,11 @@ Toda partida de menos de cinco minutos queda afuera en toda la app, así que el 
 ladder y el de la liga dicen lo mismo. Y se puede comprobar: abriendo una fila de la
 liga, cada partida muestra cuánto duró.
 
-**Y una derrota con un aliado ido tampoco resta.** Si a alguien de tu equipo se le fue el
-que se desconectó y no volvió, Riot te cobra menos LP o ninguno, así que la liga no te
-cobra puntos: esa derrota desaparece igual que un remake —no resta, no corta la racha y
-no cuenta para las 10 del mínimo—. La victoria con uno menos sí cuenta, y vale lo mismo
+**Y una derrota con un aliado ido tampoco resta.** Si se te fue uno, Riot te cobra menos
+LP o ninguno, así que la liga no te cobra puntos: no resta, no corta la racha y no cuenta
+para las 10 del mínimo. A diferencia del remake **no desaparece**: en el desglose queda a
+la vista, apagada y diciendo "no contó", porque esa partida sí se jugó y una derrota que
+no está en ningún lado parece un bug. La victoria con uno menos sí cuenta, y vale lo mismo
 que cualquier otra. Esto vale **solo en la liga**: en el ladder la derrota sigue estando,
 porque en tu cuenta también.
 

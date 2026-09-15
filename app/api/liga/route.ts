@@ -109,20 +109,21 @@ export async function GET() {
         // se decide por resultado, no por cómo jugaste. Están acá porque abrir
         // la fila y ver "gané con Seraphine" sin saber si fue un 12/2 o un
         // 1/9 deja la mitad de la historia afuera.
-        .select("match_id, puuid, win, played_at, champion, team_position, kills, deaths, assists, game_duration_s")
+        .select("match_id, puuid, win, played_at, champion, team_position, kills, deaths, assists, game_duration_s, ally_afk")
         .in("puuid", puuids)
         .eq("queue_id", RANKED_SOLO_QUEUE_ID)
         // Sin los remakes. Riot no los cuenta —ni LP, ni victoria, ni derrota—
         // y la liga sí los estaba contando: un punto o −0,75 por una partida de
         // cuatro minutos que nunca se jugó. Ver DURACION_MINIMA_S.
         .gte("game_duration_s", DURACION_MINIMA_S)
-        // Y sin las derrotas con un aliado ido. Mismo criterio que el remake:
-        // si Riot no te cobra LP, la liga no te cobra puntos. Descarta la
-        // partida ENTERA, no le pone cero — no resta, no suma, no corta la
-        // racha y no cuenta para las 10 del mínimo, exactamente como si no se
-        // hubiera jugado. Las victorias sí quedan: ganar con uno menos da LP
-        // completo y encima tiene más mérito. Ver aliadoAfk en lib/refresh.ts.
-        .or("win.eq.true,ally_afk.eq.false")
+        // Las derrotas con un aliado ido NO se filtran acá, al revés que los
+        // remakes, aunque tampoco puntúen. Se traen y se apartan más abajo
+        // (`cuentan`), porque el desglose tiene que poder MOSTRARLAS sin
+        // contarlas: un remake no se jugó y no extraña a nadie, pero una
+        // derrota que pasó y no aparece en ningún lado parece un bug.
+        // Además `lpPorPartida` las necesita para repartir bien el LP: si
+        // faltara una partida del tramo, le atribuiría a otra lo que movieron
+        // las dos.
         .gte("played_at", desdeVentana.toISOString())
         .lt("played_at", fin.toISOString());
       // Las dos de arriba se chequean juntas acá: sin fotos el marcador queda
@@ -138,11 +139,13 @@ export async function GET() {
       const arranqueDe = new Map(participantes.map((p) => [p.puuid, Math.max(desdeVentana.getTime(), p.desde?.getTime() ?? 0)]));
       // Se juntan las partidas de cada uno antes de contar, en vez de sumar al
       // vuelo: la racha necesita el ORDEN y la consulta no lo garantiza.
-      const suyasPorPuuid = new Map<string, { match_id: string; win: boolean; played_at: string; champion: string | null; team_position: string | null; kills: number; deaths: number; assists: number; game_duration_s: number }[]>();
+      const suyasPorPuuid = new Map<string, { match_id: string; win: boolean; played_at: string; champion: string | null; team_position: string | null; kills: number; deaths: number; assists: number; game_duration_s: number; anulada: boolean }[]>();
       for (const m of partidas ?? []) {
         if (Date.parse(m.played_at) < (arranqueDe.get(m.puuid) ?? 0)) continue;
         const arr = suyasPorPuuid.get(m.puuid) ?? [];
-        arr.push({ match_id: m.match_id, win: m.win, played_at: m.played_at, champion: m.champion, team_position: m.team_position, kills: m.kills, deaths: m.deaths, assists: m.assists, game_duration_s: m.game_duration_s });
+        // Una derrota con un aliado ido queda anulada; la victoria con uno
+        // menos no, que ganar con cuatro tiene más mérito, no menos.
+        arr.push({ match_id: m.match_id, win: m.win, played_at: m.played_at, champion: m.champion, team_position: m.team_position, kills: m.kills, deaths: m.deaths, assists: m.assists, game_duration_s: m.game_duration_s, anulada: !m.win && m.ally_afk === true });
         suyasPorPuuid.set(m.puuid, arr);
       }
       // Las fotos de cada uno, para poder atribuirle el LP a cada partida.
@@ -166,33 +169,47 @@ export async function GET() {
       const arrancaUltimoDia = ventanaUltimoDia(inicio).desde.getTime();
       const recordPorPuuid = new Map<string, RecordSemanal>();
       for (const [puuid, suyas] of suyasPorPuuid) {
-        const victorias = suyas.filter((m) => m.win).length;
-        const ultimoDia = suyas.filter((m) => Date.parse(m.played_at) >= arrancaUltimoDia).length;
-        // De la más nueva hacia atrás, contando mientras el resultado no cambie.
+        // `suyas` son TODAS las de la semana y es lo único que ve el desglose;
+        // `cuentan` son las que puntúan. Todo lo que decide la liga sale de
+        // `cuentan` —el puntaje, la racha, el campeón de la semana, el mínimo
+        // del último día y la curva—, así que una partida anulada no mueve
+        // nada: solo se ve.
         suyas.sort((a, b) => Date.parse(b.played_at) - Date.parse(a.played_at));
-        const ultimo = suyas[0].win;
+        const cuentan = suyas.filter((m) => !m.anulada);
+        const victorias = cuentan.filter((m) => m.win).length;
+        const ultimoDia = cuentan.filter((m) => Date.parse(m.played_at) >= arrancaUltimoDia).length;
+        // De la más nueva hacia atrás, contando mientras el resultado no
+        // cambie. Puede no quedar ninguna: el que jugó una sola y se le fue un
+        // compañero no tiene racha, igual que el que no jugó.
+        const ultimo = cuentan.length > 0 ? cuentan[0].win : null;
         let cantidad = 0;
-        for (const m of suyas) {
+        for (const m of cuentan) {
           if (m.win !== ultimo) break;
           cantidad++;
         }
         // De la más vieja a la más nueva, que es como se juega y como hay que
         // recorrerla para contar las rachas.
-        const enOrden = [...suyas].reverse().map((m) => m.win);
+        const enOrden = [...cuentan].reverse().map((m) => m.win);
         // Cuánto valió cada partida, en el mismo orden. Se calcula acá y no en
         // pantalla porque depende de las partidas ANTERIORES —la racha—, y el
         // detalle solo muestra las últimas cinco.
         const valeCadaUna = puntosDeSecuencia(enOrden).cadaUna;
+        // Indexado por match_id y no por posición: la lista de abajo lleva las
+        // anuladas intercaladas, así que las dos ya no se pueden recorrer en
+        // paralelo. Antes era `valeCadaUna[suyas.length - 1 - i]` y con una
+        // sola anulada en el medio todo lo anterior quedaba corrido un lugar.
+        const valePorMatch = new Map<string, number>();
+        [...cuentan].reverse().forEach((m, i) => valePorMatch.set(m.match_id, valeCadaUna[i]));
         // Con qué jugó la semana. No es "su campeón" ni "su rol" en general:
         // es lo que eligió ESTA semana, que en una liga de siete días es el
         // dato que explica el número de al lado.
         recordPorPuuid.set(puuid, {
           victorias,
-          derrotas: suyas.length - victorias,
+          derrotas: cuentan.length - victorias,
           ultimoDia,
-          racha: { resultado: ultimo ? "W" : "L", cantidad },
-          champion: masRepetido(suyas.map((m) => m.champion)),
-          linea: roleFromTeamPosition(masRepetido(suyas.map((m) => m.team_position))),
+          racha: ultimo == null ? null : { resultado: ultimo ? "W" : "L", cantidad },
+          champion: masRepetido(cuentan.map((m) => m.champion)),
+          linea: roleFromTeamPosition(masRepetido(cuentan.map((m) => m.team_position))),
           // `suyas` quedó ordenada de la más NUEVA a la más vieja por la racha;
           // la curva la necesita al revés, como pasó de verdad.
           secuencia: enOrden,
@@ -202,7 +219,7 @@ export async function GET() {
           // `inicio` (el lunes 00:00 argentino) y NO `desdeVentana`: la
           // cuadrícula de días es de días calendario. Ver diasCorridos.
           porDia: puntosPorDia(
-            suyas.map((m) => ({ win: m.win, playedAt: m.played_at })),
+            cuentan.map((m) => ({ win: m.win, playedAt: m.played_at })),
             inicio,
           ),
           // TODAS las de la semana, con lo que movió cada una. Es lo que se abre
@@ -223,13 +240,14 @@ export async function GET() {
           // del CDN.
           ultimas: lpPorPartida(
             fotosPorPuuid.get(puuid) ?? [],
-            suyas.map((m, i) => ({
+            suyas.map((m) => ({
               matchId: m.match_id,
               champion: m.champion,
               win: m.win,
-              // `suyas` va de la más nueva a la más vieja y `valeCadaUna` al
-              // revés: el índice se da vuelta.
-              puntos: valeCadaUna[suyas.length - 1 - i],
+              // Cero, no null: null es "no sabemos" y acá sí sabemos — no
+              // valió nada. La bandera de al lado es la que explica por qué.
+              puntos: m.anulada ? 0 : (valePorMatch.get(m.match_id) ?? 0),
+              anulada: m.anulada ? true : undefined,
               playedAt: m.played_at,
               kills: m.kills,
               deaths: m.deaths,

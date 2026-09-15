@@ -381,10 +381,25 @@ hay dato: haría falta poder anular una partida a mano.
 **La victoria con un aliado ido sí cuenta.** Ganar con uno menos da LP completo y tiene
 más mérito, no menos. Solo se descarta la derrota.
 
-**Descarta la partida entera, no le pone cero.** No resta, no suma, no corta la racha y no
-cuenta para las 10 del mínimo: desaparece igual que un remake. La alternativa —dejarla en
-la tabla valiendo 0— obligaba a decidir qué hace con la racha y con el mínimo, y las dos
-respuestas eran discutibles. "No se jugó" no tiene esa ambigüedad.
+**Para el puntaje se descarta entera, pero en pantalla se ve.** No resta, no suma, no
+corta la racha, no decide el campeón de la semana y no cuenta para las 10 del mínimo: en
+el cálculo no existe, igual que un remake. En el desglose, en cambio, aparece apagada y
+diciendo "no contó".
+
+La primera versión la filtraba también en pantalla, con un `.or()` en la consulta, por
+consistencia con los remakes. Estaba mal y se vio al primer uso: **un remake no se jugó y
+no lo extraña nadie; una derrota que sí pasó y no está en ningún lado parece que la app se
+comió una partida.** El desglose existe justamente para ser la PRUEBA de dónde sale el
+puntaje —la liga se juega por plata entre gente que ya desconfía del cálculo—, así que
+esconder una partida es esconder la prueba. Dice "no contó" y no "0 pt" porque el cero se
+lee como un resultado del cálculo, y lo que pasó es que quedó afuera.
+
+Como consecuencia el filtro salió de la consulta y pasó a JS (`cuentan` contra `suyas` en
+`/api/liga`), y eso arregló dos cosas de paso: **`lpPorPartida` ahora ve todas las
+partidas del tramo**, así que reparte bien el LP en vez de atribuirle a una lo que
+movieron dos; y el valor de cada partida se indexa **por `match_id` y no por posición**
+—antes era `valeCadaUna[suyas.length - 1 - i]`, y con una sola anulada en el medio todo
+lo anterior quedaba corrido un lugar—.
 
 **Las semanas ya cerradas no cambian.** El cierre guarda su `resumen` y la vitrina lo lee
 de ahí, así que una liga que el bot ya anunció se queda con los números que se anunciaron

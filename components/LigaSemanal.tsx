@@ -69,6 +69,8 @@ interface PartidaLiga {
   assists?: number;
   /** Cuánto duró, en segundos. Ver PartidaLiga en lib/liga.ts: está para auditar el filtro de remakes. */
   duracionS?: number;
+  /** Se jugó pero no puntúa: se le fue un compañero. Ver PartidaLiga en lib/liga.ts. */
+  anulada?: boolean;
 }
 interface DelPlantel {
   puuid: string;
@@ -769,7 +771,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                           <span className="liga-dia-acum">quedó en {puntajeTexto(grupo.acumulado)}</span>
                         </div>
                         {grupo.partidas.map((m) => (
-                      <div className={`liga-partida ${m.win ? "gano" : "perdio"}`} key={m.matchId}>
+                      <div className={`liga-partida ${m.win ? "gano" : "perdio"}${m.anulada ? " anulada" : ""}`} key={m.matchId}>
                         {/* El nodo de la línea de tiempo. Es el resultado y el
                             punto de la secuencia a la vez: un ✓ o una ✕ del
                             color que corresponde, con el fondo de la sección
@@ -821,11 +823,28 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                         <span className="liga-partida-cuenta">
                           {/* Lo que valió ESA partida. Puede ser 1,25 si fue la
                               cuarta al hilo o más, así que no se puede deducir
-                              del resultado: viene calculado. */}
-                          <span className="liga-partida-netas">
-                            {puntajeTexto(m.puntos ?? (m.win ? 1 : -1))}
-                            <i className="liga-partida-unidad">pt</i>
-                          </span>
+                              del resultado: viene calculado.
+
+                              Una anulada dice "no contó" en vez de "0 pt": el
+                              cero se lee como un resultado del cálculo, y acá
+                              lo que pasó es que la partida quedó afuera. Se
+                              muestra igual, y no se esconde como los remakes,
+                              porque esta sí se jugó — el desglose es la prueba
+                              de dónde sale el puntaje y una derrota que
+                              desaparece parece que la app se la comió. */}
+                          {m.anulada ? (
+                            <span
+                              className="liga-partida-anulada"
+                              title="Se te fue un compañero: Riot no te saca LP por una así, y la liga no cobra lo que Riot no cobra. La partida está acá para que se vea que pasó, pero no suma, no resta y no cuenta para las 10 del mínimo."
+                            >
+                              no contó
+                            </span>
+                          ) : (
+                            <span className="liga-partida-netas">
+                              {puntajeTexto(m.puntos ?? (m.win ? 1 : -1))}
+                              <i className="liga-partida-unidad">pt</i>
+                            </span>
+                          )}
                           {m.lp !== null ? (
                             <span className={`liga-partida-lp ${tono(m.lp)}`}>{lpTexto(m.lp)}</span>
                           ) : m.lpTramo != null ? (

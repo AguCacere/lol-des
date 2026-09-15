@@ -4111,6 +4111,21 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .liga-partida-lp.junta{cursor:help;}
 .liga-partida-lp i{font-style:normal; font-family:var(--font-body); opacity:0.8;}
 .liga-partida-lp.sin{cursor:help; opacity:0.55;}
+/* La partida que se jugó pero no puntúa (se le fue un compañero). Se apaga la
+   fila entera en vez de tacharla: el tachado sobre una grilla de seis columnas
+   se lee como "esto está mal" y acá no hay nada mal, simplemente no cuenta.
+   Apagada sigue siendo legible —el campeón, el KDA y el LP real siguen ahí
+   para auditar— pero no compite con las que sí deciden la liga. */
+.liga-partida.anulada{opacity:0.5;}
+.liga-partida.anulada:hover{opacity:0.78; background:rgba(255,255,255,0.035);}
+/* "no contó" ocupa el lugar del número de puntos, y va en el mismo tamaño para
+   que la columna derecha no se desalinee. En minúscula y con la tipografía del
+   cuerpo, no la de números: es una aclaración, no una cifra. */
+.liga-partida-anulada{
+  font-family:var(--font-body); font-size:9.5px; font-weight:700;
+  color:var(--text-muted); white-space:nowrap; cursor:help;
+  letter-spacing:0.02em; text-transform:lowercase;
+}
 @media (max-width:560px){
   /* 29 de sangría + 9 de media columna = 38, donde cae el hilo en angosto. */
   .liga-detalle{padding-left:29px; padding-right:12px;}
