@@ -109,6 +109,22 @@ No cuesta una consulta más: esas partidas YA se traen todas para armar la tabla
 seis personas por una semana brava de cuarenta partidas son unos 240 objetos, que
 comprimidos no llegan a diez kilobytes, una vez cada cuatro minutos por la caché del CDN.
 
+**El área táctil se agranda con `pointer:coarse`, no con tamaños más grandes para todos.**
+Auditado a 390px: siete controles quedaban abajo de 32px de alto —o sea más chicos que la
+yema de un dedo—, y el peor era "ver los números" con **15px**, que es la puerta de entrada
+a la grilla del día a día. Lo que crece es el ÁREA, no el dibujo: `padding-block` para
+agarrar el toque y un `margin-block` negativo que lo compensa, así en pantalla no se mueve
+nada. Y solo en pantallas de dedo, porque con mouse el control chiquito está bien y crecer
+le rompería el ritmo a la línea donde vive.
+
+**Medir esto en Playwright tiene una trampa que cuesta una hora.** Chromium le devuelve el
+puntero FINO a la página en cuanto algo la toca —un tap, un `.click()` disparado desde JS,
+el overlay de error de Next—, así que la media query deja de aplicar y la auditoría mide la
+versión de escritorio creyendo que mide la del teléfono. Ni `hasTouch`, ni reaplicar
+`Emulation.setEmulatedMedia` por CDP antes de medir lo evitan. Lo que funciona: **renderizar
+cada estado ya abierto, sin una sola interacción**, o —para lo que solo existe con algo
+abierto— inyectar las mismas declaraciones sin el `@media` y medir eso.
+
 **La barra de secciones es una CÁPSULA centrada, y el activo vuelve a ser una píldora
 llena.** Esto revierte a propósito una decisión anterior: el activo había pasado de dorado
 sólido a superficie elevada con texto dorado, para que el dorado siguiera siendo un acento

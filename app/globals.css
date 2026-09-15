@@ -4227,7 +4227,20 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .torneo-nav-cuenta{
   font-size:10.5px; color:var(--text-muted); font-variant-numeric:tabular-nums; padding:0 2px;
 }
-.torneo-cerrar{margin-left:6px;}
+/* El cerrar se dimensiona SOLO y no heredando de `.torneo-nav button`: el
+   cartel del día por día no tiene esa fila de flechas, así que ahí el botón
+   quedaba en 17px de alto — una ✕ suelta, imposible de tocar con el dedo y el
+   único modo de salir del cartel además de Escape, que en un teléfono no
+   existe. */
+.torneo-cerrar{
+  margin-left:6px; flex:none;
+  width:32px; height:32px; border-radius:var(--radius-sm);
+  display:inline-flex; align-items:center; justify-content:center;
+  background:var(--surface); border:1px solid var(--border-soft);
+  color:var(--text-secondary); font-family:inherit; font-size:15px; line-height:1;
+  cursor:pointer; transition:color .14s ease, background .14s ease;
+}
+.torneo-cerrar:hover{color:var(--text-primary); background:var(--surface-hover);}
 .torneo-vacio{margin:0; padding:28px 18px; font-size:12.5px; color:var(--text-muted);}
 .torneo-cuerpo{display:flex; flex-direction:column;}
 /* Al cambiar de semana el contenido viejo se queda mientras llega el nuevo, un
@@ -4467,4 +4480,29 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 @media (max-width:560px){
   .liga-dia-head{padding-right:0;}
   .liga-dia-acum{font-size:10px;}
+}
+
+
+/* ── Área táctil en pantallas de dedo ─────────────────────────────────────
+   Auditado a 390px: varios controles quedaban abajo de 32px de alto, o sea
+   más chicos que la yema de un dedo. El peor era "ver los números" con 15px,
+   que es la puerta de entrada a la grilla del día a día.
+
+   Se agranda el ÁREA, no el dibujo: padding para agarrar el toque y un margen
+   negativo que lo compensa, así en pantalla no se mueve nada. Y solo con
+   `pointer:coarse` —donde se toca con el dedo—, porque con mouse el control
+   chiquito está bien y crecer le rompería el ritmo a la línea donde vive. */
+@media (pointer:coarse){
+  /* Los que viven adentro de una frase: el margen negativo evita que el
+     renglón se estire. */
+  .carrera-ver,
+  .vitrina-ver{
+    padding-block:10px; margin-block:-10px;
+  }
+  /* Los chips de la carrera son el control principal del gráfico en el
+     teléfono —son los que eligen a quién seguir— y eran de 21px. */
+  .carrera-chip{padding-block:9px; margin-block:-6px;}
+  /* Y los que sí son botones con caja propia crecen de verdad. */
+  .dxd-vista{min-height:34px;}
+  .liga-admin-toggle{min-height:34px;}
 }
