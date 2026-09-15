@@ -295,6 +295,12 @@ export interface FilaLiga {
    */
   hoy?: number;
   /**
+   * Los números de la semana que NO salen del puntaje, para repartir los
+   * títulos del cierre (ver lib/liga-titulos.ts). Opcional porque solo lo llena
+   * quien los va a usar: la pantalla de la liga no los pide.
+   */
+  detalle?: DetalleSemanal;
+  /**
    * Si cumple las dos condiciones para cobrar: el mínimo del último día y el
    * de la semana. Sin esto no cobra, por más arriba que esté en la tabla — la
    * posición sigue siendo la que le dan sus netas, lo que se pierde es el
@@ -340,6 +346,26 @@ export interface Participante {
 }
 
 /** Una partida de la semana, con lo que le movió el LP. */
+/**
+ * Lo que hace falta para los títulos de la semana y no se puede sacar del
+ * puntaje ni de la curva. Todo se cuenta sobre las MISMAS partidas ya filtradas
+ * por cola, remake y arranque de cada uno — contarlo aparte sería una copia de
+ * las reglas esperando a desincronizarse.
+ */
+export interface DetalleSemanal {
+  /** Días distintos en los que jugó al menos una. */
+  dias: number;
+  kills: number;
+  deaths: number;
+  assists: number;
+  /** Partidas del día que más jugó, para "la maratón". */
+  maratonDia: number;
+  /** Partidas con el campeón que más repitió, para "el fiel". */
+  conSuCampeon: number;
+  /** La seguidilla de victorias más larga de la semana. La de FilaLiga.racha es la de AHORA, que es otra cosa. */
+  rachaMax: number;
+}
+
 export interface PartidaLiga {
   matchId: string;
   champion: string | null;
@@ -467,6 +493,12 @@ export interface RecordSemanal {
   ultimoDia: number;
   /** Cuántas jugó hoy. Opcional: solo lo llena el parte diario. Ver FilaLiga.hoy. */
   hoy?: number;
+  /**
+   * Los números de la semana que NO salen del puntaje, para repartir los
+   * títulos del cierre (ver lib/liga-titulos.ts). Opcional porque solo lo llena
+   * quien los va a usar: la pantalla de la liga no los pide.
+   */
+  detalle?: DetalleSemanal;
   /** El acumulado al cierre de cada día, para la carrera. Ver puntosPorDia. */
   porDia: number[];
 }
@@ -672,8 +704,8 @@ export function tablaDeLaSemana(
     const base = previas.length > 0 ? previas[previas.length - 1] : dentro[0];
     const ultima = dentro.length > 0 ? dentro[dentro.length - 1] : base;
 
-    const { victorias, derrotas, racha, champion, linea, secuencia, ultimas, ultimoDia, hoy, porDia } =
-      recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0, racha: null, champion: null, linea: null, secuencia: [], ultimas: [], ultimoDia: 0, hoy: 0, porDia: [0] };
+    const { victorias, derrotas, racha, champion, linea, secuencia, ultimas, ultimoDia, hoy, detalle, porDia } =
+      recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0, racha: null, champion: null, linea: null, secuencia: [], ultimas: [], ultimoDia: 0, hoy: 0, detalle: undefined, porDia: [0] };
     // Las dos condiciones, juntas: aparecer el último día y haber jugado la
     // semana. Cualquiera de las dos sola se esquiva.
     const habilitado = ultimoDia >= MINIMO_ULTIMO_DIA && victorias + derrotas >= MINIMO_SEMANAL;
@@ -697,7 +729,7 @@ export function tablaDeLaSemana(
       // Sin una sola foto no hay nada que medir, pero igual va la línea
       // plana en 0: un gráfico vacío parece roto, y "no se movió" es
       // información.
-      filas.push({ ...p, puntos, netas: victorias - derrotas, lpNeto: 0, lpRecortado: 0, victorias, derrotas, racha, champion, linea, ultimas, ultimoDia, hoy, habilitado, sinJugar: victorias + derrotas === 0, rango, porDia, entroTarde });
+      filas.push({ ...p, puntos, netas: victorias - derrotas, lpNeto: 0, lpRecortado: 0, victorias, derrotas, racha, champion, linea, ultimas, ultimoDia, hoy, detalle, habilitado, sinJugar: victorias + derrotas === 0, rango, porDia, entroTarde });
       continue;
     }
 
@@ -716,6 +748,7 @@ export function tablaDeLaSemana(
       ultimas,
       ultimoDia,
       hoy,
+      detalle,
       habilitado,
       sinJugar: victorias + derrotas === 0,
       rango,
@@ -828,7 +861,7 @@ function listaY(nombres: string[]): string {
  *    explicación de los mínimos la da la app. Quien lo vuelva a poner que sepa
  *    que ya se probó y no se quiso.
  */
-export function mensajeDeCierre(inicio: Date, tabla: FilaLiga[]): string {
+export function mensajeDeCierre(inicio: Date, tabla: FilaLiga[], titulos: TituloDeSemana[] = []): string {
   const fin = new Date(finDeSemana(inicio).getTime() - 1);
   const jugaron = tabla.filter((f) => !f.sinJugar);
 
@@ -873,8 +906,36 @@ export function mensajeDeCierre(inicio: Date, tabla: FilaLiga[]): string {
     lineas.push(`💩 **${ultimo.name}** realmente nadó en caca, quedó último, maleta total. Suerte la próxima — ${marcador(ultimo)}`);
   }
 
+  // Los títulos, después del podio y antes del cierre.
+  //
+  // Van acá y no arriba porque el podio sigue siendo la noticia: quién ganó la
+  // liga. Pero el podio solo, con cinco jugando, deja a cuatro como el chiste
+  // del mensaje — y a la tercera semana de ser "agua" la gente deja de jugar.
+  // Esto le da a cada uno algo suyo, medido, que se ganó aunque haya salido
+  // último. Ver lib/liga-titulos.ts para por qué es UNO por persona y no el
+  // líder de cada categoría.
+  if (titulos.length > 0) {
+    lineas.push("", "**Y además:**");
+    for (const t of titulos) {
+      lineas.push(`${t.emoji} **${t.name}** — ${t.etiqueta}, ${t.detalle}`);
+    }
+  }
+
   lineas.push("", "El lunes a las 00:00 arranca de cero. 🔁");
   return lineas.join("\n");
+}
+
+/**
+ * Un título de la semana, ya repartido. El tipo vive acá —y no en
+ * lib/liga-titulos.ts— para que este módulo no tenga que importar de allá:
+ * liga-titulos ya importa FilaLiga de acá y al revés sería un círculo.
+ */
+export interface TituloDeSemana {
+  puuid: string;
+  name: string;
+  emoji: string;
+  etiqueta: string;
+  detalle: string;
 }
 
 /**

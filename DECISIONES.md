@@ -98,6 +98,34 @@ empezaron antes del corte.
 
 ## Riot
 
+**Los títulos de la semana son UNO por persona, y esa es toda la idea.** El problema
+más grande que tenía la liga no era técnico: son cinco o seis jugando por UN premio, así
+que el miércoles ya hay tres que no llegan al podio y para esos tres el jueves, el viernes
+y el sábado no tienen nada. Y el mensaje del domingo lo empeoraba — nombra a uno campeón y
+a los demás como el chiste. Eso es gracioso una vez; la tercera vez que sos "agua" dejás
+de jugar.
+
+Lo obvio sería "el líder de cada categoría gana esa categoría", y está mal: el que ganó la
+liga suele ser también el que más jugó y el de mejor racha, así que se llevaría tres
+títulos y volvíamos al mismo lugar. Es un REPARTO: se busca, entre todos los pares
+(persona sin título, título libre), el de mejor posición, y así hasta que cada uno tiene
+el suyo. Medido con una semana donde el campeón encabezaba tres categorías: se llevó una
+sola y los otros cinco tuvieron la suya.
+
+**Y ninguno resta.** Esto no es un detalle de tono: la liga ya probó que un arranque en
+negativo hace que la gente deje de jugar —"dejo de participar si arranco en negativo", con
+todas las letras— así que acá no hay castigos. El peor título posible sigue siendo un
+título.
+
+**La distinción que hay que respetar al agregar categorías: relativas contra absolutas.**
+Una relativa dice "el que más X del grupo" y es cierta sea cual sea el número, así que no
+lleva piso y siempre tiene dueño. Una absoluta afirma algo por su cuenta, y sin piso salen
+cosas como "la racha: 1 al hilo", que no reconoce nada — deja en evidencia que no había
+nada que reconocer. **Tiene que haber tantas relativas como gente pueda jugar**: son las
+que garantizan que una semana floja no deje a nadie afuera. Se descubrió probando
+justamente eso: con cinco relativas y seis jugadores, una semana en la que todos jugaron
+dos o tres partidas dejaba a uno sin nada. Hoy son seis.
+
 **El parte diario se calla dos veces, y eso es la mitad del diseño.** El bot manda
 todas las noches cómo va la liga, pero devuelve null —o sea, no manda— los domingos y
 los días en que no jugó nadie. Los domingos porque ese día sale el cierre con el podio y

@@ -1,7 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendDiscordNotification } from "./discord";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "./refresh";
-import { claveDeSemana, diasCorridos, esSemanaDeLiga, etiquetasDeDias, type FilaDelDia, type FilaLiga, ganadorDe, inicioDeSemana, mensajeDeCierre, mensajeDelDia, puntajeDe, puntosPorDia, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot, ventanaDe, ventanaUltimoDia } from "./liga";
+import { claveDeSemana, type DetalleSemanal, diasCorridos, esSemanaDeLiga, etiquetasDeDias, type FilaDelDia, type FilaLiga, ganadorDe, inicioDeSemana, mensajeDeCierre, mensajeDelDia, puntajeDe, puntosPorDia, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot, ventanaDe, ventanaUltimoDia } from "./liga";
+import { repartirTitulos } from "./liga-titulos";
 
 /**
  * El cierre de la semana, separado de la ruta para poder llamarlo también
@@ -104,7 +105,10 @@ export async function tablaDeSemanaEnBase(
     .from("matches")
     // `champion` entra solo para el anuncio: el mensaje de cierre nombra con
     // qué campeón ganó la liga el que la ganó. No toca el puntaje.
-    .select("puuid, win, played_at, champion")
+    // kills/deaths/assists entran solo para los títulos del cierre (el
+    // carnicero, el kamikaze). No tocan el puntaje: la liga se decide por
+    // resultado, no por cómo jugaste.
+    .select("puuid, win, played_at, champion, kills, deaths, assists")
     .in("puuid", puuids)
     .eq("queue_id", RANKED_SOLO_QUEUE_ID)
     // El MISMO filtro de remakes que /api/liga. Si el cierre contara partidas
@@ -137,11 +141,11 @@ export async function tablaDeSemanaEnBase(
   // mirar el orden; ahora "la cuarta al hilo vale 1,25" depende de en qué
   // secuencia pasaron, así que el cierre tiene que reconstruirla igual que
   // /api/liga o coronaría con un puntaje distinto del que muestra la pantalla.
-  const suyasPorPuuid = new Map<string, { win: boolean; played_at: string; champion: string | null }[]>();
+  const suyasPorPuuid = new Map<string, { win: boolean; played_at: string; champion: string | null; kills: number; deaths: number; assists: number }[]>();
   for (const m of partidas ?? []) {
     if (Date.parse(m.played_at) < (arranqueDe.get(m.puuid) ?? 0)) continue;
     const arr = suyasPorPuuid.get(m.puuid) ?? [];
-    arr.push({ win: m.win, played_at: m.played_at, champion: m.champion });
+    arr.push({ win: m.win, played_at: m.played_at, champion: m.champion, kills: m.kills, deaths: m.deaths, assists: m.assists });
     suyasPorPuuid.set(m.puuid, arr);
   }
   const recordPorPuuid = new Map<string, RecordSemanal>();
@@ -177,6 +181,9 @@ export async function tablaDeSemanaEnBase(
       // en otra consulta: una segunda consulta con sus propios filtros es una
       // copia que se desincroniza sola.
       hoy: opciones.ahora ? suyas.filter((m) => Date.parse(m.played_at) >= arrancaHoy).length : 0,
+      // Los números que los títulos necesitan y el puntaje no da. Se cuentan
+      // acá, sobre las mismas partidas ya filtradas, y no en otra consulta.
+      detalle: detalleDeSemana(suyas, inicio),
       // El campeón de la semana sí se calcula: es lo único de este bloque que
       // sale en el anuncio ("ganó la liga con Yasuo"). La línea no, que ahí no
       // se nombra.
@@ -303,7 +310,7 @@ export async function vistaPreviaDeCierre(
 ): Promise<{ texto: string; semana: string; jugadores: number }> {
   const tabla = (await tablaDeSemanaEnBase(supabase, inicio)) ?? [];
   return {
-    texto: mensajeDeCierre(inicio, tabla),
+    texto: mensajeDeCierre(inicio, tabla, repartirTitulos(tabla)),
     semana: claveDeSemana(inicio),
     jugadores: tabla.filter((f) => !f.sinJugar).length,
   };
@@ -368,7 +375,7 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
   // candado funcionando.
   if (error) return { cerrada: null, ganador: null, lpNeto: null, jugadores: 0, motivo: `no se registró: ${error.message}` };
 
-  await sendDiscordNotification(mensajeDeCierre(anterior, tabla));
+  await sendDiscordNotification(mensajeDeCierre(anterior, tabla, repartirTitulos(tabla)));
 
   return {
     cerrada: clave,
@@ -459,4 +466,51 @@ export async function parteDelDia(
 
   const texto = mensajeDelDia(inicio, filas, ahora);
   return texto ? { texto } : { texto: null, motivo: "hoy no hay nada para contar (domingo, o no jugó nadie)" };
+}
+
+/**
+ * Los números de la semana que no salen del puntaje: días distintos, KDA
+ * acumulado, el día más cargado, cuántas con el campeón que más repitió y la
+ * seguidilla de victorias más larga. Alimentan los títulos del cierre.
+ *
+ * Se cuenta sobre las partidas que YA pasaron por todos los filtros (cola,
+ * remake, arranque de cada uno). Esa es la única razón por la que vive acá y no
+ * en su propio módulo: acá están las partidas buenas.
+ */
+function detalleDeSemana(
+  suyas: { win: boolean; played_at: string; champion: string | null; kills: number; deaths: number; assists: number }[],
+  inicio: Date,
+): DetalleSemanal {
+  const porDia = new Map<number, number>();
+  const porCampeon = new Map<string, number>();
+  let kills = 0;
+  let deaths = 0;
+  let assists = 0;
+  let rachaMax = 0;
+  let racha = 0;
+
+  for (const m of suyas) {
+    kills += m.kills;
+    deaths += m.deaths;
+    assists += m.assists;
+    // El día CALENDARIO argentino, la misma cuadrícula que usa la carrera: el
+    // índice del día dentro de la semana. Ver diasCorridos.
+    const d = Math.floor((Date.parse(m.played_at) - inicio.getTime()) / 86400000);
+    porDia.set(d, (porDia.get(d) ?? 0) + 1);
+    if (m.champion) porCampeon.set(m.champion, (porCampeon.get(m.champion) ?? 0) + 1);
+    // `suyas` ya viene ordenada por fecha, que es lo que hace que esto sea una
+    // racha y no una cuenta.
+    racha = m.win ? racha + 1 : 0;
+    if (racha > rachaMax) rachaMax = racha;
+  }
+
+  return {
+    dias: porDia.size,
+    kills,
+    deaths,
+    assists,
+    maratonDia: porDia.size > 0 ? Math.max(...porDia.values()) : 0,
+    conSuCampeon: porCampeon.size > 0 ? Math.max(...porCampeon.values()) : 0,
+    rachaMax,
+  };
 }

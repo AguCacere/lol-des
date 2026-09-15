@@ -43,6 +43,13 @@ pitulín, el tercero ni pinchó ni cortó, los del medio son agua y el último n
 caca—. Se puede mirar antes de que salga sin mandar nada, con
 `POST /api/liga/anunciar` y `{"tipo":"cierre"}`.
 
+Y abajo del podio, **un título por persona**: el fierro (más partidas), el carnicero (más
+asesinatos), el quirúrgico (mejor KDA), el generoso (más asistencias), el kamikaze (más
+muertes), el turista (el que menos jugó), no faltó (más días), la racha, la maratón, el
+fiel y la remontada. Cada uno se lleva **uno solo** —el que más lo destaca— así que el que
+gana la liga no se lleva además todos los demás. Ninguno resta puntos: son todas cosas que
+se ganan.
+
 **La liga semanal** — una competencia interna por **puntos**, de lunes a domingo hora
 argentina, aparte del ladder. El ladder mide dónde llegaste; la liga mide cuánto te
 moviste esta semana.

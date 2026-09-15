@@ -116,6 +116,10 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   hoy). `mensajeDelDia` devuelve **null** cuando no hay nada que mandar: los
   domingos —ese día sale el cierre y dos mensajes se pisan— y los días en que no
   jugó nadie.
+- `liga-titulos.ts` — los títulos de la semana: `repartirTitulos` da UNO por persona
+  (el que más la destaca de los que quedan libres), no el líder de cada categoría. Ver
+  DECISIONES para por qué, y para la regla de relativas contra absolutas antes de agregar
+  una nueva.
 - `liga-cierre.ts` — el cierre idempotente de la semana. `tablaDeSemanaEnBase` arma
   la tabla final desde la base —con `{conCarrera:true}` calcula también el acumulado
   por día—, `vistaPreviaDeCierre` devuelve el texto del anuncio sin escribir ni mandar
