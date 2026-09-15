@@ -98,6 +98,26 @@ empezaron antes del corte.
 
 ## Riot
 
+**El detalle de un jugador muestra TODAS las partidas de la semana, no las últimas cinco.**
+Eran cinco y por eso no servía para lo que se abre a hacer: la pantalla dice "+7,25" y con
+cinco partidas de una semana de cuarenta no hay forma de auditar de dónde salió ese
+número. Esta liga se juega por plata entre gente que ya desconfía del cálculo —por eso
+existe este detalle— así que recortarlo es recortar justamente la prueba.
+
+No cuesta una consulta más: esas partidas YA se traen todas para armar la tabla, el
+`slice(0, 5)` solo achicaba la respuesta. Lo que cuesta es payload, y la cuenta cierra:
+seis personas por una semana brava de cuarenta partidas son unos 240 objetos, que
+comprimidos no llegan a diez kilobytes, una vez cada cuatro minutos por la caché del CDN.
+
+**Y van AGRUPADAS POR DÍA, con el acumulado de cada día.** Cuarenta partidas corridas no
+son transparencia, son un volcado: para llegar al número grande hay que ir sumando de a
+0,75 con el dedo. Con el día como unidad la cuenta se lee de arriba abajo —"el sábado hizo
+−1,5 y quedó en +3,5"— y adentro de cada día son tres o cuatro partidas, que sí se suman
+de cabeza. **El acumulado no se recalcula**: sale de `porDia`, la misma curva que dibuja la
+carrera y que llena la grilla del día a día, así que las tres pantallas no se pueden
+contradecir. Verificado sobre una semana armada a mano: lun +1,25 → mar +0,75 → jue +5 →
+sáb +3,5, y ese +3,5 es exactamente el puntaje que muestra la fila.
+
 **La carrera y la grilla del día a día no son lo mismo, y por eso conviven.** El gráfico
 da la FORMA —quién se escapó, cuándo se cruzaron— pero no tiene los números: no hay manera
 de leer ahí "el martes hizo +2,25". La grilla es la cuenta. El dato es el mismo `porDia`

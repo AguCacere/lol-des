@@ -198,12 +198,25 @@ export async function GET() {
             suyas.map((m) => ({ win: m.win, playedAt: m.played_at })),
             inicio,
           ),
-          // Las últimas cinco, con lo que movió cada una. Es lo que se abre al
-          // tocar la fila: la forma de terminar la discusión sobre el LP es
-          // mostrar partida por partida cuánto dio.
+          // TODAS las de la semana, con lo que movió cada una. Es lo que se abre
+          // al tocar la fila.
+          //
+          // Eran las últimas cinco y por eso no servía para lo que se abre a
+          // hacer: la pantalla dice "+7,25" y con cinco partidas de una semana
+          // de cuarenta no hay forma de auditar de dónde salió ese número. La
+          // liga se juega por plata entre gente que ya desconfía del cálculo —
+          // por eso existe este detalle— así que recortarlo es recortar
+          // justamente la prueba.
+          //
+          // No cuesta ninguna consulta más: estas partidas YA se trajeron todas
+          // para armar la tabla, el slice solo achicaba la respuesta. Lo que
+          // cuesta es payload, y la cuenta cierra: seis personas por una semana
+          // brava de cuarenta partidas son unos 240 objetos, que comprimidos no
+          // llegan a diez kilobytes, una vez cada cuatro minutos por la caché
+          // del CDN.
           ultimas: lpPorPartida(
             fotosPorPuuid.get(puuid) ?? [],
-            suyas.slice(0, 5).map((m, i) => ({
+            suyas.map((m, i) => ({
               matchId: m.match_id,
               champion: m.champion,
               win: m.win,

@@ -4373,3 +4373,41 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .dxd-pie{padding:10px 12px 14px;}
   .dxd-vista{padding:4px 8px; font-size:11px;}
 }
+
+/* El encabezado de cada día adentro del historial de un jugador.
+   Es lo que convierte cuarenta partidas sueltas en una cuenta que se puede
+   seguir: dice qué hizo ESE día y en cuánto quedó después. Sin él hay que ir
+   sumando de a 0,75 con el dedo para llegar al número grande de la fila. */
+.liga-dia + .liga-dia{margin-top:9px;}
+.liga-dia-head{
+  display:flex; align-items:baseline; gap:8px;
+  padding:5px 10px 4px 0; margin-left:-4px;
+}
+.liga-dia-nombre{
+  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
+  color:var(--text-muted);
+}
+/* Lo que movió ese día pesa más que el nombre del día: es el dato, el día es
+   el rótulo. */
+.liga-dia-delta{
+  font-family:var(--font-stat); font-size:11.5px; font-weight:800;
+  font-variant-numeric:tabular-nums;
+}
+/* Y el acumulado va apagado y PEGADO al delta, no contra el borde derecho.
+   Estaba con `margin-left:auto` y quedaba a setecientos píxeles del resto, solo
+   contra el filo, con nada en el medio — la misma trampa del 1fr que está
+   anotada en DECISIONES. Los tres son una frase: "sábado, hizo −1,5, quedó en
+   +3,5". Separados, son tres columnas de una planilla que no existe.
+
+   Apagado porque es el CONTEXTO —dónde quedó parado—, no lo que pasó ese día.
+   Si pesara igual habría dos números compitiendo y no se sabría cuál leer. */
+.liga-dia-acum{
+  font-size:10.5px; color:var(--text-muted); opacity:0.75;
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+/* La rayita que los une como frase. */
+.liga-dia-acum::before{content:"·"; margin-right:7px; opacity:0.6;}
+@media (max-width:560px){
+  .liga-dia-head{padding-right:0;}
+  .liga-dia-acum{font-size:10px;}
+}

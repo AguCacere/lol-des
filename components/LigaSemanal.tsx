@@ -155,6 +155,58 @@ function tono(n: number): string {
   return n > 0 ? "gd-pos" : n < 0 ? "gd-neg" : "";
 }
 
+/** Un día de la semana con sus partidas, lo que movió y en cuánto quedó. */
+interface DiaDeLaSemana {
+  dia: number;
+  nombre: string;
+  partidas: PartidaLiga[];
+  delta: number;
+  acumulado: number;
+}
+
+/**
+ * Las partidas de la semana agrupadas por día, del más nuevo al más viejo.
+ *
+ * Existe porque una lista corrida de cuarenta partidas no es transparencia, es
+ * un volcado: el número grande de arriba dice "+7,25" y para llegar a él hay
+ * que ir sumando de a 0,75 con el dedo. Con el día como unidad, la cuenta se
+ * lee de arriba abajo — "el sábado hizo +2,25 y quedó en +7,25"— y adentro de
+ * cada día son tres o cuatro partidas, que sí se suman de cabeza.
+ *
+ * El acumulado NO se recalcula acá: sale de `porDia`, la misma curva que dibuja
+ * la carrera y que llena la grilla del día a día. Sumar las partidas por mi
+ * cuenta daría otro número el día que cambie el bonus de racha, y entonces la
+ * pantalla se contradiría con su propio gráfico.
+ *
+ * El índice del día es el mismo de esa curva: días CALENDARIO argentinos
+ * contados desde el lunes 00:00, no bloques de 24 horas. Ver diasCorridos en
+ * lib/liga.ts para por qué esa distinción ya rompió algo una vez.
+ */
+function agruparPorDia(f: Fila, semana: string, dias: string[]): DiaDeLaSemana[] {
+  const lunes = Date.parse(`${semana}T03:00:00Z`);
+  if (Number.isNaN(lunes)) return [];
+  const porIndice = new Map<number, PartidaLiga[]>();
+  for (const m of f.ultimas ?? []) {
+    const i = Math.floor((Date.parse(m.playedAt) - lunes) / 86400000);
+    if (i < 0 || i > 6) continue;
+    const arr = porIndice.get(i) ?? [];
+    arr.push(m);
+    porIndice.set(i, arr);
+  }
+  const serie = f.porDia ?? [];
+  return [...porIndice.entries()]
+    .sort((a, b) => b[0] - a[0])
+    .map(([dia, partidas]) => ({
+      dia,
+      nombre: dias[dia] ?? `día ${dia + 1}`,
+      // Dentro del día, de la más nueva a la más vieja, igual que la lista
+      // entera: se lee hacia atrás en el tiempo en los dos niveles.
+      partidas: [...partidas].sort((a, b) => Date.parse(b.playedAt) - Date.parse(a.playedAt)),
+      acumulado: serie[dia + 1] ?? 0,
+      delta: (serie[dia + 1] ?? 0) - (serie[dia] ?? 0),
+    }));
+}
+
 /** Cuánto falta para que cierre, en criollo. */
 function loQueFalta(hasta: string): string {
   const ms = Date.parse(hasta) - Date.now();
@@ -680,10 +732,26 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                         con el mismo peso, así que la aclaración competía con el
                         título en vez de acompañarlo. */}
                     <p className="liga-detalle-titulo">
-                      Últimas {f.ultimas!.length} partidas
-                      <span className="liga-detalle-nota">Cómo construyó su puntaje, de la más nueva a la más vieja.</span>
+                      Las {f.ultimas!.length} de la semana
+                      <span className="liga-detalle-nota">
+                        De dónde sale su {puntajeTexto(f.puntos ?? 0)}, partida por partida y día por día.
+                      </span>
                     </p>
-                    {f.ultimas!.map((m) => (
+                    {agruparPorDia(f, d.semana, d.dias ?? []).map((grupo) => (
+                      <div className="liga-dia" key={grupo.dia}>
+                        {/* El encabezado del día: qué hizo ESE día y en cuánto
+                            quedó después. Es lo que convierte una lista de
+                            cuarenta partidas en algo auditable — con solo los
+                            valores sueltos hay que ir sumando de a 0,75 para
+                            entender de dónde salió el número grande de arriba.
+                            El acumulado sale de la MISMA curva que dibuja la
+                            carrera, así que las dos no se pueden contradecir. */}
+                        <div className="liga-dia-head">
+                          <span className="liga-dia-nombre">{grupo.nombre}</span>
+                          <span className={`liga-dia-delta ${tono(grupo.delta)}`}>{puntajeTexto(grupo.delta)}</span>
+                          <span className="liga-dia-acum">quedó en {puntajeTexto(grupo.acumulado)}</span>
+                        </div>
+                        {grupo.partidas.map((m) => (
                       <div className={`liga-partida ${m.win ? "gano" : "perdio"}`} key={m.matchId}>
                         {/* El nodo de la línea de tiempo. Es el resultado y el
                             punto de la secuencia a la vez: un ✓ o una ✕ del
@@ -746,6 +814,8 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                             </span>
                           )}
                         </span>
+                      </div>
+                        ))}
                       </div>
                     ))}
                   </div>
