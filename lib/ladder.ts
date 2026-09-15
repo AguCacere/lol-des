@@ -157,16 +157,53 @@ export function currentStreak(matches: Match[]): Streak | null {
   return { result, count, capped: count === matches.length };
 }
 
-/** "hoy" / "ayer" / "hace N días" / a short date once it's old enough. */
+/**
+ * Argentina está en UTC−3 todo el año. Está duplicado de lib/liga.ts a
+ * propósito: liga.ts importa `rankScore` de acá, así que importarlo al revés
+ * sería un ciclo. Si algún día vuelve el horario de verano, son dos lugares.
+ */
+const ARG_OFFSET_MS = 3 * 60 * 60 * 1000;
+
+/**
+ * En qué DÍA argentino cayó ese instante, como número de día corrido.
+ *
+ * Restar el huso y truncar: el resultado es el mismo para cualquier hora del
+ * mismo día argentino, que es justo lo que "hoy" y "ayer" quieren decir.
+ */
+function diaArgentino(ms: number): number {
+  return Math.floor((ms - ARG_OFFSET_MS) / 86400000);
+}
+
+/**
+ * "hoy" / "ayer" / "hace N días" / una fecha corta cuando ya es vieja.
+ *
+ * Cuenta días de CALENDARIO argentinos, no bloques de 24 horas, y esa
+ * distinción es la que estaba rota. Antes hacía `(ahora − entonces) / 24h`, así
+ * que una partida del lunes a las 20:32 mirada el martes a las 11:54 daba 15
+ * horas, o sea "0 días", o sea **"hoy"** — un martes al mediodía, cuatro
+ * partidas del lunes a la noche decían todas "hoy". Reportado tal cual.
+ *
+ * Es exactamente la misma trampa que ya había roto la barra de días de la liga
+ * (ver `diasCorridos` en lib/liga.ts): "hace un día" y "ayer" NO son lo mismo.
+ * Lo primero mide tiempo transcurrido, lo segundo mide en qué casilla del
+ * calendario cayó — y a las dos de la mañana esas dos cuentas discrepan en un
+ * día entero.
+ */
 export function formatRelativeDate(iso: string): string {
   const then = new Date(iso).getTime();
-  const days = Math.floor((Date.now() - then) / (1000 * 60 * 60 * 24));
+  const days = diaArgentino(Date.now()) - diaArgentino(then);
   if (days <= 0) return "hoy";
   if (days === 1) return "ayer";
   if (days < 7) return `hace ${days} días`;
   if (days < 14) return "hace 1 semana";
   if (days < 30) return `hace ${Math.floor(days / 7)} semanas`;
-  return new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+  // Y la fecha corta también en hora argentina: sin el huso, una partida de las
+  // 22 de un 30 se escribía "1 sep" para cualquiera con el reloj adelantado.
+  return new Date(iso).toLocaleDateString("es-AR", {
+    day: "numeric",
+    month: "short",
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
 }
 
 /**

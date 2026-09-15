@@ -109,6 +109,20 @@ No cuesta una consulta más: esas partidas YA se traen todas para armar la tabla
 seis personas por una semana brava de cuarenta partidas son unos 240 objetos, que
 comprimidos no llegan a diez kilobytes, una vez cada cuatro minutos por la caché del CDN.
 
+**"Hace un día" y "ayer" NO son lo mismo, y confundirlos ya rompió dos cosas.**
+`formatRelativeDate` hacía `(ahora − entonces) / 24h`, o sea que medía tiempo
+TRANSCURRIDO y lo escribía como si fuera una casilla del calendario. Una partida del lunes
+20:32 mirada el martes 11:54 da quince horas, o sea "0 días", o sea **"hoy"**: un martes al
+mediodía, cuatro partidas del lunes a la noche decían todas "hoy". Reportado por el
+usuario, no encontrado leyendo.
+
+Es la MISMA trampa que ya había roto la barra de días de la liga (ver `diasCorridos`): ahí
+los "días" eran bloques de 24 horas corridos desde las 23:30, y un bloque que era 97%
+sábado se llamaba viernes. Dos veces el mismo error en el mismo repo, así que la regla:
+**todo lo que diga "hoy", "ayer" o un día de la semana se cuenta por día CALENDARIO
+argentino** —restar el huso y truncar—, nunca por milisegundos transcurridos. Lo que sí va
+por tiempo transcurrido es "actualizado hace 6 min", que mide otra cosa.
+
 **`es-AR` sin `hour12` devuelve DOCE horas.** `toLocaleTimeString("es-AR", { hour:
 "2-digit", minute: "2-digit" })` parece obvio y da `"09:14 p. m."` en Chrome, mientras el
 resto de la app escribe 24 ("cierra 23:30", que sale de `horaCorta` en lib/liga.ts y
