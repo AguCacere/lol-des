@@ -67,6 +67,8 @@ interface PartidaLiga {
   kills?: number;
   deaths?: number;
   assists?: number;
+  /** Cuánto duró, en segundos. Ver PartidaLiga en lib/liga.ts: está para auditar el filtro de remakes. */
+  duracionS?: number;
 }
 interface DelPlantel {
   puuid: string;
@@ -148,6 +150,17 @@ function coma(n: number): string {
 /** "cuarta", "quinta"… para escribir la regla de la racha sin un número suelto. */
 function ordinal(n: number): string {
   return ["", "primera", "segunda", "tercera", "cuarta", "quinta", "sexta", "séptima"][n] ?? `${n}ª`;
+}
+
+/**
+ * "28m" — los minutos de una partida, redondeados.
+ *
+ * Solo minutos y no "28:14": el número está para auditar, no para cronometrar.
+ * Lo que tiene que saltar a la vista es la diferencia entre 28 y 4, y los
+ * segundos en una columna de cuarenta filas son ruido que tapa eso mismo.
+ */
+function duracionTexto(s: number): string {
+  return `${Math.round(s / 60)}m`;
 }
 
 /** La clase de color por signo, que es la misma en todos lados. */
@@ -777,6 +790,23 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                           </span>
                         ) : (
                           <span className="liga-partida-kda vacio" aria-hidden />
+                        )}
+                        {/* Cuánto duró. Está para AUDITAR el filtro de remakes,
+                            que vive en el servidor y es invisible: hasta acá
+                            había que creerle. Con esta columna se verifica solo
+                            — si todas dicen veinte o treinta minutos el filtro
+                            anda, y si alguna vez aparece una de cuatro es un
+                            bug que grita, porque esa partida no tendría que
+                            estar en la lista ni haber restado 0,75. */}
+                        {m.duracionS != null ? (
+                          <span
+                            className="liga-partida-dur"
+                            title="Cuánto duró. Las de menos de cinco minutos son remakes y no cuentan para la liga: si ves una acá, avisá."
+                          >
+                            {duracionTexto(m.duracionS)}
+                          </span>
+                        ) : (
+                          <span className="liga-partida-dur vacio" aria-hidden />
                         )}
                         {/* Los puntos y el LP, apilados y alineados a la
                             derecha: los puntos arriba y grandes porque son los

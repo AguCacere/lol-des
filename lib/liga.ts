@@ -382,6 +382,14 @@ export interface PartidaLiga {
   deaths?: number;
   assists?: number;
   /**
+   * Cuánto duró, en segundos. Está para AUDITAR: el filtro de remakes vive en
+   * el servidor (ver DURACION_MINIMA_S) y es invisible, así que hay que
+   * creerle. Con la duración a la vista cualquiera lo verifica — si todas
+   * dicen veinte o treinta minutos el filtro anda, y si aparece una de cuatro
+   * es un bug y se ve solo. Opcional por la ventana de caché del CDN.
+   */
+  duracionS?: number;
+  /**
    * Lo que sumó o restó ESA partida sola. Null si cayó junta con otras.
    *
    * Sale de comparar dos fotos consecutivas de lp_snapshots: la diferencia de

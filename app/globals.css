@@ -3977,7 +3977,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    se leen como cuatro renglones de una tabla. Lo que las separa ahora es el
    aire, y lo que las une es el hilo. */
 .liga-partida{
-  display:grid; grid-template-columns:18px 24px 116px 62px 76px;
+  display:grid; grid-template-columns:18px 24px 116px 62px 40px 76px;
   justify-content:start; width:max-content; max-width:100%;
   align-items:center; gap:10px; padding:3px 10px 3px 0;
   border-radius:7px;
@@ -4019,6 +4019,17 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   text-align:right; white-space:nowrap;
 }
 .liga-partida-kda i{font-style:normal; margin:0 2px; color:var(--text-muted); opacity:0.55;}
+/* La duración, el dato más apagado de la fila: no es del partido, es del
+   control. Nadie viene a leer cuánto duró cada una — viene a comprobar, de un
+   barrido vertical, que ninguna dure cuatro minutos. Para eso alcanza con que
+   esté; si pesara más, competiría con el KDA y con los puntos, que sí son lo
+   que se vino a mirar. */
+.liga-partida-dur{
+  font-family:var(--font-mono); font-size:10px; font-weight:500;
+  font-variant-numeric:tabular-nums; color:var(--text-muted); opacity:0.6;
+  text-align:right; white-space:nowrap; cursor:help;
+}
+.liga-partida-dur.vacio{cursor:default;}
 /* Los puntos arriba y el LP abajo, los dos pegados al borde derecho: así las
    dos cosas forman columna con las de las otras partidas, que es lo que deja
    comparar de un vistazo sin leer fila por fila. */
@@ -4061,7 +4072,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   /* En el teléfono vuelve a ocupar todo el ancho: ahí no sobra, falta. Y el
      nombre del campeón es el que cede, porque es el único que puede recortarse
      sin perder el dato (queda "Seraphi…" y se entiende). */
-  .liga-partida{grid-template-columns:18px 24px minmax(0,1fr) 56px 72px; gap:8px; width:auto;}
+  .liga-partida{grid-template-columns:18px 22px minmax(0,1fr) 52px 34px 68px; gap:7px; width:auto;}
 }
 .vitrina{
   margin-top:12px; padding:11px 12px 12px;

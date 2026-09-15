@@ -109,6 +109,19 @@ No cuesta una consulta más: esas partidas YA se traen todas para armar la tabla
 seis personas por una semana brava de cuarenta partidas son unos 240 objetos, que
 comprimidos no llegan a diez kilobytes, una vez cada cuatro minutos por la caché del CDN.
 
+**Y cada partida muestra CUÁNTO DURÓ, que es lo que hace auditable el filtro de
+remakes.** El filtro vive en el servidor (`DURACION_MINIMA_S`) y es invisible: hasta que
+la duración estuvo en pantalla, había que creerle. Ahora se verifica de un barrido
+vertical — si todas dicen veinte o treinta minutos el filtro anda, y si alguna vez aparece
+una de cuatro es un bug que grita, porque esa partida no tendría que estar en la lista ni
+haber restado 0,75. Probado plantando un remake de 231 segundos en la lista: sale "4m"
+entre un "40m" y un "37m" y no hay forma de no verlo.
+
+Va en minutos y no en "28:14": el número está para auditar, no para cronometrar. Lo que
+tiene que saltar es la diferencia entre 28 y 4, y los segundos en una columna de cuarenta
+filas son ruido que tapa justamente eso. Y es el dato más apagado de la fila a propósito:
+no es del partido, es del control — nadie viene a leer cuánto duró cada una.
+
 **Y van AGRUPADAS POR DÍA, con el acumulado de cada día.** Cuarenta partidas corridas no
 son transparencia, son un volcado: para llegar al número grande hay que ir sumando de a
 0,75 con el dedo. Con el día como unidad la cuenta se lee de arriba abajo —"el sábado hizo

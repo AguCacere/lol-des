@@ -109,7 +109,7 @@ export async function GET() {
         // se decide por resultado, no por cómo jugaste. Están acá porque abrir
         // la fila y ver "gané con Seraphine" sin saber si fue un 12/2 o un
         // 1/9 deja la mitad de la historia afuera.
-        .select("match_id, puuid, win, played_at, champion, team_position, kills, deaths, assists")
+        .select("match_id, puuid, win, played_at, champion, team_position, kills, deaths, assists, game_duration_s")
         .in("puuid", puuids)
         .eq("queue_id", RANKED_SOLO_QUEUE_ID)
         // Sin los remakes. Riot no los cuenta —ni LP, ni victoria, ni derrota—
@@ -131,11 +131,11 @@ export async function GET() {
       const arranqueDe = new Map(participantes.map((p) => [p.puuid, Math.max(desdeVentana.getTime(), p.desde?.getTime() ?? 0)]));
       // Se juntan las partidas de cada uno antes de contar, en vez de sumar al
       // vuelo: la racha necesita el ORDEN y la consulta no lo garantiza.
-      const suyasPorPuuid = new Map<string, { match_id: string; win: boolean; played_at: string; champion: string | null; team_position: string | null; kills: number; deaths: number; assists: number }[]>();
+      const suyasPorPuuid = new Map<string, { match_id: string; win: boolean; played_at: string; champion: string | null; team_position: string | null; kills: number; deaths: number; assists: number; game_duration_s: number }[]>();
       for (const m of partidas ?? []) {
         if (Date.parse(m.played_at) < (arranqueDe.get(m.puuid) ?? 0)) continue;
         const arr = suyasPorPuuid.get(m.puuid) ?? [];
-        arr.push({ match_id: m.match_id, win: m.win, played_at: m.played_at, champion: m.champion, team_position: m.team_position, kills: m.kills, deaths: m.deaths, assists: m.assists });
+        arr.push({ match_id: m.match_id, win: m.win, played_at: m.played_at, champion: m.champion, team_position: m.team_position, kills: m.kills, deaths: m.deaths, assists: m.assists, game_duration_s: m.game_duration_s });
         suyasPorPuuid.set(m.puuid, arr);
       }
       // Las fotos de cada uno, para poder atribuirle el LP a cada partida.
@@ -227,6 +227,7 @@ export async function GET() {
               kills: m.kills,
               deaths: m.deaths,
               assists: m.assists,
+              duracionS: m.game_duration_s,
               lp: null,
               sinLp: null,
               lpTramo: null,
