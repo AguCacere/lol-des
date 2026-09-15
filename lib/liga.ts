@@ -338,6 +338,16 @@ export interface PartidaLiga {
   win: boolean;
   playedAt: string;
   /**
+   * Cómo jugó esa partida. Opcionales por dos motivos: el cierre de semana
+   * arma su propio `RecordSemanal` sin estas columnas, y una respuesta anterior
+   * al deploy que las agregó no las trae. Si faltan, la línea del historial se
+   * dibuja sin el KDA en vez de con ceros — "0/0/0" es un dato, "nada" es la
+   * verdad.
+   */
+  kills?: number;
+  deaths?: number;
+  assists?: number;
+  /**
    * Lo que sumó o restó ESA partida sola. Null si cayó junta con otras.
    *
    * Sale de comparar dos fotos consecutivas de lp_snapshots: la diferencia de

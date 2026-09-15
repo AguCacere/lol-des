@@ -29,7 +29,7 @@ cerradura no está puesta, nadie escribe).
 | `/api/live-detail` | GET | Los diez de una partida en vivo, con líneas estimadas | no | no | `s-maxage=120` |
 | `/api/clash` | GET | Torneos de Clash agrupados | no | no | `s-maxage=300` |
 | `/api/team-digest` | GET | Resumen semanal del grupo | no | no | `s-maxage=300` (semana 0) / `3600` |
-| `/api/liga` | GET | Tabla de la liga de la semana, la carrera, la vitrina de campeones y `actualizado` (cuándo escribió el cron, para el cartel de frescura propio de la liga) | no | no | `s-maxage=240, swr=600` |
+| `/api/liga` | GET | Tabla de la liga de la semana, la carrera, la vitrina de campeones, las últimas 5 partidas de cada uno con su LP y su KDA, y `actualizado` (cuándo escribió el cron, para el cartel de frescura propio de la liga) | no | no | `s-maxage=240, swr=600` |
 | `/api/liga` | POST | Anota o saca gente de la liga | sí | **sí** | — |
 | `/api/liga/semana` | GET | Cómo terminó una semana vieja: tabla final, carrera y quién cobró | no | no | `s-maxage=21600, swr=86400` |
 | `/api/liga/semana` | POST | Rescata a mano la foto de una semana vieja sin `resumen` | sí | **sí** | — |
@@ -229,7 +229,9 @@ pestañas.
   de cuánto falta y quién cobra, con el rango de la semana y el "actualizado hace X"
   de rótulo), `LigaCarrera` (el gráfico de la semana, con un
   color por jugador), la LISTA de jugadores (`.jug*` — ya no es una tabla: flex, sin
-  encabezado de columnas y con el récord abajo del nombre), y al pie la vitrina de campeones —que no tiene
+  encabezado de columnas y con el récord abajo del nombre; al tocar una se abre su
+  historial `.liga-partida*`, una línea de tiempo cuyos nodos cuelgan del mismo hilo que
+  baja del avatar del jugador), y al pie la vitrina de campeones —que no tiene
   componente propio: vive adentro de `LigaSemanal` con las clases `.vitrina*`—.
   Desde la vitrina se abre `LigaTorneo`, el cartel de "cómo terminó" una semana
   vieja: va encima y no en una pantalla propia porque es una foto de diez segundos

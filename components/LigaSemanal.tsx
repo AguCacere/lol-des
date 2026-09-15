@@ -58,6 +58,14 @@ interface PartidaLiga {
   juntas?: number;
   /** Cuánto sumó o restó esta partida: 1, 1,25 o −0,75. */
   puntos?: number;
+  /**
+   * Cómo jugó esa partida. Opcionales por la misma ventana de caché: si la
+   * respuesta es anterior al deploy que los agregó, la línea sale sin el KDA
+   * en vez de con ceros inventados.
+   */
+  kills?: number;
+  deaths?: number;
+  assists?: number;
 }
 interface DelPlantel {
   puuid: string;
@@ -662,45 +670,78 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                     abrir la fila y verlo. */}
                 {abierta === f.puuid && (f.ultimas?.length ?? 0) > 0 && (
                   <div className="liga-detalle">
+                    {/* El encabezado de un historial, no el de una tabla: qué
+                        se está viendo arriba y la aclaración abajo, más chica y
+                        más apagada. Antes iban los dos en el mismo renglón y
+                        con el mismo peso, así que la aclaración competía con el
+                        título en vez de acompañarlo. */}
                     <p className="liga-detalle-titulo">
-                      Últimas {f.ultimas!.length}
-                      <span className="liga-detalle-nota">Lo que sumó cada una, y el LP que dio.</span>
+                      Últimas {f.ultimas!.length} partidas
+                      <span className="liga-detalle-nota">Cómo construyó su puntaje, de la más nueva a la más vieja.</span>
                     </p>
                     {f.ultimas!.map((m) => (
                       <div className={`liga-partida ${m.win ? "gano" : "perdio"}`} key={m.matchId}>
-                        <span className={`liga-partida-res ${m.win ? "gano" : "perdio"}`}>{m.win ? "V" : "D"}</span>
+                        {/* El nodo de la línea de tiempo. Es el resultado y el
+                            punto de la secuencia a la vez: un ✓ o una ✕ del
+                            color que corresponde, con el fondo de la sección
+                            atrás para que el hilo no le pase por encima. Antes
+                            era una "V" o una "D" adentro de un rectángulo
+                            pintado, que es lo que hacía que la primera columna
+                            se leyera como la columna de una planilla. */}
+                        <span className={`liga-partida-res ${m.win ? "gano" : "perdio"}`} aria-label={m.win ? "Ganada" : "Perdida"}>
+                          {m.win ? "✓" : "✕"}
+                        </span>
                         <ChampIcon champ={m.champion ?? ""} version={d.ddragonVersion ?? null} className="liga-partida-champ" />
                         <span className="liga-partida-champ-nombre">{m.champion ? championLabel(m.champion) : "—"}</span>
-                        {/* Lo que valió ESA partida. Puede ser 1,25 si fue la
-                            cuarta al hilo o más, así que no se puede deducir
-                            del resultado: viene calculado. */}
-                        <span className="liga-partida-netas">
-                          {puntajeTexto(m.puntos ?? (m.win ? 1 : -1))}
-                        </span>
-                        {m.lp !== null ? (
-                          <span className={`liga-partida-lp ${tono(m.lp)}`}>
-                            <span className="liga-partida-lp-n">{lpTexto(m.lp)}</span>
-                          </span>
-                        ) : m.lpTramo != null ? (
-                          // Cayó junta con otras entre dos fotos: se muestra lo
-                          // que movieron TODAS, aclarando cuántas son. Antes acá
-                          // había un guion y la pregunta se quedaba sin
-                          // respuesta; repartir el total en partes iguales, en
-                          // cambio, le ponía "+9" a una derrota.
-                          <span
-                            className={`liga-partida-lp junta ${tono(m.lpTramo)}`}
-                            title={`Estas ${m.juntas ?? 2} partidas cayeron entre las mismas dos fotos de LP: juntas movieron ${lpTexto(
-                              m.lpTramo,
-                            )}. Cuánto dio cada una no se puede saber, así que no se inventa.`}
-                          >
-                            <span className="liga-partida-lp-n">{lpTexto(m.lpTramo)}</span>
-                            <span className="liga-partida-junta">entre {m.juntas ?? 2}</span>
+                        {/* Cómo jugó. Va entre el campeón y los puntos porque
+                            ese es su lugar en la jerarquía: más que el LP,
+                            menos que lo que decide la liga. Con guarda: si la
+                            respuesta es anterior al deploy que trajo el KDA,
+                            no se dibuja nada —un "0/0/0" inventado sería peor
+                            que el hueco—. */}
+                        {m.kills != null && m.deaths != null && m.assists != null ? (
+                          <span className="liga-partida-kda" title="Asesinatos / muertes / asistencias">
+                            {m.kills}<i>/</i>{m.deaths}<i>/</i>{m.assists}
                           </span>
                         ) : (
-                          <span className="liga-partida-lp sin" title="Todavía no hay una foto de LP posterior a esta partida.">
-                            <span className="liga-partida-lp-n">—</span>
-                          </span>
+                          <span className="liga-partida-kda vacio" aria-hidden />
                         )}
+                        {/* Los puntos y el LP, apilados y alineados a la
+                            derecha: los puntos arriba y grandes porque son los
+                            que deciden la liga, el LP abajo y apagado porque es
+                            contexto. Antes iban uno al lado del otro y con
+                            tamaños parecidos, así que la pantalla no decía cuál
+                            de los dos importa. */}
+                        <span className="liga-partida-cuenta">
+                          {/* Lo que valió ESA partida. Puede ser 1,25 si fue la
+                              cuarta al hilo o más, así que no se puede deducir
+                              del resultado: viene calculado. */}
+                          <span className="liga-partida-netas">
+                            {puntajeTexto(m.puntos ?? (m.win ? 1 : -1))}
+                            <i className="liga-partida-unidad">pt</i>
+                          </span>
+                          {m.lp !== null ? (
+                            <span className={`liga-partida-lp ${tono(m.lp)}`}>{lpTexto(m.lp)}</span>
+                          ) : m.lpTramo != null ? (
+                            // Cayó junta con otras entre dos fotos: se muestra lo
+                            // que movieron TODAS, aclarando cuántas son. Antes acá
+                            // había un guion y la pregunta se quedaba sin
+                            // respuesta; repartir el total en partes iguales, en
+                            // cambio, le ponía "+9" a una derrota.
+                            <span
+                              className={`liga-partida-lp junta ${tono(m.lpTramo)}`}
+                              title={`Estas ${m.juntas ?? 2} partidas cayeron entre las mismas dos fotos de LP: juntas movieron ${lpTexto(
+                                m.lpTramo,
+                              )}. Cuánto dio cada una no se puede saber, así que no se inventa.`}
+                            >
+                              {lpTexto(m.lpTramo)} <i>entre {m.juntas ?? 2}</i>
+                            </span>
+                          ) : (
+                            <span className="liga-partida-lp sin" title="Todavía no hay una foto de LP posterior a esta partida.">
+                              — LP
+                            </span>
+                          )}
+                        </span>
                       </div>
                     ))}
                   </div>

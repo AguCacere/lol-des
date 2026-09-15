@@ -3926,24 +3926,38 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    respuestas: la sangría dice de quién es. */
 .liga-detalle{
   position:relative; max-width:1040px;
-  padding:4px 18px 14px 104px;
+  /* 70 de sangría + 9 (media columna del nodo) = 79, que es exactamente donde
+     cae el hilo. Los nodos de cada partida quedan ENSARTADOS en él. */
+  padding:4px 18px 14px 70px;
   animation:liga-abre .18s ease;
 }
 /* El hilo cae del CENTRO DEL AVATAR de esa persona, no de cualquier lado:
    medido, ese centro está a 79px del borde de la lista. Desalineado —estaba a
-   39— el hilo no colgaba de nadie, colgaba del número del puesto. */
+   39— el hilo no colgaba de nadie, colgaba del número del puesto.
+   Y ahora además es la línea de tiempo del historial: baja del avatar del
+   jugador y le va pinchando una partida a cada altura, así que "este historial
+   es de él" y "estas partidas pasaron una después de otra" las dice el mismo
+   trazo. Termina en la última partida (no sigue de largo) porque una línea que
+   sigue hacia abajo promete algo más. */
 .liga-detalle::before{
-  content:""; position:absolute; left:79px; top:0; bottom:20px; width:2px;
-  border-radius:2px; background:var(--accent-dim); opacity:0.45;
+  content:""; position:absolute; left:78px; top:0; bottom:26px; width:1.5px;
+  border-radius:2px; background:var(--accent-dim); opacity:0.32;
 }
 @keyframes liga-abre{from{opacity:0;} to{opacity:1;}}
 @media (prefers-reduced-motion:reduce){ .liga-detalle{animation:none;} }
+/* Dos renglones y no uno: el título dice QUÉ es esto y la nota lo explica.
+   Iban al lado con el mismo cuerpo de letra, así que la aclaración le
+   disputaba el lugar al título en vez de acompañarlo. */
 .liga-detalle-titulo{
-  display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;
-  margin:0 0 4px; font-size:10px; font-weight:700; color:var(--text-muted);
+  display:block;
+  margin:0 0 6px; font-size:10px; font-weight:700; color:var(--text-muted);
   text-transform:uppercase; letter-spacing:0.07em;
 }
-.liga-detalle-nota{font-size:10px; font-weight:500; text-transform:none; letter-spacing:0; color:var(--text-muted); opacity:0.8;}
+.liga-detalle-nota{
+  display:block; margin-top:2px;
+  font-size:10.5px; font-weight:500; text-transform:none; letter-spacing:0;
+  color:var(--text-muted); opacity:0.62;
+}
 /* Columnas FIJAS y empaquetadas a la izquierda (justify-content:start), sin
    ningún 1fr. Con el 1fr en el nombre del campeón, "Shen" se quedaba con
    ~600px de hueco antes de la hora — la misma trampa que está anotada en
@@ -3953,56 +3967,101 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* `width:max-content`: la lista ocupa lo que mide, no el ancho de la tabla.
    Con las filas a lo ancho, la línea divisoria seguía 900px hacia la derecha
    sobre nada y el bloque se leía vacío en vez de compacto. */
+/* Columnas FIJAS y empaquetadas a la izquierda (justify-content:start), sin
+   ningún 1fr. Con el 1fr en el nombre del campeón, "Shen" se quedaba con
+   ~600px de hueco antes de la hora — la misma trampa que está anotada en
+   DECISIONES.md ("el 1fr va donde ESTIRA BIEN, no en el texto").
+
+   Y SIN líneas divisorias entre partidas. Eran lo último que quedaba de la
+   planilla: con una raya arriba de cada fila, cuatro eventos de una secuencia
+   se leen como cuatro renglones de una tabla. Lo que las separa ahora es el
+   aire, y lo que las une es el hilo. */
 .liga-partida{
-  display:grid; grid-template-columns:18px 22px 112px 44px 118px;
+  display:grid; grid-template-columns:18px 24px 116px 62px 76px;
   justify-content:start; width:max-content; max-width:100%;
-  align-items:center; gap:10px; padding:3px 8px 3px 0;
-  border-top:1px solid var(--border-soft);
-  border-radius:6px;
+  align-items:center; gap:10px; padding:3px 10px 3px 0;
+  border-radius:7px;
   transition:background .14s ease;
 }
-.liga-partida:hover{background:var(--surface-hover);}
-.liga-partida:first-of-type{border-top:none;}
+/* Hover apenas perceptible: avisa que la fila es una unidad sin que la lista
+   parpadee cuando uno cruza el mouse para llegar a otra cosa. */
+.liga-partida:hover{background:rgba(255,255,255,0.035);}
+/* El nodo del hilo: el resultado Y el punto de la secuencia en un solo signo.
+   El fondo es el de la sección —no un color de estado— y está solo para tapar
+   el hilo justo detrás del signo; sin eso la línea le cruza el ✓ por el medio.
+   El color se usa con cuentagotas: tiñe el signo, no una pastilla. */
 .liga-partida-res{
-  font-family:var(--font-stat); font-size:10px; font-weight:800; text-align:center;
-  border-radius:4px; padding:1px 0;
+  width:18px; height:18px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:10.5px; font-weight:800; line-height:1;
+  background:var(--surface); box-shadow:0 0 0 3px var(--surface);
 }
-.liga-partida-res.gano{color:var(--good); background:var(--good-wash);}
-.liga-partida-res.perdio{color:var(--critical); background:var(--critical-wash);}
+.liga-partida-res.gano{color:var(--good);}
+.liga-partida-res.perdio{color:var(--critical);}
+/* El avatar creció de 22 a 24 y el nombre subió medio punto: eran la identidad
+   de la partida y estaban más chicos que el número del LP. */
 .liga-partida-champ{
-  width:22px; height:22px; border-radius:6px; overflow:hidden; flex:none;
+  width:24px; height:24px; border-radius:7px; overflow:hidden; flex:none;
   display:flex; align-items:center; justify-content:center;
   background:var(--surface-hover); color:var(--text-muted);
   font-family:var(--font-mono); font-size:8px; font-weight:700;
 }
-.liga-partida-champ-nombre{font-size:12px; font-weight:600; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-/* Lo que SÍ puntúa va en blanco; el LP, apagado al lado. */
+.liga-partida-champ-nombre{
+  font-size:12.5px; font-weight:600; color:var(--text-primary);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+/* El KDA: un escalón por debajo del nombre y dos por encima del LP. Las barras
+   van más apagadas que los números para que se lean los tres valores y no seis
+   caracteres seguidos. */
+.liga-partida-kda{
+  font-family:var(--font-stat); font-size:11px; font-weight:600;
+  font-variant-numeric:tabular-nums; color:var(--text-secondary);
+  text-align:right; white-space:nowrap;
+}
+.liga-partida-kda i{font-style:normal; margin:0 2px; color:var(--text-muted); opacity:0.55;}
+/* Los puntos arriba y el LP abajo, los dos pegados al borde derecho: así las
+   dos cosas forman columna con las de las otras partidas, que es lo que deja
+   comparar de un vistazo sin leer fila por fila. */
+/* Interlineado 1 y sin separación entre los dos renglones: apilar puntos y LP
+   cuesta alto, y el pedido era mejorar la presentación SIN estirar el bloque.
+   Comprimido así, la pila mide 22px y el que manda la altura de la fila vuelve
+   a ser el avatar (24), como antes — o sea que los dos renglones salen gratis. */
+.liga-partida-cuenta{
+  display:flex; flex-direction:column; align-items:flex-end; gap:0;
+  line-height:1;
+}
+/* Lo que SÍ decide la liga: el número más grande y el único en blanco de la
+   fila. Todo lo demás de acá a la derecha es contexto. */
 .liga-partida-netas{
-  font-family:var(--font-stat); font-size:12.5px; font-weight:800; text-align:right;
+  font-family:var(--font-stat); font-size:12.5px; font-weight:800;
   color:var(--text-primary); font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+/* La unidad, chiquita y apagada al lado del número. Está para que "+1" y
+   "+18 LP" no se lean como dos versiones de lo mismo: uno es un punto de la
+   liga y el otro es LP de Riot, y sin la palabra hay que saberlo de memoria. */
+.liga-partida-unidad{
+  font-style:normal; font-size:9px; font-weight:700; margin-left:2px;
+  color:var(--text-muted); letter-spacing:0.02em;
 }
 .liga-partida-lp{
-  display:inline-flex; align-items:center; justify-content:flex-start; gap:6px;
-  font-family:var(--font-mono); font-size:11px; font-weight:600;
+  font-family:var(--font-mono); font-size:9.5px; font-weight:600;
   font-variant-numeric:tabular-nums; color:var(--text-muted);
+  white-space:nowrap; opacity:0.85;
 }
-/* El número alineado a la derecha en un ancho fijo y la aclaración después: si
-   se alinea toda la celda a la derecha, las filas sin aclaración dejan cien
-   píxeles de aire entre las netas y el LP. */
-.liga-partida-lp-n{min-width:54px; text-align:right;}
 /* El LP compartido por varias partidas del mismo tramo: mismo número en todas,
-   apagado y con la aclaración pegada, para que no se lea como propio de esa. */
-.liga-partida-lp.junta{cursor:help; opacity:0.82;}
-.liga-partida-junta{
-  font-family:var(--font-body); font-size:10px; font-weight:600; letter-spacing:0.02em;
-  color:var(--text-muted); white-space:nowrap; opacity:0.85;
-}
-.liga-partida-lp.sin{cursor:help; opacity:0.6;}
+   con la aclaración pegada, para que no se lea como propio de esa. */
+.liga-partida-lp.junta{cursor:help;}
+.liga-partida-lp i{font-style:normal; font-family:var(--font-body); opacity:0.8;}
+.liga-partida-lp.sin{cursor:help; opacity:0.55;}
 @media (max-width:560px){
-  .liga-detalle{padding-left:60px;}
-  .liga-detalle::before{left:38px;}
-  /* En el teléfono vuelve a ocupar todo el ancho: ahí no sobra, falta. */
-  .liga-partida{grid-template-columns:20px 24px minmax(0,1fr) 34px 108px; gap:9px; width:auto;}
+  /* 29 de sangría + 9 de media columna = 38, donde cae el hilo en angosto. */
+  .liga-detalle{padding-left:29px; padding-right:12px;}
+  .liga-detalle::before{left:37px;}
+  /* En el teléfono vuelve a ocupar todo el ancho: ahí no sobra, falta. Y el
+     nombre del campeón es el que cede, porque es el único que puede recortarse
+     sin perder el dato (queda "Seraphi…" y se entiende). */
+  .liga-partida{grid-template-columns:18px 24px minmax(0,1fr) 56px 72px; gap:8px; width:auto;}
 }
 .vitrina{
   margin-top:12px; padding:11px 12px 12px;

@@ -509,6 +509,45 @@ se pisaba a 560 y para abajo. Con `line-height:1` entran justas. **La trampa gen
 lo que separa cosas DENTRO del viewBox se achica con él, y el texto HTML de encima no** —
 son dos sistemas de medida y hay que acordarse de que no escalan juntos.
 
+**El detalle que se abre es una LÍNEA DE TIEMPO, no una mini tabla.** Era `V | campeón
+| puntos | LP`: cuatro columnas, una raya divisoria arriba de cada fila y la "V" o la "D"
+metidas en un rectángulo pintado de verde o rojo. Con eso, la expansión de una lista sin
+marcos se leía como una planilla pegada abajo del jugador, que es justo lo que la lista
+había dejado de ser. Y además era mentira sobre lo que es: no son cuatro registros, es la
+secuencia de partidas que construyó el puntaje.
+
+Lo que lo cambió no fueron los colores ni los paddings:
+
+- **El hilo que ya colgaba del avatar pasó a ser el eje de la secuencia.** Estaba puesto
+  para decir "este detalle es de él" y no hacía nada más; ahora los nodos de cada partida
+  van ENSARTADOS en él (sangría 70 + media columna 9 = 78, que es donde cae). Un solo
+  trazo dice las dos cosas: de quién es y que las partidas van una tras otra.
+- **El nodo ES el resultado.** Un ✓ o una ✕ del color que corresponde, con el fondo de la
+  sección atrás para tapar el hilo justo detrás del signo. Reemplaza al rectángulo
+  pintado: el color tiñe el signo, no una pastilla.
+- **Se fueron las divisorias.** Eran lo último de la planilla: con una raya arriba de
+  cada fila, cuatro eventos se leen como cuatro renglones. Ahora separa el aire y une el
+  hilo.
+- **Puntos arriba, LP abajo, los dos contra el borde derecho.** Iban uno al lado del otro
+  con tamaños parecidos, así que la pantalla no decía cuál de los dos decide la liga. Y
+  el número lleva un "pt" chiquito al lado porque "+1" y "+18 LP" sin la unidad se leen
+  como dos versiones del mismo dato.
+
+**Apilar dos renglones salió gratis, y ese era el requisito difícil.** El pedido era
+mejorar la presentación SIN estirar el bloque. Con `line-height:1` y `gap:0`, la pila de
+puntos + LP mide 22px, o sea menos que el avatar (24), así que el que manda la altura de
+la fila sigue siendo el avatar igual que antes. Medido: la fila pasó de 28 a **30px** —
++2— y en esos 30 entran un avatar más grande (22 → 24), el KDA que antes no estaba y un
+renglón más de texto. **La lección: antes de agrandar la fila, fijarse quién le está
+marcando el alto; si es otro elemento, el renglón nuevo no cuesta nada.**
+
+**Y el KDA se sumó al detalle, pero NO al puntaje.** `kills/deaths/assists` entran en la
+consulta de `/api/liga` solo para esta lista. La liga se decide por resultado, no por cómo
+jugaste — pero abrir la fila y ver "ganó con Seraphine" sin saber si fue un 12/2 o un 1/9
+deja la mitad de la historia afuera. Van opcionales en `PartidaLiga` por la ventana de
+caché del CDN: si la respuesta es anterior al deploy, la línea sale sin KDA en vez de con
+"0/0/0", que sería un dato inventado.
+
 **Un gráfico sin eje Y no dice nada, y la primera carrera no tenía.** Salió con siete
 líneas flotando sin una sola marca de cuánto: se veía que había una arriba y un montón
 abajo, que es exactamente lo que ya decía la tabla. El usuario lo dijo así: "no se

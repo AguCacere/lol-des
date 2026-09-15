@@ -104,7 +104,12 @@ export async function GET() {
       // tablaDeLaSemana.
       const { data: partidas, error: ePartidas } = await supabase
         .from("matches")
-        .select("match_id, puuid, win, played_at, champion, team_position")
+        // kills/deaths/assists entran SOLO para el historial que se abre al
+        // tocar una fila. No tocan el puntaje ni el orden de la tabla: la liga
+        // se decide por resultado, no por cómo jugaste. Están acá porque abrir
+        // la fila y ver "gané con Seraphine" sin saber si fue un 12/2 o un
+        // 1/9 deja la mitad de la historia afuera.
+        .select("match_id, puuid, win, played_at, champion, team_position, kills, deaths, assists")
         .in("puuid", puuids)
         .eq("queue_id", RANKED_SOLO_QUEUE_ID)
         // Sin los remakes. Riot no los cuenta —ni LP, ni victoria, ni derrota—
@@ -126,11 +131,11 @@ export async function GET() {
       const arranqueDe = new Map(participantes.map((p) => [p.puuid, Math.max(desdeVentana.getTime(), p.desde?.getTime() ?? 0)]));
       // Se juntan las partidas de cada uno antes de contar, en vez de sumar al
       // vuelo: la racha necesita el ORDEN y la consulta no lo garantiza.
-      const suyasPorPuuid = new Map<string, { match_id: string; win: boolean; played_at: string; champion: string | null; team_position: string | null }[]>();
+      const suyasPorPuuid = new Map<string, { match_id: string; win: boolean; played_at: string; champion: string | null; team_position: string | null; kills: number; deaths: number; assists: number }[]>();
       for (const m of partidas ?? []) {
         if (Date.parse(m.played_at) < (arranqueDe.get(m.puuid) ?? 0)) continue;
         const arr = suyasPorPuuid.get(m.puuid) ?? [];
-        arr.push({ match_id: m.match_id, win: m.win, played_at: m.played_at, champion: m.champion, team_position: m.team_position });
+        arr.push({ match_id: m.match_id, win: m.win, played_at: m.played_at, champion: m.champion, team_position: m.team_position, kills: m.kills, deaths: m.deaths, assists: m.assists });
         suyasPorPuuid.set(m.puuid, arr);
       }
       // Las fotos de cada uno, para poder atribuirle el LP a cada partida.
@@ -206,6 +211,9 @@ export async function GET() {
               // revés: el índice se da vuelta.
               puntos: valeCadaUna[suyas.length - 1 - i],
               playedAt: m.played_at,
+              kills: m.kills,
+              deaths: m.deaths,
+              assists: m.assists,
               lp: null,
               sinLp: null,
               lpTramo: null,
