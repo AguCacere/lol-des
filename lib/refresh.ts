@@ -10,9 +10,10 @@ import {
   RiotRateLimitError,
   type RiotLeagueEntry,
   type RiotMatch,
+  type RiotTimeline,
 } from "./riot";
 import { championNameById, runeNameById, summonerSpellNameById } from "./ddragon";
-import { extractTimelineStats } from "./timeline";
+import { extractTimelineStats, minutosSinJugar } from "./timeline";
 import { sendDiscordNotification } from "./discord";
 import { roastMessage, worstDisaster, type RoastCandidate } from "./roast";
 import { detectTilt } from "./tilt";
@@ -66,23 +67,31 @@ export const RANKED_FLEX_QUEUE_ID = 440;
 export const DURACION_MINIMA_S = 300;
 
 /**
- * Cuánto se le tiene que haber perdido a un aliado para decir que se fue.
+ * Minutos seguidos sin ganar experiencia que hacen falta para decir que un
+ * aliado dejó de jugar. Ver minutosSinJugar en lib/timeline.ts, que es donde
+ * está explicado por qué la experiencia y no el oro.
  *
- * Riot no expone la mitigación de LP por ningún lado: no hay un campo que
- * diga "esta derrota te salió más barata porque se te fue uno". Lo único que
- * manda es `timePlayed` por jugador, así que la pregunta se da vuelta: en vez
- * de preguntar si Riot mitigó, se mira si alguien del equipo dejó de jugar.
+ * Cinco es holgado a propósito. Una muerte larga más el viaje de vuelta es un
+ * minuto, dos con mala suerte; cinco pegados no le pasan a nadie que esté
+ * jugando, ni siquiera al que va 0/10 —el que pierde la línea igual gana
+ * experiencia mientras se la pierden—. Lo que agarra es al que se quedó
+ * parado en la base, que es el caso real que empezó todo esto: un Renekton
+ * que terminó en nivel 9 con 5.132 de oro mientras el resto del equipo
+ * estaba en 12, 14 y 14.
+ */
+const AFK_MINUTOS_SIN_JUGAR = 5;
+
+/**
+ * Cuánto se le tiene que haber perdido a un aliado para decir que se
+ * desconectó. Es la red de atrás, para cuando el timeline no viene (Riot a
+ * veces no lo tiene, y ya pasó un 403 por un path mal escrito): ahí no hay
+ * experiencia que mirar y lo único que queda es `timePlayed`.
  *
  * Los dos cortes juntos, y no uno solo, porque cada uno tapa el agujero del
  * otro: la fracción sola deja pasar al que abandona a los 30 de una de 40
  * (justo 75%, y son diez minutos jugando cuatro contra cinco), y los cinco
  * minutos solos marcarían como abandono una reconexión corta en una partida
- * de una hora. Faltarle un quinto Y cinco minutos no le pasa a nadie que
- * haya jugado la partida.
- *
- * Se mira solo a los ALIADOS y nunca a uno mismo: si el que se fue fuiste
- * vos, Riot no te mitiga nada —te cobra la derrota entera y encima el
- * LeaverBuster—, así que la liga tampoco tiene por qué perdonártela.
+ * de una hora.
  */
 const AFK_FALTANTE_MINIMO_S = 300;
 const AFK_FRACCION_MINIMA = 0.2;
@@ -92,24 +101,42 @@ const AFK_FRACCION_MINIMA = 0.2;
  * escribir la fila, y queda guardado en `matches.ally_afk`: el payload de
  * Riot no cambia nunca, así que el valor tampoco.
  *
- * La otra forma de detectarlo era por el LP perdido —una derrota de −8 en vez
- * de −18 está mitigada— y es una trampa: el LP sale de comparar dos fotos de
- * `lp_snapshots`, y queda en null cuando dos partidas caen entre las mismas
- * dos fotos o cuando la foto de después todavía no llegó. El puntaje de la
- * liga habría dependido de a qué hora corrió el cron, y la tabla se habría
- * movido sola.
+ * **La pregunta es "¿alguien dejó de jugar?", no "¿Riot mitigó?"**, porque lo
+ * segundo no se puede saber: no hay ningún campo que diga "esta derrota te
+ * salió más barata". Y de las tres formas de preguntar lo primero, dos ya se
+ * probaron contra partidas reales y no alcanzan:
  *
- * Lo que esto detecta es "se fue un aliado", no "Riot mitigó". Son casi lo
- * mismo pero no idénticos, y esa diferencia es a favor del jugador a
- * propósito: la liga es de seis amigos, no un tribunal.
+ * - **Por el LP perdido** (−8 en vez de −18 está mitigada): es una trampa. El
+ *   LP sale de comparar dos fotos de `lp_snapshots` y queda en null cuando dos
+ *   partidas caen entre las mismas dos fotos o cuando la de después todavía no
+ *   llegó. El puntaje habría dependido de a qué hora corrió el cron.
+ * - **Por `timePlayed`**: agarra solo al que se desconecta de verdad. El que
+ *   se queda conectado parado en la base figura con la partida entera —medido:
+ *   los diez con `timePlayed: 1470` en una de 1470— y ese es justamente el
+ *   caso más común.
+ *
+ * La que queda es la experiencia del timeline, que ya bajamos para cada
+ * partida: es lo único que se congela cuando alguien deja de jugar sin
+ * desconectarse. `timePlayed` queda igual como respaldo para cuando el
+ * timeline no viene.
+ *
+ * Se mira solo a los ALIADOS y nunca a uno mismo: si el que se fue fuiste
+ * vos, Riot no te mitiga nada —te cobra la derrota entera y encima el
+ * LeaverBuster—, así que la liga tampoco tiene por qué perdonártela.
  */
-export function aliadoAfk(match: RiotMatch, puuid: string): boolean {
+export function aliadoAfk(match: RiotMatch, puuid: string, timeline: RiotTimeline | null): boolean {
   const yo = match.info.participants.find((p) => p.puuid === puuid);
   if (!yo) return false;
   const duracion = match.info.gameDuration;
   if (duracion <= 0) return false;
-  return match.info.participants.some((p) => {
-    if (p.teamId !== yo.teamId || p.puuid === puuid) return false;
+  const aliados = match.info.participants.filter((p) => p.teamId === yo.teamId && p.puuid !== puuid);
+
+  if (timeline) {
+    const abandono = aliados.some((p) => minutosSinJugar(timeline, p.participantId) >= AFK_MINUTOS_SIN_JUGAR);
+    if (abandono) return true;
+  }
+
+  return aliados.some((p) => {
     // undefined es "esta partida es vieja y Riot no lo mandó", que no es lo
     // mismo que cero: cero es no haber cargado nunca, y eso sí es abandono.
     if (p.timePlayed == null) return false;
@@ -582,8 +609,12 @@ async function buildMatchRow(
   // blood/tower timing. Non-fatal: an older match or a transient failure
   // here shouldn't lose the rest of the match's real-time stats above.
   let timelineStats: Awaited<ReturnType<typeof extractTimelineStats>> | null = null;
+  // El timeline crudo sale del try además de sus stats: `ally_afk` lo necesita
+  // entero, porque mira la experiencia de los CINCO del equipo y no solo la
+  // de este jugador. Ver aliadoAfk.
+  let timeline: RiotTimeline | null = null;
   try {
-    const timeline = await getMatchTimeline(matchId);
+    timeline = await getMatchTimeline(matchId);
     timelineStats = extractTimelineStats(
       timeline,
       me.participantId,
@@ -667,7 +698,7 @@ async function buildMatchRow(
     // Se calcula acá y no al leer porque acá está el payload entero con los
     // diez jugadores, y la base guarda una fila por jugador nuestro: al leer
     // ya no queda con qué. Ver aliadoAfk.
-    ally_afk: aliadoAfk(match, puuid),
+    ally_afk: aliadoAfk(match, puuid, timeline),
     played_at: new Date(match.info.gameCreation).toISOString(),
   };
   return { row, timelineOk: timelineStats !== null };

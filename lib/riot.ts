@@ -240,7 +240,14 @@ export interface RiotTimelineEvent {
 
 export interface RiotTimelineFrame {
   timestamp: number; // ms since game start
-  participantFrames: Record<string, { participantId: number; totalGold: number }>;
+  /**
+   * `xp` es la única columna de acá que distingue al que jugó mal del que no
+   * jugó. El oro NO sirve: parado en la base seguís cobrando los ~20 de oro
+   * pasivo cada diez segundos, así que `totalGold` sube igual. La
+   * experiencia solo entra si hay algo muriendo cerca tuyo — en la fuente es
+   * exactamente cero. Ver minutosSinJugar en lib/timeline.ts.
+   */
+  participantFrames: Record<string, { participantId: number; totalGold: number; xp?: number }>;
   events: RiotTimelineEvent[];
 }
 

@@ -330,9 +330,9 @@ diría algo distinto de lo que dice el cliente de LoL. Entonces el filtro
 
 **Riot no expone la mitigación.** No hay ningún campo que diga "esta derrota te salió más
 barata". Por eso la pregunta se da vuelta: en vez de preguntar si mitigó, se mira si
-alguien del equipo dejó de jugar, con `timePlayed` por jugador. Lo que se detecta es "se
-fue un aliado", no "Riot mitigó" — parecido pero no idéntico, y la diferencia queda a
-favor del jugador a propósito.
+alguien del equipo dejó de jugar. Lo que se detecta es "se fue un aliado", no "Riot
+mitigó" — parecido pero no idéntico, y la diferencia queda a favor del jugador a
+propósito.
 
 **Probada y descartada: detectarlo por el LP perdido.** Una derrota de −8 en vez de −18
 está mitigada y el dato ya está en pantalla, así que parecía gratis. Es una trampa: el LP
@@ -341,6 +341,25 @@ entre las mismas dos fotos o cuando la foto de después todavía no llegó. El p
 liga habría dependido de a qué hora corrió el cron, y la tabla se habría movido sola
 días después.
 
+**Probada y descartada como detector principal: `timePlayed`.** Parecía la respuesta
+obvia —Riot manda los segundos que jugó cada uno, el que se fue tiene menos— y la primera
+versión salió así. Falló contra la primera partida real que tenía que agarrar: los
+**diez** jugadores con `timePlayed: 1470` en una partida de 1470 segundos, con un
+Renekton que terminó en **nivel 9 con 5.132 de oro** mientras sus compañeros estaban en
+12, 14 y 14. `timePlayed` mide **tiempo conectado**, no si jugó, y el que se queda parado
+en la base nunca se desconecta. Mover el umbral no servía: el número era cero, no chico.
+Quedó como respaldo para cuando el timeline no viene, que es lo único que sí agarra.
+
+**Lo que decide es la EXPERIENCIA del timeline, y el oro no sirve.** Parado en la fuente
+seguís cobrando los ~20 de oro pasivo cada diez segundos, así que `totalGold` sube igual
+que el de cualquiera. La experiencia solo entra si hay algo muriendo cerca: en la base es
+exactamente cero. `minutosSinJugar` (`lib/timeline.ts`) devuelve la **racha más larga** de
+minutos seguidos sin ganar experiencia, y con cinco alcanza. Es la racha y no el total a
+propósito: cinco minutos sueltos repartidos en media hora son muertes largas y recalls,
+cinco pegados no le pasan a nadie que esté jugando —ni al que va 0/10, que igual gana
+experiencia mientras se la pierden—. Y no cuesta una llamada más: el timeline ya se baja
+para cada partida por los `gold_diff_*`.
+
 **Y esta vez sí hubo columna nueva** (`matches.ally_afk`), al revés que con el remake. No
 había alternativa: `timePlayed` es por jugador y la base guarda una fila por jugador
 nuestro, así que el payload con los diez solo existe en el momento de escribir. Se decide
@@ -348,11 +367,16 @@ ahí, una vez, y no cambia nunca más. Las filas viejas quedan en `false` —o s
 como antes— hasta que pase `/api/repair`, que las vuelve a armar con `buildMatchRow` y de
 paso les pone el flag.
 
-**Los dos cortes son `faltante >= 300s` Y `faltante/duración >= 0,2`**, juntos porque cada
-uno tapa el agujero del otro: la fracción sola deja pasar al que abandona a los 30 de una
-de 40, los cinco minutos solos marcan como abandono una reconexión corta en una de una
-hora. **Solo aliados, nunca uno mismo**: si el que se fue fuiste vos, Riot te cobra la
-derrota entera y encima el LeaverBuster.
+**Solo aliados, nunca uno mismo**: si el que se fue fuiste vos, Riot te cobra la derrota
+entera y encima el LeaverBuster. Los cortes del respaldo por `timePlayed` son
+`faltante >= 300s` **Y** `faltante/duración >= 0,2`, juntos porque cada uno tapa el
+agujero del otro: la fracción sola deja pasar al que abandona a los 30 de una de 40, los
+cinco minutos solos marcan como abandono una reconexión corta en una de una hora.
+
+**Lo que NO agarra**: al que se queda jugando pero trollea —compra lo que no va, pelea
+sola, se tira a la torre—. Ese gana experiencia como cualquiera y es indistinguible de
+alguien que juega mal, que es justamente lo que la liga sí tiene que cobrar. Para eso no
+hay dato: haría falta poder anular una partida a mano.
 
 **La victoria con un aliado ido sí cuenta.** Ganar con uno menos da LP completo y tiene
 más mérito, no menos. Solo se descarta la derrota.

@@ -85,8 +85,9 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   cuenta partidas— así que arreglar esto no necesitó ni migración ni backfill. Toda
   consulta nueva sobre `matches` que cuente victorias, derrotas o promedios tiene que
   llevar ese filtro; ver DECISIONES → Riot.
-  La otra regla de la casa vive acá al lado: `aliadoAfk`, que mira `timePlayed` de los
-  diez jugadores y deja escrito en `matches.ally_afk` si se le fue un compañero. Ese se
+  La otra regla de la casa vive acá al lado: `aliadoAfk`, que mira la experiencia por
+  minuto de los cinco del equipo (`minutosSinJugar`, en `lib/timeline.ts`) y deja escrito
+  en `matches.ally_afk` si a alguien se le plantó un compañero. Ese se
   decide al ESCRIBIR (al leer ya no está el payload) y lo filtran **solo las dos
   consultas de la liga**, no toda la app: un AFK es una derrota de verdad para Riot, pero
   no te saca LP. Las filas viejas quedan en `false` hasta que pase `repairMatches`.

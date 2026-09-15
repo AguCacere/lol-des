@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getMatchById } from "@/lib/riot";
+import { getMatchById, getMatchTimeline } from "@/lib/riot";
+import { minutosSinJugar } from "@/lib/timeline";
 import { aliadoAfk } from "@/lib/refresh";
 import { exigirSesion } from "@/lib/auth";
 
@@ -27,21 +28,28 @@ export async function GET(req: Request) {
   if (!matchId) return NextResponse.json({ error: "Falta ?match=LA2_..." }, { status: 400 });
 
   try {
-    const match = await getMatchById(matchId);
+    const [match, timeline] = await Promise.all([
+      getMatchById(matchId),
+      // Si el timeline no viene, la respuesta igual sirve: se ve el
+      // `timePlayed`, que es el respaldo que usa aliadoAfk en ese caso.
+      getMatchTimeline(matchId).catch(() => null),
+    ]);
     const duracion = match.info.gameDuration;
     return NextResponse.json({
       matchId,
       gameDuration: duracion,
+      timeline: timeline ? "ok" : "no vino",
       participantes: match.info.participants.map((p) => ({
         champion: p.championName,
         teamId: p.teamId,
         win: p.win,
+        nivel: p.champLevel,
+        // El dato que decide: minutos seguidos sin ganar experiencia.
+        minutosSinJugar: timeline ? minutosSinJugar(timeline, p.participantId) : null,
         timePlayed: p.timePlayed ?? null,
-        // Lo que mira el corte: cuánto le faltó y qué fracción de la partida es.
         faltante: p.timePlayed != null ? duracion - p.timePlayed : null,
-        fraccion: p.timePlayed != null && duracion > 0 ? Number(((duracion - p.timePlayed) / duracion).toFixed(3)) : null,
       })),
-      aliadoAfk: puuid ? aliadoAfk(match, puuid) : null,
+      aliadoAfk: puuid ? aliadoAfk(match, puuid, timeline) : null,
     });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 502 });

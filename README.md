@@ -71,9 +71,14 @@ liga, cada partida muestra cuánto duró.
 que se desconectó y no volvió, Riot te cobra menos LP o ninguno, así que la liga no te
 cobra puntos: esa derrota desaparece igual que un remake —no resta, no corta la racha y
 no cuenta para las 10 del mínimo—. La victoria con uno menos sí cuenta, y vale lo mismo
-que cualquier otra. Se decide al guardar la partida, mirando cuánto jugó cada uno de los
-diez: al que le falta un quinto de la partida y más de cinco minutos, se fue. Esto vale
-**solo en la liga**: en el ladder la derrota sigue estando, porque en tu cuenta también.
+que cualquier otra. Esto vale **solo en la liga**: en el ladder la derrota sigue estando,
+porque en tu cuenta también.
+
+Se decide al guardar la partida y mira la **experiencia**, no si se desconectó: el que se
+queda parado en la base figura conectado toda la partida, pero deja de ganar experiencia
+en el momento en que se planta. Cinco minutos seguidos sin ganar nada y esa partida no
+cuenta. Al que se desconecta de verdad lo agarra igual. Al que se queda jugando pero
+trollea, no: ese es indistinguible del que juega mal, y el que juega mal tiene que pagar.
 
 Para llevarse el premio no alcanza con ir primero: hay que jugar **10 partidas en la
 semana** y **3 el último día**. Es contra el que agarra ventaja el martes y no juega

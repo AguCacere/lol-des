@@ -53,6 +53,50 @@ function goldDiffAt(timeline: RiotTimeline, ms: number, myId: number, enemyId: n
   return mine - theirs;
 }
 
+/**
+ * Cuántos minutos SEGUIDOS estuvo este jugador sin ganar nada de experiencia.
+ *
+ * Es la forma de separar al que jugó mal del que no jugó, y salió de una
+ * partida real: un Renekton que terminó en nivel 9 con 5.132 de oro mientras
+ * sus compañeros estaban en 12, 14 y 14. Riot no manda ningún campo que diga
+ * "este se fue": `timePlayed` da la partida entera porque el cliente nunca se
+ * desconectó, y el oro sube igual por el pasivo de la fuente. La experiencia
+ * es lo único que se congela, porque solo entra si hay algo muriendo cerca.
+ *
+ * Devuelve la racha MÁS LARGA, no el total: cinco minutos sueltos repartidos
+ * en media hora son muertes largas y recalls, cinco minutos pegados no le
+ * pasan a nadie que esté jugando. Ni siquiera al que va 0/10 — el que pierde
+ * su línea igual gana experiencia mientras se la pierden.
+ *
+ * Los frames vienen uno por minuto (`frameInterval`). Si a un frame le falta
+ * `xp` —partida vieja, respuesta rara— esa comparación no cuenta y la racha
+ * se corta: preferimos no marcar antes que marcar de más.
+ */
+export function minutosSinJugar(timeline: RiotTimeline, participantId: number): number {
+  const clave = String(participantId);
+  let racha = 0;
+  let peor = 0;
+  let anterior: number | null = null;
+  for (const frame of timeline.info.frames) {
+    const xp = frame.participantFrames[clave]?.xp;
+    if (xp == null) {
+      anterior = null;
+      racha = 0;
+      continue;
+    }
+    if (anterior != null) {
+      if (xp <= anterior) {
+        racha++;
+        if (racha > peor) peor = racha;
+      } else {
+        racha = 0;
+      }
+    }
+    anterior = xp;
+  }
+  return peor;
+}
+
 export function extractTimelineStats(
   timeline: RiotTimeline,
   myParticipantId: number,
