@@ -2959,17 +2959,35 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    se leía la mezcla de las dos cosas. */
 .navbar{
   position:sticky; top:0; z-index:40;
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  margin:0 0 22px; padding:8px 0;
+  /* Centrada, y el atajo de teclado SACADO del flujo: con
+     `justify-content:space-between` la cápsula quedaba corrida a la izquierda
+     tanto como mide el botón de la derecha. Centrar de verdad significa que lo
+     accesorio no empuje. */
+  display:flex; align-items:center; justify-content:center;
+  margin:0 0 22px; padding:10px 0;
   background:color-mix(in srgb, var(--bg) 92%, transparent);
   backdrop-filter:blur(8px);
-  border-bottom:1px solid var(--border-soft);
 }
+/* Sin borde abajo: la franja de borde a borde competía con la cápsula, que es
+   lo que ahora tiene que leerse como LA barra. El blur y el fondo siguen
+   haciendo su trabajo cuando algo pasa por detrás al scrollear. */
 /* Adentro de la barra, las pestañas pierden su propio contenedor: la barra ya
    ES el contenedor, y una píldora dentro de otra franja se lee como dos cajas
    discutiendo cuál manda. */
-.navbar .tabnav{margin-bottom:0; background:none; box-shadow:none; padding:0; gap:4px;}
+/* Y acá la cápsula VUELVE. El comentario de arriba decía que una píldora
+   adentro de otra franja se lee como dos cajas discutiendo cuál manda, y era
+   cierto mientras la barra tenía su propio borde de punta a punta. Sin ese
+   borde ya no hay dos cajas: hay una sola, la cápsula, flotando sobre el
+   fondo. */
+.navbar .tabnav{
+  margin-bottom:0; gap:2px; padding:5px;
+  background:var(--surface); border-radius:999px;
+  box-shadow:inset 0 0 0 1px var(--border-soft);
+}
 .navbar-atajo{
+  /* Fuera del flujo, contra el borde derecho: si ocupara lugar correría la
+     cápsula hacia la izquierda y no quedaría centrada. */
+  position:absolute; right:0; top:50%; transform:translateY(-50%);
   display:inline-flex; align-items:center; gap:4px; flex:none;
   background:none; border:none; cursor:pointer; padding:6px 8px; border-radius:var(--radius-sm);
   color:var(--text-muted); transition:color .12s ease, background .12s ease;
@@ -2983,19 +3001,39 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   /* En el celular el atajo de teclado no sirve para nada y la barra necesita
      todo el ancho para las cinco secciones. */
   .navbar-atajo{display:none;}
-  /* La fila entera scrollea de costado en vez de apretar las pestañas. */
-  .navbar{overflow-x:auto; scrollbar-width:none;}
-  .navbar .tabnav{flex:1 0 auto;}
+  /* La fila entera scrollea de costado en vez de apretar las pestañas.
+     Y el centrado pasa a `flex-start`: centrar algo que NO entra le come el
+     principio —arranca con la primera pestaña ya cortada por la izquierda— y
+     ahí el centrado deja de ser una decisión de composición para ser un bug. */
+  .navbar{overflow-x:auto; scrollbar-width:none; justify-content:flex-start;}
+  .navbar .tabnav{flex:0 0 auto;}
   .navbar::-webkit-scrollbar{display:none;}
 }
 
-/* El estado activo era un bloque dorado sólido con texto oscuro: el elemento
-   más fuerte de toda la pantalla para decir en qué pestaña estás. Ahora es
-   una superficie elevada con el texto dorado — se ve igual de claro y deja
-   que el dorado siga siendo un acento y no un cartel. */
+/* La pestaña activa vuelve a ser una PÍLDORA LLENA dorada, a pedido y con la
+   referencia a la vista.
+   
+   Esto revierte una decisión anterior —el activo había pasado a superficie
+   elevada con texto dorado, para que el dorado siguiera siendo un acento y no
+   un cartel— y el motivo del cambio es otro: la cápsula. Adentro de un
+   contenedor propio, el relleno ya no grita en medio de la pantalla; es la
+   única pieza pintada de una barra que por lo demás es gris sobre negro, y ahí
+   "en qué sección estoy" se contesta de un vistazo sin leer.
+   
+   El texto va en --accent-ink (casi negro) y no en blanco: sobre el dorado, el
+   blanco queda en un contraste bajo. */
 .tab-btn.is-active{
-  background:var(--surface-raised); color:var(--accent); font-weight:700;
-  box-shadow:inset 0 0 0 1px var(--accent-dim-border);
+  background:var(--accent); color:var(--accent-ink); font-weight:700;
+  box-shadow:none;
+}
+/* Y el hover también pinta, que es la otra mitad del pedido: la misma forma de
+   píldora, más apagada. Es lo que hace que la barra se sienta táctil — antes el
+   hover solo aclaraba el texto y no había nada que dijera "esto es un botón del
+   tamaño de esta pastilla".
+   
+   Con :not(.is-active) para que pasar el mouse por la activa no la apague. */
+.tab-btn:hover:not(.is-active){
+  background:var(--surface-raised); color:var(--text-primary);
 }
 
 /* La lectura de la partida, debajo del gráfico. Barra de color a la izquierda

@@ -109,6 +109,32 @@ No cuesta una consulta más: esas partidas YA se traen todas para armar la tabla
 seis personas por una semana brava de cuarenta partidas son unos 240 objetos, que
 comprimidos no llegan a diez kilobytes, una vez cada cuatro minutos por la caché del CDN.
 
+**La barra de secciones es una CÁPSULA centrada, y el activo vuelve a ser una píldora
+llena.** Esto revierte a propósito una decisión anterior: el activo había pasado de dorado
+sólido a superficie elevada con texto dorado, para que el dorado siguiera siendo un acento
+y no un cartel. Lo que cambió no es el criterio sino el contenedor — adentro de una
+cápsula, el relleno ya no grita en medio de la pantalla: es la única pieza pintada de una
+barra que por lo demás es gris sobre negro, y ahí "en qué sección estoy" se contesta sin
+leer.
+
+Tres cosas que hacen que funcione y que son fáciles de romper:
+
+- **La franja de borde a borde se fue.** El comentario viejo decía que una píldora adentro
+  de otra franja se lee como dos cajas discutiendo cuál manda, y era cierto MIENTRAS la
+  barra tenía su propio borde inferior. Sin ese borde hay una sola caja: la cápsula
+  flotando sobre el fondo. El sticky y el blur siguen, que es lo que de verdad hacía falta.
+- **El atajo ⌘K salió del flujo** (`position:absolute`). Con `space-between` la cápsula
+  quedaba corrida a la izquierda exactamente lo que mide ese botón: centrar de verdad
+  significa que lo accesorio no empuje. Medido: 402,4px de margen izquierdo contra 402,5
+  del derecho.
+- **En el teléfono el centrado se apaga.** Centrar algo que no entra le come el principio
+  —la primera pestaña arranca cortada por la izquierda— así que abajo de 640 vuelve a
+  `flex-start` y la barra scrollea.
+
+Y el hover pinta la MISMA forma, más apagada, con `:not(.is-active)` para que pasar el
+mouse por la activa no la apague. Antes solo aclaraba el texto: no había nada que dijera
+"esto es un botón del tamaño de esta pastilla".
+
 **"pts" no se usa más para LP: es la unidad de la LIGA.** El delta del sparkline decía
 "▲ 72 pts" al lado de un "+7,25" de la liga: dos escalas completamente distintas con el
 mismo nombre, en la misma app. "pts" había nacido de un problema real —el delta es de
