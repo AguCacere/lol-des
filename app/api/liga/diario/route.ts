@@ -18,6 +18,13 @@ import { getSupabaseServerClient } from "@/lib/supabase";
  *        otro día, que es la única forma de probar un domingo sin esperar al
  *        domingo.
  *
+ *        Y con `{ mandar: true }` ese mismo texto SALE al Discord. Es el
+ *        disparo a mano, para el día que el cron se pierda una corrida: a las
+ *        00:10 el GET ya no sirve —para él "hoy" es el día nuevo, en el que no
+ *        jugó nadie, y se calla— así que la única forma de mandar el parte de
+ *        ayer es pedirlo con su `ahora` y este `mandar`. Pide sesión igual que
+ *        la vista previa: el dedo en el gatillo es de una persona, no del cron.
+ *
  * Que el parte decida SOLO si hay algo para decir es la mitad del diseño: los
  * domingos se calla —ese día sale el cierre con el podio y las cargadas, y dos
  * mensajes de la liga a la misma hora se pisan— y los días que no jugó nadie
@@ -67,7 +74,7 @@ export async function POST(req: Request) {
   const cerrado = exigirSesion(req);
   if (cerrado) return cerrado;
 
-  let body: { ahora?: unknown } = {};
+  let body: { ahora?: unknown; mandar?: unknown } = {};
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -88,7 +95,14 @@ export async function POST(req: Request) {
 
   try {
     const parte = await parteDelDia(supabase, ahora);
-    return NextResponse.json({ preview: true, ...parte, ahora: ahora.toISOString() });
+    // Sin `mandar`, o cuando no hay nada que mandar, esto es una vista previa y
+    // nada más. El `!parte.texto` no es defensivo de más: es el caso de un
+    // domingo o de un día sin partidas, y ahí "mandar" no significa nada.
+    if (body.mandar !== true || !parte.texto) {
+      return NextResponse.json({ preview: true, ...parte, ahora: ahora.toISOString() });
+    }
+    const ok = await sendDiscordNotification(parte.texto);
+    return NextResponse.json({ mandado: ok, texto: parte.texto, ahora: ahora.toISOString() });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "No se pudo armar el parte." },
