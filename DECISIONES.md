@@ -320,6 +320,48 @@ en dos pestañas. Están filtrados `/api/liga`, `lib/liga-cierre.ts`, `/api/ladd
 La única excepción es `/api/roast` **pedida con un `match_id` explícito**: si alguien
 pasa el id a mano, que conteste de esa partida y no "no la encuentro".
 
+**Una derrota con un aliado ido no resta en la liga, y eso SÍ es solo de la liga.** Mismo
+principio que el remake —si Riot no te saca LP, la liga no te saca puntos— pero con el
+alcance al revés. El remake no pasó para nadie, así que se filtra en toda la app. Un AFK
+sí pasó: es una derrota de verdad en el récord de la cuenta, y si el ladder la escondiera
+diría algo distinto de lo que dice el cliente de LoL. Entonces el filtro
+(`.or("win.eq.true,ally_afk.eq.false")`) va solo en las dos consultas de la liga,
+`/api/liga` y `lib/liga-cierre.ts`.
+
+**Riot no expone la mitigación.** No hay ningún campo que diga "esta derrota te salió más
+barata". Por eso la pregunta se da vuelta: en vez de preguntar si mitigó, se mira si
+alguien del equipo dejó de jugar, con `timePlayed` por jugador. Lo que se detecta es "se
+fue un aliado", no "Riot mitigó" — parecido pero no idéntico, y la diferencia queda a
+favor del jugador a propósito.
+
+**Probada y descartada: detectarlo por el LP perdido.** Una derrota de −8 en vez de −18
+está mitigada y el dato ya está en pantalla, así que parecía gratis. Es una trampa: el LP
+sale de comparar dos fotos de `lp_snapshots` y queda en null cuando dos partidas caen
+entre las mismas dos fotos o cuando la foto de después todavía no llegó. El puntaje de la
+liga habría dependido de a qué hora corrió el cron, y la tabla se habría movido sola
+días después.
+
+**Y esta vez sí hubo columna nueva** (`matches.ally_afk`), al revés que con el remake. No
+había alternativa: `timePlayed` es por jugador y la base guarda una fila por jugador
+nuestro, así que el payload con los diez solo existe en el momento de escribir. Se decide
+ahí, una vez, y no cambia nunca más. Las filas viejas quedan en `false` —o sea, cuentan
+como antes— hasta que pase `/api/repair`, que las vuelve a armar con `buildMatchRow` y de
+paso les pone el flag.
+
+**Los dos cortes son `faltante >= 300s` Y `faltante/duración >= 0,2`**, juntos porque cada
+uno tapa el agujero del otro: la fracción sola deja pasar al que abandona a los 30 de una
+de 40, los cinco minutos solos marcan como abandono una reconexión corta en una de una
+hora. **Solo aliados, nunca uno mismo**: si el que se fue fuiste vos, Riot te cobra la
+derrota entera y encima el LeaverBuster.
+
+**La victoria con un aliado ido sí cuenta.** Ganar con uno menos da LP completo y tiene
+más mérito, no menos. Solo se descarta la derrota.
+
+**Descarta la partida entera, no le pone cero.** No resta, no suma, no corta la racha y no
+cuenta para las 10 del mínimo: desaparece igual que un remake. La alternativa —dejarla en
+la tabla valiendo 0— obligaba a decidir qué hace con la racha y con el mínimo, y las dos
+respuestas eran discutibles. "No se jugó" no tiene esa ambigüedad.
+
 **Las semanas ya cerradas no cambian.** El cierre guarda su `resumen` y la vitrina lo lee
 de ahí, así que una liga que el bot ya anunció se queda con los números que se anunciaron
 —ver "un resultado anunciado es un HECHO"—. Para recalcular una a propósito está el POST

@@ -65,6 +65,59 @@ export const RANKED_FLEX_QUEUE_ID = 440;
  */
 export const DURACION_MINIMA_S = 300;
 
+/**
+ * Cuánto se le tiene que haber perdido a un aliado para decir que se fue.
+ *
+ * Riot no expone la mitigación de LP por ningún lado: no hay un campo que
+ * diga "esta derrota te salió más barata porque se te fue uno". Lo único que
+ * manda es `timePlayed` por jugador, así que la pregunta se da vuelta: en vez
+ * de preguntar si Riot mitigó, se mira si alguien del equipo dejó de jugar.
+ *
+ * Los dos cortes juntos, y no uno solo, porque cada uno tapa el agujero del
+ * otro: la fracción sola deja pasar al que abandona a los 30 de una de 40
+ * (justo 75%, y son diez minutos jugando cuatro contra cinco), y los cinco
+ * minutos solos marcarían como abandono una reconexión corta en una partida
+ * de una hora. Faltarle un quinto Y cinco minutos no le pasa a nadie que
+ * haya jugado la partida.
+ *
+ * Se mira solo a los ALIADOS y nunca a uno mismo: si el que se fue fuiste
+ * vos, Riot no te mitiga nada —te cobra la derrota entera y encima el
+ * LeaverBuster—, así que la liga tampoco tiene por qué perdonártela.
+ */
+const AFK_FALTANTE_MINIMO_S = 300;
+const AFK_FRACCION_MINIMA = 0.2;
+
+/**
+ * Si a este jugador se le fue alguien del equipo. Se decide UNA vez, al
+ * escribir la fila, y queda guardado en `matches.ally_afk`: el payload de
+ * Riot no cambia nunca, así que el valor tampoco.
+ *
+ * La otra forma de detectarlo era por el LP perdido —una derrota de −8 en vez
+ * de −18 está mitigada— y es una trampa: el LP sale de comparar dos fotos de
+ * `lp_snapshots`, y queda en null cuando dos partidas caen entre las mismas
+ * dos fotos o cuando la foto de después todavía no llegó. El puntaje de la
+ * liga habría dependido de a qué hora corrió el cron, y la tabla se habría
+ * movido sola.
+ *
+ * Lo que esto detecta es "se fue un aliado", no "Riot mitigó". Son casi lo
+ * mismo pero no idénticos, y esa diferencia es a favor del jugador a
+ * propósito: la liga es de seis amigos, no un tribunal.
+ */
+export function aliadoAfk(match: RiotMatch, puuid: string): boolean {
+  const yo = match.info.participants.find((p) => p.puuid === puuid);
+  if (!yo) return false;
+  const duracion = match.info.gameDuration;
+  if (duracion <= 0) return false;
+  return match.info.participants.some((p) => {
+    if (p.teamId !== yo.teamId || p.puuid === puuid) return false;
+    // undefined es "esta partida es vieja y Riot no lo mandó", que no es lo
+    // mismo que cero: cero es no haber cargado nunca, y eso sí es abandono.
+    if (p.timePlayed == null) return false;
+    const faltante = duracion - p.timePlayed;
+    return faltante >= AFK_FALTANTE_MINIMO_S && faltante / duracion >= AFK_FRACCION_MINIMA;
+  });
+}
+
 /** Below this, a win/loss streak doesn't get a Discord ping — see checkStreakAndNotify. */
 const STREAK_NOTIFY_THRESHOLD = 3;
 
@@ -611,6 +664,10 @@ async function buildMatchRow(
     opponent_champion: enemy?.championName ?? null,
     queue_id: match.info.queueId,
     game_duration_s: match.info.gameDuration,
+    // Se calcula acá y no al leer porque acá está el payload entero con los
+    // diez jugadores, y la base guarda una fila por jugador nuestro: al leer
+    // ya no queda con qué. Ver aliadoAfk.
+    ally_afk: aliadoAfk(match, puuid),
     played_at: new Date(match.info.gameCreation).toISOString(),
   };
   return { row, timelineOk: timelineStats !== null };

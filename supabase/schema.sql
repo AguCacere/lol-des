@@ -104,6 +104,7 @@ create table if not exists matches (
   opponent_champion text,      -- campeón del rival del MISMO carril (mismo teamPosition, otro equipo). Sale del payload de Match-V5 que ya bajamos, sin llamada extra — es la base de los matchups ("con Caitlyn contra Jhin: 11V 8D"). Null si Riot no resolvió posición o nadie coincidió.
   queue_id      int not null default 420, -- Match-V5 queueId: 420=ranked solo/duo, 700=Clash (ver lib/clash.ts). Flex (440) NO se guarda: la cargada de Discord se la pregunta a Riot en vivo y la descarta (ver RANKED_FLEX_QUEUE_ID en lib/refresh.ts).
   game_duration_s int not null,
+  ally_afk      boolean not null default false, -- se le fue un compañero: alguien de SU equipo (no él) jugó menos de la partida (ver aliadoAfk en lib/refresh.ts). Se decide al escribir la fila, con el payload de los diez jugadores que al leer ya no está. La liga descarta las DERROTAS con esto en true —Riot no te saca LP por una partida que se te fue— pero las victorias cuentan igual. Default false: las filas viejas cuentan como antes hasta que pase /api/repair.
   played_at     timestamptz not null,
   inserted_at   timestamptz not null default now(),
   repaired_at   timestamptz,  -- marcador de POST /api/repair (ver repairMatches en lib/refresh.ts): null = a esta fila todavía le faltan columnas que se agregaron después de guardarla. Es el cursor de la reparación, por eso se puede llamar por tandas sin pasar nada.

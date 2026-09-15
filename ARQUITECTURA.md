@@ -85,6 +85,11 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   cuenta partidas— así que arreglar esto no necesitó ni migración ni backfill. Toda
   consulta nueva sobre `matches` que cuente victorias, derrotas o promedios tiene que
   llevar ese filtro; ver DECISIONES → Riot.
+  La otra regla de la casa vive acá al lado: `aliadoAfk`, que mira `timePlayed` de los
+  diez jugadores y deja escrito en `matches.ally_afk` si se le fue un compañero. Ese se
+  decide al ESCRIBIR (al leer ya no está el payload) y lo filtran **solo las dos
+  consultas de la liga**, no toda la app: un AFK es una derrota de verdad para Riot, pero
+  no te saca LP. Las filas viejas quedan en `false` hasta que pase `repairMatches`.
 - `mapping.ts` — tiers de League-V4 → los `TierKey` de la UI.
 
 **Cálculo puro** (sin red ni base: entran datos, salen números)
@@ -209,7 +214,7 @@ propia**, solo junta lo que devuelven los módulos de `lib/`.
   `(match_id, puuid)`, porque dos amigos en la misma partida necesitan fila propia.
   Guarda el stat line entero, los diffs de oro a los 10/15/20, los tiempos y la
   atribución de objetivos, `team_position`, `opponent_champion`, `item_build`,
-  `queue_id` y `repaired_at`.
+  `queue_id`, `ally_afk` (se le fue un compañero) y `repaired_at`.
 - **`lp_snapshots`** — la serie de LP en el tiempo, para los gráficos y la liga.
   Solo inserta si algo cambió respecto de la fila anterior.
 - **`champion_mastery`** — la maestría de Riot por campeón.

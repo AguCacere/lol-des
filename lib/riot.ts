@@ -141,6 +141,15 @@ export interface RiotParticipant {
    * una partida vieja puede no traerlo — ahí decide la duración. Ver esRemake.
    */
   gameEndedInEarlySurrender?: boolean;
+  /**
+   * Segundos que este jugador estuvo EN la partida. En una partida normal da
+   * casi igual que `info.gameDuration` para los diez; el que se desconecta y
+   * no vuelve queda muy por debajo. Es lo único que manda Riot que permite
+   * saber que a alguien se le fue un aliado — la mitigación de LP en sí no la
+   * expone por ninguna parte. Ver aliadoAfk en lib/refresh.ts. Opcional
+   * porque una partida vieja puede no traerlo.
+   */
+  timePlayed?: number;
   kills: number;
   deaths: number;
   assists: number;

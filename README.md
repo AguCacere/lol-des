@@ -67,6 +67,14 @@ Toda partida de menos de cinco minutos queda afuera en toda la app, así que el 
 ladder y el de la liga dicen lo mismo. Y se puede comprobar: abriendo una fila de la
 liga, cada partida muestra cuánto duró.
 
+**Y una derrota con un aliado ido tampoco resta.** Si a alguien de tu equipo se le fue el
+que se desconectó y no volvió, Riot te cobra menos LP o ninguno, así que la liga no te
+cobra puntos: esa derrota desaparece igual que un remake —no resta, no corta la racha y
+no cuenta para las 10 del mínimo—. La victoria con uno menos sí cuenta, y vale lo mismo
+que cualquier otra. Se decide al guardar la partida, mirando cuánto jugó cada uno de los
+diez: al que le falta un quinto de la partida y más de cinco minutos, se fue. Esto vale
+**solo en la liga**: en el ladder la derrota sigue estando, porque en tu cuenta también.
+
 Para llevarse el premio no alcanza con ir primero: hay que jugar **10 partidas en la
 semana** y **3 el último día**. Es contra el que agarra ventaja el martes y no juega
 más para no arriesgarla. Si el puntero no llega a los mínimos, cobra el primero que

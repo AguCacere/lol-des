@@ -115,6 +115,10 @@ export async function tablaDeSemanaEnBase(
     // que la tabla en vivo no cuenta, el campeón que anuncia el bot podría no
     // ser el que la gente vio ganar toda la semana.
     .gte("game_duration_s", DURACION_MINIMA_S)
+    // Y el mismo de las derrotas con un aliado ido, por lo mismo: el cierre
+    // tiene que contar exactamente las partidas que contó la tabla en vivo o
+    // el bot anuncia un campeón que nadie vio ganar.
+    .or("win.eq.true,ally_afk.eq.false")
     .gte("played_at", desde.toISOString())
     .lt("played_at", fin.toISOString());
   if (ePartidas) throw new Error(`No se pudieron leer las partidas de esa semana: ${ePartidas.message}`);

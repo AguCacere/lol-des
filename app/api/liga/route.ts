@@ -116,6 +116,13 @@ export async function GET() {
         // y la liga sí los estaba contando: un punto o −0,75 por una partida de
         // cuatro minutos que nunca se jugó. Ver DURACION_MINIMA_S.
         .gte("game_duration_s", DURACION_MINIMA_S)
+        // Y sin las derrotas con un aliado ido. Mismo criterio que el remake:
+        // si Riot no te cobra LP, la liga no te cobra puntos. Descarta la
+        // partida ENTERA, no le pone cero — no resta, no suma, no corta la
+        // racha y no cuenta para las 10 del mínimo, exactamente como si no se
+        // hubiera jugado. Las victorias sí quedan: ganar con uno menos da LP
+        // completo y encima tiene más mérito. Ver aliadoAfk en lib/refresh.ts.
+        .or("win.eq.true,ally_afk.eq.false")
         .gte("played_at", desdeVentana.toISOString())
         .lt("played_at", fin.toISOString());
       // Las dos de arriba se chequean juntas acá: sin fotos el marcador queda
