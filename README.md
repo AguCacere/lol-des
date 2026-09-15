@@ -31,6 +31,12 @@ Además, sin pantalla propia:
 desastroso, ahogarse en la fuente, perder contra un Nasus, cruzarse un Teemo. Se
 dispara solo con el refresco.
 
+Todas las noches a las 23:55 manda el **parte diario de la liga**: cómo va la tabla y
+cuánto movió cada uno ESE día, con medallas para el podio y 💩 para el resto. No lo
+manda los domingos —ese día sale el cierre y los dos se pisarían— ni los días en que no
+jugó nadie. Se puede mirar antes con `POST /api/liga/diario` (y `{"ahora":"…"}` para ver
+el de otro día).
+
 Los domingos a la noche, cuando cierra la semana, manda el **podio de la liga**: una
 cargada por puesto —el primero se los garchó a todos, el segundo no le dio el
 pitulín, el tercero ni pinchó ni cortó, los del medio son agua y el último nadó en
@@ -125,6 +131,11 @@ que para una liga semanal por LP es demasiado poco. Las entradas que hay en
 La ruta contesta al toque y hace el trabajo en segundo plano con `after()`: los
 schedulers gratuitos cortan la espera a los 30 segundos, bastante menos de lo que
 puede tardar un refresco completo.
+
+**`/api/liga/diario` corre una vez por día, a las 23:55 argentinas** (02:55 UTC), con el
+mismo `CRON_SECRET` y el mismo scheduler externo. Manda el parte diario de la liga. Es
+seguro pegarle de más: decide solo si hay algo para decir, y los días que no —domingos y
+días sin partidas— contesta `{"mandado":false}` sin escribir en Discord.
 
 **No hay botón de "Actualizar" en la app**: el cron de 15 minutos es lo único que
 mantiene el ladder al día. `POST /api/refresh` existe para dispararlo a mano desde la

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendDiscordNotification } from "./discord";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "./refresh";
-import { claveDeSemana, esSemanaDeLiga, etiquetasDeDias, type FilaLiga, ganadorDe, inicioDeSemana, mensajeDeCierre, puntajeDe, puntosPorDia, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot, ventanaDe, ventanaUltimoDia } from "./liga";
+import { claveDeSemana, diasCorridos, esSemanaDeLiga, etiquetasDeDias, type FilaDelDia, type FilaLiga, ganadorDe, inicioDeSemana, mensajeDeCierre, mensajeDelDia, puntajeDe, puntosPorDia, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot, ventanaDe, ventanaUltimoDia } from "./liga";
 
 /**
  * El cierre de la semana, separado de la ruta para poder llamarlo también
@@ -66,7 +66,7 @@ function masRepetido<T>(valores: (T | null)[]): T | null {
 export async function tablaDeSemanaEnBase(
   supabase: SupabaseClient,
   inicio: Date,
-  opciones: { conCarrera?: boolean; todosLosTrackeados?: boolean } = {},
+  opciones: { conCarrera?: boolean; todosLosTrackeados?: boolean; ahora?: Date } = {},
 ): Promise<FilaLiga[] | null> {
   // Las tres consultas de acá abajo TIRAN el error en vez de tragárselo, y eso
   // es a propósito. Antes solo se sacaba `data`: si Supabase fallaba —un 504
@@ -128,6 +128,10 @@ export async function tablaDeSemanaEnBase(
   // El arranque del último día: sin el mínimo de ese día no se cobra, por más
   // arriba que se haya terminado. Ver MINIMO_ULTIMO_DIA en lib/liga.ts.
   const arrancaUltimoDia = ventanaUltimoDia(inicio).desde.getTime();
+  // Y el 00:00 argentino del día que corre, para el parte diario. Sale del lunes
+  // más los días corridos, o sea de la MISMA cuadrícula de días calendario que
+  // usa la carrera — no de un bloque de 24 horas hacia atrás. Ver diasCorridos.
+  const arrancaHoy = inicio.getTime() + (diasCorridos(inicio, opciones.ahora ?? new Date()) - 1) * 86400000;
   // Se agrupan y se ORDENAN por fecha antes de contar. Hasta que la liga
   // puntuó por rachas alcanzaba con sumar victorias y derrotas al vuelo, sin
   // mirar el orden; ahora "la cuarta al hilo vale 1,25" depende de en qué
@@ -157,9 +161,22 @@ export async function tablaDeSemanaEnBase(
       // con el FIN de esa semana como "ahora": con la fecha de hoy, una semana
       // vieja daría siete días corridos igual, pero una semana que todavía
       // corre daría los que van — y acá siempre se quiere la semana entera.
+      // Con `ahora` la serie llega hasta HOY y no hasta el domingo: el parte
+      // diario necesita el cierre de ayer y el de hoy, y con el fin de semana
+      // como referencia una semana en curso devolvería siete días, los últimos
+      // repetidos, y el "hoy" saldría siempre 0.
       porDia: opciones.conCarrera
-        ? puntosPorDia(suyas.map((m) => ({ win: m.win, playedAt: m.played_at })), inicio, new Date(fin.getTime() - 1))
+        ? puntosPorDia(
+            suyas.map((m) => ({ win: m.win, playedAt: m.played_at })),
+            inicio,
+            opciones.ahora ?? new Date(fin.getTime() - 1),
+          )
         : [],
+      // Cuántas jugó hoy, contra el 00:00 argentino de hoy. Se cuenta acá, con
+      // las partidas ya filtradas por cola, remake y arranque de cada uno, y no
+      // en otra consulta: una segunda consulta con sus propios filtros es una
+      // copia que se desincroniza sola.
+      hoy: opciones.ahora ? suyas.filter((m) => Date.parse(m.played_at) >= arrancaHoy).length : 0,
       // El campeón de la semana sí se calcula: es lo único de este bloque que
       // sale en el anuncio ("ganó la liga con Yasuo"). La línea no, que ahí no
       // se nombra.
@@ -402,4 +419,44 @@ export async function rescatarResumen(
   const { error } = await supabase.from("liga_semanas").update({ resumen }).eq("semana", clave);
   if (error) throw new Error(`No se pudo guardar la foto: ${error.message}`);
   return { semana: clave, reconstruidos: resumen.tabla.length, registrados: fila.jugadores ?? null, guardado: true };
+}
+
+/**
+ * El parte diario del bot: el texto listo para mandar, o null si hoy no va.
+ *
+ * Sale de la MISMA `tablaDeSemanaEnBase` que el cierre y que el cartel de la
+ * semana vieja. Eso no es prolijidad: si el parte armara la tabla por su cuenta,
+ * el día que cambie el puntaje habría un mensaje que dice un orden y una
+ * pantalla que dice otro — y el parte lo ve todo el grupo.
+ *
+ * Le pasa `ahora` para que el acumulado por día llegue hasta HOY y no hasta el
+ * domingo, que es de donde sale el "hoy +2" de cada uno: el último cierre menos
+ * el anterior.
+ *
+ * Devuelve null cuando no hay nada que mandar —domingo, semana sin arrancar,
+ * nadie anotado, o nadie que haya jugado hoy—. Ver `mensajeDelDia` para el
+ * porqué de cada caso.
+ */
+export async function parteDelDia(
+  supabase: SupabaseClient,
+  ahora: Date = new Date(),
+): Promise<{ texto: string | null; motivo?: string }> {
+  const inicio = inicioDeSemana(ahora);
+  if (!esSemanaDeLiga(inicio)) return { texto: null, motivo: "la semana en curso todavía no es de la liga" };
+
+  const tabla = await tablaDeSemanaEnBase(supabase, inicio, { conCarrera: true, ahora });
+  if (!tabla || tabla.length === 0) return { texto: null, motivo: "no hay nadie anotado" };
+
+  const filas: FilaDelDia[] = tabla.map((f) => {
+    const serie = f.porDia ?? [0];
+    // El último es el cierre de hoy y el anterior el de ayer. Con un solo valor
+    // —el lunes, antes de que cierre ningún día— la diferencia es contra el 0
+    // del arranque, que es lo correcto: todo lo de hoy es de hoy.
+    const hoyCierra = serie[serie.length - 1] ?? 0;
+    const ayerCerro = serie.length >= 2 ? serie[serie.length - 2] : 0;
+    return { name: f.name, puntos: puntajeDe(f), hoy: hoyCierra - ayerCerro, jugadas: f.hoy ?? 0 };
+  });
+
+  const texto = mensajeDelDia(inicio, filas, ahora);
+  return texto ? { texto } : { texto: null, motivo: "hoy no hay nada para contar (domingo, o no jugó nadie)" };
 }

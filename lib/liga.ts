@@ -287,6 +287,14 @@ export interface FilaLiga {
   /** Cuántas jugó el último día de la semana. Ver MINIMO_ULTIMO_DIA. */
   ultimoDia: number;
   /**
+   * Cuántas jugó HOY. Solo lo llena quien lo va a usar —el parte diario del
+   * bot—, así que es opcional: la pantalla no lo pide y calcularlo para nadie
+   * sería trabajo al pedo. Y hace falta de verdad: el parte dice "no jugó" y
+   * eso NO se puede deducir de que el puntaje del día sea 0, porque un día de
+   * tres victorias y cuatro derrotas da exactamente 0.
+   */
+  hoy?: number;
+  /**
    * Si cumple las dos condiciones para cobrar: el mínimo del último día y el
    * de la semana. Sin esto no cobra, por más arriba que esté en la tabla — la
    * posición sigue siendo la que le dan sus netas, lo que se pierde es el
@@ -457,6 +465,8 @@ export interface RecordSemanal {
   ultimas: PartidaLiga[];
   /** Cuántas jugó dentro de las últimas 24 horas de la semana. */
   ultimoDia: number;
+  /** Cuántas jugó hoy. Opcional: solo lo llena el parte diario. Ver FilaLiga.hoy. */
+  hoy?: number;
   /** El acumulado al cierre de cada día, para la carrera. Ver puntosPorDia. */
   porDia: number[];
 }
@@ -662,8 +672,8 @@ export function tablaDeLaSemana(
     const base = previas.length > 0 ? previas[previas.length - 1] : dentro[0];
     const ultima = dentro.length > 0 ? dentro[dentro.length - 1] : base;
 
-    const { victorias, derrotas, racha, champion, linea, secuencia, ultimas, ultimoDia, porDia } =
-      recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0, racha: null, champion: null, linea: null, secuencia: [], ultimas: [], ultimoDia: 0, porDia: [0] };
+    const { victorias, derrotas, racha, champion, linea, secuencia, ultimas, ultimoDia, hoy, porDia } =
+      recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0, racha: null, champion: null, linea: null, secuencia: [], ultimas: [], ultimoDia: 0, hoy: 0, porDia: [0] };
     // Las dos condiciones, juntas: aparecer el último día y haber jugado la
     // semana. Cualquiera de las dos sola se esquiva.
     const habilitado = ultimoDia >= MINIMO_ULTIMO_DIA && victorias + derrotas >= MINIMO_SEMANAL;
@@ -687,7 +697,7 @@ export function tablaDeLaSemana(
       // Sin una sola foto no hay nada que medir, pero igual va la línea
       // plana en 0: un gráfico vacío parece roto, y "no se movió" es
       // información.
-      filas.push({ ...p, puntos, netas: victorias - derrotas, lpNeto: 0, lpRecortado: 0, victorias, derrotas, racha, champion, linea, ultimas, ultimoDia, habilitado, sinJugar: victorias + derrotas === 0, rango, porDia, entroTarde });
+      filas.push({ ...p, puntos, netas: victorias - derrotas, lpNeto: 0, lpRecortado: 0, victorias, derrotas, racha, champion, linea, ultimas, ultimoDia, hoy, habilitado, sinJugar: victorias + derrotas === 0, rango, porDia, entroTarde });
       continue;
     }
 
@@ -705,6 +715,7 @@ export function tablaDeLaSemana(
       linea,
       ultimas,
       ultimoDia,
+      hoy,
       habilitado,
       sinJugar: victorias + derrotas === 0,
       rango,
@@ -864,4 +875,99 @@ export function mensajeDeCierre(inicio: Date, tabla: FilaLiga[]): string {
 
   lineas.push("", "El lunes a las 00:00 arranca de cero. 🔁");
   return lineas.join("\n");
+}
+
+/**
+ * El parte diario: cómo va la liga al cierre de cada día.
+ *
+ * Es el compañero de `mensajeDeCierre`. Ese sale una vez, el domingo, y es la
+ * cargada; este sale todas las noches y es el marcador. La diferencia importa
+ * para el tono: acá no se carga a nadie con nombre y apellido —eso se gasta
+ * rápido si se hace siete veces por semana— y lo único que hace de burla es el
+ * 💩 de los que están afuera del podio, que fue el pedido.
+ *
+ * Lo que de verdad hace que valga leerlo todos los días NO es la tabla: es la
+ * columna de la derecha, lo que cada uno movió HOY. Los puestos casi no se
+ * mueven de un día para el otro, así que un parte que solo repita el orden es
+ * el mismo mensaje siete veces y el canal aprende a saltearlo en tres días.
+ * "Hoy hizo +2,25" es lo que da charla.
+ *
+ * Devuelve null —o sea, no se manda nada— en tres casos:
+ *
+ * - **Los domingos**, porque ese día sale el cierre con el podio y las
+ *   cargadas, y dos mensajes de la liga a la misma hora se pisan. El que
+ *   importa es el otro.
+ * - **Si no jugó nadie en toda la semana**, que no hay tabla que mostrar.
+ * - **Si hoy no jugó nadie.** Un parte que dice "no se movió nadie" es la forma
+ *   más rápida de que el bot se vuelva ruido de fondo.
+ */
+export interface FilaDelDia {
+  name: string;
+  /** El acumulado de la semana, que es lo que ordena. */
+  puntos: number;
+  /** Lo que sumó o restó HOY: el cierre de hoy menos el de ayer. */
+  hoy: number;
+  /** Cuántas jugó hoy. Se mira esto y NO `hoy` para decir "no jugó": un día de
+   *  3 victorias y 4 derrotas da exactamente 0 y no es lo mismo que no aparecer. */
+  jugadas: number;
+}
+
+export function mensajeDelDia(inicio: Date, filas: FilaDelDia[], ahora: Date = new Date()): string | null {
+  const dias = diasCorridos(inicio, ahora);
+  if (dias >= 7) return null;
+
+  const enTabla = filas.filter((f) => f.jugadas > 0 || f.puntos !== 0 || f.hoy !== 0);
+  if (enTabla.length === 0) return null;
+  if (enTabla.every((f) => f.jugadas === 0)) return null;
+
+  const orden = [...enTabla].sort((a, b) => b.puntos - a.puntos);
+  const faltan = 7 - dias;
+
+  const lineas = [
+    `🍄 **Cómo va la liga** · ${fechaLarga(ahora)} · **día ${dias} de 7**`,
+    "",
+  ];
+
+  for (const [i, f] of orden.entries()) {
+    // Podio y después caca, que fue el pedido tal cual. No hay término medio:
+    // en una liga de cinco o seis, "cuarto" ya es estar afuera.
+    const marca = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : "💩";
+    const delDia = f.jugadas === 0 ? "`no jugó`" : `\`hoy ${puntajeTexto(f.hoy)}\``;
+    lineas.push(`${marca} **${i + 1} —** ${f.name} · **${puntajeTexto(f.puntos)}**  ${delDia}`);
+  }
+
+  lineas.push("");
+  const pie: string[] = [];
+  if (orden.length > 1) {
+    const ventaja = orden[0].puntos - orden[1].puntos;
+    // Sin negritas acá adentro: el pie va en itálica y `***Fulano**` es bold
+    // dentro de italic, que Discord parsea distinto según dónde caiga. La
+    // jerarquía de esta línea ya la da la itálica.
+    pie.push(
+      ventaja > 0
+        ? `${orden[0].name} va ${puntajeTexto(ventaja)} arriba del segundo.`
+        : `${orden[0].name} y ${orden[1].name} van empatados arriba.`,
+    );
+  }
+  pie.push(faltan === 1 ? "Queda un día." : `Quedan ${faltan} días.`);
+  lineas.push(`*${pie.join(" ")}*`);
+
+  return lineas.join("\n");
+}
+
+/**
+ * "martes 15 de septiembre", en hora argentina.
+ *
+ * Sin la coma que mete `toLocaleDateString` entre el día y la fecha: es un
+ * encabezado, no una fecha de documento.
+ */
+function fechaLarga(d: Date): string {
+  return d
+    .toLocaleDateString("es-AR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      timeZone: "America/Argentina/Buenos_Aires",
+    })
+    .replace(",", "");
 }

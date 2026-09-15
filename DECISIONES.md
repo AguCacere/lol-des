@@ -98,6 +98,28 @@ empezaron antes del corte.
 
 ## Riot
 
+**El parte diario se calla dos veces, y eso es la mitad del diseño.** El bot manda
+todas las noches cómo va la liga, pero devuelve null —o sea, no manda— los domingos y
+los días en que no jugó nadie. Los domingos porque ese día sale el cierre con el podio y
+las cargadas, y dos mensajes de la liga a la misma hora se pisan; los días vacíos porque
+un bot que escribe "no se movió nadie" es un bot que el canal aprende a saltear, y
+después no lo leen ni cuando tiene algo. Por eso "no mandé nada" contesta **200** y no un
+error: es el caso normal. Si falla de verdad (Supabase caído) tira 502, para que en el
+log del scheduler no se confunda una caída con un domingo.
+
+**Y lo que hace que valga leerlo no es la tabla: es lo que cada uno movió HOY.** Los
+puestos casi no se mueven de un día para el otro, así que un parte que solo repita el
+orden es el mismo mensaje siete veces. El delta sale de `porDia` —el último cierre menos
+el anterior—, o sea del MISMO array que dibuja la carrera, para que el bot y el gráfico
+no puedan decir cosas distintas.
+
+**"No jugó" NO se puede deducir de que el puntaje del día sea 0.** Parece que sí y no:
+tres victorias y cuatro derrotas dan exactamente 1+1+1−0,75·4 = 0, y eso es un día de
+siete partidas, no un día sin aparecer. Por eso `FilaDelDia` lleva `jugadas` aparte, que
+se cuenta en `tablaDeSemanaEnBase` contra el 00:00 argentino de hoy —con las partidas ya
+filtradas por cola, remake y arranque de cada uno—. Contarlo en una segunda consulta con
+sus propios filtros hubiera sido una copia de las reglas esperando a desincronizarse.
+
 **Un remake trae `win` puesto, y no significa nada.** Cuando a alguien no le carga el
 juego y a los tres minutos el equipo vota /remake, Riot **no cuenta esa partida**: ni LP,
 ni victoria, ni derrota en el récord de la cuenta. Pero en el payload de Match-V5 viene

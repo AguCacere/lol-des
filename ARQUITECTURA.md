@@ -34,6 +34,8 @@ cerradura no está puesta, nadie escribe).
 | `/api/liga/semana` | GET | Cómo terminó una semana vieja: tabla final, carrera y quién cobró | no | no | `s-maxage=21600, swr=86400` |
 | `/api/liga/semana` | POST | Rescata a mano la foto de una semana vieja sin `resumen` | sí | **sí** | — |
 | `/api/liga/anunciar` | POST | Manda el mensaje de arranque a Discord. Con `{tipo:"cierre"}` devuelve la vista previa del anuncio de cierre y no manda nada | no | **sí** | — |
+| `/api/liga/diario` | GET | El parte diario al Discord: cómo va la liga y qué movió cada uno hoy. Se calla los domingos y los días sin partidas | no | `CRON_SECRET` | — |
+| `/api/liga/diario` | POST | Vista previa del parte, sin mandar nada. Con `{ahora:"…"}` se ve el de otro día | no | **sí** | — |
 | `/api/summoners` | POST | Agrega un invocador al grupo | sí | **sí** | — |
 | `/api/refresh` | POST | Refresca uno o todos (cooldown de 2 min) | sí | **sí** | — |
 | `/api/backfill` | POST | Trae partidas viejas de un invocador | sí | **sí** | — |
@@ -108,8 +110,12 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   (`puntosDeSecuencia`, `PUNTOS_*`, `RACHA_DESDE`, `MODO_LIGA`), el acumulado por día
   que dibuja la carrera (`puntosPorDia`, `diasCorridos`, `etiquetasDeDias`), los
   mínimos para cobrar (`MINIMO_SEMANAL`, `MINIMO_ULTIMO_DIA`, `ganadorDe`) y los dos
-  mensajes de Discord: `mensajeDeArranque` y `mensajeDeCierre` —el podio con una
-  cargada por puesto, que no habla del premio a propósito—.
+  mensajes de Discord: `mensajeDeArranque`, `mensajeDeCierre` —el podio con una
+  cargada por puesto, que no habla del premio a propósito— y `mensajeDelDia`, el
+  parte diario (medallas para el podio, 💩 para el resto, y lo que movió cada uno
+  hoy). `mensajeDelDia` devuelve **null** cuando no hay nada que mandar: los
+  domingos —ese día sale el cierre y dos mensajes se pisan— y los días en que no
+  jugó nadie.
 - `liga-cierre.ts` — el cierre idempotente de la semana. `tablaDeSemanaEnBase` arma
   la tabla final desde la base —con `{conCarrera:true}` calcula también el acumulado
   por día—, `vistaPreviaDeCierre` devuelve el texto del anuncio sin escribir ni mandar
