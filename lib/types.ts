@@ -150,7 +150,7 @@ export interface TeamDigestResumen {
   derrotas: number;
   /** Cuántos del grupo jugaron al menos una ranked en la ventana. */
   jugadores: number;
-  /** Suma de lo que ganó y perdió TODO el grupo, en puntos de rankScore. */
+  /** Suma de lo que ganó y perdió TODO el grupo, en LP netos (escala de rankScore). */
   lpNeto: number;
   masActivo: { name: string; tag: string; profileIconUrl: string | null; games: number } | null;
 }
@@ -167,10 +167,11 @@ export interface TeamDigest {
   biggestLpGain:
     | (TeamDigestPlayerRef & {
         delta: number;
-        unit: "LP" | "pts";
+        /** "LP netos" cuando el tramo cruzó de división o tier; "LP" si no. Nunca "pts": esa es la unidad de la liga. */
+        unit: "LP netos" | "LP";
         /** rankScore per lp_snapshot this player got THIS week, ascending — feeds a mini sparkline so the card isn't just a bare number next to the others' champion art. */
         lpScores: number[];
-        /** Where the week started and ended for them — what "+225 pts" actually bought. */
+        /** Where the week started and ended for them — what "+225 LP" actually bought. */
         from: RankPoint;
         to: RankPoint;
       })

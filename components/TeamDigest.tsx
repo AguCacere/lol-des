@@ -12,7 +12,15 @@ import { CheckIcon, CopyIcon, TrendDownIcon, TrendUpIcon, TrophyIcon, ZapIcon } 
 import { championLabel } from "@/lib/champion-names";
 
 function formatWindowRange(startIso: string, endIso: string): string {
-  const fmt = (iso: string) => new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
+  // En hora argentina, como todo lo que escribe una fecha en esta app: sin el
+  // huso, una partida de las 22 de un 30 se escribe "1 sep" para cualquiera con
+  // el reloj adelantado.
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleDateString("es-AR", {
+      day: "2-digit",
+      month: "short",
+      timeZone: "America/Argentina/Buenos_Aires",
+    });
   return `${fmt(startIso)} – ${fmt(endIso)}`;
 }
 
@@ -145,7 +153,11 @@ function DigestBody({
               {r.lpNeto}
             </span>
             <span className="digest-kpi-label">
-              pts netos
+              {/* "LP netos" y no "pts netos": desde que existe la liga, "puntos"
+                  es SU unidad —victoria 1, derrota −0,75— y este número es de
+                  otra escala completamente distinta. Ver unidadDelta en
+                  components/LadderTable.tsx. */}
+              LP netos
               <InfoTip text="Lo que subió y bajó TODO el grupo sumado, no solo el que más ganó. Es la única cifra de la pestaña que dice si la semana fue buena para todos o si uno solo tapó a los demás." />
             </span>
           </div>

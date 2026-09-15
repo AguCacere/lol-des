@@ -62,6 +62,27 @@ function recentDelta(p: Player): number {
   return series.length >= 2 ? series[series.length - 1] - series[0] : 0;
 }
 
+/**
+ * Cómo se llama ese delta: "LP" o "LP netos".
+ *
+ * Decía "pts" y hay que sacarlo: desde que existe la liga, "puntos" es SU
+ * unidad —victoria 1, derrota −0,75— y un "▲ 72 pts" al lado de un "+7,25" de
+ * la liga son dos cosas completamente distintas con el mismo nombre.
+ *
+ * Y "pts" tampoco era necesario. Nació de un problema real: el delta es de
+ * rankScore, no de LP crudo, así que etiquetarlo "LP" a secas mostraba cosas
+ * como "Platino 3 · 64 LP → Platino 2 · 36 LP ▲72 LP", un supuesto avance de
+ * 72 al lado de un número que visiblemente bajó. Pero rankScore sube de a 100
+ * por división y 400 por tier: es la MISMA escala que el LP. La diferencia son
+ * LP netos y punto. El perfil ya lo decía así; esto quedó atrás.
+ */
+function unidadDelta(p: Player): string {
+  const primero = p.lpHistory[0];
+  const ultimo = p.lpHistory[p.lpHistory.length - 1];
+  const cruzo = primero && ultimo && (primero.tier !== ultimo.tier || primero.division !== ultimo.division);
+  return cruzo ? "LP netos" : "LP";
+}
+
 function streakMagnitude(p: Player): number {
   const s = currentStreak(p.matches);
   if (!s) return 0;
@@ -404,7 +425,7 @@ export function LadderTable({
                         la forma de la curva es idéntica (la geometría
                         normaliza min-max igual), pero así el 0 existe y la
                         línea punteada marca de dónde salió — que es
-                        exactamente lo que dice el "▲ N pts" de abajo. */}
+                        exactamente lo que dice el "▲ N LP" de abajo. */}
                     <SparkChart
                       values={sparkRelativa}
                       width={230}
@@ -419,7 +440,7 @@ export function LadderTable({
                         por "progreso reciente", solo que nunca se mostraba. */}
                     {spark.length >= 2 && (
                       <span className={`spark-delta ${recentDelta(p) >= 0 ? "up" : "down"}`}>
-                        {recentDelta(p) >= 0 ? "▲" : "▼"} {Math.abs(recentDelta(p))} pts
+                        {recentDelta(p) >= 0 ? "▲" : "▼"} {Math.abs(recentDelta(p))} {unidadDelta(p)}
                       </span>
                     )}
                   </span>

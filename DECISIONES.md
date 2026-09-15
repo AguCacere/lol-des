@@ -109,6 +109,19 @@ No cuesta una consulta más: esas partidas YA se traen todas para armar la tabla
 seis personas por una semana brava de cuarenta partidas son unos 240 objetos, que
 comprimidos no llegan a diez kilobytes, una vez cada cuatro minutos por la caché del CDN.
 
+**"pts" no se usa más para LP: es la unidad de la LIGA.** El delta del sparkline decía
+"▲ 72 pts" al lado de un "+7,25" de la liga: dos escalas completamente distintas con el
+mismo nombre, en la misma app. "pts" había nacido de un problema real —el delta es de
+`rankScore`, no de LP crudo, y etiquetarlo "LP" a secas mostraba "Platino 3 · 64 LP →
+Platino 2 · 36 LP ▲72 LP", un avance de 72 al lado de un número que visiblemente bajó—
+pero la salida no era inventar una unidad: `rankScore` sube de a 100 por división y 400
+por tier, o sea la MISMA escala que el LP, así que la diferencia son **LP netos** y punto.
+El perfil ya lo decía así desde antes; faltaba en el ladder, en el tooltip del gráfico y en
+la pestaña Equipo. Verificado que la etiqueta larga entra a 1280, 820 y 390px.
+
+Lo único que sigue diciendo "pts" es la maestría de campeón, que son puntos de maestría de
+Riot y no tienen nada que ver con ninguna de las dos escalas.
+
 **"Hace un día" y "ayer" NO son lo mismo, y confundirlos ya rompió dos cosas.**
 `formatRelativeDate` hacía `(ahora − entonces) / 24h`, o sea que medía tiempo
 TRANSCURRIDO y lo escribía como si fuera una casilla del calendario. Una partida del lunes
@@ -122,6 +135,13 @@ sábado se llamaba viernes. Dos veces el mismo error en el mismo repo, así que 
 **todo lo que diga "hoy", "ayer" o un día de la semana se cuenta por día CALENDARIO
 argentino** —restar el huso y truncar—, nunca por milisegundos transcurridos. Lo que sí va
 por tiempo transcurrido es "actualizado hace 6 min", que mide otra cosa.
+
+**Y toda fecha se escribe en hora argentina, siempre.** Auditado: las doce llamadas a
+`toLocaleDateString` de la app declaran huso. Tres no lo hacían —el rango de la pestaña
+Equipo, las puntas del gráfico de LP y su tooltip— y usaban el reloj del que mira, así que
+una partida de las 22 de un 30 se escribía "1 sep" para cualquiera con el reloj adelantado.
+Las de `lib/liga.ts` que formatean en `UTC` no son excepción: ahí se le resta
+`ARG_OFFSET_MS` al instante ANTES de formatear, que es la misma cuenta por otro camino.
 
 **`es-AR` sin `hour12` devuelve DOCE horas.** `toLocaleTimeString("es-AR", { hour:
 "2-digit", minute: "2-digit" })` parece obvio y da `"09:14 p. m."` en Chrome, mientras el

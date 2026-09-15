@@ -135,7 +135,11 @@ export async function GET(req: Request) {
       biggestLpGain = {
         ...playerRef(puuid),
         delta,
-        unit: crossedBoundary ? "pts" : "LP",
+        // "LP netos" y no "pts": desde que existe la liga, "puntos" es la
+        // unidad de la liga (victoria 1, derrota −0,75) y dos escalas con el
+        // mismo nombre en la misma app se confunden solas. Ver unidadDelta en
+        // components/LadderTable.tsx.
+        unit: crossedBoundary ? "LP netos" : "LP",
         lpScores,
         from: { tier: tierKeyFromRiot(first.tier), division: divisionFromRiot(first.division), lp: first.lp },
         to: { tier: tierKeyFromRiot(last.tier), division: divisionFromRiot(last.division), lp: last.lp },
@@ -281,7 +285,7 @@ function buildPlainText(d: Omit<TeamDigest, "windowStart" | "windowEnd" | "plain
   if (r.partidas > 0) {
     const wr = Math.round((100 * r.victorias) / r.partidas);
     lines.push(
-      `El grupo: ${r.partidas} partidas (${r.victorias}V-${r.derrotas}D, ${wr}%) entre ${r.jugadores} jugadores · ${r.lpNeto >= 0 ? "+" : ""}${r.lpNeto} pts netos`
+      `El grupo: ${r.partidas} partidas (${r.victorias}V-${r.derrotas}D, ${wr}%) entre ${r.jugadores} jugadores · ${r.lpNeto >= 0 ? "+" : ""}${r.lpNeto} LP netos`
     );
   }
   if (d.biggestLpGain) {

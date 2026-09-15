@@ -79,9 +79,16 @@ function horaDe(iso: string): string {
   });
 }
 
-/** "22 ago" — la fecha de una punta del gráfico, sin año: la ventana nunca cruza uno. */
+/**
+ * "22 ago" — la fecha de una punta del gráfico, sin año: la ventana nunca cruza
+ * uno. En hora argentina, como todo lo que escribe una fecha en esta app.
+ */
 function fechaCorta(iso: string): string {
-  return new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+  return new Date(iso).toLocaleDateString("es-AR", {
+    day: "numeric",
+    month: "short",
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
 }
 
 export function PlayerProfile({
@@ -250,12 +257,19 @@ export function PlayerProfile({
     // two snapshots still reads as a real gain instead of a fabricated drop.
     const prev = i > 0 ? p.lpHistory[i - 1] : null;
     const stepDelta = prev ? lpScores[i] - lpScores[i - 1] : null;
-    const stepUnit = prev && (prev.tier !== h.tier || prev.division !== h.division) ? "pts" : "LP";
+    // "LP netos" y no "pts", por lo mismo que el titular de arriba: desde que
+    // existe la liga, "puntos" es SU unidad y dos escalas con el mismo nombre
+    // en la misma app se confunden solas.
+    const stepUnit = prev && (prev.tier !== h.tier || prev.division !== h.division) ? "LP netos" : "LP";
     return (
       <>
         <div className="spark-tooltip-head">
           <span className="date">
-            {new Date(h.capturedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+            {new Date(h.capturedAt).toLocaleDateString("es-AR", {
+              day: "2-digit",
+              month: "short",
+              timeZone: "America/Argentina/Buenos_Aires",
+            })}
           </span>
           {stepDelta !== null && stepDelta !== 0 && (
             <span className={`spark-tooltip-delta ${stepDelta > 0 ? "up" : "down"}`}>
