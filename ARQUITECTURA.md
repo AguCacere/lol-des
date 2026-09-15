@@ -243,6 +243,9 @@ pestañas.
   historial `.liga-partida*`, una línea de tiempo cuyos nodos cuelgan del mismo hilo que
   baja del avatar del jugador), y al pie la vitrina de campeones —que no tiene
   componente propio: vive adentro de `LigaSemanal` con las clases `.vitrina*`—.
+  Desde el pie de la carrera se abre `LigaDiaADia`, la grilla de jugadores × días
+  con lo que hizo cada uno y en qué puesto cerró (dos vistas, un toggle). Sale del
+  mismo `porDia` que dibuja la carrera, así que no pide nada al servidor.
   Desde la vitrina se abre `LigaTorneo`, el cartel de "cómo terminó" una semana
   vieja: va encima y no en una pantalla propia porque es una foto de diez segundos
   y mandar a otra página obliga a irse de la liga y volver.

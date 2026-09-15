@@ -98,6 +98,30 @@ empezaron antes del corte.
 
 ## Riot
 
+**La carrera y la grilla del día a día no son lo mismo, y por eso conviven.** El gráfico
+da la FORMA —quién se escapó, cuándo se cruzaron— pero no tiene los números: no hay manera
+de leer ahí "el martes hizo +2,25". La grilla es la cuenta. El dato es el mismo `porDia`
+en los dos casos, así que no hay consulta nueva: lo único que faltaba era escribirlo.
+
+Y por eso la grilla va detrás de un botón y no abierta: dos formas del mismo dato
+compitiendo en la misma pantalla es exactamente lo que hace que una sección se sienta
+recargada. Mismo cartel que "cómo terminó" —`.torneo-fondo` / `.torneo-caja`— porque es el
+mismo gesto y dos carteles distintos para lo mismo harían parecer que la app la hicieron
+dos personas.
+
+**Son DOS vistas de la misma grilla, y la que contesta la pregunta es la segunda.**
+"Puntos" muestra cuánto sumó cada uno ese día; "Puesto", en qué posición cerró. La segunda
+es la que de verdad cuenta cómo se fue moviendo: se lee una fila de izquierda a derecha y
+se ve a alguien subir de 6º a 1º. Un toggle y no las dos juntas — en una celda de treinta
+píxeles, dos números apilados no son más información, son ruido.
+
+**Y acá una tabla SÍ es la forma correcta.** La sección se rehízo entera para dejar de
+parecer una planilla, pero esto compara las mismas celdas entre personas Y entre días, que
+es justo para lo que sirve una tabla y para lo que no sirve una lista (ver "tabla contra
+lista" más arriba). Con su propio `overflow-x` —siete días más el nombre no entran en un
+teléfono— y la columna de nombres pegada a la izquierda: sin eso uno arrastra hasta el
+sábado y ya no sabe de quién es la fila.
+
 **Los títulos de la semana son UNO por persona, y esa es toda la idea.** El problema
 más grande que tenía la liga no era técnico: son cinco o seis jugando por UN premio, así
 que el miércoles ya hay tres que no llegan al podio y para esos tres el jueves, el viernes

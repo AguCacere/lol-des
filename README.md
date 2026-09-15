@@ -74,7 +74,9 @@ sí; si no llega nadie, la semana cierra sin premio.
 En pantalla la liga son cuatro bloques, de arriba abajo: el **panel de estado**
 (cuánto falta para que cierre, los siete días de la semana y en cuál estamos, y si el
 que va primero cobra o qué le falta), **la carrera** —los puntos de todos día por día
-en un solo gráfico, un color por persona, clic en un nombre para seguirlo—, **la
+en un solo gráfico, un color por persona, clic en un nombre para seguirlo; desde su
+pie se abre **el día por día**, la grilla con los números que el gráfico no puede
+mostrar y en qué puesto cerró cada uno cada día—, **la
 tabla** y, al pie, **la vitrina de campeones**: el vigente con su foto y con cuánta
 gente compitió, y las semanas anteriores abajo.
 

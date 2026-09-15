@@ -5,6 +5,7 @@ import { PlayerAvatar } from "./PlayerAvatar";
 import { LigaCarrera } from "./LigaCarrera";
 import { LigaEstado } from "./LigaEstado";
 import { LigaTorneo } from "./LigaTorneo";
+import { LigaDiaADia } from "./LigaDiaADia";
 import { InfoTip } from "./InfoTip";
 import { fetchConClave } from "./Cerradura";
 import { TierEmblem } from "./TierEmblem";
@@ -184,6 +185,8 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
   const [abierta, setAbierta] = useState<string | null>(null);
   /** Qué semana vieja está abierta en el cartel de "cómo terminó". Null = ninguna. */
   const [torneo, setTorneo] = useState<string | null>(null);
+  /** Si está abierta la grilla del día a día. */
+  const [diaADia, setDiaADia] = useState(false);
 
   /**
    * `forzar` saltea la caché del CDN con un parámetro que cambia. Hace falta
@@ -435,6 +438,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
           {d.dias && d.dias.length >= 2 && (
             <LigaCarrera
               dias={d.dias}
+              onVerDiaADia={() => setDiaADia(true)}
               corredores={d.tabla
                 .filter((f) => !f.sinJugar && f.porDia && f.porDia.length >= 2)
                 .map((f) => ({
@@ -848,6 +852,20 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
           </div>
         );
       })()}
+
+      {/* La grilla del día a día va ACÁ, al nivel de la sección, y no adentro
+          del bloque de la vitrina como estaba primero: ese bloque solo se
+          dibuja si hay semanas cerradas, así que con la liga recién arrancada
+          el botón de la carrera abría la nada. */}
+      {diaADia && d.dias && (
+        <LigaDiaADia
+          dias={d.dias}
+          corridos={d.diasCorridos ?? 1}
+          rango={rangoTexto}
+          tabla={d.tabla}
+          onCerrar={() => setDiaADia(false)}
+        />
+      )}
 
       {/* El pie dice quiénes están en carrera. Los que todavía no jugaron se
           cuentan aparte a propósito: es la parte que dice "esto no está

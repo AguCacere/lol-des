@@ -129,9 +129,16 @@ export function LigaCarrera({
   corredores,
   dias,
   cerrada = false,
+  onVerDiaADia,
 }: {
   corredores: CorredorCarrera[];
   dias: string[];
+  /**
+   * Abre la grilla del día a día. Opcional: el cartel de "cómo terminó" también
+   * dibuja esta carrera y ahí no va —ya estás adentro de un cartel, y abrir uno
+   * arriba de otro es perderse—.
+   */
+  onVerDiaADia?: () => void;
   /**
    * Si la semana ya terminó. Solo cambia el TIEMPO VERBAL del titular: el
    * mismo gráfico se usa para la semana en curso y para una vieja en el cartel
@@ -237,6 +244,17 @@ export function LigaCarrera({
         </strong>
         <span className="carrera-pie">
           Puntos acumulados al cierre de cada día · clic en un nombre para seguirlo
+          {/* El botón sale del pie y no de un renglón propio: es una segunda
+              forma de mirar ESTE gráfico, no otra sección. El gráfico da la
+              forma; ahí adentro están los números que acá no se pueden leer. */}
+          {onVerDiaADia && (
+            <>
+              {" · "}
+              <button type="button" className="carrera-ver" onClick={onVerDiaADia}>
+                ver los números
+              </button>
+            </>
+          )}
         </span>
       </div>
 
