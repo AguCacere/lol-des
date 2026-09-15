@@ -188,7 +188,7 @@ function ClashMatchCard({ m, ddragonVersion }: { m: ClashMatch; ddragonVersion: 
   return (
     <div className={`clash-match${outcome !== "mixed" ? ` ${outcome}` : ""}`}>
       <div className="clash-match-head">
-        <span>{new Date(m.playedAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span>
+        <span>{new Date(m.playedAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false })}</span>
         {outcome !== "mixed" && (
           <span className={`clash-match-result ${outcome}`}>{outcome === "w" ? "VICTORIA" : "DERROTA"}</span>
         )}

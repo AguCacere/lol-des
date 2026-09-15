@@ -109,6 +109,13 @@ No cuesta una consulta más: esas partidas YA se traen todas para armar la tabla
 seis personas por una semana brava de cuarenta partidas son unos 240 objetos, que
 comprimidos no llegan a diez kilobytes, una vez cada cuatro minutos por la caché del CDN.
 
+**`es-AR` sin `hour12` devuelve DOCE horas.** `toLocaleTimeString("es-AR", { hour:
+"2-digit", minute: "2-digit" })` parece obvio y da `"09:14 p. m."` en Chrome, mientras el
+resto de la app escribe 24 ("cierra 23:30", que sale de `horaCorta` en lib/liga.ts y
+formatea a mano). Estaba mal en tres lugares —el perfil, el arranque de la liga y el
+historial de Clash— y lo agarró una medición del DOM, no una lectura: en el código las
+tres líneas se ven bien. **Si se escribe una hora nueva, va con `hour12: false`.**
+
 **Y cada partida muestra CUÁNTO DURÓ, que es lo que hace auditable el filtro de
 remakes.** El filtro vive en el servidor (`DURACION_MINIMA_S`) y es invisible: hasta que
 la duración estuvo en pantalla, había que creerle. Ahora se verifica de un barrido

@@ -1758,6 +1758,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .match-stats .kda{font-family:var(--font-stat); font-weight:800; font-size:13.5px; font-variant-numeric:tabular-nums;}
 .match-stats .kda .neu{color:var(--text-muted); font-weight:400;}
 .match-stats .extra{color:var(--text-muted); font-size:10.5px; display:block; margin-top:2px;}
+/* La hora, pegada al "hoy"/"ayer" y un escalón más apagada: el "hoy" dice de
+   cuándo es y la hora afina. Con cinco partidas del mismo día las cinco decían
+   "hoy" y no se sabía ni cuál fue primero. Más apagada porque sigue siendo el
+   dato de menor jerarquía de una línea que ya es la de menor jerarquía. */
+.match-hora{
+  font-style:normal; margin-left:5px; opacity:0.62;
+  font-variant-numeric:tabular-nums;
+}
 .match-chevron{width:14px; height:14px; color:var(--text-muted); transition:transform .15s ease; flex:none;}
 .match-row.is-expanded .match-chevron{transform:rotate(180deg); color:var(--accent);}
 

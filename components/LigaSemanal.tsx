@@ -127,8 +127,12 @@ const dia = (iso: string) =>
 /** La hora de un instante, en argentino: "23:30". */
 const horaDe = (iso: string) =>
   new Date(iso).toLocaleTimeString("es-AR", {
+    // hour12 explícito: `es-AR` sin esto devuelve 12 horas con "p. m." —
+    // medido en Chrome, "09:14 p. m."— mientras el resto de la app escribe 24
+    // ("cierra 23:30"). Dos relojes distintos en la misma pantalla.
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
     timeZone: "America/Argentina/Buenos_Aires",
   });
 

@@ -54,6 +54,31 @@ const PROFILE_TABS: { key: ProfileTabKey; label: string }[] = [
   { key: "campeones", label: "Campeones" },
 ];
 
+/**
+ * "23:14" — a qué hora arrancó esa partida, en hora argentina.
+ *
+ * Va pegada al "hoy" / "ayer" que ya estaba. Sola, la fecha relativa contesta
+ * "cuándo, más o menos" y con cinco partidas del mismo día las cinco dicen
+ * "hoy": no hay forma de saber cuál fue primero ni si esa derrota fue a las
+ * cuatro de la tarde o a las tres de la mañana, que es justo lo que explica
+ * media hora mala.
+ *
+ * Forzada a Buenos Aires y no al reloj del que mira, igual que todo lo de la
+ * liga: el grupo está todo acá, y una partida que aparece a otra hora según
+ * desde dónde se abra la app es peor que no tener la hora.
+ */
+function horaDe(iso: string): string {
+  return new Date(iso).toLocaleTimeString("es-AR", {
+    // hour12 explícito: `es-AR` sin esto devuelve 12 horas con "p. m." —
+    // medido en Chrome, "09:14 p. m."— mientras el resto de la app escribe 24
+    // ("cierra 23:30"). Dos relojes distintos en la misma pantalla.
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
+}
+
 /** "22 ago" — la fecha de una punta del gráfico, sin año: la ventana nunca cruza uno. */
 function fechaCorta(iso: string): string {
   return new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
@@ -583,7 +608,10 @@ export function PlayerProfile({
                             {m.a}
                           </div>
                           <span className="extra">{m.gold} oro/min</span>
-                          <span className="extra match-date">{formatRelativeDate(m.playedAt)}</span>
+                          <span className="extra match-date">
+                            {formatRelativeDate(m.playedAt)}{" "}
+                            <i className="match-hora">{horaDe(m.playedAt)}</i>
+                          </span>
                         </div>
                         <svg
                           className="match-chevron"
