@@ -36,6 +36,10 @@ Tiene además dos cosas marcadas como **probadas y descartadas** (la escalera de
 "una en color y el resto grises" de la carrera): antes de reimplementar algo que parece
 obvio, buscar si ya está ahí.
 
+**`PENDIENTES.md`** es lo otro: lo que quedó a medias y no se deduce leyendo el código —
+migraciones sin correr, arreglos de datos abiertos, ideas aprobadas que no se empezaron.
+Leerlo al arrancar una sesión nueva. Cuando algo de ahí se termina, se borra de ahí.
+
 ## Cómo se habla
 
 Castellano rioplatense, en los comentarios y en la pantalla. De vos, directo, sin
@@ -96,6 +100,7 @@ npm run build            # el que vale antes de commitear
 | Una ruta de API o un módulo de `lib/` | `ARQUITECTURA.md` |
 | El esquema, la caché, un huso horario o un gráfico | `DECISIONES.md` |
 | Algo que se ve o se usa desde afuera | `README.md` |
+| Terminás algo que estaba pendiente, o dejás algo a medias | `PENDIENTES.md` |
 
 Un documento que miente es peor que no tenerlo: el `README.md` viejo mandaba a buscar
 un `lib/mock-data.ts` que no existe hace meses.
