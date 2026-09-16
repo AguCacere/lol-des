@@ -23,6 +23,35 @@ Escrito el 16 de septiembre de 2026.
 6. **Mejoras en la base**: darle acceso a Claude para que audite tablas y columnas.
 7. **Optimizar el cron** para que los datos de cada 15 minutos sean los mejores posibles.
 
+## Lo que conviene meter en ESTE torneo, y lo que no
+
+Son siete cosas a la vez, y hace tres días todavía no estaba hablado si iba a haber una
+tercera semana. Si arranca todo junto, el torneo empieza tarde o empieza roto. La lista de
+arriba es el destino; esto es lo que entra en el primer viaje.
+
+**Va:**
+
+- **Bot v1** (los cuatro comandos de lectura) y la columna `discord_id`.
+- **Un solo efecto: robar un punto.** Casi no cuesta —`liga_ajustes` ya está hecho, es una
+  fila en negativo y otra en positivo— pero obliga a armar el circuito entero: alguien
+  tipea en Discord, el bot escribe en Supabase, la app lo muestra. Con ese camino andando,
+  los otros dos efectos son **agregar casos, no inventar nada**.
+- **Dos semanas, como dos semanas que se suman.** Reusa el motor entero y de regalo el que
+  arranca mal tiene un lunes para volver a empezar, que es el problema de siempre.
+- **La regla del no-duo**, por honor. Escribirla y listo.
+
+**Queda para el siguiente:** el baneo de campeón, lo de los mains, el rebranding y el rework
+de la página.
+
+El motivo no es de tiempo, es de información: **puede que la mecánica no divierta.** Puede
+que se roben un punto dos veces y se aburran. Mejor enterarse habiendo gastado una tarde que
+tres semanas — y si engancha, se construye el resto sabiendo que vale la pena.
+
+**Y hay una decisión que no es técnica y que define si el sistema sirve o rompe: cómo se
+ganan los "te cojo".** Esa la tiene que resolver el grupo antes de que se escriba una línea.
+Si los gana el que va ganando, el puntero se escapa más y el invento hace exactamente lo
+contrario de lo que se buscaba.
+
 ## Lo que toca cada cosa
 
 ### Dos semanas en vez de una
