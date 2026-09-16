@@ -39,6 +39,8 @@ interface Fila {
   /** El acumulado al cierre de cada día, para la carrera. Opcional por la ventana de caché del CDN. */
   porDia?: number[];
   entroTarde: string | null;
+  /** Ajuste a mano del puntaje de la semana. Ya viene sumado en `puntos`; está acá para poder decir por qué. Opcional por la ventana de caché del CDN. */
+  ajuste?: { puntos: number; motivo: string } | null;
   /** Con qué racha viene DENTRO de la semana. Opcional: una respuesta anterior al deploy no lo trae. */
   racha?: { resultado: "W" | "L"; cantidad: number } | null;
   /** Con qué campeón y en qué línea jugó la semana. Opcionales: una respuesta anterior al deploy no los trae. */
@@ -654,6 +656,17 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                             weekday: "long",
                             timeZone: "America/Argentina/Buenos_Aires",
                           })}
+                        </span>
+                      )}
+                      {/* El ajuste a mano, pegado al nombre y con el motivo a
+                          la vista. Va acá y no escondido en el desglose porque
+                          es lo único del puntaje que NO salió de una partida:
+                          un número que se movió por fuera de la Grieta y no
+                          dice por qué es justo lo que hace que alguien
+                          desconfíe de toda la tabla. */}
+                      {f.ajuste && (
+                        <span className="jug-ajuste" title={`Ajuste acordado por el grupo: ${f.ajuste.motivo}`}>
+                          {puntajeTexto(f.ajuste.puntos)} · {f.ajuste.motivo}
                         </span>
                       )}
                     </span>

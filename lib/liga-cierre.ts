@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendDiscordNotification } from "./discord";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "./refresh";
-import { claveDeSemana, type DetalleSemanal, diasCorridos, esSemanaDeLiga, etiquetasDeDias, type FilaDelDia, type FilaLiga, ganadorDe, inicioDeSemana, mensajeDeCierre, mensajeDelDia, puntajeDe, puntosPorDia, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot, ventanaDe, ventanaUltimoDia } from "./liga";
+import { type AjusteLiga, claveDeSemana, type DetalleSemanal, diasCorridos, esSemanaDeLiga, etiquetasDeDias, type FilaDelDia, type FilaLiga, ganadorDe, inicioDeSemana, mensajeDeCierre, mensajeDelDia, puntajeDe, puntosPorDia, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot, ventanaDe, ventanaUltimoDia } from "./liga";
 import { repartirTitulos } from "./liga-titulos";
 
 /**
@@ -205,7 +205,19 @@ export async function tablaDeSemanaEnBase(
     profileIconUrl: null,
     desde: opciones.todosLosTrackeados ? null : s.liga_desde ? new Date(s.liga_desde) : null,
   }));
-  return tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], desde, fin, recordPorPuuid);
+  // Los MISMOS ajustes que lee /api/liga. Si el cierre no los aplicara, el bot
+  // anunciaría un podio distinto del que la gente vio toda la semana en la
+  // tabla — el mismo motivo por el que el filtro de remakes está en los dos
+  // lados.
+  const { data: ajustesRows } = await supabase
+    .from("liga_ajustes")
+    .select("puuid, puntos, motivo")
+    .eq("semana", claveDeSemana(desde));
+  const ajustes = new Map<string, AjusteLiga>(
+    (ajustesRows ?? []).map((a) => [a.puuid as string, { puntos: Number(a.puntos), motivo: a.motivo as string }]),
+  );
+
+  return tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], desde, fin, recordPorPuuid, ajustes);
 }
 
 /**

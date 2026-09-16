@@ -81,6 +81,13 @@ en el momento en que se planta. Cinco minutos seguidos sin ganar nada y esa part
 cuenta. Al que se desconecta de verdad lo agarra igual. Al que se queda jugando pero
 trollea, no: ese es indistinguible del que juega mal, y el que juega mal tiene que pagar.
 
+**Los ajustes a mano.** Lo único que puede mover un puntaje sin ser una partida: una
+penalización o un premio que acuerda el grupo, por semana y por persona (tabla
+`liga_ajustes`). Aparece al lado del nombre con el motivo escrito —"−2 · cambió de
+cuenta"— y nunca escondido: un número que se movió por fuera de la Grieta tiene que decir
+por qué. No toca el récord de victorias y derrotas ni los mínimos, solo el puntaje. La
+semana siguiente arranca limpia sola.
+
 Para llevarse el premio no alcanza con ir primero: hay que jugar **10 partidas en la
 semana** y **3 el último día**. Es contra el que agarra ventaja el martes y no juega
 más para no arriesgarla. Si el puntero no llega a los mínimos, cobra el primero que

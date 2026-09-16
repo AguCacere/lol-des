@@ -401,6 +401,31 @@ movieron dos; y el valor de cada partida se indexa **por `match_id` y no por pos
 —antes era `valeCadaUna[suyas.length - 1 - i]`, y con una sola anulada en el medio todo
 lo anterior quedaba corrido un lugar—.
 
+**Un ajuste a mano va en su propia tabla, nunca en `matches`.** Cuando el grupo votó
+restarle 2 puntos a alguien por cambiar de cuenta a mitad de semana, la salida rápida era
+meterle dos derrotas falsas. Hay que no hacerlo nunca: `matches` alimenta también el
+ladder, el KDA, los récords personales, los títulos del cierre y las cargadas del bot, así
+que un ajuste de UNA semana le ensuciaría el historial para siempre y el bot terminaría
+cargando a alguien por una derrota que no existió.
+
+Va en `liga_ajustes`, con PK `(semana, puuid)`. **Por semana y no como columna de
+`summoners`** porque una penalización es de una semana puntual: así la siguiente arranca
+limpia sola, sin depender de que alguien se acuerde de borrarla. `motivo` es `not null` y
+se muestra al lado del nombre —"−2 · cambió de cuenta"—, con el color de alerta y no en
+itálica apagada como el resto de las aclaraciones de la fila: es el único dato del puntaje
+que no salió de una partida, y un número movido por fuera de la Grieta que no dice por qué
+es lo que hace que alguien desconfíe de toda la tabla.
+
+**El ajuste entra también en la curva, y en los siete días.** `porDia` se corre entero en
+paralelo. Si el gráfico dibujara el puntaje sin ajustar, la línea terminaría dos puntos
+arriba del número que tiene al lado — la misma contradicción que el código ya evita entre
+`puntosDeSecuencia` y la curva. Y se corre parejo en vez de meterle un escalón a un día
+porque la penalización no pasó un martes: vale para toda la semana.
+
+**Lo que el ajuste NO toca**: victorias, derrotas, los mínimos (10 semanales y 3 el último
+día) y `sinJugar`. Al que lo penalizaron sin haber jugado le queda "−2" y "todavía no
+jugó" al mismo tiempo, que suena raro pero es exactamente lo que pasó.
+
 **Las semanas ya cerradas no cambian.** El cierre guarda su `resumen` y la vitrina lo lee
 de ahí, así que una liga que el bot ya anunció se queda con los números que se anunciaron
 —ver "un resultado anunciado es un HECHO"—. Para recalcular una a propósito está el POST

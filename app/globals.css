@@ -3862,6 +3862,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .jug-meta-linea{display:inline-flex; align-items:center; gap:4px;}
 .jug-meta-linea img{width:12px; height:12px; opacity:0.75;}
 .jug-entro{font-style:italic; font-weight:500; opacity:0.75; cursor:help;}
+/* El ajuste a mano. Es el único dato de la fila que no salió de una partida,
+   así que NO va en itálica apagada como los de al lado: va con el color de
+   alerta y un borde, para que se lea como "acá pasó algo aparte" y no como un
+   detalle más del jugador. */
+.jug-ajuste{
+  font-weight:700; font-size:10px; white-space:nowrap; cursor:help;
+  color:var(--critical); border:1px solid color-mix(in srgb, var(--critical) 35%, transparent);
+  border-radius:5px; padding:1px 6px; letter-spacing:0.01em;
+}
 .jug-apagado{font-size:10.5px; color:var(--text-muted); opacity:0.6; white-space:nowrap; font-style:italic;}
 
 /* — Cómo le fue. Va en la MISMA columna que el nombre, como tercera altura:

@@ -235,6 +235,21 @@ export function claveDeSemana(inicio: Date): string {
   return new Date(inicio.getTime() - ARG_OFFSET_MS).toISOString().slice(0, 10);
 }
 
+/**
+ * Un ajuste a mano del puntaje de una semana (tabla `liga_ajustes`). Lo único
+ * que mueve un puntaje sin ser una partida.
+ *
+ * El `motivo` no es opcional y se muestra siempre: si un número se mueve por
+ * fuera de lo que pasó en la Grieta, la pantalla tiene que decir por qué. Es
+ * el mismo criterio que la partida anulada que dice "no contó" en vez de
+ * esconderse.
+ */
+export interface AjusteLiga {
+  /** Negativo castiga, positivo premia. */
+  puntos: number;
+  motivo: string;
+}
+
 /** Una foto de rango, tal como sale de lp_snapshots. */
 export interface Snapshot {
   puuid: string;
@@ -323,6 +338,12 @@ export interface FilaLiga {
   porDia: number[];
   /** Si entró después de que la semana arrancó, cuándo. Null si compitió desde el principio. */
   entroTarde: string | null;
+  /**
+   * El ajuste a mano de esta semana, si tiene. Ya está SUMADO en `puntos` —
+   * viaja aparte solo para poder mostrarlo, porque un puntaje que no sale de
+   * las partidas tiene que decir de dónde salió.
+   */
+  ajuste?: AjusteLiga | null;
   /** Con qué racha viene dentro de la semana. Null si no jugó. */
   racha: { resultado: "W" | "L"; cantidad: number } | null;
   /** Con qué campeón y en qué línea jugó la semana. Null si no jugó. */
@@ -698,6 +719,8 @@ export function tablaDeLaSemana(
   inicio: Date,
   fin: Date,
   recordPorPuuid: Map<string, RecordSemanal>,
+  /** Los ajustes a mano de ESA semana, por puuid. Ver AjusteLiga. */
+  ajustes?: Map<string, AjusteLiga>,
 ): FilaLiga[] {
   const desde = inicio.getTime();
   const hasta = fin.getTime();
@@ -738,7 +761,14 @@ export function tablaDeLaSemana(
     // El puntaje y la curva salen de la MISMA pasada por la secuencia. Si el
     // número contara la racha y el gráfico no, la fila se contradiría sola.
     const cuenta = puntosDeSecuencia(secuencia);
-    const puntos = MODO_LIGA === "puntos" ? cuenta.total : victorias - derrotas;
+    const ajuste = ajustes?.get(p.puuid) ?? null;
+    const puntos = (MODO_LIGA === "puntos" ? cuenta.total : victorias - derrotas) + (ajuste?.puntos ?? 0);
+    // El ajuste también entra en la curva, y en TODOS los días: si el gráfico
+    // dibujara el puntaje sin ajustar, la línea terminaría dos puntos arriba
+    // del número que tiene al lado. Vale para toda la semana —no es algo que
+    // pasó un martes— así que corre la curva entera para abajo en paralelo,
+    // sin inventarle un escalón a ningún día.
+    const porDiaConAjuste = ajuste ? porDia.map((v) => v + ajuste.puntos) : porDia;
     const entroTarde = suDesde > desde ? new Date(suDesde).toISOString() : null;
     const rango = ultima
       ? { tier: tierKeyFromRiot(ultima.tier), division: divisionFromRiot(ultima.division), lp: ultima.lp }
@@ -748,7 +778,7 @@ export function tablaDeLaSemana(
       // Sin una sola foto no hay nada que medir, pero igual va la línea
       // plana en 0: un gráfico vacío parece roto, y "no se movió" es
       // información.
-      filas.push({ ...p, puntos, netas: victorias - derrotas, lpNeto: 0, lpRecortado: 0, victorias, derrotas, racha, champion, linea, ultimas, ultimoDia, hoy, detalle, habilitado, sinJugar: victorias + derrotas === 0, rango, porDia, entroTarde });
+      filas.push({ ...p, puntos, netas: victorias - derrotas, lpNeto: 0, lpRecortado: 0, victorias, derrotas, racha, champion, linea, ultimas, ultimoDia, hoy, detalle, habilitado, sinJugar: victorias + derrotas === 0, rango, porDia: porDiaConAjuste, entroTarde, ajuste });
       continue;
     }
 
@@ -771,8 +801,9 @@ export function tablaDeLaSemana(
       habilitado,
       sinJugar: victorias + derrotas === 0,
       rango,
-      porDia,
+      porDia: porDiaConAjuste,
       entroTarde,
+      ajuste,
     });
   }
 

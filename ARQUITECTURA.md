@@ -220,6 +220,11 @@ propia**, solo junta lo que devuelven los módulos de `lib/`.
   Solo inserta si algo cambió respecto de la fila anterior.
 - **`champion_mastery`** — la maestría de Riot por campeón.
 - **`coach_reports`** — el caché de los informes de Claude.
+- **`liga_ajustes`** — los ajustes a mano del puntaje, PK `(semana, puuid)`: `puntos`
+  (negativo castiga) y `motivo`, que es not null porque se muestra en pantalla. Lo leen
+  `/api/liga` y `lib/liga-cierre.ts`, y las dos se lo pasan a `tablaDeLaSemana`, que lo
+  suma a `puntos` y corre `porDia` en paralelo. Si solo lo aplicara una de las dos, el
+  podio del bot diría algo distinto de la tabla.
 - **`liga_semanas`** — las semanas cerradas de la liga: `semana` (el lunes, PK),
   `ganador_puuid`, `ganador_label`, `puntos` (el puntaje con el que ganó, que es lo
   que decide), `lp_neto` (contexto, ya no se muestra), `jugadores` y `resumen`

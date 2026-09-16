@@ -232,8 +232,34 @@ create table if not exists liga_semanas (
   cerrada_at    timestamptz not null default now()
 );
 
+-- Los ajustes a mano del puntaje de la liga: lo único que puede mover un
+-- puntaje sin que sea una partida.
+--
+-- Nace de una penalización acordada por el grupo (alguien cambió de cuenta a
+-- mitad de semana y se votó restarle 2). La tentación era resolverlo metiendo
+-- derrotas falsas en `matches`, y hay que no hacerlo nunca: esa tabla alimenta
+-- también el ladder, el KDA, los récords, los títulos y las cargadas del bot,
+-- así que un ajuste de una semana le ensuciaría el historial para siempre.
+--
+-- Va POR SEMANA y no como columna de `summoners` porque una penalización es de
+-- una semana puntual; la semana siguiente arranca limpia sola, sin que haya que
+-- acordarse de borrar nada.
+--
+-- `motivo` es not null a propósito: un −2 que aparece sin explicación es
+-- exactamente lo que hace que alguien desconfíe del cálculo, y el motivo se
+-- muestra en pantalla al lado del nombre.
+create table if not exists liga_ajustes (
+  semana     date not null,            -- el LUNES de esa semana, igual que liga_semanas
+  puuid      text not null references summoners(puuid) on delete cascade,
+  puntos     numeric(5,2) not null,    -- negativo castiga, positivo premia. Decimal como el resto del puntaje
+  motivo     text not null,
+  creado_at  timestamptz not null default now(),
+  primary key (semana, puuid)
+);
+
 -- RLS: estas tablas se leen/escriben solo desde el backend (service role),
 -- nunca directo desde el browser, así que se deja cerrado por defecto.
+alter table liga_ajustes enable row level security;
 alter table liga_semanas enable row level security;
 alter table summoners enable row level security;
 alter table lp_snapshots enable row level security;

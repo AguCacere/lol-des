@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { exigirSesion } from "@/lib/auth";
 import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
-import { claveDeSemana, esSemanaDeLiga, inicioDeSemana, LIGA_INICIO, tablaDeLaSemana, ventanaDeSemana, ventanaUltimoDia, empezoElUltimoDia, puntosDeSecuencia, puntosPorDia, etiquetasDeDias, diasCorridos, MINIMO_SEMANAL, MINIMO_ULTIMO_DIA, PUNTOS_VICTORIA, PUNTOS_DERROTA, PUNTOS_EN_RACHA, RACHA_DESDE, lpPorPartida, type Participante, type RecordSemanal, type Snapshot } from "@/lib/liga";
+import { claveDeSemana, esSemanaDeLiga, inicioDeSemana, LIGA_INICIO, tablaDeLaSemana, ventanaDeSemana, ventanaUltimoDia, empezoElUltimoDia, puntosDeSecuencia, puntosPorDia, etiquetasDeDias, diasCorridos, MINIMO_SEMANAL, MINIMO_ULTIMO_DIA, PUNTOS_VICTORIA, PUNTOS_DERROTA, PUNTOS_EN_RACHA, RACHA_DESDE, lpPorPartida, type AjusteLiga, type Participante, type RecordSemanal, type Snapshot } from "@/lib/liga";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { roleFromTeamPosition } from "@/lib/mapping";
 
@@ -262,7 +262,23 @@ export async function GET() {
         });
       }
 
-      tabla = tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], desdeVentana, fin, recordPorPuuid);
+      // Los ajustes a mano de esta semana (una penalización que votó el grupo,
+      // por ejemplo). Consulta aparte y sin cortar en caso de error: es una
+      // tabla que casi siempre está vacía, y si no se puede leer la liga tiene
+      // que salir igual con el puntaje de las partidas — un ajuste que falta se
+      // nota, una pantalla en blanco no se puede leer.
+      const { data: ajustesRows, error: eAjustes } = await supabase
+        .from("liga_ajustes")
+        .select("puuid, puntos, motivo")
+        .eq("semana", claveDeSemana(inicio));
+      if (eAjustes) console.error("liga: no se pudieron leer los ajustes —", eAjustes.message);
+      // `puntos` es numeric y PostgREST lo manda como string: sin el Number,
+      // "−2" + 3 da "−23" en vez de 1.
+      const ajustes = new Map<string, AjusteLiga>(
+        (ajustesRows ?? []).map((a) => [a.puuid as string, { puntos: Number(a.puntos), motivo: a.motivo as string }]),
+      );
+
+      tabla = tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], desdeVentana, fin, recordPorPuuid, ajustes);
   }
 
   // La vitrina de campeones.
