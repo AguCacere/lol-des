@@ -113,6 +113,83 @@ de anular la partida, **un ajuste de +0,75 con el motivo escrito**. No necesita 
 nueva ni tocar el cálculo, y deja el mismo rastro. Es menos prolijo —la partida sigue
 restando y el ajuste se la devuelve— pero es una tarde menos de trabajo.
 
+## Dos reglas nuevas de la liga, acordadas y sin implementar
+
+Las dos **arrancan un lunes**, nunca a mitad de semana: aplicarlas sobre una tabla que la
+gente viene mirando hace tres días reescribe puestos ya vividos, y eso quema más confianza
+de la que arregla el cambio.
+
+Son problemas **distintos** y conviene no confundirlos. Medido el miércoles 16/9, con la
+tabla real:
+
+| | V–D | Partidas | Winrate | Puntos |
+|---|---|---|---|---|
+| VORE | 17–10 | 27 | 63% | +11 |
+| marlboro de diez | 13–8 | 21 | 62% | +9 |
+
+Mismo winrate, dos puntos de diferencia: **la brecha es de partidas jugadas, no de nivel**.
+Y VORE venía jugando en duo con un amigo diamante en una smurf — que es un problema de
+legitimidad, pero **no es el que abre la tabla**: con el smurf al lado gana la misma
+proporción que el otro jugando solo. Arreglar el duo esperando que se cierre la brecha no
+va a funcionar.
+
+### 1. Tope de partidas que puntúan por día
+
+**Las primeras cinco de cada día cuentan para la liga.** De la sexta en adelante se sigue
+jugando, se sigue sumando LP y queda todo en el historial, pero no mueve el puntaje.
+
+El día pasa a valer entre −3,75 y +5 **para todos por igual**, así que el que tiene la
+tarde libre no se puede despegar del que labura. No toca el valor de la victoria, ni el de
+la derrota, ni el bono de racha: todo lo que ya saben de memoria sigue igual.
+
+Son las PRIMERAS cinco y no las cinco mejores. Con "las mejores" jugar de más sigue
+conviniendo —solo podés mejorar el conjunto—, que es justo lo que hay que cortar. Efecto
+lateral bienvenido: si arrancás el día perdiendo tres, las que siguen ya no te hunden más.
+
+**El tope es solo para PUNTUAR.** Los mínimos (10 en la semana, 3 el último día) tienen
+que seguir contando **todas** las jugadas: el mínimo es por presentarse, el tope es por
+puntaje. Si el tope también contara para el mínimo, obligaría a jugar más para llegar —
+exactamente lo contrario de lo que busca.
+
+Junto con esto va un **piso de puntaje, tipo −3**. El miércoles había alguien en −6,5, y
+ese es el que abandona. Es el argumento del propio dueño de la liga: *"dejo de participar
+si arranco en negativo"*. Con piso, una mala racha te deja atrás pero no te expulsa.
+
+### 2. En duo, solo con los del tablero
+
+**Una victoria jugada en duo con alguien que no está en la liga no puntúa.** La partida no
+se prohíbe: cuenta para tu LP y para el ladder, pero no para los puntos.
+
+**Solo las victorias, no las derrotas.** Anular la partida entera deja un agujero: el que
+viene perdiendo invita al amigo de afuera y sus derrotas dejan de restar, un colchón
+gratis e invisible hasta que alguien revise el desglose. Anulando solo las victorias no hay
+agujero y la regla se lee sola: *no te llevás el crédito de una victoria que no ganaste
+solo.*
+
+**Descartada: "el podio no puede jugar en duo"** (la primera idea). El podio cambia todos
+los días, así que es una regla que no podés saber si estás cumpliendo **en el momento de
+encolar** — ¿vale si entrabas cuarto y terminaste tercero?— y esas se discuten siempre.
+Además castiga ir primero, que es la misma rubber-banding que darle menos puntos al
+puntero: se nota y cae mal. La del tablero es fija, igual para todos, conocida antes de
+encolar, y apunta al smurf y no al que va ganando. Encima empuja a que se junten entre
+ellos, que es para lo que existe la liga.
+
+**En pantalla no hay nada que inventar**: es la misma maquinaria del "no contó" que ya usa
+la derrota con un aliado ido. Aparece en el desglose, apagada, con el motivo al lado.
+
+**Arrancar por honor, no por código.** La base **no guarda con quién jugaste**: de cada
+partida se guarda una fila por jugador nuestro, con el rival de tu línea, y los puuids de
+los otros nueve ni se leen. Y aunque se guardaran, **Riot no dice quién era premade** —no
+hay dato de party en soloq—, así que el duo solo se puede *inferir* por repetición ("este
+puuid de afuera apareció cinco veces en tu equipo esta semana"). Eso implica que las
+primeras dos partidas con el smurf igual contarían, o anularlas retroactivamente, que
+mueve la tabla para atrás.
+
+Entonces: la regla escrita y el desglose a la vista, que en un grupo de seis es control
+suficiente. La detección automática —columna con los puuids de los compañeros, `/api/repair`
+para lo viejo, y un umbral de repeticiones— recién si aparece que alguien la esquiva, con
+datos de que hacía falta y no por las dudas.
+
 ## El bot de Discord interactivo
 
 La idea aprobada en principio: que el bot deje de ser solo un webhook que anuncia y pase a
