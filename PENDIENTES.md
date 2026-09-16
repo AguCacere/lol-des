@@ -8,6 +8,9 @@ Regla para mantenerlo: cuando algo de acá se termina, **se borra de acá** y �
 decisión— se escribe en `DECISIONES.md`. Una lista de pendientes con cosas ya hechas deja
 de leerse a la segunda vez.
 
+Lo que es de la liga **que viene** —dos semanas, bot nuevo, los "te cojo", el rebranding—
+no está acá: vive en **`PROXIMO-TORNEO.md`**. Esto es lo que le falta a la de hoy.
+
 Última revisión: 16 de septiembre de 2026.
 
 ## SQL sin correr
