@@ -15,6 +15,7 @@ import {
 import { championNameById, runeNameById, summonerSpellNameById } from "./ddragon";
 import { extractTimelineStats, minutosSinJugar } from "./timeline";
 import { sendDiscordNotification } from "./discord";
+import { mejorCarry, mensajeDeCarry } from "./carry";
 import { roastMessage, worstDisaster, type RoastCandidate } from "./roast";
 import { detectTilt } from "./tilt";
 import { tierFor } from "./ladder";
@@ -320,6 +321,60 @@ async function checkDisasterAndNotify(
   const label = await summonerLabel(supabase, puuid);
   if (!label) return;
   await sendDiscordNotification(roastMessage(label, peor));
+}
+
+/**
+ * La contracara: cuando alguien se llevó la partida al hombro (ver lib/carry.ts
+ * para los umbrales y por qué son por rol).
+ *
+ * Mismas reglas que la cargada y por los mismos motivos: solo los match_id que
+ * este ciclo insertó —si no, republicaría la misma carrileada cada quince
+ * minutos— y releyendo de la base, para juzgar lo que quedó guardado y no lo
+ * que creíamos haber guardado.
+ *
+ * Va DESPUÉS de la cargada a propósito. Las dos son excluyentes en la práctica
+ * (una partida con ≤4 muertes y 32% del daño no es un desastre), pero si
+ * alguna vez cambian los umbrales y una partida cumpliera las dos, el orden
+ * deja que salgan las dos y se vea la contradicción en el canal — que es mejor
+ * que taparla y no enterarse.
+ */
+async function checkCarryAndNotify(supabase: SupabaseClient, puuid: string, nuevos: string[]) {
+  const { data: rows } = await supabase
+    .from("matches")
+    .select(
+      "match_id, champion, win, kills, deaths, assists, team_position, dmg_share, kill_participation, heal_teammates, shield_teammates, damage_mitigated, skillshots_hit",
+    )
+    .eq("puuid", puuid)
+    .eq("queue_id", RANKED_SOLO_QUEUE_ID)
+    // El mismo corte de remake que todo lo que cuenta partidas: en cuatro
+    // minutos se puede terminar 3/0/1 con el 40% del daño de un equipo que no
+    // jugó, y eso no es carrear.
+    .gte("game_duration_s", DURACION_MINIMA_S)
+    .in("match_id", nuevos);
+  if (!rows || rows.length === 0) return;
+
+  const mejor = mejorCarry(
+    rows.map((r) => ({
+      matchId: r.match_id,
+      champion: r.champion,
+      win: r.win,
+      kills: r.kills,
+      deaths: r.deaths,
+      assists: r.assists,
+      linea: r.team_position,
+      dmgShare: r.dmg_share,
+      killParticipation: r.kill_participation,
+      healTeammates: r.heal_teammates,
+      shieldTeammates: r.shield_teammates,
+      damageMitigated: r.damage_mitigated,
+      skillshotsHit: r.skillshots_hit,
+    })),
+  );
+  if (!mejor) return;
+
+  const label = await summonerLabel(supabase, puuid);
+  if (!label) return;
+  await sendDiscordNotification(mensajeDeCarry(label, mejor));
 }
 
 /**
@@ -833,6 +888,7 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string): Promi
   if (insertados.length > 0) {
     await checkStreakAndNotify(supabase, puuid);
     await checkDisasterAndNotify(supabase, puuid, insertados, rivalesPorMatch);
+    await checkCarryAndNotify(supabase, puuid, insertados);
   }
 
   // Y la de flex, que no guarda nada — de ahí que necesite el corte de tiempo

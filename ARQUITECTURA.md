@@ -144,6 +144,11 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   tres salen del mismo armado a propósito: si la pantalla armara la tabla por su
   cuenta, una semana vieja podría mostrar un ganador distinto del que anunció el bot.
 - `roast.ts` — las cargadas: plantillas, precedencia y las especiales.
+- `carry.ts` — la contracara: cuándo alguien se llevó la partida al hombro. Los
+  umbrales son **por rol** y salieron de medir las 1047 partidas guardadas, no de
+  elegirlos a ojo: el p90 del % de daño es 30 en las líneas y 22,5 en la jungla,
+  y el support no se mide por daño en absoluto (tiene tres caminos: enchanter,
+  enganche y tanque). Ver el header para por qué cada uno.
 - `coach.ts` — el prompt del análisis del pool.
 
 **Presentación**
@@ -185,7 +190,7 @@ curl / consola            →  /api/refresh       ─┴→ refreshAllSummoners
                                                  buildMatchRow  →  matches
                                                        │
                                                        ↓
-                                            racha / ascenso / cargada  →  Discord
+                                      racha / ascenso / cargada / carry  →  Discord
 ```
 
 `repairMatches` y `backfillOne` entran por el mismo `buildMatchRow`: **hay un solo

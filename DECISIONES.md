@@ -651,6 +651,40 @@ despliega con la app como cualquier ruta; lo que registra el script es el menú 
 Discord muestra al tipear "/". Son dos cosas distintas, y esa es la confusión típica:
 si agregás un comando y no corrés el script, funciona pero no aparece en la lista.
 
+## Carrear no se mide igual en cada línea
+
+**Los umbrales de `lib/carry.ts` se midieron, no se eligieron.** Contra las 1047
+partidas guardadas (17/9), el percentil 90 del % de daño al equipo es 30,4 en mid, 30,1
+en bot, 30,3 en top y **22,5 en la jungla**. Con un corte plano en 30 calificaba UNA
+partida de jungla en toda la historia y ninguna de support: el aviso habría existido
+solo para tres de las cinco líneas. La jungla no aporta menos — su daño se reparte entre
+campeones y monstruos y `dmg_share` solo cuenta el hecho a campeones.
+
+**El support necesita tres caminos, no uno.** Su mediana de daño es 11% contra 22% de un
+mid, así que por daño no gana nunca; lo que lidera es la participación en kills (56,8, la
+más alta). Pero adentro del rol hay tres estilos que no comparten una sola métrica:
+el enchanter se mide por curación y escudos (p90 ~19.600), el de enganche por
+asistencias, y el **tanque por `damage_mitigated`** — la mediana de los tanques del grupo
+es 36.819 contra 8.917 de los enchanters, cuatro veces. Con un solo camino, el Thresh
+5/3/19 y el Rell 1/5/28 quedaban afuera.
+
+**Y el tanque necesita además un tope de muertes más flojo.** Pedirle daño aguantado CON
+el tope de 4 muertes del resto da CERO casos: el que absorbe 70.000 muere seis veces, ese
+es el laburo (las partidas de Alistar con mucho daño aguantado tienen 8, 6 y 11 muertes).
+El tope sube a 7 para ese camino, y lo que impide que entre el que se regala es el propio
+daño aguantado: morir seis veces sin haber absorbido nada no califica.
+
+**Los skillshots NO sirven de gatillo, y se probó.** Contra las 234 partidas de support,
+cualquier umbral razonable combinado con las otras condiciones da cero casos: el sup que
+clava muchos skillshots no es el mismo que tiene alta participación y pocas muertes, son
+estilos distintos. Y encima dependen del campeón — un Alistar tiene 0 siempre, porque sus
+habilidades son dirigidas o áreas alrededor suyo. Quedaron como DATO adentro del mensaje,
+que es donde lucen. No volver a ponerlos como condición.
+
+**Sale en el 2,5% de las partidas, contra 4,3% de la cargada, y es a propósito.** Es el
+mismo argumento del parte diario que se calla los domingos: un bot que felicita todos los
+días es un bot que el canal aprende a saltear, y después no lo lee ni cuando pasó algo.
+
 ## Caché y deploys
 
 **La ventana de caché del CDN.** `/api/ladder` es `s-maxage=60`, `/api/team-digest`

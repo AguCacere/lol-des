@@ -31,6 +31,14 @@ Además, sin pantalla propia:
 desastroso, ahogarse en la fuente, perder contra un Nasus, cruzarse un Teemo. Se
 dispara solo con el refresco.
 
+Y al revés: cuando alguien **se lleva la partida al hombro**, también lo dice. Eso no
+se mide igual en cada línea —un support hace el 11% del daño del equipo y un mid el
+22%—, así que la vara es por rol, sacada de las partidas reales del grupo. El sup tiene
+tres formas de calificar: curación y escudos (el enchanter), asistencias (el de
+enganche) y daño aguantado con el cuerpo (el tanque). Si jugó así y encima perdió, sale
+con otro texto: lo dejaron solo. Salta en ~2,5% de las partidas, la mitad de seguido que
+la cargada — si saliera todos los días dejaría de significar algo.
+
 Y **contesta comandos**. Cuatro, todos de lectura y todos servidos de Supabase:
 
 | Comando | Qué contesta |
