@@ -700,6 +700,28 @@ venía planeando y el que no puede el domingo lo resuelve el lunes— así que l
 dice "el domingo o el lunes", con "o" y no con "y": son días alternativos, no dos días en
 los que hay que aparecer en los dos.
 
+## Los hitos salen medidos, no a ojo
+
+**Un récord personal sin mínimo de historial es spam.** Medido contra las 1058 partidas
+guardadas, "rompió su máximo de kills, daño o CS" salta en **114** — una de cada nueve —
+porque al principio de un historial casi todo es un récord. Con treinta partidas previas
+bajan a 22, y exigiendo además romperlo por un 10% (y dos kills más, en kills) quedan
+**12**. Los que sobreviven son noticia de verdad: 14 kills contra 11, 59.281 de daño
+contra 50.911. Los que se caen eran "21 kills, antes 20".
+
+**Y de una partida sale UN solo mensaje.** Una partida con penta es casi seguro también
+una partida sin morir y un récord de kills; sin la precedencia de `hitoDe`, el canal
+recibiría tres mensajes contando lo mismo. Por la misma razón el hito le gana a la
+carrileada: `checkHitosAndNotify` devuelve el match_id que publicó y
+`checkCarryAndNotify` lo saltea.
+
+**El penta tiene texto fijo y no plantilla rotativa.** No pasó nunca en la historia del
+grupo, así que cuando pase tiene que salir siempre el mismo y ser inconfundible.
+
+**Lo que se descartó, y por qué, para que nadie lo reintente:** un mensaje de "duelo"
+entre dos del grupo enfrentados. Hay 185 partidas con dos de ellos adentro y **cero en
+equipos contrarios** — siempre juegan juntos. No hay feature ahí.
+
 ## El promedio del tilt se compara contra DERROTAS
 
 **El aviso de tilt comparaba peras con manzanas, y el grupo lo cazó antes que el código.**

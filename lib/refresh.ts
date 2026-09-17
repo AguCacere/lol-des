@@ -16,6 +16,7 @@ import { championNameById, runeNameById, summonerSpellNameById } from "./ddragon
 import { extractTimelineStats, minutosSinJugar } from "./timeline";
 import { sendDiscordNotification } from "./discord";
 import { mejorCarry, mensajeDeCarry } from "./carry";
+import { hitoDe, mejorHito, mensajeDeHito, PARTIDAS_PARA_RECORD, type Hito, type HitoCandidate } from "./hitos";
 import { roastMessage, worstDisaster, type RoastCandidate } from "./roast";
 import { detectTilt } from "./tilt";
 import { tierFor } from "./ladder";
@@ -352,7 +353,17 @@ async function checkDisasterAndNotify(
  * deja que salgan las dos y se vea la contradicción en el canal — que es mejor
  * que taparla y no enterarse.
  */
-async function checkCarryAndNotify(supabase: SupabaseClient, puuid: string, nuevos: string[]) {
+async function checkCarryAndNotify(
+  supabase: SupabaseClient,
+  puuid: string,
+  nuevos: string[],
+  /**
+   * Una partida de la que YA salió un hito (un penta, un récord). No se
+   * publica dos veces la misma: un penta casi seguro es también una
+   * carrileada, y el canal recibiría dos mensajes contando lo mismo.
+   */
+  saltear?: string | null,
+) {
   // Y además, RECIENTE. `nuevos` ya alcanza para no republicar el historial
   // —son los match_id que este ciclo acaba de insertar—, pero hay dos casos en
   // que "recién insertada" no significa "recién jugada": un invocador que se
@@ -377,7 +388,7 @@ async function checkCarryAndNotify(supabase: SupabaseClient, puuid: string, nuev
   if (!rows || rows.length === 0) return;
 
   const mejor = mejorCarry(
-    rows.map((r) => ({
+    rows.filter((r) => r.match_id !== saltear).map((r) => ({
       matchId: r.match_id,
       champion: r.champion,
       win: r.win,
@@ -398,6 +409,84 @@ async function checkCarryAndNotify(supabase: SupabaseClient, puuid: string, nuev
   const label = await summonerLabel(supabase, puuid);
   if (!label) return;
   await sendDiscordNotification(mensajeDeCarry(label, mejor));
+}
+
+/**
+ * Los hitos: penta, cuádruple, partida sin morir, récord personal roto.
+ * Ver lib/hitos.ts para los umbrales y por qué son esos.
+ *
+ * Mismas dos guardas que la carrileada y por lo mismo: solo los match_id que
+ * este ciclo insertó, y de las últimas tres horas. Devuelve el match_id del
+ * hito que publicó, para que la carrileada no cuente la misma partida otra vez.
+ */
+async function checkHitosAndNotify(
+  supabase: SupabaseClient,
+  puuid: string,
+  nuevos: string[],
+): Promise<string | null> {
+  const desde = new Date(Date.now() - CARRY_VENTANA_MS).toISOString();
+  const { data: rows } = await supabase
+    .from("matches")
+    .select("match_id, champion, win, kills, deaths, assists, penta_kills, quadra_kills, damage_to_champs, cs")
+    .eq("puuid", puuid)
+    .eq("queue_id", RANKED_SOLO_QUEUE_ID)
+    .gte("game_duration_s", DURACION_MINIMA_S)
+    .gte("played_at", desde)
+    .in("match_id", nuevos);
+  if (!rows || rows.length === 0) return null;
+
+  // Los mejores números ANTERIORES, que es contra lo que se mide un récord.
+  // Las partidas nuevas quedan afuera del max o se romperían contra sí mismas.
+  //
+  // Se traen las filas y se calcula acá en vez de pedirle un max() a la base:
+  // son tres enteros por partida y el historial más largo del grupo tiene 168,
+  // así que no vale la pena una vista ni un RPC para esto.
+  const { data: viejas } = await supabase
+    .from("matches")
+    .select("match_id, kills, damage_to_champs, cs")
+    .eq("puuid", puuid)
+    .eq("queue_id", RANKED_SOLO_QUEUE_ID)
+    .gte("game_duration_s", DURACION_MINIMA_S)
+    .returns<{ match_id: string; kills: number; damage_to_champs: number; cs: number | null }[]>();
+  const previas = (viejas ?? []).filter((v) => !nuevos.includes(v.match_id));
+  const previos =
+    previas.length >= PARTIDAS_PARA_RECORD
+      ? {
+          kills: Math.max(...previas.map((v) => v.kills)),
+          dano: Math.max(...previas.map((v) => v.damage_to_champs)),
+          cs: Math.max(...previas.map((v) => v.cs ?? 0)),
+        }
+      : null;
+
+  const candidatas = new Map<string, HitoCandidate>();
+  const hitos: Hito[] = [];
+  for (const r of rows) {
+    const c: HitoCandidate = {
+      matchId: r.match_id,
+      champion: r.champion,
+      win: r.win,
+      kills: r.kills,
+      deaths: r.deaths,
+      assists: r.assists,
+      pentaKills: r.penta_kills,
+      quadraKills: r.quadra_kills,
+      danoACampeones: r.damage_to_champs,
+      cs: r.cs ?? 0,
+    };
+    candidatas.set(c.matchId, c);
+    const h = hitoDe(c, previos);
+    if (h) hitos.push(h);
+  }
+
+  const mejor = mejorHito(hitos);
+  if (!mejor) return null;
+  const candidata = candidatas.get(mejor.matchId);
+  if (!candidata) return null;
+
+  const label = await summonerLabel(supabase, puuid);
+  if (!label) return null;
+  await sendDiscordNotification(mensajeDeHito(label, mejor, candidata));
+  return mejor.matchId;
 }
 
 /**
@@ -917,7 +1006,10 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string): Promi
   if (insertados.length > 0) {
     await checkStreakAndNotify(supabase, puuid);
     await checkDisasterAndNotify(supabase, puuid, insertados, rivalesPorMatch);
-    await checkCarryAndNotify(supabase, puuid, insertados);
+    // Los hitos van ANTES de la carrileada: si de una partida ya salió un
+    // penta, esa misma partida no vuelve a salir como carrileada.
+    const conHito = await checkHitosAndNotify(supabase, puuid, insertados);
+    await checkCarryAndNotify(supabase, puuid, insertados, conHito);
   }
 
   // Y la de flex, que no guarda nada — de ahí que necesite el corte de tiempo

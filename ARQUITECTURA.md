@@ -150,6 +150,11 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   tres salen del mismo armado a propósito: si la pantalla armara la tabla por su
   cuenta, una semana vieja podría mostrar un ganador distinto del que anunció el bot.
 - `roast.ts` — las cargadas: plantillas, precedencia y las especiales.
+- `hitos.ts` — los momentos que merecen un grito: penta, cuádruple, partida sin
+  morir y récord personal roto. La tercera categoría, distinta de las otras dos:
+  no es "jugó bien", es que **pasó algo**. Los umbrales se midieron contra las
+  1058 partidas guardadas — sin el mínimo de historial, el récord solo salta en
+  una de cada nueve partidas.
 - `carry.ts` — la contracara: cuándo alguien se llevó la partida al hombro. Los
   umbrales son **por rol** y salieron de medir las 1047 partidas guardadas, no de
   elegirlos a ojo: el p90 del % de daño es 30 en las líneas y 22,5 en la jungla,
@@ -196,7 +201,7 @@ curl / consola            →  /api/refresh       ─┴→ refreshAllSummoners
                                                  buildMatchRow  →  matches
                                                        │
                                                        ↓
-                                      racha / ascenso / cargada / carry  →  Discord
+                          racha / ascenso / cargada / carry / hito  →  Discord
 ```
 
 `repairMatches` y `backfillOne` entran por el mismo `buildMatchRow`: **hay un solo

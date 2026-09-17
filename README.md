@@ -45,6 +45,12 @@ enganche) y daño aguantado con el cuerpo (el tanque). Si jugó así y encima pe
 con otro texto: lo dejaron solo. Salta en ~2,5% de las partidas, la mitad de seguido que
 la cargada — si saliera todos los días dejaría de significar algo.
 
+Y avisa cuando **pasa algo**: un pentakill (no salió ninguno en toda la historia del
+grupo, así que el día que pase va a gritar), un cuádruple, una partida terminada sin
+morir, o un récord personal roto —más kills, más daño o más CS que nunca—. El récord pide
+treinta partidas de historial y romperlo por un 10%: sin eso saltaría una de cada nueve
+partidas y dejaría de ser un récord.
+
 Y **contesta comandos**. Cuatro, todos de lectura y todos servidos de Supabase:
 
 | Comando | Qué contesta |
