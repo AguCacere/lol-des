@@ -183,36 +183,21 @@ suficiente. La detección automática —columna con los puuids de los compañer
 para lo viejo, y un umbral de repeticiones— recién si aparece que alguien la esquiva, con
 datos de que hacía falta y no por las dudas.
 
-## El bot de Discord: lo que falta para prenderlo
+## El bot de Discord
 
-**La v1 está escrita y probada** (`app/api/discord/interactions/route.ts`,
-`lib/discord-firma.ts`, `lib/discord-comandos.ts`). Lo que queda no es código, es
-configuración — y hasta que se haga, el bot no existe para nadie:
+**Está prendido y andando** (17/9). Los cuatro comandos contestan en el canal, y los
+anuncios automáticos —ascensos, descensos, rachas, cargadas, el parte diario y el
+cierre— salen firmados por el bot, con las reacciones que puede dejar puestas solo.
+Verificado con `POST /api/discord/probar`, que da `camino: "bot"` y los cinco pasos en
+verde.
 
-1. **Crear la aplicación** en discord.com/developers → New Application, y adentro
-   crear el Bot.
-2. **Cargar las variables en Vercel**: `DISCORD_PUBLIC_KEY` (la única sin la cual el
-   endpoint no deja pasar nada), `DISCORD_BOT_TOKEN` y `DISCORD_CHANNEL_ID`. Están
-   explicadas una por una en `.env.example`.
-3. **Pegar la URL** en la aplicación, en "Interactions Endpoint URL":
-   `https://lol-des.vercel.app/api/discord/interactions`. Discord la prueba en el
-   momento con una firma inválida a propósito y no la guarda si no le contestan 401 —
-   está contemplado, pero si falla ahí, el problema es que `DISCORD_PUBLIC_KEY` no
-   coincide con la de la aplicación.
-4. **Invitar el bot al server** con los permisos de mandar mensajes y agregar
-   reacciones (OAuth2 → URL Generator, scopes `bot` y `applications.commands`).
-5. **Registrar los comandos**, una vez y cada vez que cambie la lista. Desde la consola
-   del navegador en `lol-des.vercel.app`, con la sesión abierta:
+Lo único que queda es **la migración de `discord_id`** (arriba, en "SQL sin correr"). Sin
+ella todo funciona: los comandos resuelven al jugador por nombre con autocompletado. Lo
+único que falta es que `/ultima` sin argumentos conteste "la tuya".
 
-   ```js
-   await (await fetch('/api/discord/registrar', { method: 'POST' })).json()
-   ```
-
-   Eso necesita `DISCORD_APP_ID` y `DISCORD_GUILD_ID` **en Vercel**. Con una consola con
-   Node a mano sale igual desde el repo, y ahí alcanza con tenerlas en `.env.local`:
-   `node --env-file=.env.local scripts/registrar-comandos.mjs`. Con `DISCORD_GUILD_ID`
-   los comandos aparecen al instante; sin él, Discord tarda hasta una hora.
-6. **Correr la migración de `discord_id`** (arriba). Se puede dejar para después.
+Si algo deja de salir, el orden para mirarlo es siempre el mismo:
+`POST /api/discord/probar` sin body dice quién es el bot y qué canal ve sin escribirle a
+nadie; con `{mandar:true}` prueba el camino entero y limpia atrás suyo.
 
 ### La v2, que es la que el torneo necesita
 
