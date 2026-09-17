@@ -25,6 +25,38 @@ function bot(): { token: string; canal: string } | null {
   return token && canal ? { token, canal } : null;
 }
 
+/**
+ * Qué caminos hay configurados, sin decir los secretos.
+ *
+ * El id del canal sí viaja: no es un secreto y es justo el valor que hay que
+ * poder comparar a ojo cuando los anuncios salen en el canal equivocado.
+ */
+export function estadoDeDiscord(): { bot: boolean; webhook: boolean; canal: string | null } {
+  return {
+    bot: bot() !== null,
+    webhook: Boolean(process.env.DISCORD_WEBHOOK_URL),
+    canal: process.env.DISCORD_CHANNEL_ID ?? null,
+  };
+}
+
+/** La llamada cruda a la API de Discord con el token del bot. Devuelve null si no hay bot. */
+export async function apiDelBot(
+  ruta: string,
+  init: RequestInit = {},
+): Promise<{ ok: boolean; status: number; cuerpo: string }> {
+  const b = bot();
+  if (!b) return { ok: false, status: 0, cuerpo: "El bot no está configurado." };
+  try {
+    const res = await fetch(`${API}${ruta}`, {
+      ...init,
+      headers: { ...(init.headers ?? {}), Authorization: `Bot ${b.token}` },
+    });
+    return { ok: res.ok, status: res.status, cuerpo: await res.text() };
+  } catch (err) {
+    return { ok: false, status: 0, cuerpo: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 export interface MensajeMandado {
   /** Si salió, por el camino que sea. */
   ok: boolean;
@@ -42,7 +74,10 @@ export interface MensajeMandado {
  * de que un `ok: true` pueda venir con `via: "webhook"` aunque el bot esté
  * configurado, y de que ahí no haya `id` útil para reaccionar.
  */
-export async function mandarMensaje(content: string): Promise<MensajeMandado> {
+export async function mandarMensaje(
+  content: string,
+  opciones: { soloBot?: boolean } = {},
+): Promise<MensajeMandado> {
   const b = bot();
   if (b) {
     try {
@@ -60,6 +95,11 @@ export async function mandarMensaje(content: string): Promise<MensajeMandado> {
       console.error("Discord (bot) falló —", err instanceof Error ? err.message : err);
     }
   }
+  // `soloBot` es para el diagnóstico y nada más. Ahí caer al webhook sería
+  // exactamente lo contrario de lo que se quiere: la pregunta que se está
+  // haciendo es si el camino del bot funciona, y un fallback que "arregla" el
+  // síntoma contestaría que sí sin haberlo probado.
+  if (opciones.soloBot) return { ok: false, id: null, via: null };
   return mandarPorWebhook(content);
 }
 
@@ -136,6 +176,19 @@ export async function reaccionar(mensajeId: string, emojis: string[]): Promise<b
     }
   }
   return true;
+}
+
+/**
+ * Borra un mensaje del bot. Existe para el diagnóstico: manda uno de prueba,
+ * comprueba el camino entero y lo levanta, así probar no deja basura en el
+ * canal del grupo.
+ */
+export async function borrarMensaje(mensajeId: string): Promise<boolean> {
+  const b = bot();
+  if (!b) return false;
+  const res = await apiDelBot(`/channels/${b.canal}/messages/${mensajeId}`, { method: "DELETE" });
+  if (!res.ok) console.error(`No pude borrar el mensaje: ${res.status} ${res.cuerpo}`);
+  return res.ok;
 }
 
 /** Reescribe un mensaje que mandó el bot. Como `reaccionar`, no existe por webhook. */

@@ -217,7 +217,7 @@ de `/api/cron/refresh` (línea `cron refresh done:`) dice cómo le fue a cada in
 ```
 app/
   page.tsx          # la única página: 5 pestañas, todo entra por fetch a /api/*
-  api/              # 19 route handlers (ver ARQUITECTURA.md)
+  api/              # 20 route handlers (ver ARQUITECTURA.md)
 components/         # ~40 componentes, agrupados por pestaña en ARQUITECTURA.md
 lib/                # Riot, cálculo puro, presentación e infraestructura
 scripts/
@@ -250,6 +250,13 @@ navegador en `lol-des.vercel.app`, con la sesión abierta:
 
 ```js
 await (await fetch('/api/discord/registrar', { method: 'POST' })).json()
+```
+
+Y para saber si los anuncios están saliendo por el bot o cayendo al webhook —que no
+se puede saber mirando, porque cuando falla el mensaje sale igual:
+
+```js
+await (await fetch('/api/discord/probar', { method: 'POST' })).json()
 ```
 
 ## Notas

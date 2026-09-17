@@ -101,9 +101,9 @@ export async function POST(req: Request) {
     }
     const texto = roastMessage(label, peorFlex);
     if (dryRun) return NextResponse.json({ sent: false, dryRun: true, matchId: peorFlex.matchId, message: texto });
-    const { sendDiscordNotification } = await import("@/lib/discord");
-    await sendDiscordNotification(texto);
-    return NextResponse.json({ sent: true, matchId: peorFlex.matchId, message: texto });
+    const { mandarMensaje } = await import("@/lib/discord");
+    const mandado = await mandarMensaje(texto);
+    return NextResponse.json({ sent: mandado.ok, via: mandado.via, matchId: peorFlex.matchId, message: texto });
   }
 
   const columnas = "match_id, champion, win, kills, deaths, assists, dmg_share, cs, cs_per_min";
@@ -149,10 +149,13 @@ export async function POST(req: Request) {
   }
 
   // Import perezoso: así el módulo de Discord no se carga en el dryRun.
-  const { sendDiscordNotification } = await import("@/lib/discord");
-  await sendDiscordNotification(message);
+  const { mandarMensaje } = await import("@/lib/discord");
+  const mandado = await mandarMensaje(message);
   return NextResponse.json({
-    sent: true,
+    sent: mandado.ok,
+    // Por dónde salió. Un "webhook" acá con el bot configurado significa que el
+    // camino del bot falló y se usó el respaldo — ver /api/discord/probar.
+    via: mandado.via,
     matchId: elegida.matchId,
     califica: isDisaster(elegida),
     message,

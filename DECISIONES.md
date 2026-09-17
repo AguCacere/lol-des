@@ -606,6 +606,17 @@ el domingo, así que de lunes a sábado no lo cumple nadie y la línea saldría 
 días diciendo algo que no es una noticia — hasta que el domingo, cuando sí lo es, ya
 nadie la lee.
 
+**Que un comando conteste NO prueba que los anuncios funcionen.** Son dos caminos
+distintos y se confunden fácil: la respuesta a una interacción viaja por el token de esa
+interacción y anda sin importar los permisos del canal, mientras que un anuncio va por
+`POST /channels/{id}/messages`, que necesita que `DISCORD_CHANNEL_ID` sea el correcto y
+que el bot pueda escribir en ESE canal. Y como el anuncio cae al webhook cuando falla,
+el mensaje sale igual: el síntoma es que no hay síntoma. Para eso está
+`POST /api/discord/probar`, que sin body pregunta quién es el bot y qué canal ve —sin
+escribirle a nadie— y con `{mandar:true}` manda, reacciona y borra. Ese sí **no** cae al
+webhook a propósito: un fallback en el diagnóstico contestaría que todo anda sin haber
+probado lo que se quería probar.
+
 **Los anuncios salen por el token del bot y caen al webhook si no está.** Los dos
 caminos existen a propósito y no hay que "limpiar" uno: el día que se rote el token,
 el parte diario de esa noche no se puede perder. Lo que el webhook no puede hacer —y
