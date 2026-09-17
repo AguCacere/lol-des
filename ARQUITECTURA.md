@@ -7,7 +7,7 @@ evitables.
 
 ## Forma general
 
-Una sola página cliente (`app/page.tsx`) con cinco pestañas, y 20 route handlers.
+Una sola página cliente (`app/page.tsx`) con cinco pestañas, y 21 route handlers.
 **No hay Server Components de datos**: todo entra por `fetch` a `/api/*` desde el
 navegador. El servidor solo existe en las rutas.
 
@@ -42,6 +42,7 @@ cerradura no está puesta, nadie escribe).
 | `/api/repair` | POST | Rellena columnas nuevas en filas viejas | sí | **sí** | — |
 | `/api/coach` | POST | Análisis del pool con Claude | sí (caché) | **sí**\* | — |
 | `/api/roast` | POST | Dispara la cargada de Discord | no | **sí** | — |
+| `/api/carry` | POST | Dispara la carrileada: el gemelo de `/api/roast` para el otro lado | no | **sí** | — |
 | `/api/login` | GET/POST/DELETE | Estado de sesión / entrar / salir | no | no | — |
 | `/api/discord/interactions` | POST | La puerta del bot: los cuatro comandos. La cerradura es la **firma Ed25519** de Discord, no la sesión | no | firma | — |
 | `/api/discord/registrar` | POST | Le registra a Discord el menú de comandos. Lo mismo que `scripts/registrar-comandos.mjs`, pero sin necesitar una consola con Node | no | **sí** | — |

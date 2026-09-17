@@ -225,7 +225,7 @@ de `/api/cron/refresh` (línea `cron refresh done:`) dice cómo le fue a cada in
 ```
 app/
   page.tsx          # la única página: 5 pestañas, todo entra por fetch a /api/*
-  api/              # 20 route handlers (ver ARQUITECTURA.md)
+  api/              # 21 route handlers (ver ARQUITECTURA.md)
 components/         # ~40 componentes, agrupados por pestaña en ARQUITECTURA.md
 lib/                # Riot, cálculo puro, presentación e infraestructura
 scripts/
