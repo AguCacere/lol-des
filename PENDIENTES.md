@@ -201,9 +201,17 @@ configuración — y hasta que se haga, el bot no existe para nadie:
    coincide con la de la aplicación.
 4. **Invitar el bot al server** con los permisos de mandar mensajes y agregar
    reacciones (OAuth2 → URL Generator, scopes `bot` y `applications.commands`).
-5. **Registrar los comandos**, una vez y cada vez que cambie la lista:
+5. **Registrar los comandos**, una vez y cada vez que cambie la lista. Desde la consola
+   del navegador en `lol-des.vercel.app`, con la sesión abierta:
+
+   ```js
+   await (await fetch('/api/discord/registrar', { method: 'POST' })).json()
+   ```
+
+   Eso necesita `DISCORD_APP_ID` y `DISCORD_GUILD_ID` **en Vercel**. Con una consola con
+   Node a mano sale igual desde el repo, y ahí alcanza con tenerlas en `.env.local`:
    `node --env-file=.env.local scripts/registrar-comandos.mjs`. Con `DISCORD_GUILD_ID`
-   aparecen al instante; sin él, Discord tarda hasta una hora.
+   los comandos aparecen al instante; sin él, Discord tarda hasta una hora.
 6. **Correr la migración de `discord_id`** (arriba). Se puede dejar para después.
 
 ### La v2, que es la que el torneo necesita

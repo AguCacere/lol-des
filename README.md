@@ -163,7 +163,7 @@ La base ya tiene que existir: crear el proyecto en Supabase y correr
 | `DISCORD_WEBHOOK_URL` | Opcional. Sin esto no se manda ninguna notificación y nada se rompe |
 | `DISCORD_BOT_TOKEN` + `DISCORD_CHANNEL_ID` | Opcionales. Con las dos, los anuncios salen **como el bot** en vez de por el webhook, y el 👍 de la votación queda puesto solo. Sin ellas, todo cae al webhook igual que antes |
 | `DISCORD_PUBLIC_KEY` | La cerradura del bot. **Sin esto no entra ningún comando** — falla cerrado, igual que `APP_PASSWORD` |
-| `DISCORD_APP_ID` + `DISCORD_GUILD_ID` | Solo para `scripts/registrar-comandos.mjs`, que se corre a mano. En Vercel no hacen falta |
+| `DISCORD_APP_ID` + `DISCORD_GUILD_ID` | Para registrar el menú de comandos, sea con `scripts/registrar-comandos.mjs` o con `POST /api/discord/registrar`. Como la segunda corre en el servidor, **van en Vercel también** |
 
 Si la Riot API Key se filtra, se regenera con "Nueva clave API" en el portal — no hace
 falta pedir una app nueva.
@@ -217,7 +217,7 @@ de `/api/cron/refresh` (línea `cron refresh done:`) dice cómo le fue a cada in
 ```
 app/
   page.tsx          # la única página: 5 pestañas, todo entra por fetch a /api/*
-  api/              # 18 route handlers (ver ARQUITECTURA.md)
+  api/              # 19 route handlers (ver ARQUITECTURA.md)
 components/         # ~40 componentes, agrupados por pestaña en ARQUITECTURA.md
 lib/                # Riot, cálculo puro, presentación e infraestructura
 scripts/
@@ -243,6 +243,13 @@ npm run build
 
 # Le registra a Discord el menú de comandos. Solo cuando cambia la lista.
 node --env-file=.env.local scripts/registrar-comandos.mjs
+```
+
+Sin una consola con Node a mano, ese último paso sale igual desde la consola del
+navegador en `lol-des.vercel.app`, con la sesión abierta:
+
+```js
+await (await fetch('/api/discord/registrar', { method: 'POST' })).json()
 ```
 
 ## Notas

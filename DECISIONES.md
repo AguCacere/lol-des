@@ -627,6 +627,14 @@ descripción y responderlo con otra. Y se registran con **PUT y no POST**: PUT
 reemplaza la lista entera, así que un comando que se saca del JSON desaparece del
 menú. Con POST quedaría registrado para siempre.
 
+**El registro de comandos tiene dos puertas, y la que se usa es la del navegador.**
+`scripts/registrar-comandos.mjs` fue lo primero, y asume una consola con Node — que en
+este proyecto no siempre hay: acá se trabaja desde la consola del navegador, que es la
+misma forma en que se corre `/api/repair`. Por eso existe además
+`POST /api/discord/registrar`, que hace lo mismo del lado del servidor y de paso evita
+que el token del bot tenga que estar en la máquina de nadie. El script queda porque
+sigue sirviendo para el que sí tiene Node, y los dos leen el mismo JSON.
+
 **Registrar los comandos no es parte del deploy.** El código de los comandos se
 despliega con la app como cualquier ruta; lo que registra el script es el menú que
 Discord muestra al tipear "/". Son dos cosas distintas, y esa es la confusión típica:

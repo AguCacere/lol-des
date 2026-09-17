@@ -7,7 +7,7 @@ evitables.
 
 ## Forma general
 
-Una sola página cliente (`app/page.tsx`) con cinco pestañas, y 18 route handlers.
+Una sola página cliente (`app/page.tsx`) con cinco pestañas, y 19 route handlers.
 **No hay Server Components de datos**: todo entra por `fetch` a `/api/*` desde el
 navegador. El servidor solo existe en las rutas.
 
@@ -44,6 +44,7 @@ cerradura no está puesta, nadie escribe).
 | `/api/roast` | POST | Dispara la cargada de Discord | no | **sí** | — |
 | `/api/login` | GET/POST/DELETE | Estado de sesión / entrar / salir | no | no | — |
 | `/api/discord/interactions` | POST | La puerta del bot: los cuatro comandos. La cerradura es la **firma Ed25519** de Discord, no la sesión | no | firma | — |
+| `/api/discord/registrar` | POST | Le registra a Discord el menú de comandos. Lo mismo que `scripts/registrar-comandos.mjs`, pero sin necesitar una consola con Node | no | **sí** | — |
 | `/api/cron/refresh` | GET | Cada 15 min: refresca a todos | sí | `CRON_SECRET` | — |
 | `/api/cron/liga` | GET | Cierra la semana. Ya NO está en `vercel.json` (le dio el lugar al parte diario): queda para pegarle a mano | sí | `CRON_SECRET` | — |
 
@@ -306,8 +307,9 @@ Es siempre el mismo patrón, y saberlo evita leer el handler del ladder entero:
 Y las del bot: `DISCORD_BOT_TOKEN` + `DISCORD_CHANNEL_ID` (mandar como el bot;
 sin ellas todo cae al webhook), `DISCORD_PUBLIC_KEY` (la cerradura de
 `/api/discord/interactions` — sin ella no entra ningún comando), y
-`DISCORD_APP_ID` + `DISCORD_GUILD_ID`, que solo usa el script de registro y no
-hacen falta en Vercel.
+`DISCORD_APP_ID` + `DISCORD_GUILD_ID`, que usa el registro del menú de comandos
+—`POST /api/discord/registrar` o el script— y por la primera **también van en
+Vercel**.
 
 **El refresco corre cada 15 minutos**, disparado por un scheduler externo (tipo
 cron-job.org) con `Authorization: Bearer $CRON_SECRET`. No sale de `vercel.json`
