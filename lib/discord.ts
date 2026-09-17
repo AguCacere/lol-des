@@ -31,11 +31,20 @@ function bot(): { token: string; canal: string } | null {
  * El id del canal sí viaja: no es un secreto y es justo el valor que hay que
  * poder comparar a ojo cuando los anuncios salen en el canal equivocado.
  */
-export function estadoDeDiscord(): { bot: boolean; webhook: boolean; canal: string | null } {
+export function estadoDeDiscord(): {
+  bot: boolean;
+  token: boolean;
+  canal: string | null;
+  webhook: boolean;
+} {
   return {
     bot: bot() !== null,
-    webhook: Boolean(process.env.DISCORD_WEBHOOK_URL),
+    // Las dos por separado y no solo el `bot`: hacen falta ambas, así que un
+    // "bot: false" suelto obliga a revisar las dos cuando la mitad de las veces
+    // se sabe perfectamente cuál es la que falta.
+    token: Boolean(process.env.DISCORD_BOT_TOKEN),
     canal: process.env.DISCORD_CHANNEL_ID ?? null,
+    webhook: Boolean(process.env.DISCORD_WEBHOOK_URL),
   };
 }
 

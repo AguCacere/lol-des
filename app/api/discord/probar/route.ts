@@ -36,11 +36,17 @@ export async function POST(req: Request) {
   const pasos: string[] = [];
 
   if (!estado.bot) {
+    // Se nombra la que falta, no "una de las dos". El bot necesita las dos
+    // juntas —sin canal no sabe a dónde escribir— así que es normal llegar acá
+    // con el token puesto y creer que está todo hecho.
+    const faltan = [!estado.token && "DISCORD_BOT_TOKEN", !estado.canal && "DISCORD_CHANNEL_ID"]
+      .filter(Boolean)
+      .join(" y ");
     return NextResponse.json({
       camino: estado.webhook ? "webhook" : "nada",
       diagnostico: estado.webhook
-        ? "El bot NO está configurado: faltan DISCORD_BOT_TOKEN y/o DISCORD_CHANNEL_ID en Vercel. Los anuncios salen por el webhook, como antes — sin reacciones automáticas y firmados con el nombre del webhook."
-        : "No hay ni bot ni webhook: las notificaciones están apagadas.",
+        ? `Falta ${faltan} en Vercel. Hasta que esté, los anuncios salen por el webhook —como antes, sin reacciones automáticas y firmados con el nombre del webhook—. Acordate de redesplegar: una variable nueva no entra en un deploy viejo.`
+        : `Falta ${faltan}, y tampoco hay webhook: las notificaciones están apagadas.`,
       ...estado,
     });
   }
