@@ -19,160 +19,69 @@ import type { RoleKey, TierKey } from "./types";
  *    marca por invocador que solo se puede tocar con la contraseña.
  */
 
+import {
+  ARG_OFFSET_MS,
+  MINIMO_TOTAL_POR_DEFECTO,
+  MINIMO_ULTIMO_POR_DEFECTO,
+  diaCorriente,
+  duracionEnDias,
+  type Torneo,
+} from "./torneo";
+
+
 /**
- * Argentina está en UTC-3 todo el año — no mueve el reloj desde 2009. Si algún
- * día vuelve el horario de verano, esto es lo único que hay que revisar.
+ * Cuántas partidas hay que jugar el ÚLTIMO día para llevarse el premio, y
+ * cuántas en todo el torneo. Son los valores POR DEFECTO: cada torneo guardado
+ * lleva los suyos (ver lib/torneo.ts), y estos son los que se usan mientras no
+ * haya fila.
+ *
+ * El del último día existe por una jugada que ya se vio: agarrar ventaja el
+ * martes y no volver a jugar para no arriesgarla. Una liga en la que conviene
+ * NO jugar está rota. El semanal es la otra mitad: solo con el del último día
+ * se puede parkear de martes a sábado y hacer las tres el domingo a la noche.
+ *
+ * Diez y no quince: quince sale a algo más de dos partidas por día, que para
+ * este grupo deja a casi todos afuera, y una semana que cierra sin premio
+ * porque nadie llegó es peor que no tener la regla.
  */
-const ARG_OFFSET_MS = 3 * 60 * 60 * 1000;
+export const MINIMO_ULTIMO_DIA = MINIMO_ULTIMO_POR_DEFECTO;
+export const MINIMO_SEMANAL = MINIMO_TOTAL_POR_DEFECTO;
 
 /**
- * El lunes en que la liga arranca de verdad. NADA anterior a esta fecha
- * cuenta: ni aparece en la tabla ni se cierra ni se anuncia.
- *
- * Hace falta porque la app tiene meses de LP guardado y la liga no. Sin esta
- * línea, la primera corrida del cron encontró una semana "terminada" del 24
- * de agosto —anterior a que la liga existiera—, la cerró y le anunció un
- * ganador al Discord. Un campeón de una competencia que todavía no había
- * empezado.
- *
- * Es el lunes 7/9 a las 23:30 hora argentina (02:30 UTC del 8), que es la hora
- * que se anunció en el Discord.
- */
-export const LIGA_INICIO = new Date(Date.UTC(2026, 8, 8, 2, 30, 0));
-
-/**
- * Si esa semana es de la liga. Alcanza con que TERMINE después del arranque:
- * la primera semana empieza a mitad de camino —el pistoletazo fue un lunes a
- * las 23:30— y aun así es una semana de la liga, solo que más corta.
- */
-export function esSemanaDeLiga(inicio: Date): boolean {
-  return finDeSemana(inicio).getTime() > LIGA_INICIO.getTime();
-}
-
-/**
- * La ventana que se mide de verdad para esa semana.
- *
- * Normalmente es el lunes entero, pero la PRIMERA arranca cuando arrancó la
- * liga y no antes: si contara desde el lunes 00:00, las horas jugadas antes
- * del pistoletazo entrarían al marcador y el campeonato empezaría con gente
- * ya puntuando.
- */
-export function ventanaDeSemana(ahora: Date = new Date()): { desde: Date; hasta: Date } {
-  const inicio = inicioDeSemana(ahora);
-  return {
-    desde: new Date(Math.max(inicio.getTime(), LIGA_INICIO.getTime())),
-    hasta: finDeSemana(inicio),
-  };
-}
-
-/** Lo mismo para una semana puntual (la que cierra el cron). */
-export function ventanaDe(inicio: Date): { desde: Date; hasta: Date } {
-  return {
-    desde: new Date(Math.max(inicio.getTime(), LIGA_INICIO.getTime())),
-    hasta: finDeSemana(inicio),
-  };
-}
-
-/**
- * Cuántas partidas hay que jugar el ÚLTIMO día para llevarse el premio.
- *
- * Existe por una jugada que ya se vio: agarrar ventaja el martes y no volver a
- * jugar para no arriesgarla. Una liga en la que conviene NO jugar está rota, y
- * el domingo es el día en que eso se nota.
- *
- * No arregla el parking de toda la semana —se puede no jugar de martes a
- * sábado y hacer las tres el domingo a las once de la noche—, para eso haría
- * falta además un mínimo semanal. Es a propósito: se empieza por lo simple.
- */
-export const MINIMO_ULTIMO_DIA = 3;
-
-/**
- * Y cuántas hay que jugar en TODA la semana.
- *
- * Es la otra mitad de lo mismo: el mínimo del domingo obliga a aparecer el
- * último día, pero solo con eso se puede parkear de martes a sábado y hacer
- * las tres el domingo a la noche. Con las dos condiciones juntas hay que jugar
- * la semana entera.
- *
- * Diez y no quince: quince era el primer número que se habló y sale a algo más
- * de dos partidas por día, que para este grupo deja a casi todos afuera. Una
- * semana que cierra sin premio porque nadie llegó al mínimo es peor que no
- * tener la regla. Está acá arriba y solo, para moverlo sin buscar nada.
- */
-export const MINIMO_SEMANAL = 10;
-
-/**
- * Las últimas 24 horas de la semana: el domingo argentino entero.
- *
- * Se calcula desde el FIN y no desde el lunes, así vale igual para la primera
- * semana de la liga, que arrancó un lunes a las 23:30.
- */
-export function ventanaUltimoDia(inicio: Date): { desde: Date; hasta: Date } {
-  const fin = finDeSemana(inicio);
-  return { desde: new Date(fin.getTime() - 24 * 60 * 60 * 1000), hasta: fin };
-}
-
-/** Si el último día ya arrancó: recién ahí el mínimo del domingo tiene sentido. */
-export function empezoElUltimoDia(inicio: Date, ahora: Date = new Date()): boolean {
-  return ahora.getTime() >= ventanaUltimoDia(inicio).desde.getTime();
-}
-
-/**
- * Cuántos días de la semana ya arrancaron, contando el de hoy. Entre 1 y 7.
- *
- * La cuadrícula de días es de días CALENDARIO argentinos, y por eso lo primero
- * que hace es normalizar al lunes 00:00 — pasarle cualquier instante de la
- * semana da lo mismo.
- *
- * Esa normalización no es defensiva de más: ya se rompió. La barra de la semana
- * marcaba "viernes" un sábado porque se le pasaba el arranque de la VENTANA, y
- * la primera semana de la liga arrancó un lunes a las 23:30 — así que los
- * "días" eran bloques de 24 horas corridos desde las 23:30, o sea de viernes
- * 23:30 a sábado 23:30, etiquetados con el día en que EMPIEZAN. Un bloque que
- * es 97% sábado se llamaba viernes. Medido: con el arranque de la ventana daba
- * 5 días corridos, con el lunes 00:00 da 6, que es el correcto.
- */
-export function diasCorridos(cualquierDiaDeLaSemana: Date, ahora: Date = new Date()): number {
-  const lunes = inicioDeSemana(cualquierDiaDeLaSemana);
-  const corridos = Math.floor((ahora.getTime() - lunes.getTime()) / 86400000) + 1;
-  return Math.min(7, Math.max(1, corridos));
-}
-
-/**
- * El puntaje acumulado al cierre de cada día de la semana, para dibujar la
+ * El puntaje acumulado al cierre de cada día del torneo, para dibujar la
  * carrera: quién iba ganando el miércoles y cuándo se escapó el que se escapó.
  *
  * Por DÍA y no por partida: cada uno juega una cantidad distinta, así que la
  * partida número 5 de uno y la número 5 de otro pasaron en momentos distintos
- * de la semana y cruzarlas en el mismo eje no significaría nada. El día, en
- * cambio, es el mismo para todos y son siete, que es una cantidad que se lee.
+ * y cruzarlas en el mismo eje no significaría nada. El día, en cambio, es el
+ * mismo para todos.
  *
  * El acumulado sale de UNA sola pasada por la secuencia entera: el bonus de
  * racha depende del orden, así que contar cada día por separado daría otro
  * número que el de la tabla y la carrera terminaría en un puesto distinto al
  * del marcador.
  *
- * Arranca siempre en 0 —el lunes todos empiezan igual— así que devuelve un
+ * Arranca siempre en 0 —el primer día todos empiezan igual— así que devuelve un
  * valor más que días corridos. Los días sin jugar repiten el anterior, que es
  * lo que de verdad pasó: no sumó ni perdió nada.
  */
 export function puntosPorDia(
   partidas: { win: boolean; playedAt: string }[],
-  cualquierDiaDeLaSemana: Date,
+  torneo: Torneo,
   ahora: Date = new Date(),
 ): number[] {
   // Días CALENDARIO argentinos, no bloques de 24 horas desde el arranque de la
-  // ventana. Ver diasCorridos: con el arranque, la primera semana de la liga
-  // partía los días a las 23:30 y todo quedaba corrido un día.
-  const lunes = inicioDeSemana(cualquierDiaDeLaSemana);
-  const dias = diasCorridos(lunes, ahora);
+  // ventana. Ver diaCorriente en lib/torneo.ts: con el arranque, la primera
+  // semana de la liga partía los días a las 23:30 y todo quedaba corrido un día.
+  const dias = diaCorriente(torneo, ahora);
+  const arrancaElDia = medianocheArgentinaDe(torneo.arranca);
   const enOrden = [...partidas].sort((a, b) => Date.parse(a.playedAt) - Date.parse(b.playedAt));
   const { acumulado } = puntosDeSecuencia(enOrden.map((p) => p.win));
   const serie = [0];
   let i = 0;
   let ultimo = 0;
   for (let d = 0; d < dias; d++) {
-    const cierra = lunes.getTime() + (d + 1) * 86400000;
+    const cierra = arrancaElDia + (d + 1) * 86400000;
     while (i < enOrden.length && Date.parse(enOrden[i].playedAt) < cierra) {
       ultimo = acumulado[i];
       i++;
@@ -182,36 +91,17 @@ export function puntosPorDia(
   return serie;
 }
 
-/**
- * Los nombres de los SIETE días de la semana, en hora argentina: "lun", "mar"…
- *
- * Se arman acá y no en pantalla porque el huso vive de este lado: el cliente
- * está en el reloj del que mira, y alguien viajando vería la semana corrida un
- * día. Van los siete y no solo los corridos porque la pantalla dibuja la semana
- * ENTERA —con los días que faltan en gris— y el gráfico se queda con los
- * primeros `diasCorridos`, que es lo que tiene datos.
- */
-export function etiquetasDeDias(cualquierDiaDeLaSemana: Date): string[] {
-  // Normalizado al lunes 00:00 por la misma razón que diasCorridos: con el
-  // arranque de la ventana, la primera semana etiquetaba cada bloque con el día
-  // en que EMPIEZA, y un bloque de viernes 23:30 a sábado 23:30 se llamaba
-  // viernes siendo 97% sábado.
-  const lunes = inicioDeSemana(cualquierDiaDeLaSemana);
-  return Array.from({ length: 7 }, (_, d) =>
-    // Corriendo el reloj, los campos UTC de esta fecha son la hora argentina —
-    // el mismo truco que inicioDeSemana.
-    new Date(lunes.getTime() + d * 86400000 - ARG_OFFSET_MS).toLocaleDateString("es-AR", {
-      weekday: "short",
-      timeZone: "UTC",
-    })
-  );
+/** "lunes", "domingo"… en hora argentina. Antes el anuncio decía "domingo" escrito a mano, y con un torneo que cierra otro día eso era mentira. */
+function diaDeSemana(d: Date): string {
+  return new Date(d.getTime() - ARG_OFFSET_MS).toLocaleDateString("es-AR", { weekday: "long", timeZone: "UTC" });
 }
 
-/**
- * El que se lleva el premio: el primero que además cumplió el mínimo del
- * domingo. Puede no haber ninguno, y esa es una respuesta válida — la semana
- * se cierra sin premio.
- */
+/** La medianoche argentina del día en que cae ese instante. Igual que en lib/torneo.ts. */
+function medianocheArgentinaDe(d: Date): number {
+  const arg = new Date(d.getTime() - ARG_OFFSET_MS);
+  return Date.UTC(arg.getUTCFullYear(), arg.getUTCMonth(), arg.getUTCDate()) + ARG_OFFSET_MS;
+}
+
 export function ganadorDe(tabla: FilaLiga[]): FilaLiga | null {
   return tabla.find((f) => !f.sinJugar && f.habilitado) ?? null;
 }
@@ -721,6 +611,12 @@ export function tablaDeLaSemana(
   recordPorPuuid: Map<string, RecordSemanal>,
   /** Los ajustes a mano de ESA semana, por puuid. Ver AjusteLiga. */
   ajustes?: Map<string, AjusteLiga>,
+  /**
+   * Los mínimos de ESE torneo. Opcionales porque los guardados son por torneo
+   * (ver lib/torneo.ts) y sin fila valen los de siempre — y porque así las
+   * llamadas viejas siguen dando exactamente el mismo resultado.
+   */
+  minimos: { total: number; ultimo: number } = { total: MINIMO_SEMANAL, ultimo: MINIMO_ULTIMO_DIA },
 ): FilaLiga[] {
   const desde = inicio.getTime();
   const hasta = fin.getTime();
@@ -750,7 +646,7 @@ export function tablaDeLaSemana(
       recordPorPuuid.get(p.puuid) ?? { victorias: 0, derrotas: 0, racha: null, champion: null, linea: null, secuencia: [], ultimas: [], ultimoDia: 0, hoy: 0, detalle: undefined, porDia: [0] };
     // Las dos condiciones, juntas: aparecer el último día y haber jugado la
     // semana. Cualquiera de las dos sola se esquiva.
-    const habilitado = ultimoDia >= MINIMO_ULTIMO_DIA && victorias + derrotas >= MINIMO_SEMANAL;
+    const habilitado = ultimoDia >= minimos.ultimo && victorias + derrotas >= minimos.total;
     // El neto de cada foto contra el punto de partida. Si no hay ninguna foto
     // dentro de la ventana todavía no se movió: línea plana en 0, no un
     // gráfico vacío.
@@ -853,18 +749,19 @@ export function rangoDeSemana(clave: string): string {
 }
 
 /** El anuncio de que arranca la liga. Se manda a mano una sola vez, desde la app. */
-export function mensajeDeArranque(inicio: Date, premio: string | null): string {
-  const { desde, hasta } = ventanaDe(inicio);
-  const fin = new Date(hasta.getTime() - 1);
-  const plata = premio ? ` Hay **${premio}** para el que gana.` : " Hay premio $$$ para el que gana.";
-  // Cuando la liga arranca a mitad de semana se dice la HORA exacta y no
-  // "desde ahora": el aviso se manda un rato antes para que la gente tenga
-  // tiempo de reaccionar, así que "ahora" sería mentira en el momento de
-  // leerlo. Poner el lunes tampoco sirve: prometería horas que no cuentan.
-  const cuando =
-    desde.getTime() > inicio.getTime()
-      ? `**Desde las ${horaCorta(desde)} de hoy** hasta el **domingo ${fechaCorta(fin)} a las 23:59**`
-      : `Del **lunes ${fechaCorta(desde)}** al **domingo ${fechaCorta(fin)}**`;
+export function mensajeDeArranque(torneo: Torneo, premio: string | null): string {
+  const desde = torneo.arranca;
+  const fin = new Date(torneo.cierra.getTime() - 1);
+  const plata = premio ?? torneo.premio
+    ? ` Hay **${premio ?? torneo.premio}** para el que gana.`
+    : " Hay premio $$$ para el que gana.";
+  // Cuando arranca a mitad de día se dice la HORA exacta y no "desde ahora": el
+  // aviso se manda un rato antes para que la gente tenga tiempo de reaccionar,
+  // así que "ahora" sería mentira en el momento de leerlo.
+  const arrancoTarde = desde.getTime() > medianocheArgentinaDe(desde);
+  const cuando = arrancoTarde
+    ? `**Desde las ${horaCorta(desde)} de hoy** hasta el **${diaDeSemana(fin)} ${fechaCorta(fin)} a las 23:59**`
+    : `Del **${diaDeSemana(desde)} ${fechaCorta(desde)}** al **${diaDeSemana(fin)} ${fechaCorta(fin)}**`;
   return [
     "🏆 **ARRANCA LA LIGA DE LA GRIETA** 🏆",
     "",
@@ -911,8 +808,9 @@ function listaY(nombres: string[]): string {
  *    explicación de los mínimos la da la app. Quien lo vuelva a poner que sepa
  *    que ya se probó y no se quiso.
  */
-export function mensajeDeCierre(inicio: Date, tabla: FilaLiga[], titulos: TituloDeSemana[] = []): string {
-  const fin = new Date(finDeSemana(inicio).getTime() - 1);
+export function mensajeDeCierre(torneo: Torneo, tabla: FilaLiga[], titulos: TituloDeSemana[] = []): string {
+  const inicio = torneo.arranca;
+  const fin = new Date(torneo.cierra.getTime() - 1);
   const jugaron = tabla.filter((f) => !f.sinJugar);
 
   if (jugaron.length === 0) {
@@ -1023,19 +921,26 @@ export interface FilaDelDia {
   jugadas: number;
 }
 
-export function mensajeDelDia(inicio: Date, filas: FilaDelDia[], ahora: Date = new Date()): string | null {
-  const dias = diasCorridos(inicio, ahora);
-  if (dias >= 7) return null;
+export function mensajeDelDia(torneo: Torneo, filas: FilaDelDia[], ahora: Date = new Date()): string | null {
+  const total = duracionEnDias(torneo);
+  const dias = diaCorriente(torneo, ahora);
+  // El último día NO lleva parte: ese día sale el cierre con el podio y las
+  // cargadas, y dos mensajes de la liga a la misma hora se pisan.
+  //
+  // Antes esto era `dias >= 7` con el 7 escrito a mano, y era el bug de fondo
+  // de todo este cambio: al extender un torneo a ocho días, el día que se
+  // agregaba era justo el día en que el bot se callaba.
+  if (dias >= total) return null;
 
   const enTabla = filas.filter((f) => f.jugadas > 0 || f.puntos !== 0 || f.hoy !== 0);
   if (enTabla.length === 0) return null;
   if (enTabla.every((f) => f.jugadas === 0)) return null;
 
   const orden = [...enTabla].sort((a, b) => b.puntos - a.puntos);
-  const faltan = 7 - dias;
+  const faltan = total - dias;
 
   const lineas = [
-    `🍄 **Cómo va la liga** · ${fechaLarga(ahora)} · **día ${dias} de 7**`,
+    `🍄 **Cómo va la liga** · ${fechaLarga(ahora)} · **día ${dias} de ${total}**`,
     "",
   ];
 

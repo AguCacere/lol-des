@@ -651,6 +651,43 @@ despliega con la app como cualquier ruta; lo que registra el script es el menú 
 Discord muestra al tipear "/". Son dos cosas distintas, y esa es la confusión típica:
 si agregás un comando y no corrés el script, funciona pero no aparece en la lista.
 
+## La ventana del torneo es un dato, no una deducción
+
+**La liga no tenía fechas: las deducía.** `inicioDeSemana(ahora)` calculaba el lunes y
+`finDeSemana` le sumaba siete días. Eso alcanzó mientras un torneo fuera siempre una
+semana de lunes a domingo, y dejó de alcanzar el día que hubo que agregarle un lunes
+porque había gente que no podía jugar el domingo.
+
+**Y el "7" no era un número suelto.** Estaba clavado en `diasCorridos`
+(`Math.min(7, …)`), en `etiquetasDeDias` (un array de largo 7), en `mensajeDelDia`
+(`if (dias >= 7) return null`) y —el peor— en `LigaSemanal.tsx`, en una guarda
+`d.dias.length === 7` que hacía desaparecer el panel entero de la pantalla. O sea que
+con un parche que solo moviera la hora de cierre, el día que se agregaba era justo el
+día en que el bot se callaba y la barra de la semana no se dibujaba. Por eso hubo que
+hacerlo bien y no alcanzaba con un atajo.
+
+**Sin la tabla `liga_torneos`, todo sigue exactamente igual.** `torneoDerivado` arma el
+lunes a domingo de siempre con los mínimos de siempre, así que el código se puede
+desplegar antes de correr la migración. Verificado: la tabla de la liga da fila por fila
+lo mismo antes y después del cambio.
+
+**El cierre es EXCLUSIVO y es la confusión número uno.** Para que un torneo termine el
+domingo a la noche, `cierra_at` es el lunes a las 00:00. Por eso la aclaración está al
+lado del campo en el panel y no en un tooltip.
+
+**`ultimo_desde` se guarda y NO se deduce del cierre.** Podría calcularse como "las
+últimas 24 horas", que es lo que se venía haciendo, pero entonces extender un torneo en
+curso movería el último día solo — y le cambiaría la regla a alguien que ya organizó su
+semana para cumplir el mínimo el domingo. Guardándolo, esa decisión se toma a mano.
+
+**Dos torneos no se pueden pisar.** `torneoDe` tendría que elegir, y elegir mal significa
+calcular la tabla con la ventana equivocada sin que nada avise. La API lo rechaza con un
+409 antes de guardar.
+
+**Un torneo ya cerrado no se edita.** Su foto está en `liga_semanas` y se anunció un
+ganador; mover las fechas después dejaría la pantalla contando una cosa y el anuncio
+otra. Un resultado ya anunciado es un hecho (ver `resumen` en `supabase/schema.sql`).
+
 ## Carrear no se mide igual en cada línea
 
 **Los umbrales de `lib/carry.ts` se midieron, no se eligieron.** Contra las 1047

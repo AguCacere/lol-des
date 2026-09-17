@@ -7,7 +7,7 @@ evitables.
 
 ## Forma general
 
-Una sola página cliente (`app/page.tsx`) con cinco pestañas, y 21 route handlers.
+Una sola página cliente (`app/page.tsx`) con cinco pestañas, y 22 route handlers.
 **No hay Server Components de datos**: todo entra por `fetch` a `/api/*` desde el
 navegador. El servidor solo existe en las rutas.
 
@@ -43,6 +43,7 @@ cerradura no está puesta, nadie escribe).
 | `/api/coach` | POST | Análisis del pool con Claude | sí (caché) | **sí**\* | — |
 | `/api/roast` | POST | Dispara la cargada de Discord | no | **sí** | — |
 | `/api/carry` | POST | Dispara la carrileada: el gemelo de `/api/roast` para el otro lado | no | **sí** | — |
+| `/api/torneos` | GET/POST/PATCH/DELETE | Planificar los torneos: cuándo arranca cada uno, cuándo cierra y sus mínimos | sí | **sí** | — |
 | `/api/login` | GET/POST/DELETE | Estado de sesión / entrar / salir | no | no | — |
 | `/api/discord/interactions` | POST | La puerta del bot: los cuatro comandos. La cerradura es la **firma Ed25519** de Discord, no la sesión | no | firma | — |
 | `/api/discord/registrar` | POST | Le registra a Discord el menú de comandos. Lo mismo que `scripts/registrar-comandos.mjs`, pero sin necesitar una consola con Node | no | **sí** | — |
@@ -123,8 +124,12 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
 - `clash.ts` — agrupa las partidas de Clash (queue 700) en torneos.
 - `timeline.ts` — extrae de los frames de Match-V5 los números de `MatchDetail`.
 - `match-story.ts` — "dónde se dio vuelta la partida", en castellano.
-- `liga.ts` — la liga semanal: ventanas de tiempo (`inicioDeSemana`, `ventanaDe`,
-  `ventanaUltimoDia`), la tabla (`tablaDeLaSemana`), la tabla de puntos
+- `torneo.ts` — **la ventana de cada torneo**: cuándo arranca, cuándo cierra,
+  cuánto dura y qué mínimos pide. Es la capa de CALENDARIO y `liga.ts` la de
+  puntaje: liga importa de acá, nunca al revés. Antes la ventana se DEDUCÍA (el
+  lunes de la semana, más siete días) y el 7 estaba clavado en cinco lugares;
+  ahora sale de `liga_torneos`, y sin fila cae al lunes a domingo de siempre.
+- `liga.ts` — la liga: la tabla (`tablaDeLaSemana`), la tabla de puntos
   (`puntosDeSecuencia`, `PUNTOS_*`, `RACHA_DESDE`, `MODO_LIGA`), el acumulado por día
   que dibuja la carrera (`puntosPorDia`, `diasCorridos`, `etiquetasDeDias`), los
   mínimos para cobrar (`MINIMO_SEMANAL`, `MINIMO_ULTIMO_DIA`, `ganadorDe`) y los dos

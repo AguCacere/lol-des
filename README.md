@@ -25,6 +25,12 @@ servidor.
 
 **Equipo** — el resumen semanal del grupo.
 
+**Los torneos se planifican**, no se deducen del calendario. Atrás de la contraseña, en
+el panel de la liga, se carga cuándo arranca cada torneo, cuándo cierra, sus mínimos y
+desde cuándo cuenta el "último día". Un torneo puede durar siete días, ocho o los que
+sean — y a uno en curso se le puede mover el cierre. Si no hay ninguno cargado, la liga
+usa el lunes a domingo de siempre.
+
 Además, sin pantalla propia:
 
 **El bot de Discord** — anuncia ascensos y rachas, y **carga a quien juega mal**: KDA
@@ -225,7 +231,7 @@ de `/api/cron/refresh` (línea `cron refresh done:`) dice cómo le fue a cada in
 ```
 app/
   page.tsx          # la única página: 5 pestañas, todo entra por fetch a /api/*
-  api/              # 21 route handlers (ver ARQUITECTURA.md)
+  api/              # 22 route handlers (ver ARQUITECTURA.md)
 components/         # ~40 componentes, agrupados por pestaña en ARQUITECTURA.md
 lib/                # Riot, cálculo puro, presentación e infraestructura
 scripts/

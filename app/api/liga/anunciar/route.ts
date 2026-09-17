@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { exigirSesion } from "@/lib/auth";
 import { mandarMensaje, reaccionar } from "@/lib/discord";
 import { vistaPreviaDeCierre } from "@/lib/liga-cierre";
-import { inicioDeSemana, finDeSemana, mensajeDeArranque } from "@/lib/liga";
+import { mensajeDeArranque } from "@/lib/liga";
+import { torneoDe } from "@/lib/torneo";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
 /**
@@ -36,30 +37,36 @@ export async function POST(req: Request) {
     // Sin body: se asume vista previa, que es el lado seguro.
   }
 
-  if (body.tipo === "cierre") {
-    const enCurso = inicioDeSemana();
-    // Por defecto la semana que está corriendo: la pregunta que uno se hace es
-    // "cómo quedaría el mensaje si cerrara ahora". `semana: "anterior"` es para
-    // revisar el que ya salió.
-    const inicio = body.semana === "anterior" ? new Date(enCurso.getTime() - 7 * 24 * 60 * 60 * 1000) : enCurso;
-    let supabase;
-    try {
-      supabase = getSupabaseServerClient();
-    } catch (err) {
-      return NextResponse.json({ error: err instanceof Error ? err.message : "Sin Supabase." }, { status: 500 });
-    }
-    const previa = await vistaPreviaDeCierre(supabase, inicio);
-    return NextResponse.json({ preview: true, tipo: "cierre", ...previa, desde: inicio.toISOString() });
+  let supabase;
+  try {
+    supabase = getSupabaseServerClient();
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Sin Supabase." }, { status: 500 });
   }
 
-  // `proxima` arma el mensaje para la semana que VIENE, que es el caso real:
-  // el aviso sale un domingo a la noche para una liga que empieza el lunes.
-  const inicio = body.proxima === false ? inicioDeSemana() : finDeSemana(inicioDeSemana());
+  if (body.tipo === "cierre") {
+    // Por defecto el torneo que está corriendo: la pregunta que uno se hace es
+    // "cómo quedaría el mensaje si cerrara ahora". `semana: "anterior"` es para
+    // revisar el que ya salió — un instante antes del arranque del actual cae
+    // adentro del anterior, sea cual sea su duración.
+    const enCurso = await torneoDe(supabase);
+    const torneo =
+      body.semana === "anterior" ? await torneoDe(supabase, new Date(enCurso.arranca.getTime() - 1)) : enCurso;
+    const previa = await vistaPreviaDeCierre(supabase, torneo);
+    return NextResponse.json({ preview: true, tipo: "cierre", ...previa, desde: torneo.arranca.toISOString() });
+  }
+
+  // `proxima` arma el mensaje para el torneo que VIENE, que es el caso real: el
+  // aviso sale un domingo a la noche para una liga que empieza el lunes. Si ya
+  // hay uno cargado para después del actual, se anuncia ESE con sus fechas
+  // reales; si no, el lunes a domingo de siempre.
+  const enCurso = await torneoDe(supabase);
+  const torneo = body.proxima === false ? enCurso : await torneoDe(supabase, enCurso.cierra);
   const premio = typeof body.premio === "string" && body.premio.trim().length > 0 ? body.premio.trim() : null;
-  const texto = mensajeDeArranque(inicio, premio);
+  const texto = mensajeDeArranque(torneo, premio);
 
   if (body.preview !== false) {
-    return NextResponse.json({ preview: true, texto, desde: inicio.toISOString() });
+    return NextResponse.json({ preview: true, texto, desde: torneo.arranca.toISOString() });
   }
 
   const mandado = await mandarMensaje(texto);

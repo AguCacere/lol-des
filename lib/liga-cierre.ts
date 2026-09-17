@@ -1,7 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendDiscordNotification } from "./discord";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "./refresh";
-import { type AjusteLiga, claveDeSemana, type DetalleSemanal, diasCorridos, esSemanaDeLiga, etiquetasDeDias, type FilaDelDia, type FilaLiga, ganadorDe, inicioDeSemana, mensajeDeCierre, mensajeDelDia, puntajeDe, puntosPorDia, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot, ventanaDe, ventanaUltimoDia } from "./liga";
+import { type AjusteLiga, type DetalleSemanal, type FilaDelDia, type FilaLiga, ganadorDe, mensajeDeCierre, mensajeDelDia, puntajeDe, puntosPorDia, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot } from "./liga";
+import { claveDeTorneo, diaCorriente, esTorneoDeLiga, etiquetasDeDias, type Torneo, torneoAnterior, torneoDe } from "./torneo";
 import { repartirTitulos } from "./liga-titulos";
 
 /**
@@ -66,7 +67,7 @@ function masRepetido<T>(valores: (T | null)[]): T | null {
  */
 export async function tablaDeSemanaEnBase(
   supabase: SupabaseClient,
-  inicio: Date,
+  torneo: Torneo,
   opciones: { conCarrera?: boolean; todosLosTrackeados?: boolean; ahora?: Date } = {},
 ): Promise<FilaLiga[] | null> {
   // Las tres consultas de acá abajo TIRAN el error en vez de tragárselo, y eso
@@ -84,7 +85,8 @@ export async function tablaDeSemanaEnBase(
 
   // La ventana real de esa semana: puede arrancar más tarde que el lunes si es
   // la primera de la liga.
-  const { desde, hasta: fin } = ventanaDe(inicio);
+  const desde = torneo.arranca;
+  const fin = torneo.cierra;
   const desdeAntes = new Date(desde.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString();
   const puuids = anotados.map((s) => s.puuid);
   const { data: snaps, error: eSnaps } = await supabase
@@ -135,11 +137,11 @@ export async function tablaDeSemanaEnBase(
   );
   // El arranque del último día: sin el mínimo de ese día no se cobra, por más
   // arriba que se haya terminado. Ver MINIMO_ULTIMO_DIA en lib/liga.ts.
-  const arrancaUltimoDia = ventanaUltimoDia(inicio).desde.getTime();
+  const arrancaUltimoDia = torneo.ultimoDesde.getTime();
   // Y el 00:00 argentino del día que corre, para el parte diario. Sale del lunes
   // más los días corridos, o sea de la MISMA cuadrícula de días calendario que
   // usa la carrera — no de un bloque de 24 horas hacia atrás. Ver diasCorridos.
-  const arrancaHoy = inicio.getTime() + (diasCorridos(inicio, opciones.ahora ?? new Date()) - 1) * 86400000;
+  const arrancaHoy = desde.getTime() + (diaCorriente(torneo, opciones.ahora ?? new Date()) - 1) * 86400000;
   // Se agrupan y se ORDENAN por fecha antes de contar. Hasta que la liga
   // puntuó por rachas alcanzaba con sumar victorias y derrotas al vuelo, sin
   // mirar el orden; ahora "la cuarta al hilo vale 1,25" depende de en qué
@@ -176,7 +178,7 @@ export async function tablaDeSemanaEnBase(
       porDia: opciones.conCarrera
         ? puntosPorDia(
             suyas.map((m) => ({ win: m.win, playedAt: m.played_at })),
-            inicio,
+            torneo,
             opciones.ahora ?? new Date(fin.getTime() - 1),
           )
         : [],
@@ -187,7 +189,7 @@ export async function tablaDeSemanaEnBase(
       hoy: opciones.ahora ? suyas.filter((m) => Date.parse(m.played_at) >= arrancaHoy).length : 0,
       // Los números que los títulos necesitan y el puntaje no da. Se cuentan
       // acá, sobre las mismas partidas ya filtradas, y no en otra consulta.
-      detalle: detalleDeSemana(suyas, inicio),
+      detalle: detalleDeSemana(suyas, desde),
       // El campeón de la semana sí se calcula: es lo único de este bloque que
       // sale en el anuncio ("ganó la liga con Yasuo"). La línea no, que ahí no
       // se nombra.
@@ -212,12 +214,15 @@ export async function tablaDeSemanaEnBase(
   const { data: ajustesRows } = await supabase
     .from("liga_ajustes")
     .select("puuid, puntos, motivo")
-    .eq("semana", claveDeSemana(desde));
+    .eq("semana", claveDeTorneo(torneo));
   const ajustes = new Map<string, AjusteLiga>(
     (ajustesRows ?? []).map((a) => [a.puuid as string, { puntos: Number(a.puntos), motivo: a.motivo as string }]),
   );
 
-  return tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], desde, fin, recordPorPuuid, ajustes);
+  return tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], desde, fin, recordPorPuuid, ajustes, {
+    total: torneo.minimoTotal,
+    ultimo: torneo.minimoUltimo,
+  });
 }
 
 /**
@@ -259,12 +264,12 @@ export interface ResumenSemana {
 }
 
 /** La foto de una semana a partir de su tabla ya armada. Sin red. */
-export function resumenDeTabla(inicio: Date, tabla: FilaLiga[]): ResumenSemana {
+export function resumenDeTabla(torneo: Torneo, tabla: FilaLiga[]): ResumenSemana {
   const jugaron = tabla.filter((f) => !f.sinJugar);
   const g = ganadorDe(tabla);
   return {
-    semana: claveDeSemana(inicio),
-    dias: etiquetasDeDias(inicio),
+    semana: claveDeTorneo(torneo),
+    dias: etiquetasDeDias(torneo),
     ganadorPuuid: g?.puuid ?? null,
     jugadores: jugaron.length,
     // Cuántos estaban anotados esa semana, jugaran o no. Va aparte de
@@ -301,9 +306,9 @@ export function resumenDeTabla(inicio: Date, tabla: FilaLiga[]): ResumenSemana {
  */
 export async function comoTerminoLaSemana(
   supabase: SupabaseClient,
-  inicio: Date,
+  torneo: Torneo,
 ): Promise<ResumenSemana & { guardada: boolean }> {
-  const clave = claveDeSemana(inicio);
+  const clave = claveDeTorneo(torneo);
   const { data: fila, error } = await supabase
     .from("liga_semanas")
     .select("resumen")
@@ -316,32 +321,34 @@ export async function comoTerminoLaSemana(
   const guardado = (fila?.resumen ?? null) as ResumenSemana | null;
   if (guardado && Array.isArray(guardado.tabla)) return { ...guardado, guardada: true };
 
-  const tabla = (await tablaDeSemanaEnBase(supabase, inicio, { conCarrera: true })) ?? [];
-  return { ...resumenDeTabla(inicio, tabla), guardada: false };
+  const tabla = (await tablaDeSemanaEnBase(supabase, torneo, { conCarrera: true })) ?? [];
+  return { ...resumenDeTabla(torneo, tabla), guardada: false };
 }
 
 export async function vistaPreviaDeCierre(
   supabase: SupabaseClient,
-  inicio: Date,
+  torneo: Torneo,
 ): Promise<{ texto: string; semana: string; jugadores: number }> {
-  const tabla = (await tablaDeSemanaEnBase(supabase, inicio)) ?? [];
+  const tabla = (await tablaDeSemanaEnBase(supabase, torneo)) ?? [];
   return {
-    texto: mensajeDeCierre(inicio, tabla, repartirTitulos(tabla)),
-    semana: claveDeSemana(inicio),
+    texto: mensajeDeCierre(torneo, tabla, repartirTitulos(tabla)),
+    semana: claveDeTorneo(torneo),
     jugadores: tabla.filter((f) => !f.sinJugar).length,
   };
 }
 
 export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise<ResultadoCierre> {
-  const semanaEnCurso = inicioDeSemana();
-  // La que acaba de terminar es la anterior a la actual.
-  const anterior = new Date(semanaEnCurso.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const clave = claveDeSemana(anterior);
+  // El último torneo que YA terminó. Antes esto era "la semana anterior a la
+  // actual", que con ventanas fijas de siete días daba lo mismo; con torneos de
+  // duración variable no, porque entre el cierre de uno y el arranque del
+  // siguiente puede no haber ninguna relación.
+  const anterior = await torneoAnterior(supabase);
+  const clave = claveDeTorneo(anterior);
 
   // Antes que nada: que la semana sea DE la liga. La app tiene meses de LP
   // guardado de antes de que esto existiera, y sin esta guarda el cron sale a
   // coronar campeones de semanas en las que nadie estaba compitiendo.
-  if (!esSemanaDeLiga(anterior)) {
+  if (!esTorneoDeLiga(anterior)) {
     return { cerrada: null, ganador: null, lpNeto: null, jugadores: 0, motivo: `${clave} es anterior al arranque de la liga` };
   }
 
@@ -416,9 +423,9 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
  */
 export async function rescatarResumen(
   supabase: SupabaseClient,
-  inicio: Date,
+  torneo: Torneo,
 ): Promise<{ semana: string; reconstruidos: number; registrados: number | null; guardado: boolean; motivo?: string }> {
-  const clave = claveDeSemana(inicio);
+  const clave = claveDeTorneo(torneo);
   const { data: fila, error: eFila } = await supabase
     .from("liga_semanas")
     .select("jugadores")
@@ -427,8 +434,8 @@ export async function rescatarResumen(
   if (eFila) throw new Error(`No se pudo leer la semana: ${eFila.message}`);
   if (!fila) return { semana: clave, reconstruidos: 0, registrados: null, guardado: false, motivo: "esa semana no está cerrada" };
 
-  const tabla = (await tablaDeSemanaEnBase(supabase, inicio, { conCarrera: true, todosLosTrackeados: true })) ?? [];
-  const resumen = resumenDeTabla(inicio, tabla);
+  const tabla = (await tablaDeSemanaEnBase(supabase, torneo, { conCarrera: true, todosLosTrackeados: true })) ?? [];
+  const resumen = resumenDeTabla(torneo, tabla);
   if (resumen.tabla.length === 0) {
     return {
       semana: clave,
@@ -464,10 +471,10 @@ export async function parteDelDia(
   supabase: SupabaseClient,
   ahora: Date = new Date(),
 ): Promise<{ texto: string | null; motivo?: string }> {
-  const inicio = inicioDeSemana(ahora);
-  if (!esSemanaDeLiga(inicio)) return { texto: null, motivo: "la semana en curso todavía no es de la liga" };
+  const torneo = await torneoDe(supabase, ahora);
+  if (!esTorneoDeLiga(torneo)) return { texto: null, motivo: "el torneo en curso todavía no es de la liga" };
 
-  const tabla = await tablaDeSemanaEnBase(supabase, inicio, { conCarrera: true, ahora });
+  const tabla = await tablaDeSemanaEnBase(supabase, torneo, { conCarrera: true, ahora });
   if (!tabla || tabla.length === 0) return { texto: null, motivo: "no hay nadie anotado" };
 
   const filas: FilaDelDia[] = tabla.map((f) => {
@@ -480,7 +487,7 @@ export async function parteDelDia(
     return { name: f.name, puntos: puntajeDe(f), hoy: hoyCierra - ayerCerro, jugadas: f.hoy ?? 0 };
   });
 
-  const texto = mensajeDelDia(inicio, filas, ahora);
+  const texto = mensajeDelDia(torneo, filas, ahora);
   return texto ? { texto } : { texto: null, motivo: "hoy no hay nada para contar (domingo, o no jugó nadie)" };
 }
 

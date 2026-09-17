@@ -40,7 +40,7 @@ interface Corredor {
 interface Props {
   /** Los siete nombres de día, de lunes a domingo. */
   dias: string[];
-  /** Cuántos ya arrancaron, contando el de hoy. Entre 1 y 7. */
+  /** Cuántos ya arrancaron, contando el de hoy. Entre 1 y la duración del torneo (que no siempre es 7). */
   corridos: number;
   /** El rango de la semana, ya escrito ("14 sept – 20 sept"). */
   rango: string;

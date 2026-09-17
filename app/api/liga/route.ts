@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { exigirSesion } from "@/lib/auth";
 import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
-import { claveDeSemana, esSemanaDeLiga, inicioDeSemana, LIGA_INICIO, tablaDeLaSemana, ventanaDeSemana, ventanaUltimoDia, empezoElUltimoDia, puntosDeSecuencia, puntosPorDia, etiquetasDeDias, diasCorridos, MINIMO_SEMANAL, MINIMO_ULTIMO_DIA, PUNTOS_VICTORIA, PUNTOS_DERROTA, PUNTOS_EN_RACHA, RACHA_DESDE, lpPorPartida, type AjusteLiga, type Participante, type RecordSemanal, type Snapshot } from "@/lib/liga";
+import { tablaDeLaSemana, puntosDeSecuencia, puntosPorDia, PUNTOS_VICTORIA, PUNTOS_DERROTA, PUNTOS_EN_RACHA, RACHA_DESDE, lpPorPartida, type AjusteLiga, type Participante, type RecordSemanal, type Snapshot } from "@/lib/liga";
+import { claveDeTorneo, diaCorriente, duracionEnDias, empezoElUltimoDia, esTorneoDeLiga, etiquetasDeDias, LIGA_INICIO, torneoDe } from "@/lib/torneo";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { roleFromTeamPosition } from "@/lib/mapping";
 
@@ -38,10 +39,12 @@ export async function GET() {
     return NextResponse.json({ error: `No se pudo leer quiénes compiten: ${eTodos.message}` }, { status: 502 });
   }
 
-  const inicio = inicioDeSemana();
-  // `desde` puede no ser el lunes: la primera semana empieza cuando arrancó la
-  // liga. Todo lo que se mide va contra esta ventana, no contra el lunes.
-  const { desde: desdeVentana, hasta: fin } = ventanaDeSemana();
+  // La ventana ya no se deduce del calendario: sale de `liga_torneos` si hay
+  // fila, y si no del lunes a domingo de siempre (ver lib/torneo.ts). Todo lo
+  // que se mide va contra esta ventana.
+  const torneo = await torneoDe(supabase);
+  const desdeVentana = torneo.arranca;
+  const fin = torneo.cierra;
 
   const anotados = (todos ?? []).filter((s) => s.participa_liga);
 
@@ -75,7 +78,7 @@ export async function GET() {
   // Si la semana en curso es anterior al arranque, no se muestra nada: el LP
   // que ya está guardado es de antes de la liga y contarlo sería empezar el
   // campeonato con marcadores puestos.
-  const arrancada = esSemanaDeLiga(inicio);
+  const arrancada = esTorneoDeLiga(torneo);
   // Distinto de `arrancada`: esa dice que la semana CUENTA para la liga (le
   // alcanza con terminar después del pistoletazo). Esta dice que el
   // pistoletazo YA SONÓ. Entre las dos hay un hueco —la primera semana
@@ -166,7 +169,7 @@ export async function GET() {
       };
       // El arranque del último día, para contar cuántas jugó ahí. Ver
       // MINIMO_ULTIMO_DIA: sin las tres del domingo no cobra.
-      const arrancaUltimoDia = ventanaUltimoDia(inicio).desde.getTime();
+      const arrancaUltimoDia = torneo.ultimoDesde.getTime();
       const recordPorPuuid = new Map<string, RecordSemanal>();
       for (const [puuid, suyas] of suyasPorPuuid) {
         // `suyas` son TODAS las de la semana y es lo único que ve el desglose;
@@ -216,11 +219,11 @@ export async function GET() {
           // El acumulado día por día, para la carrera de arriba de la tabla. Se
           // calcula acá porque es el único lugar donde están los `played_at`:
           // `secuencia` ya perdió el cuándo y se quedó solo con el resultado.
-          // `inicio` (el lunes 00:00 argentino) y NO `desdeVentana`: la
-          // cuadrícula de días es de días calendario. Ver diasCorridos.
+          // La cuadrícula es de días CALENDARIO argentinos, que es lo que
+          // resuelve diaCorriente adentro. Ver lib/torneo.ts.
           porDia: puntosPorDia(
             cuentan.map((m) => ({ win: m.win, playedAt: m.played_at })),
-            inicio,
+            torneo,
           ),
           // TODAS las de la semana, con lo que movió cada una. Es lo que se abre
           // al tocar la fila.
@@ -270,7 +273,7 @@ export async function GET() {
       const { data: ajustesRows, error: eAjustes } = await supabase
         .from("liga_ajustes")
         .select("puuid, puntos, motivo")
-        .eq("semana", claveDeSemana(inicio));
+        .eq("semana", claveDeTorneo(torneo));
       if (eAjustes) console.error("liga: no se pudieron leer los ajustes —", eAjustes.message);
       // `puntos` es numeric y PostgREST lo manda como string: sin el Number,
       // "−2" + 3 da "−23" en vez de 1.
@@ -278,7 +281,10 @@ export async function GET() {
         (ajustesRows ?? []).map((a) => [a.puuid as string, { puntos: Number(a.puntos), motivo: a.motivo as string }]),
       );
 
-      tabla = tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], desdeVentana, fin, recordPorPuuid, ajustes);
+      tabla = tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], desdeVentana, fin, recordPorPuuid, ajustes, {
+        total: torneo.minimoTotal,
+        ultimo: torneo.minimoUltimo,
+      });
   }
 
   // La vitrina de campeones.
@@ -320,7 +326,7 @@ export async function GET() {
       arrancada,
       arrancoYa,
       arrancaEl: LIGA_INICIO.toISOString(),
-      semana: claveDeSemana(inicio),
+      semana: claveDeTorneo(torneo),
       desde: desdeVentana.toISOString(),
       hasta: fin.toISOString(),
       // Las condiciones para cobrar, y si el último día ya arrancó. Van en la
@@ -328,18 +334,21 @@ export async function GET() {
       // en lib/liga.ts alcance: si el bundle viejo tuviera su propia copia,
       // durante la ventana de caché la pantalla exigiría un mínimo distinto del
       // que aplica el cierre.
-      minimoSemanal: MINIMO_SEMANAL,
-      minimoUltimoDia: MINIMO_ULTIMO_DIA,
+      minimoSemanal: torneo.minimoTotal,
+      minimoUltimoDia: torneo.minimoUltimo,
       // La tabla de puntos, por la misma razón: la regla escrita en pantalla
       // tiene que salir de las mismas constantes que la calculan.
       puntaje: { victoria: PUNTOS_VICTORIA, derrota: PUNTOS_DERROTA, rachaDesde: RACHA_DESDE, enRacha: PUNTOS_EN_RACHA },
-      ultimoDia: empezoElUltimoDia(inicio),
-      // Los siete días de la semana y cuántos van corridos. Van del server porque
-      // el huso es argentino y el cliente está en el reloj del que mira. El
-      // gráfico se queda con los corridos; la barra de la semana dibuja los
-      // siete, con los que faltan en gris.
-      dias: etiquetasDeDias(inicio),
-      diasCorridos: diasCorridos(inicio),
+      ultimoDia: empezoElUltimoDia(torneo),
+      // Los días del torneo y cuántos van corridos. Van del server porque el
+      // huso es argentino y el cliente está en el reloj del que mira. El
+      // gráfico se queda con los corridos; la barra dibuja todos, con los que
+      // faltan en gris. Ya NO son siempre siete: un torneo puede durar ocho.
+      dias: etiquetasDeDias(torneo),
+      diasCorridos: diaCorriente(torneo),
+      duracion: duracionEnDias(torneo),
+      // Para que la pantalla pueda decir de qué torneo habla y si es editable.
+      torneo: { id: torneo.id, nombre: torneo.nombre, guardado: torneo.guardado },
       tabla,
       // Para que la tabla pueda pedirle el arte del campeón a Data Dragon.
       ddragonVersion: version,

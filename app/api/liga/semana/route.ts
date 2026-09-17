@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { exigirSesion } from "@/lib/auth";
 import { comoTerminoLaSemana, rescatarResumen } from "@/lib/liga-cierre";
-import { esSemanaDeLiga, inicioDeSemana } from "@/lib/liga";
+import { esTorneoDeLiga, torneoDe } from "@/lib/torneo";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
 /**
@@ -26,15 +26,9 @@ export async function GET(req: Request) {
   if (!clave || !/^\d{4}-\d{2}-\d{2}$/.test(clave)) {
     return NextResponse.json({ error: "Falta el parámetro `semana` (YYYY-MM-DD)." }, { status: 400 });
   }
-  // Se normaliza al lunes de esa semana en vez de confiar en lo que llegó: la
-  // clave guardada YA es un lunes, pero si alguien pega la URL con un miércoles
-  // tiene que devolver esa semana y no una ventana corrida tres días.
-  const inicio = inicioDeSemana(new Date(`${clave}T12:00:00Z`));
-  if (Number.isNaN(inicio.getTime())) {
+  const mediodia = new Date(`${clave}T12:00:00Z`);
+  if (Number.isNaN(mediodia.getTime())) {
     return NextResponse.json({ error: "Esa fecha no existe." }, { status: 400 });
-  }
-  if (!esSemanaDeLiga(inicio)) {
-    return NextResponse.json({ error: "Esa semana es anterior al arranque de la liga." }, { status: 404 });
   }
 
   let supabase;
@@ -44,12 +38,21 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Sin Supabase." }, { status: 500 });
   }
 
+  // El torneo se busca DESPUÉS de tener el cliente: la ventana ya no se deduce
+  // del calendario, sale de `liga_torneos` (o del lunes a domingo si no hay
+  // fila). El mediodía de ese día cae siempre adentro de la ventana, así que
+  // pegar la URL con un miércoles devuelve el torneo correcto igual.
+  const torneo = await torneoDe(supabase, mediodia);
+  if (!esTorneoDeLiga(torneo)) {
+    return NextResponse.json({ error: "Esa semana es anterior al arranque de la liga." }, { status: 404 });
+  }
+
   // Sin este try, una consulta que falla sale como 200 con la tabla vacía y la
   // pantalla dice "esa semana no jugó nadie" — un error invisible que encima
   // miente sobre el dato.
   let datos;
   try {
-    datos = await comoTerminoLaSemana(supabase, inicio);
+    datos = await comoTerminoLaSemana(supabase, torneo);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("liga/semana falló:", message);
@@ -87,11 +90,6 @@ export async function POST(req: Request) {
   if (!clave || !/^\d{4}-\d{2}-\d{2}$/.test(clave)) {
     return NextResponse.json({ error: "Falta el parámetro `semana` (YYYY-MM-DD)." }, { status: 400 });
   }
-  const inicio = inicioDeSemana(new Date(`${clave}T12:00:00Z`));
-  if (Number.isNaN(inicio.getTime()) || !esSemanaDeLiga(inicio)) {
-    return NextResponse.json({ error: "Esa semana no es de la liga." }, { status: 400 });
-  }
-
   let supabase;
   try {
     supabase = getSupabaseServerClient();
@@ -99,8 +97,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Sin Supabase." }, { status: 500 });
   }
 
+  const torneo = await torneoDe(supabase, new Date(`${clave}T12:00:00Z`));
+  if (!esTorneoDeLiga(torneo)) {
+    return NextResponse.json({ error: "Esa semana no es de la liga." }, { status: 400 });
+  }
+
   try {
-    return NextResponse.json(await rescatarResumen(supabase, inicio));
+    return NextResponse.json(await rescatarResumen(supabase, torneo));
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("liga/semana rescate falló:", message);

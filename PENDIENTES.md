@@ -20,7 +20,50 @@ la sesión hay acceso de LECTURA por MCP —sirve para auditar y para verificar 
 corrió— pero las migraciones las sigue corriendo el dueño, que es como se trabajó hasta
 ahora (ver `PROXIMO-TORNEO.md` → "Mejoras en la base").
 
-**La columna del bot.** Es lo único que falta correr:
+**La tabla de torneos.** Es la que habilita planificar fechas y la que hace falta para
+extender el torneo en curso al lunes:
+
+```sql
+create table if not exists liga_torneos (
+  id            uuid primary key default gen_random_uuid(),
+  nombre        text,
+  arranca_at    timestamptz not null,
+  cierra_at     timestamptz not null,
+  minimo_total  int not null default 10,
+  minimo_ultimo int not null default 3,
+  ultimo_desde  timestamptz,
+  premio        text,
+  creado_at     timestamptz not null default now(),
+  constraint liga_torneos_ventana_valida check (cierra_at > arranca_at)
+);
+create index if not exists liga_torneos_ventana_idx on liga_torneos (arranca_at, cierra_at);
+alter table liga_torneos enable row level security;
+```
+
+Sin ella **no se rompe nada**: la liga sigue usando el lunes a domingo deducido, con los
+mínimos de siempre. Lo que no se puede es cambiar fechas.
+
+**Y para extender el torneo en curso al lunes** (arranca lun 14/9 00:00, cierra mar 22/9
+00:00 = ocho días, de lunes 14 a lunes 21). Hay que elegir una de las dos últimas líneas,
+que es la decisión que afecta a la gente:
+
+```sql
+insert into liga_torneos (nombre, arranca_at, cierra_at, minimo_total, minimo_ultimo, ultimo_desde)
+values (
+  'Semana del 14 (extendida)',
+  '2026-09-14T03:00:00Z',   -- lunes 14, 00:00 argentina
+  '2026-09-22T03:00:00Z',   -- martes 22, 00:00 argentina → el último día es el LUNES 21
+  10, 3,
+  -- Elegí UNA:
+  '2026-09-21T03:00:00Z'    -- el "último día" pasa a ser el lunes. Hay que AVISARLO en el Discord.
+  -- '2026-09-20T03:00:00Z' -- el "último día" sigue siendo el domingo; el lunes es tiempo extra.
+);
+```
+
+Una vez creada la fila se edita todo desde el panel, sin SQL: está en la pestaña de la
+liga, atrás de la contraseña, arriba del selector de jugadores.
+
+**La columna del bot.** También falta:
 
 ```sql
 alter table summoners add column if not exists discord_id text;

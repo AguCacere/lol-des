@@ -7,6 +7,7 @@ import { LigaEstado } from "./LigaEstado";
 import { LigaTorneo } from "./LigaTorneo";
 import { LigaDiaADia } from "./LigaDiaADia";
 import { InfoTip } from "./InfoTip";
+import LigaTorneoAdmin from "./LigaTorneoAdmin";
 import { fetchConClave } from "./Cerradura";
 import { TierEmblem } from "./TierEmblem";
 import { StreakIcon } from "./StreakIcon";
@@ -470,8 +471,12 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
           ARRIBA de la carrera y de la tabla porque es el marco: primero cuánto
           falta y qué está en juego, después cómo se dio y por último el
           marcador. Con guarda por la ventana de caché del CDN: una respuesta
-          anterior al deploy no trae los días. */}
-      {d.arrancada !== false && d.dias && d.dias.length === 7 && (
+          anterior al deploy no trae los días.
+
+          La guarda pregunta si HAY días, no si son siete. Era `=== 7`, y con un
+          torneo de ocho días —que es para lo que existe lib/torneo.ts— este
+          bloque entero desaparecía de la pantalla sin que nada avisara. */}
+      {d.arrancada !== false && d.dias && d.dias.length > 0 && (
         <LigaEstado
           rango={rangoTexto}
           actualizado={d.actualizado ?? null}
@@ -1019,10 +1024,33 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
 
       {admin && (
         <div className="liga-admin">
+          {/* La planificación del torneo va ARRIBA del selector: primero cuándo
+              se juega y después quiénes, que es el orden en que se decide. */}
+          <LigaTorneoAdmin />
+
           <p>
-            Se anota el que quiere, no todos los trackeados.
+            Se anota el que quiere, no todos los trackeados.{" "}
+            <b>
+              {anotados} de {d.plantel.length}
+            </b>
             <InfoTip text="Anotar y desanotar pide la contraseña del grupo. Si no la tenés cargada, al tocar un nombre aparece el cartel para escribirla." />
           </p>
+          <div className="liga-admin-todos">
+            <button
+              type="button"
+              onClick={() => d.plantel.filter((p) => !p.participa).forEach((p) => anotar(p.puuid, true))}
+              disabled={anotados === d.plantel.length}
+            >
+              Marcar todos
+            </button>
+            <button
+              type="button"
+              onClick={() => d.plantel.filter((p) => p.participa).forEach((p) => anotar(p.puuid, false))}
+              disabled={anotados === 0}
+            >
+              Ninguno
+            </button>
+          </div>
           {d.plantel.map((p) => (
             <label className="liga-admin-fila" key={p.puuid}>
               <input

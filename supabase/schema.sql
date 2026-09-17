@@ -257,6 +257,37 @@ create table if not exists liga_ajustes (
   primary key (semana, puuid)
 );
 
+-- ── Los torneos de la liga (lib/torneo.ts) ───────────────────────────────
+-- Cuándo arranca y cuándo cierra cada torneo, con sus mínimos.
+--
+-- Existe porque hasta acá la liga no TENÍA fechas: las deducía. inicioDeSemana
+-- calculaba el lunes y finDeSemana le sumaba siete días. Eso alcanzaba mientras
+-- un torneo fuera siempre una semana de lunes a domingo, y dejó de alcanzar el
+-- día que hubo que agregarle un lunes porque había gente que no podía el domingo.
+--
+-- SIN ESTA TABLA TODO SIGUE ANDANDO IGUAL: si no hay fila para el momento que se
+-- pregunta, torneoDerivado arma el lunes a domingo de siempre con los mínimos de
+-- siempre. Por eso se puede desplegar el código antes de correr esto.
+create table if not exists liga_torneos (
+  id            uuid primary key default gen_random_uuid(),
+  nombre        text,                         -- "Semana del 14", "Torneo de octubre". Solo para la pantalla
+  arranca_at    timestamptz not null,
+  cierra_at     timestamptz not null,         -- EXCLUSIVO: un torneo que cierra el lunes 00:00 termina el domingo
+  minimo_total  int not null default 10,      -- partidas en TODO el torneo para cobrar
+  minimo_ultimo int not null default 3,       -- partidas en el "último día"
+  -- Desde cuándo cuenta el "último día". Se guarda y NO se deduce del cierre a
+  -- propósito: al extender un torneo en curso, mover el último día
+  -- automáticamente le cambia la regla a alguien que ya organizó su semana para
+  -- cumplirla el domingo. Null = las últimas 24 horas, que es lo de siempre.
+  ultimo_desde  timestamptz,
+  premio        text,
+  creado_at     timestamptz not null default now(),
+  constraint liga_torneos_ventana_valida check (cierra_at > arranca_at)
+);
+-- Para torneoDe, que busca el que contiene un instante.
+create index if not exists liga_torneos_ventana_idx on liga_torneos (arranca_at, cierra_at);
+alter table liga_torneos enable row level security;
+
 -- ── El bot de Discord (lib/discord-comandos.ts) ──────────────────────────
 -- Ata un usuario de Discord a su invocador. Es lo que deja que `/ultima` sin
 -- argumentos conteste "la tuya" en vez de pedir el nombre.

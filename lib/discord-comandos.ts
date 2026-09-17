@@ -6,17 +6,8 @@ import { tierKeyFromRiot, divisionFromRiot } from "./mapping";
 import { roastMessage, worstDisaster, type RoastCandidate } from "./roast";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "./refresh";
 import { tablaDeSemanaEnBase } from "./liga-cierre";
-import {
-  diasCorridos,
-  empezoElUltimoDia,
-  esSemanaDeLiga,
-  ganadorDe,
-  inicioDeSemana,
-  puntajeDe,
-  puntajeTexto,
-  puntosDeSecuencia,
-  ventanaDe,
-} from "./liga";
+import { ganadorDe, puntajeDe, puntajeTexto, puntosDeSecuencia } from "./liga";
+import { diaCorriente, duracionEnDias, empezoElUltimoDia, esTorneoDeLiga, torneoDe } from "./torneo";
 
 /**
  * Los cuatro comandos del bot: de Supabase al texto que sale en el canal.
@@ -172,14 +163,16 @@ function noSeQuien(texto: string | null): string {
 /** ─────────────────────────── /liga ─────────────────────────── */
 
 async function comandoLiga(supabase: SupabaseClient): Promise<string> {
-  const inicio = inicioDeSemana();
-  if (!esSemanaDeLiga(inicio)) return "Esta semana no hay liga.";
+  const torneo = await torneoDe(supabase);
+  if (!esTorneoDeLiga(torneo)) return "Esta semana no hay liga.";
 
-  const tabla = await tablaDeSemanaEnBase(supabase, inicio);
+  const tabla = await tablaDeSemanaEnBase(supabase, torneo);
   if (!tabla || tabla.length === 0) return "No hay nadie anotado en la liga de esta semana.";
 
-  const dias = diasCorridos(inicio);
-  const lineas = [`🍄 **La liga de la semana** · día ${Math.min(dias, 7)} de 7`, ""];
+  // "de N" y no "de 7": un torneo puede durar ocho días. Ver lib/torneo.ts.
+  const total = duracionEnDias(torneo);
+  const titulo = torneo.nombre ?? "La liga de la semana";
+  const lineas = [`🍄 **${titulo}** · día ${diaCorriente(torneo)} de ${total}`, ""];
 
   for (const [i, f] of tabla.entries()) {
     // Podio y después caca, igual que el parte diario: en una liga de seis,
@@ -197,7 +190,7 @@ async function comandoLiga(supabase: SupabaseClient): Promise<string> {
   // normal— la línea no agrega nada y el pie se llena de obviedades.
   if (cobra && tabla[0] && cobra.puuid !== tabla[0].puuid) {
     pie.push(`Hoy cobraría ${cobra.name}: ${tabla[0].name} todavía no llega a los mínimos.`);
-  } else if (!cobra && empezoElUltimoDia(inicio)) {
+  } else if (!cobra && empezoElUltimoDia(torneo)) {
     // Y el "no cobra nadie" SOLO el último día. Uno de los mínimos es jugar 3
     // el domingo, así que de lunes a sábado nadie lo cumple todavía y la línea
     // saldría los seis días diciendo algo que no es una noticia — hasta que el
@@ -400,8 +393,8 @@ async function valorEnLaLiga(
   puuid: string,
   partida: FilaUltima,
 ): Promise<string | null> {
-  const inicio = inicioDeSemana();
-  if (!esSemanaDeLiga(inicio)) return null;
+  const torneo = await torneoDe(supabase);
+  if (!esTorneoDeLiga(torneo)) return null;
 
   const { data: quien } = await supabase
     .from("summoners")
@@ -410,7 +403,8 @@ async function valorEnLaLiga(
     .maybeSingle<{ participa_liga: boolean | null; liga_desde: string | null }>();
   if (!quien?.participa_liga) return null;
 
-  const { desde, hasta } = ventanaDe(inicio);
+  const desde = torneo.arranca;
+  const hasta = torneo.cierra;
   // El que entró tarde arranca cuando entró, no el lunes: contar desde el lunes
   // le metería en la secuencia partidas de antes de competir.
   const arranque = quien.liga_desde && Date.parse(quien.liga_desde) > desde.getTime()
