@@ -339,6 +339,14 @@ async function checkDisasterAndNotify(
  * que taparla y no enterarse.
  */
 async function checkCarryAndNotify(supabase: SupabaseClient, puuid: string, nuevos: string[]) {
+  // Y además, RECIENTE. `nuevos` ya alcanza para no republicar el historial
+  // —son los match_id que este ciclo acaba de insertar—, pero hay dos casos en
+  // que "recién insertada" no significa "recién jugada": un invocador que se
+  // agrega hoy entra con sus últimas 20 partidas de una, y un cron que estuvo
+  // caído medio día vuelve y las inserta todas juntas. En los dos, felicitar
+  // por una partida de anteayer queda de bot roto. Es la misma ventana que ya
+  // usa la cargada de flex, por el mismo motivo.
+  const desde = new Date(Date.now() - CARRY_VENTANA_MS).toISOString();
   const { data: rows } = await supabase
     .from("matches")
     .select(
@@ -350,6 +358,7 @@ async function checkCarryAndNotify(supabase: SupabaseClient, puuid: string, nuev
     // minutos se puede terminar 3/0/1 con el 40% del daño de un equipo que no
     // jugó, y eso no es carrear.
     .gte("game_duration_s", DURACION_MINIMA_S)
+    .gte("played_at", desde)
     .in("match_id", nuevos);
   if (!rows || rows.length === 0) return;
 
@@ -376,6 +385,12 @@ async function checkCarryAndNotify(supabase: SupabaseClient, puuid: string, nuev
   if (!label) return;
   await sendDiscordNotification(mensajeDeCarry(label, mejor));
 }
+
+/**
+ * Ventana máxima hacia atrás para la carrileada: una partida más vieja que esto
+ * no se anuncia por más que se acabe de insertar. Ver checkCarryAndNotify.
+ */
+const CARRY_VENTANA_MS = 3 * 60 * 60 * 1000;
 
 /**
  * Ventana máxima hacia atrás para la cargada de flex. Si el cron estuvo caído

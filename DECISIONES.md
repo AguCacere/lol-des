@@ -681,6 +681,18 @@ estilos distintos. Y encima dependen del campeón — un Alistar tiene 0 siempre
 habilidades son dirigidas o áreas alrededor suyo. Quedaron como DATO adentro del mensaje,
 que es donde lucen. No volver a ponerlos como condición.
 
+**El aviso mira solo lo recién insertado Y lo recién jugado — hacen falta las dos.**
+Pasarle los match_id que ese ciclo acaba de insertar es lo que impide republicar el
+historial cada quince minutos (misma regla que la cargada). Pero "recién insertada" no
+es "recién jugada": un invocador que se agrega hoy entra con sus últimas 20 partidas de
+una, y un cron que estuvo caído medio día vuelve e inserta todo junto. Por eso va además
+la ventana de 3 horas sobre `played_at`, la misma que ya usaba la cargada de flex.
+
+**Ni `/api/backfill` ni `/api/repair` disparan avisos, y tiene que seguir siendo así.**
+Ninguno de los dos llama a las funciones de notificación: pasan por `fetchAndStoreMatch`
+y `buildMatchRow` directo. Importa porque quedan cientos de filas por reparar, y un
+repair que avisara publicaría de golpe cada carrileada y cada desastre del historial.
+
 **Sale en el 2,5% de las partidas, contra 4,3% de la cargada, y es a propósito.** Es el
 mismo argumento del parte diario que se calla los domingos: un bot que felicita todos los
 días es un bot que el canal aprende a saltear, y después no lo lee ni cuando pasó algo.
