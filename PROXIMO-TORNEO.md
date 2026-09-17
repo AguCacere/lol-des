@@ -4,11 +4,11 @@ La liga que viene, que **no es la de ahora con más semanas**: cambia el formato
 bot y aparece una mecánica nueva. Esto es el pedido en crudo más lo que cada cosa toca, para
 que el que lo implemente no descubra el costo a mitad de camino.
 
-Nada de acá está construido. Lo que ya está acordado para la liga **actual** —el tope de
-cinco por día, el piso de −3, el duo solo con los del tablero— vive en `PENDIENTES.md` y es
-otra cosa: son ajustes al formato de hoy.
+De todo esto lo único construido es el **bot v1** (17/9). El resto sigue sin empezar. Lo que
+ya está acordado para la liga **actual** —el tope de cinco por día, el piso de −3, el duo solo
+con los del tablero— vive en `PENDIENTES.md` y es otra cosa: son ajustes al formato de hoy.
 
-Escrito el 16 de septiembre de 2026.
+Escrito el 16 de septiembre de 2026. Última revisión: 17 de septiembre.
 
 ## El pedido
 
@@ -31,7 +31,7 @@ arriba es el destino; esto es lo que entra en el primer viaje.
 
 **Va:**
 
-- **Bot v1** (los cuatro comandos de lectura) y la columna `discord_id`.
+- ~~**Bot v1** (los cuatro comandos de lectura) y la columna `discord_id`.~~ Hecho.
 - **Un solo efecto: robar un punto.** Casi no cuesta —`liga_ajustes` ya está hecho, es una
   fila en negativo y otra en positivo— pero obliga a armar el circuito entero: alguien
   tipea en Discord, el bot escribe en Supabase, la app lo muestra. Con ese camino andando,
@@ -73,9 +73,11 @@ donde volver a empezar.
 
 ### El bot nuevo
 
-Está todo el análisis en `PENDIENTES.md` → "El bot de Discord interactivo": HTTP Interactions
-en vez de gateway (así no hace falta un proceso corriendo), la firma Ed25519, la regla de los
-3 segundos, la columna `discord_id` y los cuatro comandos de lectura de la v1.
+**La v1 está construida** (17/9): los cuatro comandos de lectura, la firma Ed25519, el
+autocompletado y la columna `discord_id`. Lo que falta para prenderlo es configuración —
+crear la aplicación en Discord, cargar las variables y registrar los comandos—, y está
+paso por paso en `PENDIENTES.md` → "El bot de Discord: lo que falta para prenderlo". Las
+decisiones de diseño quedaron en `DECISIONES.md` → "El bot de Discord".
 
 **Ojo con el orden**: ahí está escrito que la v1 no escribe nada, porque exponer la cerradura
 de la app en un canal donde cualquiera tipea es pedirla. Pero los "te cojo" **son** escrituras
@@ -155,8 +157,12 @@ Dos avisos:
 - **Lectura primero.** Escritura directa contra la base de producción desde un chat es
   poderoso y no tiene deshacer. Las migraciones conviene que sigan siendo SQL que revisás y
   corrés vos, que es como se trabajó hasta ahora y funcionó.
-- El acceso de Claude a Supabase estuvo disponible en la última sesión pero no se llegó a
-  usar. Si se habilita, la auditoría es un rato de trabajo, no un proyecto.
+- El acceso a Supabase quedó conectado y **se usó por primera vez el 17/9**, solo de
+  lectura: sirvió para confirmar que `liga_ajustes` estaba corrida, que la penalización de
+  IGNAPP estaba cargada (y que no le pega a nadie, porque no está anotado en la liga) y que
+  `heal_teammates`/`shield_teammates` existen. La auditoría completa del esquema —índices
+  que faltan, columnas que no lee nadie, tipos mal elegidos— sigue sin hacerse, y es un
+  rato de trabajo, no un proyecto.
 
 ### Optimizar el cron
 
@@ -173,8 +179,8 @@ te roba un punto, querés verlo ya.
 
 Las dependencias son reales y si se arranca por el lado equivocado se labura dos veces:
 
-1. **Bot v1** (lectura) y la columna `discord_id`. Es la base de todo lo demás y sirve sola
-   desde el día uno.
+1. ~~**Bot v1** (lectura) y la columna `discord_id`.~~ **Hecho el 17/9.** Falta prenderlo:
+   las variables de Discord y correr la migración de `discord_id` (`PENDIENTES.md`).
 2. **Las tablas de los "te cojo" y el efecto de robar un punto.** Es el que casi no cuesta
    —`liga_ajustes` ya existe— así que sirve para probar el circuito Discord → base → app
    entero con un solo efecto.

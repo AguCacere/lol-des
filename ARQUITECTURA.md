@@ -7,7 +7,7 @@ evitables.
 
 ## Forma general
 
-Una sola página cliente (`app/page.tsx`) con cinco pestañas, y 17 route handlers.
+Una sola página cliente (`app/page.tsx`) con cinco pestañas, y 18 route handlers.
 **No hay Server Components de datos**: todo entra por `fetch` a `/api/*` desde el
 navegador. El servidor solo existe en las rutas.
 
@@ -43,6 +43,7 @@ cerradura no está puesta, nadie escribe).
 | `/api/coach` | POST | Análisis del pool con Claude | sí (caché) | **sí**\* | — |
 | `/api/roast` | POST | Dispara la cargada de Discord | no | **sí** | — |
 | `/api/login` | GET/POST/DELETE | Estado de sesión / entrar / salir | no | no | — |
+| `/api/discord/interactions` | POST | La puerta del bot: los cuatro comandos. La cerradura es la **firma Ed25519** de Discord, no la sesión | no | firma | — |
 | `/api/cron/refresh` | GET | Cada 15 min: refresca a todos | sí | `CRON_SECRET` | — |
 | `/api/cron/liga` | GET | Cierra la semana. Ya NO está en `vercel.json` (le dio el lugar al parte diario): queda para pegarle a mano | sí | `CRON_SECRET` | — |
 
@@ -73,7 +74,15 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
 - `champion-names.ts` — id de campeón → nombre lindo.
 - `live.ts` — Spectator-V5 para un lote de puuids, con la forma que renderiza la UI.
 - `supabase.ts` — el cliente de servidor (service role, nunca al navegador).
-- `discord.ts` — el webhook, best-effort: si falla no puede romper el cron.
+- `discord.ts` — la salida al canal, best-effort: si falla no puede romper el
+  cron. Manda por el **token del bot** cuando está configurado y cae al webhook
+  cuando no; `reaccionar` y `editarMensaje` existen solo por el primer camino,
+  porque un webhook no tiene identidad con la cual reaccionar.
+- `discord-firma.ts` — verifica la firma Ed25519 de cada interacción. Sin
+  dependencia nueva: Node hace Ed25519 nativo.
+- `discord-comandos.ts` — los cuatro comandos del bot, de Supabase al texto.
+  Ninguno toca Riot. Las definiciones que se le registran a Discord viven en
+  `discord-comandos.json`, que también lee `scripts/registrar-comandos.mjs`.
 
 **Ingesta**
 - `refresh.ts` — todo lo que escribe partidas. **Sus puertas son `refreshOne`,
@@ -293,6 +302,12 @@ Es siempre el mismo patrón, y saberlo evita leer el handler del ladder entero:
 `RIOT_API_KEY`, `RIOT_REGION`, `RIOT_PLATFORM`, `NEXT_PUBLIC_SUPABASE_URL`,
 `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, `DISCORD_WEBHOOK_URL`,
 `APP_PASSWORD` (la cerradura), `CRON_SECRET` (los crons).
+
+Y las del bot: `DISCORD_BOT_TOKEN` + `DISCORD_CHANNEL_ID` (mandar como el bot;
+sin ellas todo cae al webhook), `DISCORD_PUBLIC_KEY` (la cerradura de
+`/api/discord/interactions` — sin ella no entra ningún comando), y
+`DISCORD_APP_ID` + `DISCORD_GUILD_ID`, que solo usa el script de registro y no
+hacen falta en Vercel.
 
 **El refresco corre cada 15 minutos**, disparado por un scheduler externo (tipo
 cron-job.org) con `Authorization: Bearer $CRON_SECRET`. No sale de `vercel.json`

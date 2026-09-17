@@ -1,0 +1,26 @@
+[
+  {
+    "name": "liga",
+    "description": "Cómo va la liga de esta semana",
+    "options": []
+  },
+  {
+    "name": "ranking",
+    "description": "El ladder del grupo, de mejor a peor",
+    "options": []
+  },
+  {
+    "name": "cargar",
+    "description": "La peor partida reciente de alguien, para cargarlo",
+    "options": [
+      { "type": 3, "name": "jugador", "description": "A quién", "required": true, "autocomplete": true }
+    ]
+  },
+  {
+    "name": "ultima",
+    "description": "La última de soloq de alguien y lo que valió en la liga",
+    "options": [
+      { "type": 3, "name": "jugador", "description": "De quién (vacío: la tuya)", "required": false, "autocomplete": true }
+    ]
+  }
+]

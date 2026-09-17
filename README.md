@@ -31,6 +31,24 @@ Además, sin pantalla propia:
 desastroso, ahogarse en la fuente, perder contra un Nasus, cruzarse un Teemo. Se
 dispara solo con el refresco.
 
+Y **contesta comandos**. Cuatro, todos de lectura y todos servidos de Supabase:
+
+| Comando | Qué contesta |
+|---|---|
+| `/liga` | La tabla de la semana, con el récord de cada uno |
+| `/ranking` | El ladder, de mejor a peor |
+| `/cargar jugador:<alguien>` | Su peor partida reciente, con la cargada puesta |
+| `/ultima [jugador:<alguien>]` | Su última de soloq con KDA y **lo que valió en la liga**. Sin nombre, la tuya |
+
+El campo `jugador` autocompleta con la gente del grupo, así que no hay forma de escribir
+mal un nombre. Cada respuesta lleva al pie cuándo se actualizaron los datos — en un canal
+el mensaje queda ahí para siempre y conviene saber de cuándo es.
+
+No hace falta ningún proceso corriendo: Discord le pega a
+`/api/discord/interactions` cuando alguien tipea, y eso es un route handler más. **Nada
+de esto escribe**: anotarse a la liga o refrescar sigue siendo cosa de la app, con la
+contraseña del grupo.
+
 Todas las noches a las 23:55 manda el **parte diario de la liga**: cómo va la tabla y
 cuánto movió cada uno ESE día, con medallas para el podio y 💩 para el resto. No lo
 manda los domingos —ese día sale el cierre y los dos se pisarían— ni los días en que no
@@ -143,6 +161,9 @@ La base ya tiene que existir: crear el proyecto en Supabase y correr
 | `CRON_SECRET` | Autentica al scheduler externo que refresca cada 15 min, y a los crons de Vercel. Va como `Authorization: Bearer …` |
 | `ANTHROPIC_API_KEY` | Para el análisis del pool. Sin esto ese panel no genera nada; el resto anda |
 | `DISCORD_WEBHOOK_URL` | Opcional. Sin esto no se manda ninguna notificación y nada se rompe |
+| `DISCORD_BOT_TOKEN` + `DISCORD_CHANNEL_ID` | Opcionales. Con las dos, los anuncios salen **como el bot** en vez de por el webhook, y el 👍 de la votación queda puesto solo. Sin ellas, todo cae al webhook igual que antes |
+| `DISCORD_PUBLIC_KEY` | La cerradura del bot. **Sin esto no entra ningún comando** — falla cerrado, igual que `APP_PASSWORD` |
+| `DISCORD_APP_ID` + `DISCORD_GUILD_ID` | Solo para `scripts/registrar-comandos.mjs`, que se corre a mano. En Vercel no hacen falta |
 
 Si la Riot API Key se filtra, se regenera con "Nueva clave API" en el portal — no hace
 falta pedir una app nueva.
@@ -196,12 +217,14 @@ de `/api/cron/refresh` (línea `cron refresh done:`) dice cómo le fue a cada in
 ```
 app/
   page.tsx          # la única página: 5 pestañas, todo entra por fetch a /api/*
-  api/              # 17 route handlers (ver ARQUITECTURA.md)
+  api/              # 18 route handlers (ver ARQUITECTURA.md)
 components/         # ~40 componentes, agrupados por pestaña en ARQUITECTURA.md
 lib/                # Riot, cálculo puro, presentación e infraestructura
+scripts/
+  registrar-comandos.mjs  # le registra a Discord el menú de comandos (a mano)
 supabase/
   schema.sql        # summoners, matches, lp_snapshots, champion_mastery,
-                    # coach_reports, liga_semanas + la view ladder
+                    # coach_reports, liga_semanas, liga_ajustes + la view ladder
 ```
 
 Para el mapa completo — la tabla de rutas, el flujo de datos de Riot a la pantalla, las
@@ -217,6 +240,9 @@ npm run dev              # localhost:3000
 npx tsc --noEmit         # tipos
 npx eslint app lib components
 npm run build
+
+# Le registra a Discord el menú de comandos. Solo cuando cambia la lista.
+node --env-file=.env.local scripts/registrar-comandos.mjs
 ```
 
 ## Notas

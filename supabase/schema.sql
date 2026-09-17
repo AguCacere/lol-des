@@ -257,6 +257,28 @@ create table if not exists liga_ajustes (
   primary key (semana, puuid)
 );
 
+-- ── El bot de Discord (lib/discord-comandos.ts) ──────────────────────────
+-- Ata un usuario de Discord a su invocador. Es lo que deja que `/ultima` sin
+-- argumentos conteste "la tuya" en vez de pedir el nombre.
+--
+-- Nullable a propósito: el bot anda igual con la columna vacía —se nombra al
+-- jugador y listo— así que vincularse es una comodidad, no un requisito. Eso
+-- es lo que permite que el bot sirva desde el día uno sin tener que juntar
+-- antes los catorce ids de Discord.
+--
+-- El UNIQUE no es decoración: sin él, dos invocadores con el mismo discord_id
+-- hacen que "la tuya" devuelva cualquiera de los dos según el orden que le
+-- pinte a Postgres — un bug que aparece una vez cada tanto y no se reproduce.
+-- Es un índice parcial porque el UNIQUE común dejaría pasar todos los null
+-- igual, pero así queda explícito que los no-vinculados no compiten entre sí.
+--
+-- Cuando el bot escriba algo (los "te cojo" del próximo torneo), esta columna
+-- pasa a ser además la lista de permitidos: una firma de Discord válida prueba
+-- que el pedido vino de Discord, no que lo tipeó alguien de la casa.
+alter table summoners add column if not exists discord_id text;
+create unique index if not exists summoners_discord_id_idx
+  on summoners (discord_id) where discord_id is not null;
+
 -- RLS: estas tablas se leen/escriben solo desde el backend (service role),
 -- nunca directo desde el browser, así que se deja cerrado por defecto.
 alter table liga_ajustes enable row level security;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { exigirSesion } from "@/lib/auth";
-import { sendDiscordNotification } from "@/lib/discord";
+import { mandarMensaje, reaccionar } from "@/lib/discord";
 import { vistaPreviaDeCierre } from "@/lib/liga-cierre";
 import { inicioDeSemana, finDeSemana, mensajeDeArranque } from "@/lib/liga";
 import { getSupabaseServerClient } from "@/lib/supabase";
@@ -13,7 +13,8 @@ import { getSupabaseServerClient } from "@/lib/supabase";
  * del grupo no se puede deshacer, así que se mira antes de tirarlo.
  *
  * Se manda a mano y no por cron porque es de una sola vez: el que reacciona
- * participa, y después vos los anotás en la app.
+ * participa, y después vos los anotás en la app. El 👍 lo deja puesto el bot
+ * —antes había que ponerlo a mano—, así que anotarse es un toque y no dos.
  *
  * Con `{ tipo: "cierre" }` devuelve, en cambio, el anuncio del FINAL de la
  * semana —el podio con la cargada de cada puesto— armado con la gente y los
@@ -61,10 +62,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ preview: true, texto, desde: inicio.toISOString() });
   }
 
-  try {
-    await sendDiscordNotification(texto);
-  } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Discord no aceptó el mensaje." }, { status: 502 });
+  const mandado = await mandarMensaje(texto);
+  if (!mandado.ok) {
+    return NextResponse.json({ error: "Discord no aceptó el mensaje." }, { status: 502 });
   }
-  return NextResponse.json({ enviado: true, texto });
+
+  // El 👍 queda puesto solo. Este mensaje termina con "el que reacciona
+  // participa", y hasta ahora la primera reacción la tenía que poner alguien a
+  // mano: un webhook no tiene identidad con la cual reaccionar. Con el bot sí.
+  // Si el bot no está configurado devuelve false y el aviso sale igual — sin la
+  // reacción sembrada, como salía antes.
+  const reaccionado = mandado.id ? await reaccionar(mandado.id, ["👍"]) : false;
+  return NextResponse.json({ enviado: true, texto, via: mandado.via, reaccionado });
 }

@@ -22,6 +22,21 @@ que se lo cambiaba seguía figurando con el viejo para siempre, en el ladder, en
 liga y en las cargadas del bot. Se relee en cada refresco y solo se escribe si
 cambió.
 
+**`summoners.discord_id` es opcional a propósito, y el bot tiene que andar sin
+ella.** Ata un usuario de Discord a su invocador, pero es una comodidad —hace que
+`/ultima` sin argumentos conteste "la tuya"— y no un requisito: los comandos resuelven
+por nombre con autocompletado. Si se hubiera hecho obligatoria, el bot no habría
+servido hasta terminar de juntar los catorce ids a mano. Por eso `porDiscord` traga el
+error de "la columna no existe" y sigue de largo, igual que `/api/liga` con
+`liga_ajustes`.
+
+**La opción `jugador` de los comandos es texto con autocompletado, no de tipo USER.**
+Con USER, Discord manda un id de Discord y el bot no sabe a qué invocador corresponde
+hasta que esa persona esté vinculada — o sea, el bot no serviría hasta terminar la
+migración de arriba. Con autocompletado la lista sale de la base (no hay forma de
+escribir mal un nombre) y el valor que viaja es el **puuid**, así que la resolución es
+exacta y no por nombre parecido.
+
 **`lp_snapshots` solo inserta si algo cambió.** Un snapshot por refresco aunque no se
 haya jugado aplana el gráfico: veinte puntos idénticos y después un salto. La
 comparación con la fila anterior es a propósito.
@@ -556,6 +571,66 @@ detalle y se olvida ahí, no compila.
 prefijo `Riot API error <status>:` (`lib/riot.ts`), así que un mensaje pelado como
 "Gateway Timeout" es de Supabase, no de Riot. Eso solo ya descarta media hipótesis sin
 tocar nada.
+
+## El bot de Discord
+
+**HTTP Interactions, no gateway.** Un bot "de verdad" suele ser un proceso corriendo
+con una conexión abierta, y eso en Vercel no existe. El modo de interacciones HTTP es
+otra cosa: se le da una URL, Discord hace POST cuando alguien tipea, y el bot es un
+route handler más. Es lo que hace que la idea entre en el plan Hobby.
+
+**Todos los comandos contestan diferido (tipo 5), incluidos los que salen de
+Supabase.** El análisis original decía que para lo que sale de la base alcanzaba con
+contestar derecho adentro de los 3 segundos de Discord. Alcanza para la consulta; lo
+que no entra seguro es la consulta **más levantar la función desde cero**, que es el
+caso normal en un canal donde nadie tipea un comando hace una hora. Diferir cuesta una
+llamada HTTP más y sube el techo de 3 segundos a 15 minutos. El trabajo va en
+`after()` y después edita el "pensando…" — el mismo patrón de `/api/cron/refresh`.
+
+**El autocompletado es la excepción y NO se puede diferir**: Discord quiere las
+opciones en el momento o no muestra nada. Por eso es una sola consulta a una tabla de
+catorce filas, y si falla devuelve la lista vacía en vez de un error.
+
+**Cada tipo de interacción tiene que contestar con SU tipo de respuesta.** Mandarle un
+mensaje (tipo 4) a un autocompletado lo rechaza Discord y el que está tipeando ve un
+error rojo en vez de una lista vacía. Apareció al probar el camino de "falta la
+variable de Supabase", que contestaba tipo 4 para todo.
+
+**Cada respuesta del bot lleva el "actualizado hace X" al pie.** En la web ese cartel
+está al lado del dato y se entiende solo; en un canal el mensaje queda ahí para
+siempre y a los diez minutos ya no se sabe si es de ahora o de anoche. No es
+decoración: es lo que evita que alguien discuta una tabla vieja.
+
+**El pie de "no cobra nadie" sale SOLO el último día.** Uno de los mínimos es jugar 3
+el domingo, así que de lunes a sábado no lo cumple nadie y la línea saldría los seis
+días diciendo algo que no es una noticia — hasta que el domingo, cuando sí lo es, ya
+nadie la lee.
+
+**Los anuncios salen por el token del bot y caen al webhook si no está.** Los dos
+caminos existen a propósito y no hay que "limpiar" uno: el día que se rote el token,
+el parte diario de esa noche no se puede perder. Lo que el webhook no puede hacer —y
+era el motivo de que las votaciones necesitaran una mano humana— es **reaccionar a su
+propio mensaje o editarlo**: no tiene identidad. Con el bot, el 👍 del aviso de
+arranque queda puesto solo.
+
+**`sendDiscordNotification` devuelve un booleano.** Era `Promise<void>` y
+`/api/liga/diario` ya hacía `const ok = await sendDiscordNotification(...)`: el
+`mandado` de esa respuesta venía `undefined` y en el log del scheduler un parte
+mandado se veía igual que uno perdido. El webhook ahora se llama con `?wait=true`,
+que es lo que hace que Discord conteste el mensaje creado en vez de un 204 vacío — sin
+eso el booleano no podría significar nada.
+
+**Las definiciones de los comandos viven en un JSON**, no en el `.ts`.
+`scripts/registrar-comandos.mjs` es JavaScript suelto y no puede importar TypeScript;
+con el JSON los dos leen lo mismo y no hay forma de registrar un comando con una
+descripción y responderlo con otra. Y se registran con **PUT y no POST**: PUT
+reemplaza la lista entera, así que un comando que se saca del JSON desaparece del
+menú. Con POST quedaría registrado para siempre.
+
+**Registrar los comandos no es parte del deploy.** El código de los comandos se
+despliega con la app como cualquier ruta; lo que registra el script es el menú que
+Discord muestra al tipear "/". Son dos cosas distintas, y esa es la confusión típica:
+si agregás un comando y no corrés el script, funciona pero no aparece en la lista.
 
 ## Caché y deploys
 
@@ -1227,6 +1302,28 @@ alguien.
 
 **Un 401 en una ruta que recién funcionó no es un bug de código**: es la sesión
 perdida. "Borrar datos del sitio" en DevTools se lleva la cookie puesta.
+
+**El bot de Discord NO usa la cerradura de la app: usa la firma Ed25519 de Discord.**
+Son dos cosas distintas y mezclarlas sería el bug. `exigirSesion` prueba que del otro
+lado hay alguien del grupo con la contraseña; la firma prueba que el pedido lo mandó
+Discord. La segunda alcanza para los cuatro comandos porque **todos son de lectura**.
+El día que el bot escriba algo ya no alcanza, y no es un detalle: en un canal de
+Discord puede tipear cualquiera del server, así que una firma válida puede venir
+igualmente de alguien de afuera. Ahí va además una lista de `discord_id` permitidos —
+nunca la contraseña del grupo, que expuesta en un canal deja de ser una contraseña.
+
+**Y sin `DISCORD_PUBLIC_KEY` no entra ningún comando**, mismo criterio que
+`APP_PASSWORD`: que falte la cerradura es exactamente el caso en el que no hay que
+dejar pasar a nadie.
+
+**El 401 de la firma inválida es obligatorio.** Discord prueba el endpoint mandando
+una firma mal a propósito y **no deja guardar la URL** si eso contesta cualquier otra
+cosa. Un `200` educado ahí es lo que hace que la configuración falle sin explicar por
+qué.
+
+**El cuerpo se verifica CRUDO.** Lo firmado es `timestamp + cuerpo tal cual llegó`.
+Parsearlo a JSON y volver a serializarlo mueve un espacio y la firma no valida nunca:
+`req.text()` primero, `JSON.parse` después. Nunca `req.json()`.
 
 ## Tiempo
 

@@ -11,55 +11,45 @@ de leerse a la segunda vez.
 Lo que es de la liga **que viene** —dos semanas, bot nuevo, los "te cojo", el rebranding—
 no está acá: vive en **`PROXIMO-TORNEO.md`**. Esto es lo que le falta a la de hoy.
 
-Última revisión: 16 de septiembre de 2026.
+Última revisión: 17 de septiembre de 2026.
 
 ## SQL sin correr
 
-Las migraciones de esta base se corren **a mano** desde el SQL Editor de Supabase: desde
-el repo no hay acceso. Todo lo que está en `supabase/schema.sql` tiene que existir en la
-base o la consulta que lo use falla.
+Las migraciones de esta base se corren **a mano** desde el SQL Editor de Supabase. Desde
+la sesión hay acceso de LECTURA por MCP —sirve para auditar y para verificar que algo se
+corrió— pero las migraciones las sigue corriendo el dueño, que es como se trabajó hasta
+ahora (ver `PROXIMO-TORNEO.md` → "Mejoras en la base").
 
-**La tabla de ajustes de la liga.** Es lo último que se agregó y hay que correrla:
+**La columna del bot.** Es lo único que falta correr:
 
 ```sql
-create table if not exists liga_ajustes (
-  semana     date not null,
-  puuid      text not null references summoners(puuid) on delete cascade,
-  puntos     numeric(5,2) not null,
-  motivo     text not null,
-  creado_at  timestamptz not null default now(),
-  primary key (semana, puuid)
-);
-alter table liga_ajustes enable row level security;
+alter table summoners add column if not exists discord_id text;
+create unique index if not exists summoners_discord_id_idx
+  on summoners (discord_id) where discord_id is not null;
 ```
 
-Sin ella `/api/liga` no se rompe —loguea el error y sirve la tabla sin ajustes, que es el
-modo de fallar elegido— pero ninguna penalización aparece.
+Sin ella el bot **anda igual**: los cuatro comandos funcionan nombrando al jugador, y lo
+único que falta es que `/ultima` sin argumentos conteste "la tuya". El error se loguea y
+se sigue de largo — el mismo modo de fallar que eligió `/api/liga` con `liga_ajustes`.
 
-**La penalización de IGNAPP**, pendiente de que cierre la votación en Discord. Son −2
-puntos por haber cambiado de cuenta a mitad de semana, **solo esta semana y solo para él**:
+Y después, para vincular a cada uno (el id de Discord sale con click derecho sobre la
+persona, con el modo desarrollador prendido):
 
 ```sql
-insert into liga_ajustes (semana, puuid, puntos, motivo)
-select '2026-09-14'::date, puuid, -2, 'cambió de cuenta'
-from summoners where game_name = 'IGNAPP';
+update summoners set discord_id = '123456789012345678' where game_name = 'VORE';
 ```
 
-Si el `game_name` no es exactamente ese no inserta nada, y se nota porque el −2 no
-aparece en la tabla. Para sacarlo: `delete from liga_ajustes where semana = '2026-09-14'::date;`
+**Verificado el 17/9 contra la base, ya corrido y sin nada que hacer**: `liga_ajustes`
+existe, la penalización de IGNAPP está cargada, y `heal_teammates` y `shield_teammates`
+están las dos en `matches`.
 
-**Y hay que verificar dos columnas viejas** que quedaron colgadas de antes:
-
-```sql
-select column_name from information_schema.columns
-where table_name = 'matches' and column_name in ('heal_teammates', 'shield_teammates');
-```
-
-Si no devuelve las dos:
+**Pero ojo con la penalización de IGNAPP**: la fila está, y no hace nada. Él tiene
+`participa_liga = false`, así que no está en la tabla de esta semana y el −2 no se lo
+resta nadie. O se lo anota a la liga y ahí sí le pega, o la fila es decorativa y conviene
+borrarla para que no aparezca el lunes que viene sin que nadie se acuerde de por qué:
 
 ```sql
-alter table matches add column if not exists heal_teammates int;
-alter table matches add column if not exists shield_teammates int;
+delete from liga_ajustes where semana = '2026-09-14'::date;
 ```
 
 ## La reparación de partidas, a medias
@@ -68,8 +58,8 @@ alter table matches add column if not exists shield_teammates int;
 `buildMatchRow`. Es como se rellenan las columnas que se agregaron **después** de haber
 guardado esa partida.
 
-Quedaron **unas 610 filas** con `repaired_at` en null. Se repararon solo las ~20 más
-nuevas, que eran las que hacían falta para el AFK de esta semana. Las viejas no molestan
+Quedaron **606 filas** con `repaired_at` en null (contadas el 17/9 contra la base). Se
+repararon solo las ~20 más nuevas, que eran las que hacían falta para el AFK de esta semana. Las viejas no molestan
 —`ally_afk` en false significa "cuenta como antes"— así que esto es limpieza, no urgencia.
 
 Va por tandas de 15 (~40 segundos cada una) desde la consola del navegador en
@@ -193,60 +183,55 @@ suficiente. La detección automática —columna con los puuids de los compañer
 para lo viejo, y un umbral de repeticiones— recién si aparece que alguien la esquiva, con
 datos de que hacía falta y no por las dudas.
 
-## El bot de Discord interactivo
+## El bot de Discord: lo que falta para prenderlo
 
-La idea aprobada en principio: que el bot deje de ser solo un webhook que anuncia y pase a
-contestar comandos.
+**La v1 está escrita y probada** (`app/api/discord/interactions/route.ts`,
+`lib/discord-firma.ts`, `lib/discord-comandos.ts`). Lo que queda no es código, es
+configuración — y hasta que se haga, el bot no existe para nadie:
 
-**Lo importante, porque es lo que suele frenar la idea**: no hace falta un proceso
-corriendo. Discord tiene dos modos y el de *HTTP Interactions* encaja con Vercel — le das
-una URL, Discord te hace POST cuando alguien tipea, y eso es un route handler común.
+1. **Crear la aplicación** en discord.com/developers → New Application, y adentro
+   crear el Bot.
+2. **Cargar las variables en Vercel**: `DISCORD_PUBLIC_KEY` (la única sin la cual el
+   endpoint no deja pasar nada), `DISCORD_BOT_TOKEN` y `DISCORD_CHANNEL_ID`. Están
+   explicadas una por una en `.env.example`.
+3. **Pegar la URL** en la aplicación, en "Interactions Endpoint URL":
+   `https://lol-des.vercel.app/api/discord/interactions`. Discord la prueba en el
+   momento con una firma inválida a propósito y no la guarda si no le contestan 401 —
+   está contemplado, pero si falla ahí, el problema es que `DISCORD_PUBLIC_KEY` no
+   coincide con la de la aplicación.
+4. **Invitar el bot al server** con los permisos de mandar mensajes y agregar
+   reacciones (OAuth2 → URL Generator, scopes `bot` y `applications.commands`).
+5. **Registrar los comandos**, una vez y cada vez que cambie la lista:
+   `node --env-file=.env.local scripts/registrar-comandos.mjs`. Con `DISCORD_GUILD_ID`
+   aparecen al instante; sin él, Discord tarda hasta una hora.
+6. **Correr la migración de `discord_id`** (arriba). Se puede dejar para después.
 
-Lo que sí hay que resolver:
+### La v2, que es la que el torneo necesita
 
-- **Verificar la firma** Ed25519 de cada request. Node lo hace nativo, sin dependencia
-  nueva. Sin esto cualquiera le pega al endpoint.
-- **La regla de los 3 segundos**: hay que contestar antes o Discord corta. Para lo que
-  sale de Supabase sobra; cualquier cosa que toque a Riot necesita respuesta diferida.
-- **Una columna `discord_id` en `summoners`**, para atar cada usuario de Discord a su
-  invocador. Sin eso `/cargar @fulano` no sabe a quién carga.
+Los "te cojo" **son escrituras desde Discord**, así que necesitan una v2 y esa
+dependencia es real, no un detalle (ver `PROXIMO-TORNEO.md`). Lo que hay que agregar:
 
-Los cuatro comandos de la v1, todos de lectura y todos servidos de Supabase (cero llamadas
-a Riot, así ninguno se acerca a los 3 segundos):
+- **La lista de `discord_id` permitidos.** Una firma válida prueba que el pedido vino de
+  Discord, no que lo haya tipeado alguien de la casa: en un canal cualquiera del server
+  puede escribir. La columna `discord_id` pasa a ser esa lista.
+- **Frescura a pedido**: que el comando refresque al jugador por el que preguntaron si
+  su dato está viejo, en vez de subir la frecuencia del cron. Eso sí toca a Riot, pero
+  la respuesta ya es diferida, así que la regla de los 3 segundos dejó de ser el
+  problema que parecía.
 
-| Comando | De dónde sale |
-|---|---|
-| `/cargar @alguien` | `lib/roast.ts`, que ya está entero — es solo un gatillo nuevo |
-| `/liga` | la tabla de la semana |
-| `/ranking` | el ladder |
-| `/ultima @alguien` | su última partida con KDA y lo que valió en la liga |
-
-**Nada que escriba en la v1.** Anotarse a la liga, refrescar o anular una partida es la
-cerradura de la app expuesta en un canal donde cualquiera del server puede tipear. Si
-después se quieren escrituras, van con lista de `discord_id` permitidos, no con la
-contraseña.
-
-**Y las reacciones**: una webhook no tiene token, así que no puede reaccionar a su propio
-mensaje. Hoy los 👍👎 de una votación los tiene que poner alguien a mano. Con bot de verdad
-los deja puestos solo.
-
-### Lo del cron, que hay que mirar antes de diseñar
+### Lo del cron, que sigue igual
 
 Los **dos slots de Vercel Hobby están ocupados** (`vercel.json`): el refresco de
 contención a las 12 UTC y el parte diario a las 23:55 argentinas. No queda lugar. Si el
 bot necesita algo programado propio, va al scheduler externo (cron-job.org), que ya está.
 
-Los comandos en sí **no necesitan cron** —son pull, no push—, pero el cron decide qué tan
-fresca sale la respuesta, y en un canal eso se nota más que en la web, donde el
-"actualizado hace X" está al lado explicando. Dos cosas baratas que lo tapan casi todo:
-que el comando lea **Supabase directo** (se saltea los 4 minutos de caché del CDN) y que
-la respuesta lleve **el mismo "actualizado hace X"** al pie.
+Los comandos no necesitan cron —son pull, no push—, y los dos remedios baratos para la
+frescura ya están puestos: leen **Supabase directo** (se saltean los 4 minutos de caché
+del CDN) y llevan **el "actualizado hace X"** al pie.
 
 **No bajar los 15 minutos del refresco de entrada.** Triplicar la frecuencia triplica las
 llamadas a Riot y la key aguanta 100 cada 2 minutos: con trece invocadores probablemente
-entre, pero es algo para medir, no para asumir. Mejor salida: que el comando refresque al
-jugador que le preguntaste si su dato está viejo — frescura solo cuando alguien la pide.
-Eso ya toca la regla de los 3 segundos, así que es v2 del bot.
+entre, pero es algo para medir, no para asumir.
 
 ## Suelto, ofrecido y no tomado
 
