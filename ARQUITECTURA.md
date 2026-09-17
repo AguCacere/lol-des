@@ -7,7 +7,7 @@ evitables.
 
 ## Forma general
 
-Una sola página cliente (`app/page.tsx`) con cinco pestañas, y 22 route handlers.
+Una sola página cliente (`app/page.tsx`) con cinco pestañas, y 23 route handlers.
 **No hay Server Components de datos**: todo entra por `fetch` a `/api/*` desde el
 navegador. El servidor solo existe en las rutas.
 
@@ -48,6 +48,7 @@ cerradura no está puesta, nadie escribe).
 | `/api/discord/interactions` | POST | La puerta del bot: los cuatro comandos. La cerradura es la **firma Ed25519** de Discord, no la sesión | no | firma | — |
 | `/api/discord/registrar` | POST | Le registra a Discord el menú de comandos. Lo mismo que `scripts/registrar-comandos.mjs`, pero sin necesitar una consola con Node | no | **sí** | — |
 | `/api/discord/probar` | POST | Si los anuncios salen por el bot o por el webhook. Sin body no manda nada; con `{mandar:true}` manda, reacciona y borra | no | **sí** | — |
+| `/api/discord/decir` | POST | Un mensaje propio, como el bot, con reacciones opcionales. Sin `{mandar:true}` es vista previa | no | **sí** | — |
 | `/api/cron/refresh` | GET | Cada 15 min: refresca a todos | sí | `CRON_SECRET` | — |
 | `/api/cron/liga` | GET | Cierra la semana. Ya NO está en `vercel.json` (le dio el lugar al parte diario): queda para pegarle a mano | sí | `CRON_SECRET` | — |
 

@@ -237,7 +237,7 @@ de `/api/cron/refresh` (línea `cron refresh done:`) dice cómo le fue a cada in
 ```
 app/
   page.tsx          # la única página: 5 pestañas, todo entra por fetch a /api/*
-  api/              # 22 route handlers (ver ARQUITECTURA.md)
+  api/              # 23 route handlers (ver ARQUITECTURA.md)
 components/         # ~40 componentes, agrupados por pestaña en ARQUITECTURA.md
 lib/                # Riot, cálculo puro, presentación e infraestructura
 scripts/
@@ -277,6 +277,16 @@ se puede saber mirando, porque cuando falla el mensaje sale igual:
 
 ```js
 await (await fetch('/api/discord/probar', { method: 'POST' })).json()
+```
+
+Y para mandar un mensaje propio como el bot —anunciar un cambio de regla, abrir una
+votación—, con vista previa primero:
+
+```js
+await (await fetch('/api/discord/decir', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ texto: 'Se extendió el torneo al lunes.', reacciones: ['👍'] })
+})).json()
 ```
 
 ## Notas
