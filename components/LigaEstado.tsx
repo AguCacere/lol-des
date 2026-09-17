@@ -46,10 +46,19 @@ interface Props {
    * pestaña queda abierta. Ver el tick de LigaSemanal.
    */
   actualizado: string | null;
-  /** Los siete nombres de día, de lunes a domingo. */
+  /** Los nombres de día del torneo. Ya no son siempre siete: puede durar ocho. */
   dias: string[];
-  /** Cuántos ya arrancaron, contando el de hoy. Entre 1 y 7. */
+  /** Cuántos ya arrancaron, contando el de hoy. Entre 1 y la duración. */
   corridos: number;
+  /**
+   * El día en que se juega la última partida, y los días que cubre el mínimo
+   * del final. Vienen del server porque el huso es argentino.
+   *
+   * Opcionales por la ventana de caché del CDN: una respuesta anterior al
+   * deploy no los trae, y hasta que expire la pantalla cae al texto de antes.
+   */
+  cierraDia?: string;
+  diasDelCierre?: string[];
   /** Si el último día ya está corriendo. */
   esUltimoDia: boolean;
   /** Cuánto falta para que cierre, ya escrito ("faltan 28 horas"). */
@@ -63,6 +72,19 @@ interface Props {
 }
 
 /** "Fulano, Mengano y 2 más" — la lista corta que se lee de un saque. */
+/**
+ * "el domingo", "el domingo o el lunes", "el sábado, el domingo o el lunes".
+ *
+ * Con "o" y no con "y": son días ALTERNATIVOS para cumplir el mínimo, no una
+ * lista de días en los que hay que aparecer en todos. La diferencia importa —
+ * "el domingo y el lunes" se lee como que hay que jugar los dos.
+ */
+function listaO(dias: string[]): string {
+  if (dias.length === 0) return "";
+  if (dias.length === 1) return `el ${dias[0]}`;
+  return `el ${dias.slice(0, -1).join(", el ")} o el ${dias[dias.length - 1]}`;
+}
+
 function listaCorta(nombres: string[], tope = 2): string {
   if (nombres.length === 0) return "";
   if (nombres.length <= tope + 1) {
@@ -77,6 +99,8 @@ export function LigaEstado({
   actualizado,
   dias,
   corridos,
+  cierraDia,
+  diasDelCierre,
   esUltimoDia,
   falta,
   arrancaA,
@@ -136,11 +160,15 @@ export function LigaEstado({
           : `Hay que jugar ${minimoUltimoDia} partidas hoy, y ${minimoSemanal} en la semana.`,
       };
     }
+    // "el domingo", "el domingo o el lunes" — sale del torneo y no escrito a
+    // mano. Al extender el torneo al lunes dejando el mínimo abierto desde el
+    // domingo, la ventana cubre DOS días y decir uno solo sería mentira.
+    const cuando = listaO(diasDelCierre ?? ["domingo"]);
     return {
       tono: "espera",
-      titulo: "Se define el domingo",
+      titulo: `Se define ${cuando}`,
       detalle: conSemana.length
-        ? `${listaCorta(conSemana.map((f) => f.name))} ya tienen las ${minimoSemanal} de la semana. Después hay que aparecer el domingo y jugar ${minimoUltimoDia}.`
+        ? `${listaCorta(conSemana.map((f) => f.name))} ya tienen las ${minimoSemanal} de la semana. Después hay que aparecer ${cuando} y jugar ${minimoUltimoDia}.`
         : `Nadie llegó todavía a las ${minimoSemanal} de la semana.`,
     };
   })();
@@ -178,7 +206,9 @@ export function LigaEstado({
         )}
       </span>
       <div className="estado-tiempo">
-        <span className="estado-rotulo">{arrancaA ? "Arranca" : esUltimoDia ? "Último día" : "Cierra el domingo"}</span>
+        <span className="estado-rotulo">
+          {arrancaA ? "Arranca" : esUltimoDia ? "Último día" : `Cierra el ${cierraDia ?? "domingo"}`}
+        </span>
         <strong className={`estado-reloj${esUltimoDia ? " urge" : ""}`}>{arrancaA ? arrancaA : falta}</strong>
         {/* La semana entera, no solo lo corrido: ver los días que faltan es la
             mitad del dato. El último va marcado siempre — es el que decide el

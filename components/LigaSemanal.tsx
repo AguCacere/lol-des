@@ -122,6 +122,13 @@ interface Datos {
   /** Los siete días de la semana ("lun", "mar"…) y cuántos van corridos. Opcionales por la misma razón. */
   dias?: string[];
   diasCorridos?: number;
+  /** Cuántos días dura el torneo. Ya no es siempre 7. */
+  duracion?: number;
+  /** El día de la última partida, y los días que cubre el mínimo del final. */
+  cierraDia?: string;
+  diasDelCierre?: string[];
+  /** Qué torneo está corriendo, y si sale de una fila editable o del lunes a domingo deducido. */
+  torneo?: { id: string | null; nombre: string | null; guardado: boolean };
   /** La tabla de puntos, para escribir la regla con los mismos números que la calculan. */
   puntaje?: { victoria: number; derrota: number; rachaDesde: number; enRacha: number };
 }
@@ -482,6 +489,8 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
           actualizado={d.actualizado ?? null}
           dias={d.dias}
           corridos={d.diasCorridos ?? 1}
+          cierraDia={d.cierraDia}
+          diasDelCierre={d.diasDelCierre}
           esUltimoDia={esUltimoDia}
           falta={loQueFalta(d.hasta)}
           arrancaA={yaArranco ? null : horaDe(d.desde)}

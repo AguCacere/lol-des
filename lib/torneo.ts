@@ -177,6 +177,38 @@ export function etiquetasDeDias(t: Torneo): string[] {
   );
 }
 
+/** "lunes", "domingo"… del día en que cae ese instante, en hora argentina. */
+export function nombreDeDia(d: Date): string {
+  return new Date(d.getTime() - ARG_OFFSET_MS).toLocaleDateString("es-AR", { weekday: "long", timeZone: "UTC" });
+}
+
+/**
+ * El día en que se juega la última partida. NO es el del cierre: el cierre es
+ * exclusivo, así que un torneo que cierra el martes 00:00 se define el lunes.
+ *
+ * La pantalla decía "Cierra el domingo" escrito a mano, y con el torneo
+ * extendido al lunes eso pasó a ser mentira sin que nada avisara.
+ */
+export function diaDeCierre(t: Torneo): string {
+  return nombreDeDia(new Date(t.cierra.getTime() - 1));
+}
+
+/**
+ * Los días que abarca el mínimo del final. Suele ser uno, pero no siempre.
+ *
+ * Al extender el torneo al lunes dejando el "último día" en el domingo, la
+ * ventana del mínimo pasó a cubrir DOS días: se pueden hacer las 3 el domingo
+ * o el lunes. Eso es deliberado —así nadie pierde lo que venía planeando— pero
+ * la pantalla tiene que poder decirlo, y con un solo nombre de día no puede.
+ */
+export function diasDelCierre(t: Torneo): string[] {
+  const dias: string[] = [];
+  const primero = medianocheArgentina(t.ultimoDesde);
+  const ultimo = medianocheArgentina(new Date(t.cierra.getTime() - 1));
+  for (let d = primero; d <= ultimo; d += UN_DIA_MS) dias.push(nombreDeDia(new Date(d)));
+  return dias.length > 0 ? dias : [diaDeCierre(t)];
+}
+
 /** Si el último día ya arrancó: recién ahí el mínimo de cierre tiene sentido. */
 export function empezoElUltimoDia(t: Torneo, ahora: Date = new Date()): boolean {
   return ahora.getTime() >= t.ultimoDesde.getTime();

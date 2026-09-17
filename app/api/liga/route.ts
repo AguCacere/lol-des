@@ -3,7 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabase";
 import { exigirSesion } from "@/lib/auth";
 import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
 import { tablaDeLaSemana, puntosDeSecuencia, puntosPorDia, PUNTOS_VICTORIA, PUNTOS_DERROTA, PUNTOS_EN_RACHA, RACHA_DESDE, lpPorPartida, type AjusteLiga, type Participante, type RecordSemanal, type Snapshot } from "@/lib/liga";
-import { claveDeTorneo, diaCorriente, duracionEnDias, empezoElUltimoDia, esTorneoDeLiga, etiquetasDeDias, LIGA_INICIO, torneoDe } from "@/lib/torneo";
+import { claveDeTorneo, diaCorriente, diaDeCierre, diasDelCierre, duracionEnDias, empezoElUltimoDia, esTorneoDeLiga, etiquetasDeDias, LIGA_INICIO, torneoDe } from "@/lib/torneo";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { roleFromTeamPosition } from "@/lib/mapping";
 
@@ -340,6 +340,12 @@ export async function GET() {
       // tiene que salir de las mismas constantes que la calculan.
       puntaje: { victoria: PUNTOS_VICTORIA, derrota: PUNTOS_DERROTA, rachaDesde: RACHA_DESDE, enRacha: PUNTOS_EN_RACHA },
       ultimoDia: empezoElUltimoDia(torneo),
+      // En qué día se define y qué días cubre el mínimo del final. Van del
+      // server porque el huso es argentino, y van como dato porque la pantalla
+      // los tenía ESCRITOS A MANO ("Cierra el domingo", "Se define el
+      // domingo") y con un torneo que cierra un lunes eso era mentira.
+      cierraDia: diaDeCierre(torneo),
+      diasDelCierre: diasDelCierre(torneo),
       // Los días del torneo y cuántos van corridos. Van del server porque el
       // huso es argentino y el cliente está en el reloj del que mira. El
       // gráfico se queda con los corridos; la barra dibuja todos, con los que

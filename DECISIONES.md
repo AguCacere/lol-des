@@ -688,6 +688,18 @@ calcular la tabla con la ventana equivocada sin que nada avise. La API lo rechaz
 ganador; mover las fechas después dejaría la pantalla contando una cosa y el anuncio
 otra. Un resultado ya anunciado es un hecho (ver `resumen` en `supabase/schema.sql`).
 
+**El día de cierre NO se escribe a mano en la pantalla.** `LigaEstado` decía "Cierra el
+domingo" y "Se define el domingo" como texto fijo, y con el torneo extendido al lunes
+pasó a ser mentira sin que nada avisara — el tipo de bug que solo se ve mirando. Ahora
+sale de `diaDeCierre`/`diasDelCierre`, del lado del server porque el huso es argentino.
+
+**Y el mínimo del final puede cubrir más de un día.** Al extender el torneo al lunes
+dejando `ultimo_desde` en el domingo, la ventana del mínimo pasó a cubrir DOS días: las
+3 partidas se pueden hacer el domingo o el lunes. Es deliberado —nadie pierde lo que
+venía planeando y el que no puede el domingo lo resuelve el lunes— así que la pantalla
+dice "el domingo o el lunes", con "o" y no con "y": son días alternativos, no dos días en
+los que hay que aparecer en los dos.
+
 ## Carrear no se mide igual en cada línea
 
 **Los umbrales de `lib/carry.ts` se midieron, no se eligieron.** Contra las 1047
