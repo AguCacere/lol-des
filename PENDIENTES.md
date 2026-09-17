@@ -20,10 +20,13 @@ la sesión hay acceso de LECTURA por MCP —sirve para auditar y para verificar 
 corrió— pero las migraciones las sigue corriendo el dueño, que es como se trabajó hasta
 ahora (ver `PROXIMO-TORNEO.md` → "Mejoras en la base").
 
-**La tabla de torneos.** Es la que habilita planificar fechas y la que hace falta para
-extender el torneo en curso al lunes:
+**Todo lo que falta correr, en un solo bloque y EN ESTE ORDEN.** Va junto a propósito:
+estuvo partido en dos y el `insert` se corrió sin la tabla creada, que da
+`42P01: relation "liga_torneos" does not exist`.
 
 ```sql
+-- 1. La tabla de torneos (lib/torneo.ts). Sin ella no se rompe nada: la liga
+--    sigue usando el lunes a domingo deducido. Lo que no se puede es cambiar fechas.
 create table if not exists liga_torneos (
   id            uuid primary key default gen_random_uuid(),
   nombre        text,
@@ -38,45 +41,37 @@ create table if not exists liga_torneos (
 );
 create index if not exists liga_torneos_ventana_idx on liga_torneos (arranca_at, cierra_at);
 alter table liga_torneos enable row level security;
-```
 
-Sin ella **no se rompe nada**: la liga sigue usando el lunes a domingo deducido, con los
-mínimos de siempre. Lo que no se puede es cambiar fechas.
+-- 2. La columna del bot. Sin ella los comandos andan igual, resolviendo por
+--    nombre; lo único que falta es que `/ultima` sin argumentos diga "la tuya".
+alter table summoners add column if not exists discord_id text;
+create unique index if not exists summoners_discord_id_idx
+  on summoners (discord_id) where discord_id is not null;
 
-**Y para extender el torneo en curso al lunes** (arranca lun 14/9 00:00, cierra mar 22/9
-00:00 = ocho días, de lunes 14 a lunes 21). Hay que elegir una de las dos últimas líneas,
-que es la decisión que afecta a la gente:
-
-```sql
+-- 3. El torneo en curso, extendido al lunes: 14/9 al 21/9, ocho días.
 insert into liga_torneos (nombre, arranca_at, cierra_at, minimo_total, minimo_ultimo, ultimo_desde)
 values (
   'Semana del 14 (extendida)',
   '2026-09-14T03:00:00Z',   -- lunes 14, 00:00 argentina
-  '2026-09-22T03:00:00Z',   -- martes 22, 00:00 argentina → el último día es el LUNES 21
+  '2026-09-22T03:00:00Z',   -- martes 22, 00:00 argentina → el último día es el lunes 21
   10, 3,
-  -- Elegí UNA:
-  '2026-09-21T03:00:00Z'    -- el "último día" pasa a ser el lunes. Hay que AVISARLO en el Discord.
-  -- '2026-09-20T03:00:00Z' -- el "último día" sigue siendo el domingo; el lunes es tiempo extra.
+  '2026-09-21T03:00:00Z'    -- el mínimo de 3 cuenta el LUNES. Hay que avisarlo en el Discord.
 );
 ```
 
-Una vez creada la fila se edita todo desde el panel, sin SQL: está en la pestaña de la
-liga, atrás de la contraseña, arriba del selector de jugadores.
-
-**La columna del bot.** También falta:
+**Si preferís que el último día siga siendo el domingo** y el lunes sea solo tiempo extra
+—nadie pierde lo que venía planeando—, se cambia con esto, o desde el panel:
 
 ```sql
-alter table summoners add column if not exists discord_id text;
-create unique index if not exists summoners_discord_id_idx
-  on summoners (discord_id) where discord_id is not null;
+update liga_torneos set ultimo_desde = '2026-09-20T03:00:00Z'
+where nombre = 'Semana del 14 (extendida)';
 ```
 
-Sin ella el bot **anda igual**: los cuatro comandos funcionan nombrando al jugador, y lo
-único que falta es que `/ultima` sin argumentos conteste "la tuya". El error se loguea y
-se sigue de largo — el mismo modo de fallar que eligió `/api/liga` con `liga_ajustes`.
+Las opciones NO van comentadas adentro del `values`: elegir una línea de ahí es fácil de
+hacer mal y el error que da no dice qué pasó.
 
-Y después, para vincular a cada uno (el id de Discord sale con click derecho sobre la
-persona, con el modo desarrollador prendido):
+Después de esto, las fechas se editan desde el panel de la liga (atrás de la contraseña,
+arriba del selector de jugadores) y para vincular a cada uno con Discord:
 
 ```sql
 update summoners set discord_id = '123456789012345678' where game_name = 'VORE';
