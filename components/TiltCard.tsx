@@ -16,7 +16,11 @@ import type { SenalTilt, TiltState } from "@/lib/tilt";
  */
 function texto(s: SenalTilt, t: TiltState): string {
   if (s === "muertes") {
-    return `morís ${t.muertesRacha.toFixed(1)} veces por partida contra ${t.muertesBase.toFixed(1)} de tu promedio`;
+    // "cuando perdés" y no "de tu promedio": el promedio a secas mezcla
+    // victorias, y en una victoria se muere mucho menos, así que contra ESE
+    // número cualquier racha de derrotas parece un desastre. Ver lib/tilt.ts.
+    const coma = (n: number) => n.toFixed(1).replace(".", ",");
+    return `morís ${coma(t.muertesRacha)} veces por partida contra ${coma(t.muertesBase)} que morís normalmente cuando perdés`;
   }
   const min = t.descansoMin ?? 0;
   return `estás entrando a la siguiente partida ${min < 1 ? "sin ni siquiera levantarte" : `a los ${Math.round(min)} minutos`}`;

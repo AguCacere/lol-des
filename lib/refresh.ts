@@ -204,6 +204,11 @@ async function notifyDemotion(supabase: SupabaseClient, puuid: string, entry: Ri
  * this reflects the exact same data currentStreak() in lib/ladder.ts would
  * compute from player.matches, just server-side.
  */
+/** "6,5" y no "6.5". En castellano el decimal va con coma, como en toda la app. */
+function coma(n: number): string {
+  return n.toFixed(1).replace(".", ",");
+}
+
 async function checkStreakAndNotify(supabase: SupabaseClient, puuid: string) {
   const { data: recent } = await supabase
     .from("matches")
@@ -216,7 +221,13 @@ async function checkStreakAndNotify(supabase: SupabaseClient, puuid: string) {
     // cuenta esa partida, así que acá tampoco existe. Ver DURACION_MINIMA_S.
     .gte("game_duration_s", DURACION_MINIMA_S)
     .order("played_at", { ascending: false })
-    .limit(20);
+    // 60 y no 20. Con 20, el promedio contra el que compara el tilt se calcula
+    // con lo que sobra DESPUÉS de la racha: con diez derrotas al hilo quedaban
+    // diez partidas, y con dieciséis no quedaba ninguna y el aviso se apagaba
+    // solo — justo cuando más dramático era. Ahora la base son las derrotas
+    // previas (ver lib/tilt.ts) y hacen falta más filas para juntar veinte.
+    // Son 60 filas de un índice por puuid: no se nota.
+    .limit(60);
   if (!recent || recent.length < STREAK_NOTIFY_THRESHOLD) return;
 
   const result = recent[0].win;
@@ -256,7 +267,10 @@ async function checkStreakAndNotify(supabase: SupabaseClient, puuid: string) {
     if (tilt) {
       const partes = tilt.senales.map((s) => {
         if (s === "muertes") {
-          return `muere ${tilt.muertesRacha.toFixed(1)} veces por partida contra ${tilt.muertesBase.toFixed(1)} de su promedio`;
+          // "cuando pierde" y no "de su promedio": el promedio a secas mezcla
+          // victorias, y contra ESE número cualquier racha parece un desastre.
+          // Coma decimal, como todo lo que se muestra en castellano.
+          return `muere ${coma(tilt.muertesRacha)} veces por partida contra ${coma(tilt.muertesBase)} que muere normalmente cuando pierde`;
         }
         const min = tilt.descansoMin ?? 0;
         return min < 1

@@ -26,7 +26,13 @@ export interface TiltState {
   derrotas: number;
   /** Promedio de muertes DENTRO de la racha. */
   muertesRacha: number;
-  /** Y el promedio de antes de la racha, que es contra lo que se compara. */
+  /**
+   * Cuánto muere normalmente CUANDO PIERDE, que es contra lo que se compara.
+   *
+   * Solo derrotas anteriores, no todas las partidas. Ver la nota de abajo: es
+   * la diferencia entre un dato que se sostiene y uno que el grupo desarma en
+   * dos minutos.
+   */
   muertesBase: number;
   /** Minutos promedio entre el final de una partida y el arranque de la siguiente. Null si la racha es de una sola partida. */
   descansoMin: number | null;
@@ -52,12 +58,12 @@ const MIN_DERROTAS = 3;
 const DESCANSO_CORTO_MIN = 10;
 /** Cuánto tienen que subir las muertes sobre tu propio promedio para contar. */
 const FACTOR_MUERTES = 1.2;
-/** Partidas previas mínimas para que el promedio base signifique algo. */
+/** DERROTAS previas mínimas para que el promedio base signifique algo. */
 const BASE_MINIMA = 5;
 /**
- * Y cuántas se miran hacia atrás como mucho. El promedio de toda la carrera
- * no es contra lo que hay que comparar: la referencia útil es cómo venías
- * jugando hace un rato, no hace cuatro meses.
+ * Y cuántas derrotas se miran hacia atrás como mucho. El promedio de toda la
+ * carrera no es contra lo que hay que comparar: la referencia útil es cómo
+ * venías jugando hace un rato, no hace cuatro meses.
  */
 const BASE_VENTANA = 20;
 /** A partir de acá el aviso es fuerte aunque haya una sola señal. */
@@ -82,12 +88,25 @@ export function detectTilt(matches: TiltInput[]): TiltState | null {
   if (derrotas < MIN_DERROTAS) return null;
 
   const racha = matches.slice(0, derrotas);
-  const previas = matches.slice(derrotas, derrotas + BASE_VENTANA);
+  // La base son las DERROTAS anteriores a la racha. Dos cosas, y las dos
+  // importan:
+  //
+  // 1. Anteriores a la racha, no todas: incluir la racha en su propio promedio
+  //    lo empuja hacia arriba y esconde justo la diferencia que se busca.
+  //
+  // 2. Solo DERROTAS, que es el arreglo grande. Antes se promediaban victorias
+  //    y derrotas juntas, y una racha es toda derrotas: en una derrota se muere
+  //    muchísimo más que en una victoria —medido en este grupo, 7,1 contra 4,6,
+  //    un 54% más— así que la comparación salía inflada SIEMPRE. El bot llegó a
+  //    publicar "muere 6,5 veces contra 3,8 de su promedio" de alguien cuyo
+  //    promedio real en derrotas era 7,07: estaba muriendo MENOS de lo normal y
+  //    el mensaje decía lo contrario. Lo cazó el grupo, no el código.
+  //
+  //    Medido sobre las rachas activas del momento, el cambio pasó de cuatro
+  //    avisos a uno. Los tres que se caen eran falsos positivos.
+  const previas = matches.slice(derrotas).filter((m) => !m.win).slice(0, BASE_VENTANA);
 
   const muertesRacha = promedio(racha.map((m) => m.deaths));
-  // La base son las partidas ANTERIORES a la racha, no todas: incluir la
-  // racha en su propio promedio lo empuja hacia arriba y esconde justo la
-  // diferencia que se está buscando.
   const muertesBase = previas.length >= BASE_MINIMA ? promedio(previas.map((m) => m.deaths)) : NaN;
 
   // El descanso real es entre el FIN de una y el arranque de la siguiente, no

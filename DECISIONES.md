@@ -700,6 +700,31 @@ venía planeando y el que no puede el domingo lo resuelve el lunes— así que l
 dice "el domingo o el lunes", con "o" y no con "y": son días alternativos, no dos días en
 los que hay que aparecer en los dos.
 
+## El promedio del tilt se compara contra DERROTAS
+
+**El aviso de tilt comparaba peras con manzanas, y el grupo lo cazó antes que el código.**
+El bot publicó *"muere 6,5 veces por partida contra 3,8 de su promedio"* de alguien cuyo
+promedio real en derrotas era **7,07**: estaba muriendo MENOS de lo habitual y el mensaje
+decía lo contrario.
+
+El motivo: la base promediaba victorias y derrotas juntas, pero una racha es toda
+derrotas. Y en una derrota se muere muchísimo más — medido en este grupo, **7,1 contra
+4,6, un 54% más**. Así que la comparación salía inflada SIEMPRE, para cualquiera.
+
+Ahora la base son las **derrotas anteriores** a la racha. Medido sobre las rachas activas
+del momento, el cambio pasó de cuatro avisos a uno: Sagitaryus (8,0 contra 6,59 = 1,21)
+es el único que estaba tilteado de verdad; marlboro (0,91), Simiestro (0,90) y vas a
+perder (1,19) eran falsos positivos.
+
+**Y había un segundo bug que lo tapaba.** El cron traía 20 partidas y la base se armaba
+con lo que sobraba DESPUÉS de la racha: con diez derrotas al hilo quedaban diez partidas,
+y con dieciséis no quedaba ninguna y el aviso se apagaba solo — justo cuando más
+dramático era. `BASE_VENTANA` decía 20 pero nunca podía juntar 20. Ahora el cron trae 60.
+
+**El texto dice "cuando pierde" y no "de su promedio".** El número solo no alcanza: "su
+promedio" a secas se lee como el promedio de todo, que es justo la confusión que causó
+esto.
+
 ## Carrear no se mide igual en cada línea
 
 **Los umbrales de `lib/carry.ts` se midieron, no se eligieron.** Contra las 1047
