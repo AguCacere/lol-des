@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase";
+import { cargarVetados, conVetado } from "@/lib/vetados";
 import { exigirSesion } from "@/lib/auth";
 import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
 import { tablaDeLaSemana, puntosDeSecuencia, puntosPorDia, PUNTOS_VICTORIA, PUNTOS_DERROTA, PUNTOS_EN_RACHA, RACHA_DESDE, lpPorPartida, type AjusteLiga, type Participante, type RecordSemanal, type Snapshot } from "@/lib/liga";
@@ -112,7 +113,7 @@ export async function GET() {
         // se decide por resultado, no por cómo jugaste. Están acá porque abrir
         // la fila y ver "gané con Seraphine" sin saber si fue un 12/2 o un
         // 1/9 deja la mitad de la historia afuera.
-        .select("match_id, puuid, win, played_at, champion, team_position, kills, deaths, assists, game_duration_s, ally_afk")
+        .select("match_id, puuid, win, played_at, champion, team_position, kills, deaths, assists, game_duration_s, ally_afk, aliados")
         .in("puuid", puuids)
         .eq("queue_id", RANKED_SOLO_QUEUE_ID)
         // Sin los remakes. Riot no los cuenta —ni LP, ni victoria, ni derrota—
@@ -142,13 +143,22 @@ export async function GET() {
       const arranqueDe = new Map(participantes.map((p) => [p.puuid, Math.max(desdeVentana.getTime(), p.desde?.getTime() ?? 0)]));
       // Se juntan las partidas de cada uno antes de contar, en vez de sumar al
       // vuelo: la racha necesita el ORDEN y la consulta no lo garantiza.
+      // Se lee una vez por request y no por partida: son un puñado de filas y
+      // el recorrido de abajo la consulta para cada una de las ~250 partidas
+      // de la semana.
+      const vetados = await cargarVetados(supabase);
+
       const suyasPorPuuid = new Map<string, { match_id: string; win: boolean; played_at: string; champion: string | null; team_position: string | null; kills: number; deaths: number; assists: number; game_duration_s: number; anulada: boolean }[]>();
       for (const m of partidas ?? []) {
         if (Date.parse(m.played_at) < (arranqueDe.get(m.puuid) ?? 0)) continue;
         const arr = suyasPorPuuid.get(m.puuid) ?? [];
         // Una derrota con un aliado ido queda anulada; la victoria con uno
         // menos no, que ganar con cuatro tiene más mérito, no menos.
-        arr.push({ match_id: m.match_id, win: m.win, played_at: m.played_at, champion: m.champion, team_position: m.team_position, kills: m.kills, deaths: m.deaths, assists: m.assists, game_duration_s: m.game_duration_s, anulada: !m.win && m.ally_afk === true });
+        // Y la otra forma de quedar anulada: haber jugado con una cuenta
+        // vetada del mismo lado. Esa anula la partida ENTERA y no solo la
+        // derrota —si con esa cuenta ganó tampoco suma—, que es justo la
+        // diferencia con `ally_afk`. Ver lib/vetados.ts.
+        arr.push({ match_id: m.match_id, win: m.win, played_at: m.played_at, champion: m.champion, team_position: m.team_position, kills: m.kills, deaths: m.deaths, assists: m.assists, game_duration_s: m.game_duration_s, anulada: (!m.win && m.ally_afk === true) || conVetado(m.aliados, vetados) });
         suyasPorPuuid.set(m.puuid, arr);
       }
       // Las fotos de cada uno, para poder atribuirle el LP a cada partida.

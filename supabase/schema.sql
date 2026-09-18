@@ -258,6 +258,25 @@ create table if not exists liga_ajustes (
   primary key (semana, puuid)
 );
 
+-- Las cuentas con las que hacer duo NO puntúa en la liga.
+--
+-- Riot no dice quién fue en duo: Match-V5 no trae party ni premade, así que lo
+-- único deducible es con quién estuviste en el mismo equipo (matches.aliados).
+-- Por eso la lista es manual: se carga el puuid una vez y toda partida donde
+-- aparezca deja de contar sola, esa y las que vengan.
+--
+-- Es una tabla y no un liga_ajustes a mano porque el ajuste a mano nace
+-- vencido: se calculó uno de −4 por cuatro partidas y antes de correrlo ya
+-- eran cinco. El puuid no se queda viejo; el número sí.
+--
+-- Anula la partida ENTERA, no solo la victoria: si con esa cuenta perdió,
+-- tampoco le resta. Más fuerte que ally_afk, que descarta solo las derrotas.
+create table if not exists liga_vetados (
+  puuid      text primary key,
+  nota       text,
+  creado_at  timestamptz not null default now()
+);
+
 -- ── Los torneos de la liga (lib/torneo.ts) ───────────────────────────────
 -- Cuándo arranca y cuándo cierra cada torneo, con sus mínimos.
 --

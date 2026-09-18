@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendDiscordNotification } from "./discord";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "./refresh";
 import { type AjusteLiga, type DetalleSemanal, type FilaDelDia, type FilaLiga, ganadorDe, mensajeDeCierre, mensajeDelDia, puntajeDe, puntosPorDia, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot } from "./liga";
+import { cargarVetados, conVetado } from "./vetados";
 import { claveDeTorneo, diaCorriente, esTorneoDeLiga, etiquetasDeDias, type Torneo, torneoAnterior, torneoDe } from "./torneo";
 import { repartirTitulos } from "./liga-titulos";
 
@@ -110,7 +111,7 @@ export async function tablaDeSemanaEnBase(
     // kills/deaths/assists entran solo para los títulos del cierre (el
     // carnicero, el kamikaze). No tocan el puntaje: la liga se decide por
     // resultado, no por cómo jugaste.
-    .select("puuid, win, played_at, champion, kills, deaths, assists")
+    .select("puuid, win, played_at, champion, kills, deaths, assists, aliados")
     .in("puuid", puuids)
     .eq("queue_id", RANKED_SOLO_QUEUE_ID)
     // El MISMO filtro de remakes que /api/liga. Si el cierre contara partidas
@@ -148,8 +149,14 @@ export async function tablaDeSemanaEnBase(
   // secuencia pasaron, así que el cierre tiene que reconstruirla igual que
   // /api/liga o coronaría con un puntaje distinto del que muestra la pantalla.
   const suyasPorPuuid = new Map<string, { win: boolean; played_at: string; champion: string | null; kills: number; deaths: number; assists: number }[]>();
+  // El MISMO criterio de vetados que /api/liga, por lo mismo que el de los
+  // remakes: si el cierre contara partidas que la tabla en vivo no cuenta, el
+  // bot anunciaría un campeón que nadie vio ganar. Acá se saltean en vez de
+  // marcarse `anulada` porque el cierre no muestra el historial — solo cuenta.
+  const vetados = await cargarVetados(supabase);
   for (const m of partidas ?? []) {
     if (Date.parse(m.played_at) < (arranqueDe.get(m.puuid) ?? 0)) continue;
+    if (conVetado(m.aliados, vetados)) continue;
     const arr = suyasPorPuuid.get(m.puuid) ?? [];
     arr.push({ win: m.win, played_at: m.played_at, champion: m.champion, kills: m.kills, deaths: m.deaths, assists: m.assists });
     suyasPorPuuid.set(m.puuid, arr);
