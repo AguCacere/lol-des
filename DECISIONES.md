@@ -700,6 +700,35 @@ venía planeando y el que no puede el domingo lo resuelve el lunes— así que l
 dice "el domingo o el lunes", con "o" y no con "y": son días alternativos, no dos días en
 los que hay que aparecer en los dos.
 
+## El verde y el rojo NUNCA pueden ser la única pista
+
+**Medido, no razonado.** El validador de la skill `dataviz`, corrido contra el fondo real
+(`#050504`), da entre `--good` (#34C97C) y `--critical` (#F0555F) un **ΔE de 7,1 en
+deuteranopía**: para alguien con el daltonismo más común esos dos colores se parecen. Cae
+en la banda 6–8, que la skill admite **solo con codificación secundaria**.
+
+En la grilla del día por día esa codificación es el **signo**: `puntajeTexto` escribe
+"+1,75" y "−1,25" siempre. Por eso el tinte de fondo proporcional es legal — el color
+ayuda a encontrar el día grande de un vistazo, pero el que no distingue verde de rojo lee
+el signo igual. **Si alguna vez se saca el signo de una celda, el tinte tiene que salir
+con él.**
+
+El validador además marca un FAIL de banda de luminosidad para el verde (L 0,741 contra
+un techo de 0,67 en modo oscuro). No se tocó: `--good` se usa en una quincena de lugares
+de la app y cambiarlo es otro trabajo, con su propia revisión. El contraste contra el
+fondo pasa, que es lo que importa para leerlo.
+
+**Los dos tintes de la grilla son de tipos distintos, y eso no es decoración.** En
+"Puntos" es DIVERGENTE —dos tonos y el negro como punto neutro— porque el dato tiene
+polaridad: sumó o restó. En "Puesto" es SECUENCIAL —un solo tono, el dorado, más fuerte
+cuanto mejor el puesto— porque ahí no hay polaridad sino magnitud. Mezclarlos (rojo para
+el último) diría que salir octavo es "malo" en el mismo sentido en que restar puntos lo
+es, y no es lo mismo.
+
+**Y el tinte lleva un piso.** Escalado puro contra el pico de la grilla, un día de +0,5
+contra un pico de +11 da 0,01 de opacidad — negro, igual que el día en que no jugó. El
+piso de 0,05 los separa, que es justo lo que la grilla distingue.
+
 ## Los hitos salen medidos, no a ojo
 
 **Un récord personal sin mínimo de historial es spam.** Medido contra las 1058 partidas

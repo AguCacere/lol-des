@@ -242,20 +242,18 @@ export function LigaCarrera({
             "La semana está pareja arriba"
           )}
         </strong>
-        <span className="carrera-pie">
-          Puntos acumulados al cierre de cada día · clic en un nombre para seguirlo
-          {/* El botón sale del pie y no de un renglón propio: es una segunda
-              forma de mirar ESTE gráfico, no otra sección. El gráfico da la
-              forma; ahí adentro están los números que acá no se pueden leer. */}
-          {onVerDiaADia && (
-            <>
-              {" · "}
-              <button type="button" className="carrera-ver" onClick={onVerDiaADia}>
-                ver los números
-              </button>
-            </>
-          )}
-        </span>
+        <span className="carrera-pie">Puntos acumulados al cierre de cada día · clic en un nombre para seguirlo</span>
+        {/* Arriba a la derecha y como BOTÓN, no como enlace adentro del pie.
+            Ahí abajo era una palabra gris en un renglón de 11px, del mismo
+            color que el texto que la rodeaba: nadie la encontraba. Es la
+            segunda forma de mirar ESTE gráfico —la que tiene los números que
+            acá no se pueden leer— así que va del lado del gráfico y con peso
+            de control, no de nota al pie. */}
+        {onVerDiaADia && (
+          <button type="button" className="carrera-ver" onClick={onVerDiaADia}>
+            Ver los números
+          </button>
+        )}
       </div>
 
       <div className="carrera-caja">

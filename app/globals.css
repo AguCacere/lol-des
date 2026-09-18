@@ -56,6 +56,11 @@
   --good-wash:rgba(52,201,124,0.12);
   --critical:#F0555F;
   --critical-wash:rgba(240,85,95,0.12);
+  /* Los mismos tres, en componentes, para poder modular la opacidad desde un
+     estilo en línea (rgba() no puede comerse una variable que es un hexa). */
+  --good-rgb:52,201,124;
+  --critical-rgb:240,85,95;
+  --accent-rgb:212,175,55;
   --warn:#FF9F45;
   --warn-wash:rgba(255,159,69,0.12);
   --radius-sm:6px;
@@ -3508,7 +3513,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    titular y la explicación adentro, y el bloque entero se leía como una nota
    al pie de algo. El tamaño y el peso hacen la jerarquía; el color solo
    acompaña. */
-.carrera-head{margin-bottom:14px;}
+/* Relativo para colgarle el botón de "ver los números" arriba a la derecha. */
+.carrera-head{margin-bottom:14px; position:relative; padding-right:120px;}
 .carrera-rotulo{
   display:block; font-size:10px; font-weight:700; text-transform:uppercase;
   letter-spacing:0.08em; color:var(--text-muted); margin-bottom:5px;
@@ -4480,13 +4486,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    botón con caja: vive en medio de una frase, y una píldora ahí sería lo único
    encerrado de una sección que dejó de tener cajas. */
 .carrera-ver{
-  background:none; border:none; padding:0; cursor:pointer;
-  font-family:inherit; font-size:inherit; color:var(--accent);
-  text-decoration:underline; text-underline-offset:2px;
-  text-decoration-color:color-mix(in srgb, var(--accent) 40%, transparent);
-  transition:color .14s ease;
+  position:absolute; top:0; right:0;
+  padding:6px 12px; min-height:32px;
+  font-family:inherit; font-size:11.5px; font-weight:600;
+  color:var(--text-secondary); background:var(--surface);
+  border:1px solid var(--border-soft); border-radius:var(--radius-sm);
+  cursor:pointer; transition:color .14s ease, background .14s ease, border-color .14s ease;
 }
-.carrera-ver:hover{color:var(--text-primary);}
+.carrera-ver:hover{color:var(--text-primary); background:var(--surface-hover); border-color:var(--accent-dim-border);}
 
 /* El toggle de las dos vistas. Dos pestañas chicas, sin caja alrededor: lo que
    marca cuál está activa es el color y el peso, no un marco. */
@@ -4529,16 +4536,47 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .dxd tbody tr{border-top:1px solid var(--border-soft);}
 .dxd tbody tr:hover td, .dxd tbody tr:hover .dxd-quien{background:var(--surface-hover);}
-.dxd-celda{font-size:12.5px; font-weight:700;}
+.dxd-celda{
+  font-size:13px; font-weight:700;
+  /* El tinte lo pone cada celda con --tinte en línea, proporcional a lo que
+     valió ese día. Sin variable no hay fondo, que es el caso del día quieto. */
+  background:transparent;
+  transition:background .12s ease;
+}
+/* Tinte DIVERGENTE por signo. El número con su signo está SIEMPRE: el validador
+   de la skill dataviz da ΔE 7,1 entre este verde y este rojo en deuteranopía
+   —para un daltónico se parecen— y eso es admisible solo si el color no es la
+   única pista. El signo es la pista; el tinte es para encontrar el día grande
+   de un vistazo. Ver DECISIONES. */
+.dxd-celda.gd-pos:not(.dxd-total){background:rgba(var(--good-rgb), var(--tinte, 0));}
+.dxd-celda.gd-neg:not(.dxd-total){background:rgba(var(--critical-rgb), var(--tinte, 0));}
+/* Y el de la vista de puestos es SECUENCIAL: un solo tono, más fuerte cuanto
+   mejor el puesto. Así la fila del que sube se prende de izquierda a derecha. */
+.dxd-celda.dxd-puesto{
+  color:var(--text-secondary);
+  background:rgba(var(--accent-rgb), calc(var(--tinte, 0) * 0.16));
+}
+.dxd-celda.dxd-puesto.lider{color:var(--accent); font-weight:800;}
+/* El puesto al lado del nombre: un índice apagado, que ordena sin competir. */
+.dxd-pos{
+  display:inline-block; width:15px; margin-right:7px;
+  font-size:10.5px; font-weight:700; color:var(--text-muted);
+  font-variant-numeric:tabular-nums;
+}
 /* El día que no movió el marcador va MUY apagado y no en gris de texto: son la
    mayoría de las celdas de una semana normal, y si pesan lo mismo que los
    números tapan justamente lo que se vino a ver. */
 .dxd-celda.quieto{color:var(--text-muted); opacity:0.4; font-weight:500;}
-.dxd-celda.lider{color:var(--accent);}
+
+/* La columna de total se lee como un cierre y no como un día más: fondo propio,
+   más peso y la línea que la separa un escalón más firme. */
 .dxd-total{
-  border-left:1px solid var(--border-soft);
-  color:var(--text-primary); font-weight:800;
+  border-left:1px solid var(--border-firm);
+  background:var(--surface);
+  color:var(--text-primary); font-weight:800; font-size:13.5px;
 }
+.dxd tbody .dxd-total.gd-pos{color:var(--good);}
+.dxd tbody .dxd-total.gd-neg{color:var(--critical);}
 .dxd-pie{
   margin:0; padding:10px 18px 16px;
   font-size:11px; color:var(--text-muted);

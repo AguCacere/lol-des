@@ -81,6 +81,18 @@ export function LigaDiaADia({ dias, corridos, rango, tabla, cerrada = false, onC
   // El puesto de cada uno al cierre de cada día. Se calcula una vez por día y
   // no por celda: con seis jugadores da igual, pero ordenar adentro del render
   // de cada celda es la clase de cosa que después nadie encuentra.
+  /** Lo que sumó o restó esa persona ESE día. */
+  const delta = (f: Corredor, i: number) => alCierre(f, i) - (i === 0 ? 0 : alCierre(f, i - 1));
+
+  // El día más grande de toda la grilla, para escalar el tinte de las celdas.
+  // Es relativo y no absoluto a propósito: una semana tranquila tiene que
+  // poder destacar su propio pico, y una semana de +11 no tiene que dejar todo
+  // lo demás en gris.
+  const pico = Math.max(
+    1,
+    ...jugaron.flatMap((f) => columnas.map((_, i) => Math.abs(delta(f, i)))),
+  );
+
   const puestos: Map<string, number>[] = columnas.map((_, i) => {
     const orden = [...jugaron].sort((a, b) => alCierre(b, i) - alCierre(a, i));
     const m = new Map<string, number>();
@@ -156,40 +168,80 @@ export function LigaDiaADia({ dias, corridos, rango, tabla, cerrada = false, onC
                   </tr>
                 </thead>
                 <tbody>
-                  {jugaron.map((f) => (
+                  {jugaron.map((f, fila) => (
                     <tr key={f.puuid}>
                       <th scope="row" className="dxd-quien">
+                        {/* El puesto al lado del nombre: la tabla ya viene
+                            ordenada, pero sin el número hay que contar filas
+                            para saber quién va tercero. */}
+                        <span className="dxd-pos">{fila + 1}</span>
                         {f.name}
                       </th>
                       {columnas.map((_, i) => {
                         if (vista === "puesto") {
                           const p = puestos[i].get(f.puuid);
+                          // Tinte SECUENCIAL —un solo tono, el dorado— más
+                          // fuerte cuanto mejor el puesto. Con eso la fila del
+                          // que sube se va prendiendo de izquierda a derecha,
+                          // que es justo lo que esta vista viene a mostrar y
+                          // que antes había que reconstruir leyendo números.
+                          const fuerza = p ? (jugaron.length - p + 1) / jugaron.length : 0;
                           return (
-                            <td key={i} className={`dxd-celda${p === 1 ? " lider" : ""}`}>
+                            <td
+                              key={i}
+                              className={`dxd-celda dxd-puesto${p === 1 ? " lider" : ""}`}
+                              style={p ? ({ "--tinte": (fuerza * 0.9).toFixed(3) } as React.CSSProperties) : undefined}
+                            >
                               {p ? puesto(p) : "—"}
                             </td>
                           );
                         }
                         // Lo del día: el cierre de hoy menos el de ayer. El
                         // primer día se compara contra el 0 del arranque.
-                        const hoy = alCierre(f, i);
-                        const ayer = i === 0 ? 0 : alCierre(f, i - 1);
-                        const delta = hoy - ayer;
+                        const d = delta(f, i);
+                        // Tinte DIVERGENTE, proporcional al tamaño del día
+                        // contra el pico de la grilla. El número con su signo
+                        // sigue estando SIEMPRE: el validador de la skill
+                        // dataviz marca el par verde/rojo con ΔE 7,1 en
+                        // deuteranopía —para un daltónico se parecen— y eso solo
+                        // es admisible si el color no es la única pista. El
+                        // signo es la pista; el color es la ayuda para encontrar
+                        // el día grande de un vistazo.
+                        const fuerza = Math.abs(d) / pico;
                         return (
                           <td
                             key={i}
-                            className={`dxd-celda${delta > 0 ? " gd-pos" : delta < 0 ? " gd-neg" : " quieto"}`}
+                            className={`dxd-celda${d > 0 ? " gd-pos" : d < 0 ? " gd-neg" : " quieto"}`}
+                            // Con un PISO: un día de +0,5 escalado contra un
+                            // pico de 11 da 0,01 de opacidad, o sea negro — y
+                            // se vería igual que el día en que no jugó, que es
+                            // justo lo que la grilla distingue.
+                            style={
+                              d !== 0
+                                ? ({ "--tinte": (0.05 + fuerza * 0.2).toFixed(3) } as React.CSSProperties)
+                                : undefined
+                            }
                             // El día sin jugar y el día que quedó en cero se ven
                             // igual —un guion— porque en los dos casos el
                             // marcador no se movió, que es lo que esta grilla
                             // mide. Quién jugó y no sumó lo cuenta la tabla.
-                            title={delta === 0 ? "No movió el marcador" : undefined}
+                            title={d === 0 ? "No movió el marcador" : undefined}
                           >
-                            {delta === 0 ? "—" : puntajeTexto(delta)}
+                            {d === 0 ? "—" : puntajeTexto(d)}
                           </td>
                         );
                       })}
-                      <td className="dxd-celda dxd-total">{puntajeTexto(f.puntos ?? alCierre(f, cuantos - 1))}</td>
+                      <td
+                        className={`dxd-celda dxd-total${
+                          (f.puntos ?? alCierre(f, cuantos - 1)) > 0
+                            ? " gd-pos"
+                            : (f.puntos ?? alCierre(f, cuantos - 1)) < 0
+                              ? " gd-neg"
+                              : ""
+                        }`}
+                      >
+                        {puntajeTexto(f.puntos ?? alCierre(f, cuantos - 1))}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
