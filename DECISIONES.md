@@ -1619,3 +1619,40 @@ el ojo sobre el PNG.
 **Una hipótesis sin verificar no se implementa.** "Faltan datos en la base" era
 plausible y estaba mal; el `SELECT` lo desmintió en diez segundos y el arreglo real
 era otro.
+
+## El duo con gente de afuera: por qué es una tabla y no un ajuste
+
+**Riot no dice quién fue en duo.** Match-V5 no trae `partyId`, ni premade, ni nada
+equivalente — se revisó el payload y el tipo. La pregunta "¿con quién jugó?" no tiene
+respuesta directa, así que el duo se deduce de la repetición: un compañero random te
+toca una vez, un duo aparece en quince partidas del mismo lado. Para poder verlo se
+guardan los cuatro puuids del equipo propio en `matches.aliados`, que salen del payload
+que `buildMatchRow` ya tiene en la mano —cero llamadas extra— y que antes se tiraban.
+
+Como `repairMatchRow` arma la fila con esa misma función, la misma línea llena las
+partidas nuevas y repara las viejas. No hizo falta código de backfill.
+
+**El ajuste a mano nace vencido, la tabla no.** Se calculó un `liga_ajustes` de −4 por
+cuatro partidas y antes de poder correrlo ya eran cinco, porque el tipo seguía jugando.
+Un número se queda viejo; un puuid no. Por eso `liga_vetados`: se carga una vez y toda
+partida donde aparezca esa cuenta deja de contar sola, esa y las que vengan.
+
+**Anula la partida ENTERA, no solo la victoria.** Si con la cuenta vetada perdió,
+tampoco le resta: para la liga esa partida no pasó. Es más fuerte que `ally_afk`, que
+descarta solo las derrotas. Va enganchado al mismo mecanismo (`anulada`) para que la
+partida se siga VIENDO en el historial con el cartel "no contó" — una partida que pasó
+y no aparece en ningún lado parece un bug.
+
+**La regla que se pide no siempre es la que se quiere: hay que medirla.** El pedido
+original fue "que solo sumen puntos si juegan con la tabla". Medido, eso borra la liga:
+un jugador tenía 17 partidas y NINGUNA con alguien de la tabla, otro 2 de 16, otro 4 de
+39 — casi nadie llegaba al mínimo de 10. Y el que motivó el reclamo era el tercero que
+más acompañado jugaba. La regla que sirve es la inversa: "el duo con gente de afuera no
+cuenta", y el solo queue sigue valiendo.
+
+**Un campo de diagnóstico vale lo que cuesta.** Después de crear la tabla y cargar el
+puuid, la pantalla seguía mostrando el puntaje viejo, y desde afuera no se podía
+distinguir "el deploy no salió" de "la lógica está mal" — dos causas que se arreglan en
+lugares distintos. `/api/liga` devuelve `vetados: <n>`: el campo no existe en la versión
+anterior, así que su sola presencia dice qué código está sirviendo. Resultó ser lo
+primero, y sin el campo se habrían buscado bugs inexistentes durante media hora.
