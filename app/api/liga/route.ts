@@ -87,6 +87,10 @@ export async function GET() {
   // curso llena de ceros, sin nada que dijera que todavía no había empezado.
   const arrancoYa = Date.now() >= desdeVentana.getTime();
 
+  // Afuera del `if` para que pueda salir en la respuesta aunque el torneo no
+  // haya arrancado: es un dato de diagnóstico y sirve justamente cuando algo
+  // no está pasando.
+  let vetados = new Set<string>();
   let tabla: Awaited<ReturnType<typeof tablaDeLaSemana>> = [];
   if (arrancada && participantes.length > 0) {
       // Se pide desde una semana ANTES del lunes: la fila base de cada uno es su
@@ -146,7 +150,7 @@ export async function GET() {
       // Se lee una vez por request y no por partida: son un puñado de filas y
       // el recorrido de abajo la consulta para cada una de las ~250 partidas
       // de la semana.
-      const vetados = await cargarVetados(supabase);
+      vetados = await cargarVetados(supabase);
 
       const suyasPorPuuid = new Map<string, { match_id: string; win: boolean; played_at: string; champion: string | null; team_position: string | null; kills: number; deaths: number; assists: number; game_duration_s: number; anulada: boolean }[]>();
       for (const m of partidas ?? []) {
@@ -366,6 +370,11 @@ export async function GET() {
       // Para que la pantalla pueda decir de qué torneo habla y si es editable.
       torneo: { id: torneo.id, nombre: torneo.nombre, guardado: torneo.guardado },
       tabla,
+      // Cuántas cuentas vetadas se leyeron. Es una línea y está acá porque sin
+      // ella "el veto no anda" no se puede distinguir de "el deploy no salió":
+      // el campo no existe en la versión vieja, así que su sola presencia ya
+      // dice qué código está sirviendo. Ver lib/vetados.ts.
+      vetados: vetados.size,
       // Para que la tabla pueda pedirle el arte del campeón a Data Dragon.
       ddragonVersion: version,
       // Va como marca de tiempo y no como "hace X minutos" ya escrito: este
