@@ -13,11 +13,19 @@ import { cerrarSemanasPendientes } from "@/lib/liga-cierre";
  * (externo, cada 15 minutos — ver app/api/cron/refresh/route.ts) hace este
  * mismo cierre, y leer /api/liga también. Este queda como red de contención.
  *
- * Por eso mismo YA NO ESTÁ EN vercel.json. El plan Hobby deja dos crons y el
- * segundo lugar se lo llevó el parte diario de la liga, que sí necesita un
- * disparador propio —nadie más lo llama— mientras que el cierre tiene otros
- * dos caminos que lo hacen igual. La ruta queda para pegarle a mano si alguna
- * vez hace falta forzar un cierre.
+ * Estuvo un tiempo FUERA de vercel.json porque Hobby dejaba dos crons por
+ * equipo y el segundo lugar se lo llevó el parte diario. Desde enero de 2026
+ * el tope es de 100 por proyecto en todos los planes —lo que sigue capado en
+ * Hobby es la FRECUENCIA, una vez por día— así que volvió, a las 04:00 UTC
+ * (01:00 argentinas). El cierre cae a medianoche argentina, o sea que corre
+ * una hora después del más tardío.
+ *
+ * Lo que agrega es poco y conviene saber cuánto: si el scheduler externo está
+ * vivo, este no encuentra nunca nada que hacer. Si está caído, el podio sale
+ * a la 1 de la mañana en vez de a las 9 —que es cuando pasa el cron diario de
+ * refresco, el otro que también cierra—. Ocho horas en el peor caso, gratis.
+ *
+ * Sirve igual para pegarle a mano si alguna vez hace falta forzar un cierre.
  *
  * Lo que hace que esto sea seguro es la tabla liga_semanas: una semana ya
  * registrada no se vuelve a anunciar, por más veces que corra.

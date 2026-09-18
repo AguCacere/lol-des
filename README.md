@@ -211,10 +211,13 @@ sin configurar nada afuera. En Hobby el disparo es "dentro de esa hora", o sea e
 23:00 y las 23:59 argentinas — siempre el mismo día argentino, que es lo único que
 importa acá.
 
-Le sacó el lugar a `/api/cron/liga` (Hobby permite dos crons). No se pierde nada: el
-cierre de la semana ya lo hace el cron de refresco cada 15 minutos, y leer `/api/liga`
-también. El parte diario, en cambio, no tiene otro camino. La ruta `/api/cron/liga`
-sigue existiendo para pegarle a mano.
+**`/api/cron/liga` corre a las 04:00 UTC** (01:00 argentinas) y cierra la semana si
+terminó. Estuvo afuera un tiempo: Hobby dejaba dos crons por equipo y el segundo lugar
+se lo había llevado el parte diario. Desde enero de 2026 el tope es de 100 por proyecto
+en todos los planes —lo capado en Hobby es la frecuencia, no la cantidad—, así que
+volvió. Es la red de contención más floja de las cuatro: si el scheduler externo está
+vivo no encuentra nunca nada que hacer, y si está caído lo único que gana es que el
+podio salga a la 1 de la mañana en vez de a las 9. Gratis, eso sí.
 
 Es seguro dispararlo de más: decide solo si hay algo para decir, y los días que no
 —domingos y días sin partidas— contesta `{"mandado":false}` sin escribir en Discord.
