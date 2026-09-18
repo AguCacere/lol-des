@@ -872,6 +872,17 @@ async function buildMatchRow(
     // diez jugadores, y la base guarda una fila por jugador nuestro: al leer
     // ya no queda con qué. Ver aliadoAfk.
     ally_afk: aliadoAfk(match, puuid, timeline),
+    // Los cuatro del equipo propio, sin vos.
+    //
+    // Riot NO dice quién fue en duo: Match-V5 no trae party, ni premade, ni
+    // nada equivalente. Por eso el duo se deduce de acá — un compañero random
+    // te toca una vez, un duo aparece en quince partidas del mismo lado. Sin
+    // esta columna la pregunta "¿con quién jugó?" no tiene respuesta posible.
+    //
+    // Sale del payload que esta función ya tiene en la mano: cero llamadas
+    // extra a Riot. Y como `repairMatchRow` arma la fila con ESTA misma
+    // función, las partidas viejas se llenan solas al repararlas.
+    aliados: teammates.filter((p) => p.puuid !== puuid).map((p) => p.puuid),
     played_at: new Date(match.info.gameCreation).toISOString(),
   };
   return { row, timelineOk: timelineStats !== null };
