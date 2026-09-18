@@ -260,9 +260,50 @@ Los comandos no necesitan cron —son pull, no push—, y los dos remedios barat
 frescura ya están puestos: leen **Supabase directo** (se saltean los 4 minutos de caché
 del CDN) y llevan **el "actualizado hace X"** al pie.
 
-**No bajar los 15 minutos del refresco de entrada.** Triplicar la frecuencia triplica las
-llamadas a Riot y la key aguanta 100 cada 2 minutos: con trece invocadores probablemente
-entre, pero es algo para medir, no para asumir.
+### Bajar el refresco a 5 minutos: medido (18/09/2026)
+
+Esto estaba como "no bajar los 15 minutos, es algo para medir". Se midió.
+
+**Cuánto se gana.** El retraso real de una partida —de que termina a que está en la
+base, que es exactamente cuándo sale el mensaje del bot— sobre 662 partidas de tres
+semanas: mediana **9,0 min**, p90 15,2, p99 46,9. Con el cron cada 15 y las partidas
+cayendo en cualquier momento, la espera promedio son 7,5 minutos, o sea que casi todo
+ese retraso ES el cron; Riot publica en 1-2. A 5 minutos la espera promedio baja a 2,5:
+la mediana quedaría cerca de **4 minutos**. Se corta a la mitad, y el que lo nota es el
+bot.
+
+La cola (17 partidas de 662 por encima de 20 min) no es el cron: viene en racimos —4 en
+una hora el 12/09, 3 el 05/09— que son corridas perdidas o paredes de 429. Bajar la
+frecuencia las ablanda (una corrida perdida cuesta 5 min y no 15) pero no las arregla.
+
+**Riot no es el problema, y el que gasta no es el cron.** Un ciclo ocioso son 5 llamadas
+por invocador (liga, ids de ranked, ids de flex, ids de clash, maestrías) × 14 = 70 por
+corrida, concurrencia 2. A 5 minutos son 14 por minuto. **`/api/live` gasta más que
+eso**: no tiene caché de CDN, es `force-dynamic` y dispara 14 llamadas a Spectator en
+paralelo por cada poll, cada 60s, **por pestaña abierta**. Tres pestañas ya son 42 por
+minuto. Si alguna vez hay que recortar llamadas a Riot, el lugar es ese —una caché corta
+en `/api/live`— y no el cron.
+
+**Lo que sí muerde es el Active CPU de Vercel.** Hobby incluye 4 horas de Active CPU por
+mes (y 360 GB-hr de memoria, que sobra). La corrida tarda ~30s de reloj pero casi todo
+es esperar a Riot, que con Fluid compute no cuenta; contando ~2s de CPU real por corrida
+da ~1,6 h/mes a 15 minutos y **~4,8 h/mes a 5**, o sea justo por encima del tope. Y el
+castigo de pasarse en Hobby no es una factura: **es la cuenta pausada**.
+
+Ese número es una estimación —desde acá no se ve el consumo real—, así que **antes de
+tocar el scheduler hay que mirar Vercel → Usage → Active CPU**. Si el mes va por menos
+de 1,5 h, 5 minutos entra.
+
+**El punto medio que probablemente convenga:** 5 minutos solo de noche (19:00 a 03:00
+argentinas, que es cuando juegan) y 15 el resto. cron-job.org sabe hacerlo con dos
+horarios. Son ~160 corridas por día en vez de 288, ~2,7 h de CPU al mes, y la mejora cae
+justo en las horas en las que alguien la nota.
+
+**La caché del CDN no acompaña y no hay que forzarla.** `/api/liga` y `/api/ladder` están
+en `s-maxage=240`, así que la pantalla va a seguir hasta 4 minutos atrás de la base pase
+lo que pase con el cron — parte del "17 minutos" es esto y no el refresco. Bajar esa
+caché es justo lo que no hay que hacer: es lo que protege el pool de 15 conexiones de la
+Nano (ver DECISIONES). Con el cron en 5, igual, los 240s ya son más finos que el ciclo.
 
 ## Suelto, ofrecido y no tomado
 
