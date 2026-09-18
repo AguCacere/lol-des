@@ -221,6 +221,36 @@ suficiente. La detección automática —columna con los puuids de los compañer
 para lo viejo, y un umbral de repeticiones— recién si aparece que alguien la esquiva, con
 datos de que hacía falta y no por las dudas.
 
+## El duo con gente de afuera: hecho, falta confirmar y anunciar
+
+El mecanismo está entero y desplegado (`liga_vetados` + `matches.aliados`). Ver
+DECISIONES para por qué es una tabla y no un `liga_ajustes`. Lo que queda es humano:
+
+**Confirmar el puuid.** La lista tiene UNA cuenta, identificada por repetición y no por
+nombre: desde el entorno de desarrollo no hay key de Riot, así que no se pudo resolver
+puuid → Riot ID. Se la dedujo de aparecer cuatro veces del mismo lado, las cuatro
+ganadas, en partidas del 16/09 (Sylas, Pantheon) y del 18/09 (Caitlyn y una más).
+El dueño de la liga tiene que chequearlas contra el historial. Si alguna no es, el
+arreglo es un `delete` de una línea.
+
+**Lo que esto mueve:** VORE pasa de +12,25 a +8,25 y de 1º a 2º; marlboro de diez
+queda ganando con +10. No es un detalle de tabla, cambia quién cobra.
+
+**`laburo de esto#CHESS` NO está vetada y es a propósito.** Apareció en los datos (8
+partidas, 4V-4D, valía −1,25) y el dueño decidió expresamente perdonarla. Si alguien la
+agrega después, que sea por una decisión nueva y no por creer que se olvidó.
+
+**Falta el anuncio, y tiene una contradicción sin resolver.** El borrador del mensaje
+decía "arranca desde el torneo que viene", pero el veto ya corrige el torneo en curso.
+Hay que elegir una de las dos ANTES de mandarlo: o el mensaje dice que este torneo se
+corrige, o el veto se aplica desde el siguiente. Anunciar lo primero y hacer lo segundo
+es la única versión de esto que termina mal.
+
+**Resolver un puuid a Riot ID no tiene ruta.** `getAccountByPuuid` existe en lib/riot.ts
+y no la expone nadie. Un endpoint chico de admin evitaría el problema de arriba la
+próxima vez, que la va a haber: quedan dos puuids sin identificar con 2 partidas cada
+uno, y el veto es una lista que va a crecer.
+
 ## El bot de Discord
 
 **Está prendido y andando** (17/9). Los cuatro comandos contestan en el canal, y los
