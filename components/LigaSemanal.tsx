@@ -72,8 +72,8 @@ interface PartidaLiga {
   assists?: number;
   /** Cuánto duró, en segundos. Ver PartidaLiga en lib/liga.ts: está para auditar el filtro de remakes. */
   duracionS?: number;
-  /** Se jugó pero no puntúa: se le fue un compañero. Ver PartidaLiga en lib/liga.ts. */
-  anulada?: boolean;
+  /** Se jugó pero no puntúa, y por qué: "afk" (se le fue un compañero) o "duo" (jugó con una cuenta vetada, ver lib/vetados.ts). Lleva el motivo y no un booleano porque el cartel explica cosas distintas. */
+  anulada?: "afk" | "duo";
 }
 interface DelPlantel {
   puuid: string;
@@ -862,7 +862,11 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                           {m.anulada ? (
                             <span
                               className="liga-partida-anulada"
-                              title="Se te fue un compañero: Riot no te saca LP por una así, y la liga no cobra lo que Riot no cobra. La partida está acá para que se vea que pasó, pero no suma, no resta y no cuenta para las 10 del mínimo."
+                              title={
+                                m.anulada === "duo"
+                                  ? "Jugaste en duo con alguien que no está en la liga. Esa partida no suma, no resta y no cuenta para las 10 del mínimo — es la regla del duo con gente de afuera."
+                                  : "Se te fue un compañero: Riot no te saca LP por una así, y la liga no cobra lo que Riot no cobra. La partida está acá para que se vea que pasó, pero no suma, no resta y no cuenta para las 10 del mínimo."
+                              }
                             >
                               no contó
                             </span>

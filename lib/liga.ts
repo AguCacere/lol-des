@@ -309,8 +309,15 @@ export interface PartidaLiga {
    * derrota que pasó y no está en ningún lado parece que la app se comió una
    * partida. Acá el desglose es la PRUEBA de dónde sale el puntaje, así que
    * una partida que no cuenta tiene que poder verse no contando.
+   *
+   * Lleva el MOTIVO y no un booleano porque ya son dos: `"afk"` es el de
+   * arriba, y `"duo"` es haber jugado con una cuenta que no está en la liga
+   * (ver lib/vetados.ts). El cartel de la pantalla explica cada uno con su
+   * texto — con un `true` a secas, las anuladas por duo decían "se te fue un
+   * compañero", que es falso, y el desglose está justamente para que nadie
+   * tenga que creer en la palabra de la app.
    */
-  anulada?: boolean;
+  anulada?: "afk" | "duo";
   /**
    * Lo que sumó o restó ESA partida sola. Null si cayó junta con otras.
    *

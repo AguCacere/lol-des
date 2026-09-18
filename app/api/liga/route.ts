@@ -152,7 +152,7 @@ export async function GET() {
       // de la semana.
       vetados = await cargarVetados(supabase);
 
-      const suyasPorPuuid = new Map<string, { match_id: string; win: boolean; played_at: string; champion: string | null; team_position: string | null; kills: number; deaths: number; assists: number; game_duration_s: number; anulada: boolean }[]>();
+      const suyasPorPuuid = new Map<string, { match_id: string; win: boolean; played_at: string; champion: string | null; team_position: string | null; kills: number; deaths: number; assists: number; game_duration_s: number; anulada: "afk" | "duo" | undefined }[]>();
       for (const m of partidas ?? []) {
         if (Date.parse(m.played_at) < (arranqueDe.get(m.puuid) ?? 0)) continue;
         const arr = suyasPorPuuid.get(m.puuid) ?? [];
@@ -162,7 +162,16 @@ export async function GET() {
         // vetada del mismo lado. Esa anula la partida ENTERA y no solo la
         // derrota —si con esa cuenta ganó tampoco suma—, que es justo la
         // diferencia con `ally_afk`. Ver lib/vetados.ts.
-        arr.push({ match_id: m.match_id, win: m.win, played_at: m.played_at, champion: m.champion, team_position: m.team_position, kills: m.kills, deaths: m.deaths, assists: m.assists, game_duration_s: m.game_duration_s, anulada: (!m.win && m.ally_afk === true) || conVetado(m.aliados, vetados) });
+        // La bandera lleva el MOTIVO y no un booleano: son dos cosas
+        // distintas que el cartel de abajo tiene que saber explicar. Con un
+        // `true` a secas, las partidas anuladas por duo mostraban el texto del
+        // AFK —"se te fue un compañero"— que es sencillamente falso.
+        const anulada: "afk" | "duo" | undefined = conVetado(m.aliados, vetados)
+          ? "duo"
+          : !m.win && m.ally_afk === true
+            ? "afk"
+            : undefined;
+        arr.push({ match_id: m.match_id, win: m.win, played_at: m.played_at, champion: m.champion, team_position: m.team_position, kills: m.kills, deaths: m.deaths, assists: m.assists, game_duration_s: m.game_duration_s, anulada });
         suyasPorPuuid.set(m.puuid, arr);
       }
       // Las fotos de cada uno, para poder atribuirle el LP a cada partida.
@@ -264,7 +273,7 @@ export async function GET() {
               // Cero, no null: null es "no sabemos" y acá sí sabemos — no
               // valió nada. La bandera de al lado es la que explica por qué.
               puntos: m.anulada ? 0 : (valePorMatch.get(m.match_id) ?? 0),
-              anulada: m.anulada ? true : undefined,
+              anulada: m.anulada,
               playedAt: m.played_at,
               kills: m.kills,
               deaths: m.deaths,

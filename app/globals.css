@@ -3987,6 +3987,13 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    respuestas: la sangría dice de quién es. */
 .liga-detalle{
   position:relative; max-width:1040px;
+  /* Se declara el fondo acá aunque el de la fila abierta ya se vea igual: es
+     el que tienen que copiar el nodo y el encabezado de día para tapar el
+     hilo. Cuando el color a copiar es el de OTRO elemento, alcanza con que
+     alguien cambie ese otro para que el tapado se convierta en un halo — que
+     es exactamente lo que estaba pasando (el nodo copiaba --surface, #0F0F0D,
+     sobre la fila abierta que es --surface-hover, #1D1C17). */
+  background:var(--surface-hover);
   /* 70 de sangría + 9 (media columna del nodo) = 79, que es exactamente donde
      cae el hilo. Los nodos de cada partida quedan ENSARTADOS en él. */
   padding:4px 18px 14px 70px;
@@ -4055,7 +4062,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   width:18px; height:18px; border-radius:50%;
   display:flex; align-items:center; justify-content:center;
   font-size:10.5px; font-weight:800; line-height:1;
-  background:var(--surface); box-shadow:0 0 0 3px var(--surface);
+  background:var(--surface-hover); box-shadow:0 0 0 3px var(--surface-hover);
 }
 .liga-partida-res.gano{color:var(--good);}
 .liga-partida-res.perdio{color:var(--critical);}
@@ -4594,7 +4601,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    seguir: dice qué hizo ESE día y en cuánto quedó después. Sin él hay que ir
    sumando de a 0,75 con el dedo para llegar al número grande de la fila. */
 .liga-dia + .liga-dia{margin-top:9px;}
+/* El encabezado tapa el hilo en vez de dejarse cruzar. Un día es un corte de
+   verdad —cada uno tiene su propio delta y su propio acumulado—, y una línea
+   continua que lo atraviesa dice lo contrario: que las partidas del jueves y
+   las del viernes son una sola tirada. Ahora el hilo queda en tramos, uno por
+   día, que es como está agrupado el contenido. */
 .liga-dia-head{
+  position:relative; z-index:1;
+  background:var(--surface-hover);
   display:flex; align-items:baseline; gap:8px;
   padding:5px 10px 4px 0; margin-left:-4px;
 }
