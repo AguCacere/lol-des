@@ -525,8 +525,14 @@ export function puntajeDe(f: { puntos: number; netas: number; lpNeto: number }):
  * al pepe — un "4,00" en la columna del marcador es ruido.
  */
 export function puntajeTexto(p: number): string {
-  const abs = Math.abs(p).toFixed(2).replace(/\.?0+$/, "").replace(".", ",");
-  return `${p > 0 ? "+" : p < 0 ? "−" : ""}${abs}`;
+  // Se redondea ANTES de mirar el signo. Los puntos de la liga son múltiplos
+  // de 0,25 y hoy no hay forma de que caiga acá un −0,001, pero si el signo
+  // sale del crudo y el cuerpo del redondeo, el día que pase se escribe "−0"
+  // — un número que dice cero con un signo que dice que no. Es la misma
+  // trampa que ya se comió `oro()` en lib/match-story.ts.
+  const redondeado = Math.round(p * 100) / 100;
+  const abs = Math.abs(redondeado).toFixed(2).replace(/\.?0+$/, "").replace(".", ",");
+  return `${redondeado > 0 ? "+" : redondeado < 0 ? "−" : ""}${abs}`;
 }
 
 /**

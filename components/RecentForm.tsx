@@ -53,8 +53,17 @@ function deltaOf(split: FormSplit, spec: MetricSpec) {
     : (100 * (split.recent - split.baseline)) / Math.abs(split.baseline);
   const flat = Math.abs(raw) < (inPoints ? NEUTRAL_POINTS : NEUTRAL_PCT);
   const improved = spec.lowerIsBetter === true ? raw < 0 : raw > 0;
+  // El signo del TEXTO se decide sobre el número ya redondeado, no sobre el
+  // crudo. Antes el signo salía de `raw` y el cuerpo del redondeo, así que un
+  // winrate que bajó 0,4 puntos —y el winrate se escribe con cero decimales—
+  // se leía "−0 pts". El número decía cero y el signo decía que no.
+  //
+  // La flecha y el color siguen mirando el crudo a propósito: bajar 0,4 es
+  // bajar, y eso lo resuelve `flat`, que para eso está.
+  const escala = 10 ** (inPoints ? spec.decimals : 0);
+  const redondeado = Math.round(raw * escala) / escala;
   return {
-    text: `${raw > 0 ? "+" : raw < 0 ? "−" : ""}${fmt(Math.abs(raw), inPoints ? spec.decimals : 0)}${inPoints ? " pts" : "%"}`,
+    text: `${redondeado > 0 ? "+" : redondeado < 0 ? "−" : ""}${fmt(Math.abs(redondeado), inPoints ? spec.decimals : 0)}${inPoints ? " pts" : "%"}`,
     arrow: flat ? "" : raw > 0 ? "▲" : "▼",
     tone: flat ? "flat" : improved ? "up" : "down",
   };

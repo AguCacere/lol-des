@@ -40,8 +40,15 @@ function mmss(totalSegundos: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+/**
+ * El signo va en tres casos y no en dos. Con dos —`n > 0 ? "+" : "−"`— el cero
+ * caía del lado del menos y la frase de línea pareja salía "Quedaron mano a
+ * mano: −0 a los 20′". No es un caso de laboratorio: hay una partida en la
+ * base con la diferencia de oro clavada en 0 a los 20, y es justo la que entra
+ * por esa rama. Sin signo, como `puntajeTexto` en lib/liga.ts.
+ */
 function oro(n: number): string {
-  return `${n > 0 ? "+" : "−"}${Math.abs(n).toLocaleString("es-AR")}`;
+  return `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toLocaleString("es-AR")}`;
 }
 
 export function buildMatchStory(m: Match): MatchStory | null {
