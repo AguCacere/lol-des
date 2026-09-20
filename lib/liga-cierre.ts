@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendDiscordNotification } from "./discord";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "./refresh";
-import { type AjusteLiga, type DetalleSemanal, type FilaDelDia, type FilaLiga, ganadorDe, mensajeDeCierre, mensajeDelDia, puntajeDe, puntosPorDia, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot } from "./liga";
+import { type AjusteLiga, type DetalleSemanal, type FilaDelDia, type FilaLiga, ganadorDe, mensajeDeCierre, mensajeDelDia, puntajeDe, puntosPorDia, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot, lpAtribuido, derrotaMitigada } from "./liga";
 import { cargarVetados, conVetado } from "./vetados";
 import { claveDeTorneo, diaCorriente, esTorneoDeLiga, etiquetasDeDias, type Torneo, torneoAnterior, torneoDe } from "./torneo";
 import { repartirTitulos } from "./liga-titulos";
@@ -111,7 +111,7 @@ export async function tablaDeSemanaEnBase(
     // kills/deaths/assists entran solo para los títulos del cierre (el
     // carnicero, el kamikaze). No tocan el puntaje: la liga se decide por
     // resultado, no por cómo jugaste.
-    .select("puuid, win, played_at, champion, kills, deaths, assists, aliados")
+    .select("match_id, puuid, win, played_at, champion, kills, deaths, assists, aliados, game_duration_s")
     .in("puuid", puuids)
     .eq("queue_id", RANKED_SOLO_QUEUE_ID)
     // El MISMO filtro de remakes que /api/liga. Si el cierre contara partidas
@@ -148,7 +148,7 @@ export async function tablaDeSemanaEnBase(
   // mirar el orden; ahora "la cuarta al hilo vale 1,25" depende de en qué
   // secuencia pasaron, así que el cierre tiene que reconstruirla igual que
   // /api/liga o coronaría con un puntaje distinto del que muestra la pantalla.
-  const suyasPorPuuid = new Map<string, { win: boolean; played_at: string; champion: string | null; kills: number; deaths: number; assists: number }[]>();
+  const suyasPorPuuid = new Map<string, { match_id: string; win: boolean; played_at: string; champion: string | null; kills: number; deaths: number; assists: number; game_duration_s: number }[]>();
   // El MISMO criterio de vetados que /api/liga, por lo mismo que el de los
   // remakes: si el cierre contara partidas que la tabla en vivo no cuenta, el
   // bot anunciaría un campeón que nadie vio ganar. Acá se saltean en vez de
@@ -158,11 +158,26 @@ export async function tablaDeSemanaEnBase(
     if (Date.parse(m.played_at) < (arranqueDe.get(m.puuid) ?? 0)) continue;
     if (conVetado(m.aliados, vetados)) continue;
     const arr = suyasPorPuuid.get(m.puuid) ?? [];
-    arr.push({ win: m.win, played_at: m.played_at, champion: m.champion, kills: m.kills, deaths: m.deaths, assists: m.assists });
+    arr.push({ match_id: m.match_id, win: m.win, played_at: m.played_at, champion: m.champion, kills: m.kills, deaths: m.deaths, assists: m.assists, game_duration_s: m.game_duration_s });
     suyasPorPuuid.set(m.puuid, arr);
   }
+  // Las fotos por jugador, para poder descartar las derrotas que a Riot no le
+  // costaron LP igual que /api/liga. Tiene que ser el MISMO criterio: si el
+  // cierre contara una partida que la tabla en vivo no cuenta, el bot
+  // anunciaría un campeón que nadie vio ganar.
+  const fotosPorPuuid = new Map<string, Snapshot[]>();
+  for (const f of (snaps ?? []) as Snapshot[]) {
+    const arr = fotosPorPuuid.get(f.puuid) ?? [];
+    arr.push(f);
+    fotosPorPuuid.set(f.puuid, arr);
+  }
   const recordPorPuuid = new Map<string, RecordSemanal>();
-  for (const [puuid, suyas] of suyasPorPuuid) {
+  for (const [puuid, todas] of suyasPorPuuid) {
+    const lpDeCadaUna = lpAtribuido(
+      fotosPorPuuid.get(puuid) ?? [],
+      todas.map((m) => ({ matchId: m.match_id, playedAt: m.played_at, duracionS: m.game_duration_s })),
+    );
+    const suyas = todas.filter((m) => !derrotaMitigada(m.win, lpDeCadaUna.get(m.match_id)));
     suyas.sort((a, b) => Date.parse(a.played_at) - Date.parse(b.played_at));
     recordPorPuuid.set(puuid, {
       victorias: suyas.filter((m) => m.win).length,

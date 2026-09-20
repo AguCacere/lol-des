@@ -310,14 +310,15 @@ export interface PartidaLiga {
    * partida. Acá el desglose es la PRUEBA de dónde sale el puntaje, así que
    * una partida que no cuenta tiene que poder verse no contando.
    *
-   * Lleva el MOTIVO y no un booleano porque ya son dos: `"afk"` es el de
-   * arriba, y `"duo"` es haber jugado con una cuenta que no está en la liga
-   * (ver lib/vetados.ts). El cartel de la pantalla explica cada uno con su
+   * Lleva el MOTIVO y no un booleano porque ya son tres: `"afk"` es el de
+   * arriba, `"duo"` es haber jugado con una cuenta que no está en la liga
+   * (ver lib/vetados.ts) y `"mitigada"` es una derrota que a Riot no le costó
+   * LP (ver derrotaMitigada). El cartel de la pantalla explica cada uno con su
    * texto — con un `true` a secas, las anuladas por duo decían "se te fue un
    * compañero", que es falso, y el desglose está justamente para que nadie
    * tenga que creer en la palabra de la app.
    */
-  anulada?: "afk" | "duo";
+  anulada?: "afk" | "duo" | "mitigada";
   /**
    * Lo que sumó o restó ESA partida sola. Null si cayó junta con otras.
    *
@@ -359,12 +360,30 @@ export interface PartidaLiga {
  * no es igual para todos— y la forma de terminar la discusión es mostrar
  * partida por partida cuánto dio cada una.
  */
-export function lpPorPartida(snapshots: Snapshot[], partidas: PartidaLiga[]): PartidaLiga[] {
+/** Lo que se sabe del LP de una partida. `desdeLp` es el LP con el que ARRANCÓ el tramo — hace falta para distinguir una derrota mitigada de una en el piso de la división, que se ven iguales mirando solo el delta. */
+export interface LpDeUnaPartida {
+  lp: number | null;
+  sinLp: "varias" | "sin-foto" | null;
+  lpTramo: number | null;
+  juntas: number;
+  desdeLp: number;
+}
+
+/**
+ * Cuánto LP movió cada partida, atribuido con las fotos.
+ *
+ * Está separado de `lpPorPartida` porque hace falta ANTES de puntuar: una
+ * derrota que a Riot no le costó LP tampoco cuesta en la liga (ver
+ * `derrotaMitigada`), y eso hay que decidirlo antes de armar la secuencia, no
+ * después. Solo mira `matchId` y `playedAt`, así que se lo puede llamar con
+ * cualquier lista de partidas.
+ */
+export function lpAtribuido(
+  snapshots: Snapshot[],
+  partidas: { matchId: string; playedAt: string; duracionS?: number }[],
+): Map<string, LpDeUnaPartida> {
   const fotos = [...snapshots].sort((a, b) => Date.parse(a.captured_at) - Date.parse(b.captured_at));
-  const porMatch = new Map<
-    string,
-    { lp: number | null; sinLp: "varias" | "sin-foto" | null; lpTramo: number | null; juntas: number }
-  >();
+  const porMatch = new Map<string, LpDeUnaPartida>();
 
   for (let i = 1; i < fotos.length; i++) {
     const a = fotos[i - 1];
@@ -373,8 +392,21 @@ export function lpPorPartida(snapshots: Snapshot[], partidas: PartidaLiga[]): Pa
     if (jugadas <= 0) continue;
     const desde = Date.parse(a.captured_at);
     const hasta = Date.parse(b.captured_at);
+    // Por cuándo TERMINÓ, no por cuándo empezó. El LP se mueve al final de la
+    // partida, así que el tramo que le corresponde es el que contiene ese
+    // final. Con `playedAt` a secas —que es gameCreation— una partida de 30
+    // minutos que arranca a las 22:37 y termina a las 23:08 caía en el tramo
+    // de la foto de las 22:45, que la agarró jugando: el LP que mostró esa
+    // foto todavía no incluía el resultado. Y no es un caso raro: las fotos
+    // van cada 15 minutos y las partidas duran 25-40, así que CASI TODAS
+    // cruzan una. Se vio primero como un "+19 LP entre 2" donde tenía que
+    // haber un número propio, y después al buscar derrotas mitigadas: tres de
+    // cinco quedaban sin atribución por esto.
+    //
+    // Sin duración se usa el arranque, que es lo que había: una partida vieja
+    // sin el dato queda como estaba en vez de desaparecer del cálculo.
     const enElTramo = partidas.filter((m) => {
-      const t = Date.parse(m.playedAt);
+      const t = Date.parse(m.playedAt) + (m.duracionS ?? 0) * 1000;
       return t > desde && t <= hasta;
     });
     if (enElTramo.length === 0) continue;
@@ -383,13 +415,39 @@ export function lpPorPartida(snapshots: Snapshot[], partidas: PartidaLiga[]): Pa
       // Sin número propio, pero con el del grupo: antes esto era un guion y la
       // pregunta "¿y esta cuánto dio?" se quedaba sin ninguna respuesta.
       for (const m of enElTramo) {
-        porMatch.set(m.matchId, { lp: null, sinLp: "varias", lpTramo: movio, juntas: enElTramo.length });
+        porMatch.set(m.matchId, { lp: null, sinLp: "varias", lpTramo: movio, juntas: enElTramo.length, desdeLp: a.lp });
       }
       continue;
     }
-    porMatch.set(enElTramo[0].matchId, { lp: movio, sinLp: null, lpTramo: null, juntas: 0 });
+    porMatch.set(enElTramo[0].matchId, { lp: movio, sinLp: null, lpTramo: null, juntas: 0, desdeLp: a.lp });
   }
+  return porMatch;
+}
 
+/**
+ * Si esa derrota es una que Riot NO cobró — la "pérdida mitigada" que el
+ * cliente muestra como "+0 PL".
+ *
+ * La regla de la liga ya era "no cobrar lo que Riot no cobra", pero hasta acá
+ * se apoyaba en `ally_afk`, que DEDUCE el abandono del timeline. Riot mitiga
+ * por criterios propios y más amplios, así que la deducción se perdía casos:
+ * medido sobre un torneo, cinco derrotas mitigadas puntuaron −0,75 igual.
+ * Acá no se deduce nada, se mira el veredicto de Riot.
+ *
+ * Las dos condiciones son necesarias. `lp === 0` solo vale con atribución
+ * PROPIA (`sinLp === null`): si la partida cayó junta con otras entre dos
+ * fotos no se sabe cuánto movió ella. Y `desdeLp > 0` saca el falso positivo
+ * que arruinaba la idea: en el piso de la división una derrota tampoco baja
+ * LP —no podés ir abajo de 0 sin descender— y se ve idéntica a una mitigada.
+ * Medido: de 8 casos que daba el delta solo, 3 eran el piso.
+ */
+export function derrotaMitigada(win: boolean, lp: LpDeUnaPartida | undefined): boolean {
+  if (win || !lp) return false;
+  return lp.sinLp === null && lp.lp === 0 && lp.desdeLp > 0;
+}
+
+export function lpPorPartida(snapshots: Snapshot[], partidas: PartidaLiga[]): PartidaLiga[] {
+  const porMatch = lpAtribuido(snapshots, partidas);
   return partidas.map((m) => {
     const v = porMatch.get(m.matchId);
     return {

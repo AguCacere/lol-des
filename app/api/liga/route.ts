@@ -3,7 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabase";
 import { cargarVetados, conVetado } from "@/lib/vetados";
 import { exigirSesion } from "@/lib/auth";
 import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
-import { tablaDeLaSemana, puntosDeSecuencia, puntosPorDia, PUNTOS_VICTORIA, PUNTOS_DERROTA, PUNTOS_EN_RACHA, RACHA_DESDE, lpPorPartida, type AjusteLiga, type Participante, type RecordSemanal, type Snapshot } from "@/lib/liga";
+import { tablaDeLaSemana, puntosDeSecuencia, puntosPorDia, PUNTOS_VICTORIA, PUNTOS_DERROTA, PUNTOS_EN_RACHA, RACHA_DESDE, lpPorPartida, type AjusteLiga, type Participante, type RecordSemanal, type Snapshot, lpAtribuido, derrotaMitigada } from "@/lib/liga";
 import { claveDeTorneo, diaCorriente, diaDeCierre, diasDelCierre, duracionEnDias, empezoElUltimoDia, esTorneoDeLiga, etiquetasDeDias, LIGA_INICIO, torneoDe } from "@/lib/torneo";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { roleFromTeamPosition } from "@/lib/mapping";
@@ -152,7 +152,7 @@ export async function GET() {
       // de la semana.
       vetados = await cargarVetados(supabase);
 
-      const suyasPorPuuid = new Map<string, { match_id: string; win: boolean; played_at: string; champion: string | null; team_position: string | null; kills: number; deaths: number; assists: number; game_duration_s: number; anulada: "afk" | "duo" | undefined }[]>();
+      const suyasPorPuuid = new Map<string, { match_id: string; win: boolean; played_at: string; champion: string | null; team_position: string | null; kills: number; deaths: number; assists: number; game_duration_s: number; anulada: "afk" | "duo" | "mitigada" | undefined }[]>();
       for (const m of partidas ?? []) {
         if (Date.parse(m.played_at) < (arranqueDe.get(m.puuid) ?? 0)) continue;
         const arr = suyasPorPuuid.get(m.puuid) ?? [];
@@ -166,7 +166,10 @@ export async function GET() {
         // distintas que el cartel de abajo tiene que saber explicar. Con un
         // `true` a secas, las partidas anuladas por duo mostraban el texto del
         // AFK —"se te fue un compañero"— que es sencillamente falso.
-        const anulada: "afk" | "duo" | undefined = conVetado(m.aliados, vetados)
+        // La mitigada no se decide acá: necesita la atribución de LP, que
+        // necesita todas las partidas del jugador. Se marca abajo, en el
+        // recorrido por puuid.
+        const anulada: "afk" | "duo" | "mitigada" | undefined = conVetado(m.aliados, vetados)
           ? "duo"
           : !m.win && m.ally_afk === true
             ? "afk"
@@ -201,6 +204,20 @@ export async function GET() {
         // del último día y la curva—, así que una partida anulada no mueve
         // nada: solo se ve.
         suyas.sort((a, b) => Date.parse(b.played_at) - Date.parse(a.played_at));
+        // Las derrotas que a Riot no le costaron LP. Va acá y no arriba porque
+        // la atribución necesita TODAS las partidas del jugador contra sus
+        // fotos, y arriba se recorre partida por partida. Ver derrotaMitigada:
+        // sin esto, una "pérdida mitigada" —las que el cliente muestra como
+        // "+0 PL"— restaba 0,75 igual, que es justo lo que la liga dice no
+        // hacer. `ally_afk` no las cubría: deduce el abandono del timeline y
+        // Riot mitiga por criterios más amplios.
+        const lpDeCadaUna = lpAtribuido(
+          fotosPorPuuid.get(puuid) ?? [],
+          suyas.map((m) => ({ matchId: m.match_id, playedAt: m.played_at, duracionS: m.game_duration_s })),
+        );
+        for (const m of suyas) {
+          if (!m.anulada && derrotaMitigada(m.win, lpDeCadaUna.get(m.match_id))) m.anulada = "mitigada";
+        }
         const cuentan = suyas.filter((m) => !m.anulada);
         const victorias = cuentan.filter((m) => m.win).length;
         const ultimoDia = cuentan.filter((m) => Date.parse(m.played_at) >= arrancaUltimoDia).length;

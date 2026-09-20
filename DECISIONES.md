@@ -1656,3 +1656,40 @@ distinguir "el deploy no salió" de "la lógica está mal" — dos causas que se
 lugares distintos. `/api/liga` devuelve `vetados: <n>`: el campo no existe en la versión
 anterior, así que su sola presencia dice qué código está sirviendo. Resultó ser lo
 primero, y sin el campo se habrían buscado bugs inexistentes durante media hora.
+
+## El LP se mueve cuando la partida TERMINA, no cuando empieza
+
+`lpPorPartida` repartía el LP entre las fotos usando `playedAt`, que es
+`gameCreation` — el arranque. Pero el LP se acredita al final. Con fotos cada 15
+minutos y partidas de 25 a 40, **casi todas cruzan una foto**, así que la atribución
+caía sistemáticamente un tramo antes: la foto que "cerraba" el tramo había sido sacada
+con la partida todavía en curso y su LP no incluía el resultado.
+
+Se vio de dos formas. En pantalla, como un "+19 LP entre 2" donde tenía que haber un
+número propio: dos partidas metidas en un tramo porque una no era de ahí. Y buscando
+derrotas mitigadas, donde tres de cinco quedaban sin atribución por el mismo corrimiento.
+Ahora el tramo se elige con `playedAt + duracionS`.
+
+Sin duración se usa el arranque, como antes: una partida vieja a la que le falta el dato
+queda como estaba en vez de desaparecer del cálculo.
+
+## La derrota mitigada no se deduce, se mira
+
+La liga dice "no cobrar lo que Riot no cobra", pero hasta acá eso lo resolvía `ally_afk`,
+que DEDUCE el abandono del timeline. Riot mitiga por criterios propios y más amplios, así
+que la deducción se perdía casos: medido sobre un torneo, **cinco derrotas mitigadas
+puntuaron −0,75 igual**, en tres jugadores distintos. Y una de ellas cambiaba el podio.
+
+Ahora se mira el veredicto de Riot: una derrota con atribución propia que movió 0 LP no
+cuenta. Dos condiciones, las dos necesarias:
+
+- **Atribución PROPIA** (`sinLp === null`). Si cayó junta con otras entre dos fotos no se
+  sabe cuánto movió ella, y adivinar sería peor que no hacer nada.
+- **`desdeLp > 0`.** Este es el que no es obvio: en el piso de la división una derrota
+  tampoco baja LP —no se puede ir abajo de 0 sin descender— y se ve **idéntica** a una
+  mitigada mirando solo el delta. De 8 casos que daba el delta solo, **3 eran el piso**.
+  Sin este filtro, tres jugadores se habrían comido un perdón que no les tocaba.
+
+El cierre aplica el MISMO criterio que `/api/liga`, por lo mismo que los remakes: si el
+cierre contara partidas que la tabla en vivo no cuenta, el bot anunciaría un campeón que
+nadie vio ganar.
