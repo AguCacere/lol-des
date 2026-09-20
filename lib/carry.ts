@@ -80,6 +80,28 @@ const SUP_KP_MINIMA = 70;
  */
 const SUP_CURACION = 15000;
 const SUP_ASISTENCIAS = 15;
+/**
+ * Las asistencias que alcanzan SOLAS, sin llegar al 70% de participación.
+ *
+ * El KP es un porcentaje y por eso se diluye: en una partida donde el equipo
+ * hizo 58 kills, estar en 34 de ellas da 58,6% — abajo del umbral— aunque 34
+ * asistencias sean muchísimas. La vara terminaba midiendo cuánto mató el
+ * equipo y no cuánto aportó el support.
+ *
+ * Medido sobre 183 partidas de support del grupo: la mediana son 13
+ * asistencias, el p90 son 26 y el p95 son 29. O sea que 25 ya es el techo de
+ * lo que se ve. Y el KP de 70 estaba por ENCIMA del p90 de participación
+ * (69,3), que es por qué tan pocas pasaban.
+ *
+ * Las tres partidas que esto agrega en todo el historial dicen que el
+ * problema no era el tipo de campeón: una Seraphine 0/2/34 (KP 58,6), otra
+ * Seraphine 2/3/26, y —la que lo deja claro— una **Soraka con 61.095 de
+ * curación** que quedaba afuera con KP 64,4. Soraka es la enchanter más pura
+ * que hay: no le faltaba un criterio propio, le sobraba un ratio.
+ *
+ * Sigue siendo selectivo: de 183 partidas de support pasan 10 en vez de 7.
+ */
+const SUP_ASISTENCIAS_ABSOLUTAS = 25;
 
 /**
  * Y el tercer camino, el del TANQUE, que necesita una vara entera aparte.
@@ -159,8 +181,13 @@ export function esCarry(m: CarryCandidate): boolean {
 
 /** Los tres estilos de support, cada uno con su vara. Alcanza con cumplir uno. */
 function esCarrySup(m: CarryCandidate): boolean {
-  // El enchanter y el de enganche: mucha participación y casi sin morir.
-  if (m.deaths <= MUERTES_MAXIMAS && m.killParticipation >= SUP_KP_MINIMA) {
+  // El enchanter y el de enganche: mucha participación y casi sin morir. La
+  // participación se puede demostrar de dos formas y alcanza con una: el
+  // PORCENTAJE de las kills del equipo, o el NÚMERO de asistencias a secas.
+  // Ver SUP_ASISTENCIAS_ABSOLUTAS — el ratio castiga jugar con un equipo que
+  // mata mucho, que es lo contrario de lo que se quiere premiar.
+  const participo = m.killParticipation >= SUP_KP_MINIMA || m.assists >= SUP_ASISTENCIAS_ABSOLUTAS;
+  if (m.deaths <= MUERTES_MAXIMAS && participo) {
     if (curacionTotal(m) >= SUP_CURACION || m.assists >= SUP_ASISTENCIAS) return true;
   }
   // El tanque: muere más, pero el daño que absorbió lo justifica.
