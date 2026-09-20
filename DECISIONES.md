@@ -140,6 +140,43 @@ versión de escritorio creyendo que mide la del teléfono. Ni `hasTouch`, ni rea
 cada estado ya abierto, sin una sola interacción**, o —para lo que solo existe con algo
 abierto— inyectar las mismas declaraciones sin el `@media` y medir eso.
 
+**La barra de secciones son TABS SUBRAYADOS, sin cápsula.** Tercera versión, y la última
+ronda revirtió a la anterior — lo de abajo queda como historia, no como instrucción.
+
+El pedido fue textual: la cápsula hacía que la navegación se leyera como *"un segmented
+control / selector de filtros"* y no como la navegación principal de la app. Es correcto
+y es de forma, no de color: un contenedor con fondo propio que ENCIERRA opciones es la
+figura de un filtro. Ahora no hay contenedor; el activo es texto dorado con una barra de
+2px abajo.
+
+Lo que hace que esto cierre, y que es lo que faltaba las dos veces anteriores:
+
+- **La línea del navbar y el separador del header son la MISMA línea.** Antes había dos
+  rayas a catorce píxeles una de otra —una para cerrar el header, otra para el navbar— y
+  eso es lo que hacía que se leyeran como dos componentes apilados. Con una sola, la
+  identidad y la navegación son un bloque y la raya separa ESE bloque del contenido. El
+  argumento de la ronda anterior ("sin borde en la barra, la cápsula es la única caja") se
+  cae solo cuando la barra vuelve a tener línea.
+- **El riel va en `.navbar`, no en `.tabnav`.** La barra es sticky: la línea tiene que
+  viajar pegada arriba con ella y no quedarse con el contenido.
+- **El indicador existe siempre y lo que cambia es su color**, no su tamaño. Así el texto
+  no se mueve un píxel al cambiar de pestaña.
+- **El aire de arriba va en `.navbar` y no en el margen del header.** Es lo único que se
+  ve cuando la barra está fijada arriba de todo; puesto en el header, al scrollear
+  desaparece y las pestañas quedan pegadas al borde de la pantalla.
+- **La navegación se alineó a la izquierda**, al mismo borde que la identidad del header
+  (medido: las dos en x=70). Centrada le rompía esa columna.
+
+Y una trampa de mantenimiento que costó una vuelta: `.tab-btn.is-active` estaba definido
+DOS veces, arriba con el resto del componente y otra vez trescientas líneas más abajo.
+Ganaba el de abajo por orden, así que tocar el de arriba no hacía nada. Ahora hay uno
+solo. Dos fuentes para el mismo estado es cómo se rompe un componente sin que nadie toque
+el lugar que parece.
+
+---
+
+*Historia — lo de acá abajo YA NO ESTÁ EN EL CÓDIGO:*
+
 **La barra de secciones es una CÁPSULA centrada, y el activo vuelve a ser una píldora
 llena.** Esto revierte a propósito una decisión anterior: el activo había pasado de dorado
 sólido a superficie elevada con texto dorado, para que el dorado siguiera siendo un acento

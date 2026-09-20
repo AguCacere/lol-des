@@ -116,16 +116,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .topbar{
   display:grid; grid-template-columns:auto minmax(0,1fr) auto;
   align-items:center; gap:20px;
-  position:relative; margin-bottom:18px; padding-bottom:16px;
+  position:relative; margin-bottom:4px; padding-bottom:0;
 }
-/* El separador se desvanece en las puntas en vez de cortar de lado a lado.
-   Una línea de borde a borde es lo que hace que un header se lea como el
-   encabezado de un formulario; con las puntas en transparente separa igual y
-   deja de ser un renglón de tabla. */
-.topbar::after{
-  content:""; position:absolute; left:0; right:0; bottom:0; height:1px;
-  background:linear-gradient(90deg, transparent, var(--border-soft) 10%, var(--border-soft) 90%, transparent);
-}
+/* El header ya NO lleva separador propio: lo lleva el navbar de abajo, cuya
+   línea inferior es a la vez el riel del subrayado del tab activo. Dos rayas
+   a catorce píxeles una de otra —una para cerrar el header y otra para el
+   navbar— es lo que hacía que los dos se leyeran como dos componentes
+   apilados en vez de como el encabezado de la aplicación. Con una sola,
+   identidad + navegación son un bloque y la raya separa ESE bloque del
+   contenido. */
 
 /* El lockup: marca y nombre pegados, como UNA identidad. El gap de 12 con un
    ícono de 29 los dejaba leyéndose como dos elementos vecinos. */
@@ -194,7 +193,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    queda enganchado a la fila de la identidad en vez de irse solo— y el
    buscador abajo, a todo el ancho, que es donde más lo vas a usar. */
 @media (max-width:820px){
-  .topbar{grid-template-columns:minmax(0,1fr) auto; gap:14px 16px; padding-bottom:14px;}
+  .topbar{grid-template-columns:minmax(0,1fr) auto; gap:14px 16px;}
   /* Ubicadas a mano y no por auto-placement. Con el buscador en `1 / -1` el
      acomodado automático lo manda a un renglón nuevo y empuja al candado a un
      TERCER renglón, solo y a la izquierda — se vio en la captura de 430px.
@@ -211,24 +210,57 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 
 /* ---------- tab nav ---------- */
+/* NAVEGACIÓN, no un selector.
+   La cápsula exterior era lo que lo hacía leerse como un segmented control: un
+   contenedor con fondo y sombra propios que ENCIERRA opciones es la forma de
+   un filtro, no la de una navegación. Sacarla es el cambio; lo demás sigue.
+   Y la línea de abajo es de ancho completo a propósito: es el riel sobre el
+   que apoya el subrayado del activo, y a la vez el separador que el header
+   dejó de tener. */
 .tabnav{
-  display:inline-flex; align-items:center; gap:2px;
-  background:var(--surface); box-shadow:var(--shadow-sm);
-  border-radius:999px; padding:4px; margin-bottom:22px;
+  display:flex; align-items:stretch; gap:22px;
+  background:none; box-shadow:none; border-radius:0;
+  /* El padding de arriba es para que el anillo de foco no lo corte el
+     overflow de más abajo. */
+  padding:4px 0 0; margin:0 0 22px;
+  border-bottom:1px solid var(--border-soft);
+  overflow-x:auto; scrollbar-width:none;
 }
+.tabnav::-webkit-scrollbar{display:none;}
 .tab-btn{
+  position:relative;
   appearance:none; -webkit-appearance:none;
   /* Una etiqueta de pestaña no se parte nunca: "Cara a cara" apretado en el
      celular se convertía en tres líneas y rompía la altura de toda la barra. */
   white-space:nowrap; flex:none;
-  border:none; background:transparent; color:var(--text-secondary);
+  border:none; background:none; color:var(--text-muted);
   font-family:var(--font-body); font-weight:600; font-size:13px;
-  padding:8px 18px; border-radius:999px; cursor:pointer;
-  transition:background .15s ease, color .15s ease;
+  /* Sin padding lateral que dibuje una caja: el área de click la da el alto y
+     el aire entre etiquetas. Lo que se toca es la palabra, no una pastilla. */
+  padding:2px 2px 11px; border-radius:0; cursor:pointer;
+  transition:color .15s ease;
 }
-.tab-btn:hover{color:var(--text-primary);}
-.tab-btn.is-active{background:var(--accent); color:var(--accent-ink); font-weight:700;}
-.tab-btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+/* El indicador existe SIEMPRE y lo que cambia es su color. Así no hay salto de
+   layout al cambiar de pestaña —el texto no se mueve un píxel— y la transición
+   es de color, que es barata y no marea. */
+.tab-btn::after{
+  content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px;
+  border-radius:2px 2px 0 0; background:transparent;
+  transition:background .15s ease;
+}
+/* Hover: solo luminosidad del texto. Un fondo acá volvería a dibujar la
+   pastilla que se acaba de sacar. */
+.tab-btn:hover{color:var(--text-secondary);}
+.tab-btn.is-active{color:var(--accent);}
+.tab-btn.is-active::after{background:var(--accent);}
+.tab-btn:focus-visible{outline:2px solid var(--accent-dim); outline-offset:2px; border-radius:var(--radius-sm);}
+
+/* Angosto: se achica el aire antes que la letra, y si aun así no entran, la
+   barra scrollea. Ninguna sección se esconde. */
+@media (max-width:560px){
+  .tabnav{gap:16px;}
+  .tab-btn{font-size:12.5px;}
+}
 
 .profile-empty{
   display:flex; flex-direction:column; align-items:center; text-align:center; gap:14px;
@@ -3041,8 +3073,16 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
      `justify-content:space-between` la cápsula quedaba corrida a la izquierda
      tanto como mide el botón de la derecha. Centrar de verdad significa que lo
      accesorio no empuje. */
-  display:flex; align-items:center; justify-content:center;
-  margin:0 0 22px; padding:10px 0;
+  /* A la izquierda y no centrada: la identidad del header arranca en el
+     margen izquierdo, así que centrar la navegación le rompía esa columna.
+     Ahora los dos bloques comparten el mismo borde de arranque. */
+  display:flex; align-items:stretch; justify-content:flex-start;
+  margin:0 0 22px; padding:10px 0 0;
+  /* El riel del subrayado, y a la vez el separador que el header dejó de
+     tener. Va en la barra y no en las pestañas porque la barra es sticky: la
+     línea tiene que viajar pegada arriba con ella, no quedarse con el
+     contenido. */
+  border-bottom:1px solid var(--border-soft);
   background:color-mix(in srgb, var(--bg) 92%, transparent);
   backdrop-filter:blur(8px);
 }
@@ -3052,15 +3092,18 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* Adentro de la barra, las pestañas pierden su propio contenedor: la barra ya
    ES el contenedor, y una píldora dentro de otra franja se lee como dos cajas
    discutiendo cuál manda. */
-/* Y acá la cápsula VUELVE. El comentario de arriba decía que una píldora
-   adentro de otra franja se lee como dos cajas discutiendo cuál manda, y era
-   cierto mientras la barra tenía su propio borde de punta a punta. Sin ese
-   borde ya no hay dos cajas: hay una sola, la cápsula, flotando sobre el
-   fondo. */
+/* Y la cápsula se va otra vez, ahora a pedido del dueño con el header nuevo
+   a la vista. El argumento que la había traído de vuelta era que sin borde en
+   la barra la cápsula era la única caja; ese argumento se cae solo, porque la
+   barra volvió a tener línea —la de arriba, que ahora es el riel del
+   subrayado—. Con riel, un contenedor con fondo propio que ENCIERRA las
+   opciones vuelve a leerse como un selector de filtros y no como la
+   navegación principal de la app. Historial completo en DECISIONES. */
 .navbar .tabnav{
-  margin-bottom:0; gap:2px; padding:5px;
-  background:var(--surface); border-radius:999px;
-  box-shadow:inset 0 0 0 1px var(--border-soft);
+  margin:0; border:none;
+  /* Sin overflow propio: el que scrollea en el celular es `.navbar`, y dos
+     contenedores scrolleables anidados se pelean el gesto. */
+  overflow:visible;
 }
 .navbar-atajo{
   /* Fuera del flujo, contra el borde derecho: si ocupara lugar correría la
@@ -3088,31 +3131,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .navbar::-webkit-scrollbar{display:none;}
 }
 
-/* La pestaña activa vuelve a ser una PÍLDORA LLENA dorada, a pedido y con la
-   referencia a la vista.
-   
-   Esto revierte una decisión anterior —el activo había pasado a superficie
-   elevada con texto dorado, para que el dorado siguiera siendo un acento y no
-   un cartel— y el motivo del cambio es otro: la cápsula. Adentro de un
-   contenedor propio, el relleno ya no grita en medio de la pantalla; es la
-   única pieza pintada de una barra que por lo demás es gris sobre negro, y ahí
-   "en qué sección estoy" se contesta de un vistazo sin leer.
-   
-   El texto va en --accent-ink (casi negro) y no en blanco: sobre el dorado, el
-   blanco queda en un contraste bajo. */
-.tab-btn.is-active{
-  background:var(--accent); color:var(--accent-ink); font-weight:700;
-  box-shadow:none;
-}
-/* Y el hover también pinta, que es la otra mitad del pedido: la misma forma de
-   píldora, más apagada. Es lo que hace que la barra se sienta táctil — antes el
-   hover solo aclaraba el texto y no había nada que dijera "esto es un botón del
-   tamaño de esta pastilla".
-   
-   Con :not(.is-active) para que pasar el mouse por la activa no la apague. */
-.tab-btn:hover:not(.is-active){
-  background:var(--surface-raised); color:var(--text-primary);
-}
+/* El activo y el hover viven UNA sola vez, allá arriba con el resto de
+   `.tab-btn`. Acá abajo había una segunda definición que los repintaba como
+   píldora llena y ganaba por venir después: dos fuentes para el mismo estado
+   es cómo se rompe un componente sin que nadie toque el lugar que parece. */
 
 /* La lectura de la partida, debajo del gráfico. Barra de color a la izquierda
    según si la línea salió a favor o en contra — es una conclusión, no un dato
