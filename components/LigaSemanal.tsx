@@ -437,7 +437,12 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
           la tabla. Son dos datos del mismo tipo —el marco de la competencia— y
           van juntos. */}
       <div className="liga-contexto">
-        {d.arrancada !== false && (
+        {/* Las reglas ahora viven ADENTRO de la tarjeta de estado (ver
+            LigaEstado). Acá quedan solo para el caso en que esa tarjeta no se
+            dibuje —la ventana de caché del CDN puede traer una respuesta sin
+            `dias`—, porque el puntaje es la regla más importante de la liga y
+            no puede desaparecer de la pantalla por un dato que falta. */}
+        {d.arrancada !== false && !(d.dias && d.dias.length > 0) && (
           <div className="liga-reglas">
             {/* De párrafo a tablero. El mismo contenido en prosa eran cuatro
                 renglones que había que LEER; acá cada regla es una ficha y se
@@ -485,6 +490,39 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
           bloque entero desaparecía de la pantalla sin que nada avisara. */}
       {d.arrancada !== false && d.dias && d.dias.length > 0 && (
         <LigaEstado
+          reglas={
+            <>
+              {tp ? (
+                <>
+                  <span className="liga-reglas-label">Cómo se puntúa</span>
+                  <span className="liga-ficha v">
+                    Victoria <b>+{coma(tp.victoria)}</b>
+                  </span>
+                  <span className="liga-ficha d">
+                    Derrota <b>−{coma(Math.abs(tp.derrota))}</b>
+                  </span>
+                  <span className="liga-ficha bonus" title={`Desde la ${ordinal(tp.rachaDesde)} victoria al hilo, cada una vale ${coma(tp.enRacha)} en vez de ${coma(tp.victoria)}.`}>
+                    <StreakIcon result="W" />
+                    {tp.rachaDesde}.ª al hilo <b>+{coma(tp.enRacha)}</b>
+                  </span>
+                </>
+              ) : (
+                <span className="liga-reglas-label">Gana el que más puntos hace</span>
+              )}
+              {/* Los mínimos, comprimidos a dato. Eran una frase con dos
+                  cláusulas —"El LP no puntúa: va solo de referencia. Para
+                  cobrar hay que jugar 10 partidas en la semana y 3 el último
+                  día"— que ocupaba un renglón entero para decir dos números.
+                  El "el LP no puntúa" pasa al título del grupo, que es donde
+                  se pregunta. */}
+              {minSemana != null && minDia != null && (
+                <span className="liga-reglas-nota" title="El LP no puntúa: va solo de referencia. Para cobrar el premio hay que cumplir los dos mínimos.">
+                  Para cobrar: <b>{minSemana}</b> en la semana · <b>{minDia}</b> el último día
+                  {esUltimoDia ? ", que es hoy" : ""}
+                </span>
+              )}
+            </>
+          }
           rango={rangoTexto}
           actualizado={d.actualizado ?? null}
           dias={d.dias}

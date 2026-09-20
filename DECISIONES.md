@@ -1730,3 +1730,41 @@ cuenta. Dos condiciones, las dos necesarias:
 El cierre aplica el MISMO criterio que `/api/liga`, por lo mismo que los remakes: si el
 cierre contara partidas que la tabla en vivo no cuenta, el bot anunciaría un campeón que
 nadie vio ganar.
+
+## La cabecera de la liga: una superficie, no tres
+
+Eran tres focos para una sola lectura: las fichas de puntaje en un bloque, una nota suelta
+con los mínimos, y la tarjeta de estado abajo. El ojo tenía que juntarlos para contestar
+una pregunta que es una sola —cómo se puntúa y en qué punto va la semana—, y esa es la
+definición de una pantalla fragmentada.
+
+Ahora las reglas entran **adentro** de la tarjeta, como franja superior. La tarjeta tiene
+tres bandas: reglas, tiempo/premio, días.
+
+- **Las reglas se pasan como `ReactNode`, no se mudaron.** Usan helpers que viven en
+  `LigaSemanal` (`coma`, `ordinal`, `StreakIcon`); moverlas hubiera arrastrado todo eso.
+  Y queda el bloque suelto como respaldo para cuando la tarjeta no se dibuja: la ventana
+  de caché del CDN puede traer una respuesta sin `dias`, y el puntaje es la regla más
+  importante de la liga — no puede desaparecer porque falte un dato de otra cosa.
+- **La fecha bajó a agruparse con la cuenta regresiva.** Era el título de la tarjeta, a
+  cuarenta píxeles del reloj que habla del mismo tema. Ahora van juntos y en orden de
+  peso: fecha (contexto), horas que faltan (protagonista), día de cierre (metadata).
+- **El párrafo de clasificados se contó en vez de listarse.** Decía "fulano, mengano y 5
+  más ya tienen las 10 de la semana. Después hay que aparecer el lunes y jugar 3" — dos
+  renglones para algo que se entiende con un número, y los nombres ya están en la tabla
+  de abajo. Ahora: "7 de 8 ya tienen sus 10 · faltan 3 el lunes".
+- **Los días dejaron de ser botones.** Sin fondo ni borde: son un progreso temporal, y con
+  caja se leían como una fila de campos de formulario.
+
+**"El premio" NO se renombró, y el pedido de renombrarlo era razonable pero parcial.** Se
+propuso "DEFINICIÓN" o "CIERRE FINAL" mirando el estado que estaba en pantalla ("Se define
+el lunes"). Pero el bloque tiene CUATRO estados: `Lo cobra Fulano`, `Fulano todavía no
+cobra`, `Todavía no lo tiene nadie` y `Se define el lunes`. El rótulo contesta "quién se
+lleva el premio"; "se define el lunes" es la respuesta de hoy, no el tema. Con
+"DEFINICIÓN → Lo cobra marlboro" se lee peor en tres de los cuatro.
+
+**Y una trampa que apareció TRES veces en el mismo día**: reglas CSS duplicadas en
+`globals.css`, donde la segunda gana por orden y tocar la primera no hace nada.
+`.tab-btn.is-active`, `.liga-reglas-nota` y `.estado-premio`. En un archivo de cuatro mil
+líneas, antes de escribir una regla conviene `grep -c "^\.clase{"`. Las tres se
+encontraron midiendo en el DOM, no leyendo.

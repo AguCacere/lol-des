@@ -36,6 +36,14 @@ export interface CorredorEstado {
 }
 
 interface Props {
+  /**
+   * Las fichas de puntaje y los mínimos, que ANTES eran un bloque aparte
+   * arriba de esta tarjeta. Entran acá como franja superior porque son el
+   * marco de lo mismo: cómo se puntúa y en qué punto va la semana son una
+   * sola lectura, y tenerlos en dos superficies era la mitad de la
+   * fragmentación de esta pantalla.
+   */
+  reglas?: React.ReactNode;
   /** El rango de la semana, ya escrito ("14 sept – 20 sept"). */
   rango: string;
   /**
@@ -95,6 +103,7 @@ function listaCorta(nombres: string[], tope = 2): string {
 }
 
 export function LigaEstado({
+  reglas,
   rango,
   actualizado,
   dias,
@@ -164,85 +173,86 @@ export function LigaEstado({
     // mano. Al extender el torneo al lunes dejando el mínimo abierto desde el
     // domingo, la ventana cubre DOS días y decir uno solo sería mentira.
     const cuando = listaO(diasDelCierre ?? ["domingo"]);
+    // Contado, no listado. Antes nombraba a dos y decía "y 5 más", y el
+    // renglón ocupaba dos líneas para decir algo que se entiende con un
+    // número — los nombres están en la tabla de abajo, repetirlos acá no
+    // agrega nada y es lo que hacía que este bloque se leyera como un párrafo.
     return {
       tono: "espera",
       titulo: `Se define ${cuando}`,
       detalle: conSemana.length
-        ? `${listaCorta(conSemana.map((f) => f.name))} ya tienen las ${minimoSemanal} de la semana. Después hay que aparecer ${cuando} y jugar ${minimoUltimoDia}.`
+        ? `${conSemana.length} de ${jugaron.length} ya tienen sus ${minimoSemanal} · faltan ${minimoUltimoDia} ${cuando}`
         : `Nadie llegó todavía a las ${minimoSemanal} de la semana.`,
     };
   })();
 
   return (
     <div className="estado">
-      {/* El rango de fechas, como rótulo del panel entero.
-
-          Estaba suelto arriba, en gris, con su propio "faltan 6 días" al lado
-          — el mismo dato que este panel ya pone en grande cuarenta píxeles más
-          abajo. Dos veces lo mismo, y encima una línea que no pertenecía a
-          nada: el único elemento de la sección que no era ni la regla, ni el
-          panel, ni el gráfico, ni la lista. Acá adentro es lo que siempre fue,
-          el título de esta semana. */}
-      <span className="estado-semana-rotulo">
-        {rango}
-        {/* La edad de los números, al lado del período que cubren. Las dos
-            cosas enmarcan lo mismo —una dice QUÉ se está mirando, la otra
-            CUÁN vieja está— así que van en el mismo renglón y no en una caja
-            nueva.
-
-            Existe porque sin esto no había forma de distinguir "el cron viene
-            atrasado" de "esto se rompió": pasó de verdad, se miró el gráfico,
-            los números no se habían movido, y no había nada en pantalla que
-            dijera de cuándo eran. El "actualizado" del TopBar no sirve acá —
-            sale de /api/ladder, que es otra respuesta con otra caché, y puede
-            decir "recién" con esta tabla cuatro minutos atrás. */}
-        {actualizado && (
-          <span
-            className="estado-frescura"
-            title="Los datos se refrescan cada 15 minutos. Esta pantalla puede estar hasta 4 minutos atrás de ese refresco, por la caché."
-          >
-            actualizado {formatRelativeTime(actualizado)}
-          </span>
-        )}
-      </span>
-      <div className="estado-tiempo">
-        <span className="estado-rotulo">
-          {arrancaA ? "Arranca" : esUltimoDia ? "Último día" : `Cierra el ${cierraDia ?? "domingo"}`}
-        </span>
-        <strong className={`estado-reloj${esUltimoDia ? " urge" : ""}`}>{arrancaA ? arrancaA : falta}</strong>
-        {/* La semana entera, no solo lo corrido: ver los días que faltan es la
-            mitad del dato. El último va marcado siempre — es el que decide el
-            premio, y que se vea desde el lunes es justamente el punto. */}
-        <div className="estado-semana" aria-hidden>
-          {dias.map((d, i) => (
+      {/* Las reglas, como franja de la tarjeta y no como bloque aparte. */}
+      {reglas && (
+        <div className="estado-reglas">
+          {reglas}
+          {/* La edad de los números vive acá arriba, en la esquina, y no
+              pegada al rango: el rango bajó a agruparse con la cuenta
+              regresiva, que es a lo que pertenece. Y "cuán viejo es esto" es
+              un dato de servicio de la tarjeta ENTERA, no del período. */}
+          {actualizado && (
             <span
-              key={`${d}-${i}`}
-              className={
-                "estado-dia" +
-                (i < corridos - 1 ? " pasado" : "") +
-                (i === corridos - 1 ? " hoy" : "") +
-                (i === dias.length - 1 ? " decide" : "")
-              }
+              className="estado-frescura"
+              title="Los datos se refrescan cada 15 minutos. Esta pantalla puede estar hasta 4 minutos atrás de ese refresco, por la caché."
             >
-              {d.slice(0, 1).toUpperCase()}
+              actualizado {formatRelativeTime(actualizado)}
             </span>
-          ))}
+          )}
         </div>
+      )}
+
+      {/* Fecha, cuenta regresiva y día de cierre en UN grupo y en ese orden:
+          la fecha es contexto, las horas que faltan son el protagonista y el
+          día de cierre es metadata. Estaban los tres sueltos —el rango arriba
+          de todo como título, el rótulo ARRIBA del reloj y el día adentro del
+          rótulo— y por eso había que juntarlos leyendo. */}
+      <div className="estado-tiempo">
+        <span className="estado-rango">{rango}</span>
+        <strong className={`estado-reloj${esUltimoDia ? " urge" : ""}`}>{arrancaA ? arrancaA : falta}</strong>
+        <span className="estado-cierre">
+          {arrancaA ? "Todavía no arrancó" : esUltimoDia ? "Es el último día" : `Cierra el ${cierraDia ?? "domingo"}`}
+        </span>
       </div>
 
       <div className={`estado-premio t-${premio.tono}`}>
         <span className="estado-rotulo">El premio</span>
         <strong className="estado-premio-titulo">{premio.titulo}</strong>
         {premio.detalle && <span className="estado-premio-detalle">{premio.detalle}</span>}
-        {/* Quién está afuera por la semana, contado y no listado: si son cuatro
-            de seis, el detalle de arriba se vuelve un párrafo. */}
-        {sinSemana.length > 0 && minimoSemanal != null && (
+        {/* Solo cuando el detalle no lo dijo ya. En el estado de espera el
+            detalle arranca con "N de M ya tienen sus 10", así que agregar
+            "1 de 8 no llega todavía" es la misma cuenta al revés. */}
+        {premio.tono !== "espera" && sinSemana.length > 0 && minimoSemanal != null && (
           <span className="estado-premio-afuera">
             {sinSemana.length === 1
               ? `1 de ${jugaron.length} no llega a las ${minimoSemanal} todavía.`
               : `${sinSemana.length} de ${jugaron.length} no llegan a las ${minimoSemanal} todavía.`}
           </span>
         )}
+      </div>
+
+      {/* La semana entera, no solo lo corrido: ver los días que faltan es la
+          mitad del dato. El último va marcado siempre — es el que decide el
+          premio, y que se vea desde el lunes es justamente el punto. */}
+      <div className="estado-semana" aria-hidden>
+        {dias.map((d, i) => (
+          <span
+            key={`${d}-${i}`}
+            className={
+              "estado-dia" +
+              (i < corridos - 1 ? " pasado" : "") +
+              (i === corridos - 1 ? " hoy" : "") +
+              (i === dias.length - 1 ? " decide" : "")
+            }
+          >
+            {d.slice(0, 1).toUpperCase()}
+          </span>
+        ))}
       </div>
     </div>
   );

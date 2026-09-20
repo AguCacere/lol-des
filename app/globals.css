@@ -365,7 +365,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .liga-reglas{gap:6px;}
   .liga-ficha{font-size:10.5px; padding:2px 8px;}
   .liga-reglas-label{flex-basis:100%; margin-right:0;}
-  .liga-reglas-nota{margin-top:3px;}
+  .liga-reglas-nota{flex-basis:100%; white-space:normal;}
 }
 @media (max-width:560px){
   /* En pantalla angosta los filtros se van solos a su renglón. */
@@ -3494,13 +3494,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .liga-ficha.bonus b{color:var(--accent);}
 .liga-ficha.bonus svg{width:10px; height:10px; flex:none;}
-/* La letra chica: el LP y la condición para cobrar. Renglón propio y apagado
-   — es la nota al pie de las fichas de arriba, no una cuarta regla. */
+/* De frase a dato, y en el MISMO renglón que las fichas. Tenía
+   `flex-basis:100%` —se llevaba un renglón entero para decir dos números— y
+   eso, sumado a la franja nueva, partía la cabecera en tres líneas: justo la
+   fragmentación que esto venía a arreglar. El "el LP no puntúa", que es una
+   aclaración y no un requisito, se fue al title. */
 .liga-reglas-nota{
-  flex-basis:100%; margin-top:5px;
-  font-size:11px; line-height:1.5; color:var(--text-muted);
+  font-size:11.5px; color:var(--text-muted); cursor:help; white-space:nowrap;
 }
-.liga-reglas-nota b{color:var(--accent); font-weight:700;}
+.liga-reglas-nota b{color:var(--text-secondary); font-weight:700;}
 .liga-tabla{
   background:var(--bg); border-radius:var(--radius-lg); box-shadow:var(--shadow); overflow:hidden;
 }
@@ -3508,68 +3510,88 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* El marco de la competencia: cuánto falta y quién cobra. Es un PANEL de
    verdad —fondo, borde y radio— y no texto suelto, porque lo que dice no es
    una nota al pie: es la regla que decide la plata. Ver LigaEstado.tsx. */
+/* UNA superficie, no tres. Antes eran las reglas en un bloque, esta tarjeta en
+   otro y una nota suelta en el medio: el ojo tenía que juntar tres focos para
+   entender una sola cosa —cómo se puntúa y en qué punto va la semana—. Ahora
+   la tarjeta tiene tres bandas: reglas arriba, tiempo y premio al medio, y los
+   días abajo cruzando las dos columnas. */
 .estado{
-  display:grid; grid-template-columns:minmax(190px,250px) minmax(0,1fr);
-  gap:8px 18px; margin:0 0 12px; padding:13px 18px 15px;
+  display:grid; grid-template-columns:minmax(180px,230px) minmax(0,1fr);
+  gap:12px 22px; margin:0 0 14px; padding:0 0 14px;
   background:var(--surface); border:1px solid var(--border-soft);
-  border-radius:var(--radius-lg);
+  border-radius:var(--radius-lg); overflow:hidden;
 }
-/* El rango de la semana, como título del panel. Ocupa las dos columnas y va
-   arriba de todo: estaba suelto AFUERA, en gris, con su propio "faltan 6 días"
-   al lado —el mismo dato que el reloj de acá abajo pone en grande cuarenta
-   píxeles después—. Era la única línea de la sección que no pertenecía a
-   ningún bloque, y por eso se leía pegada de otra pantalla. */
-.estado-semana-rotulo{
+/* La franja de reglas. Se separa con una línea y un fondo apenas más oscuro,
+   no con otra caja: lo que la agrupa es la proximidad, no un borde propio. */
+.estado-reglas{
   grid-column:1 / -1;
-  /* Dos datos independientes, no un texto con cola: el período a la izquierda
-     y la edad a la derecha. La holgura va ENTRE los dos, que es donde estira
-     bien; meterla adentro de cualquiera de los dos los desarma. En angosto
-     bajan uno debajo del otro en vez de comerse las letras. */
-  display:flex; align-items:baseline; justify-content:space-between;
-  flex-wrap:wrap; gap:2px 14px;
-  font-family:var(--font-display); font-size:12.5px; font-weight:700;
-  letter-spacing:0.01em; color:var(--text-secondary);
+  display:flex; align-items:center; flex-wrap:wrap; gap:7px 10px;
+  padding:9px 16px; margin-bottom:2px;
+  background:rgba(0,0,0,0.22); border-bottom:1px solid var(--border-soft);
 }
-/* Deliberadamente más liviana y más apagada que el rango: es un dato de
-   servicio, no del campeonato. Si pesara igual competiría con la fecha por un
-   lugar que ya es de la fecha. */
+/* La edad de los números se va al extremo derecho de la franja. `margin-left:
+   auto` y no una columna: si la franja se parte en dos renglones, cae al final
+   igual en vez de dejar un hueco. */
 .estado-frescura{
-  font-size:11px; font-weight:500; letter-spacing:0;
+  margin-left:auto; font-size:10.5px; font-weight:500; letter-spacing:0;
   color:var(--text-muted); cursor:help;
 }
-.estado-rotulo{
-  display:block; font-size:9.5px; font-weight:700; text-transform:uppercase;
-  letter-spacing:0.09em; color:var(--text-muted); margin-bottom:6px;
+
+/* Fecha + reloj + cierre: un grupo, en ese orden de peso. */
+.estado-tiempo{padding-left:16px;}
+.estado-rango{
+  display:block; font-family:var(--font-display);
+  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.09em;
+  color:var(--text-muted); margin-bottom:3px;
 }
 .estado-reloj{
-  display:block; font-family:var(--font-display); font-size:19px; font-weight:700;
-  line-height:1.1; color:var(--text-primary); letter-spacing:-0.015em;
+  display:block; font-family:var(--font-display); font-size:23px; font-weight:700;
+  line-height:1.05; color:var(--text-primary); letter-spacing:-0.02em;
 }
 /* El último día en dorado: es el único momento de la semana en que quedarse
    quieto te saca el premio, y la pantalla tiene que decirlo sin que lo leas. */
 .estado-reloj.urge{color:var(--accent);}
+.estado-cierre{display:block; margin-top:3px; font-size:11.5px; color:var(--text-muted);}
 
-/* La semana entera en siete casillas. Los días que faltan van en gris y el
-   domingo siempre marcado — es el que decide, y que se vea desde el lunes es
-   justamente el punto. */
-.estado-semana{display:flex; gap:4px; margin-top:10px;}
+.estado-rotulo{
+  display:block; font-size:9.5px; font-weight:700; text-transform:uppercase;
+  letter-spacing:0.09em; color:var(--text-muted); margin-bottom:5px;
+}
+
+/* Los días son un progreso, no siete botones. Se les sacó el fondo y el alto
+   de control: quedan las iniciales en su renglón, el de hoy en dorado y el que
+   decide subrayado. Con caja y borde, una barra de progreso temporal se lee
+   como una fila de campos de formulario. */
+.estado-semana{
+  grid-column:1 / -1;
+  display:flex; gap:3px; padding:0 16px; margin-top:2px;
+}
 .estado-dia{
-  flex:1 1 0; min-width:0; height:22px; border-radius:5px;
+  flex:0 0 26px; height:20px; border-radius:4px;
   display:flex; align-items:center; justify-content:center;
   font-size:9.5px; font-weight:700; letter-spacing:0.02em;
-  background:var(--track); color:var(--text-muted);
-  border:1px solid transparent;
+  background:none; color:var(--text-muted); opacity:0.45;
+  border-bottom:2px solid transparent;
 }
-.estado-dia.pasado{background:var(--surface-hover); color:var(--text-secondary);}
+.estado-dia.pasado{color:var(--text-secondary); opacity:0.75;}
 .estado-dia.hoy{
-  background:var(--accent-wash); border-color:var(--accent-dim);
-  color:var(--accent); box-shadow:0 0 0 1px var(--accent-wash);
+  background:var(--accent-wash); color:var(--accent); opacity:1;
 }
-/* El domingo lleva un subrayado dorado aunque falte: es el día del premio. */
-.estado-dia.decide{border-bottom:2px solid var(--accent-dim);}
-.estado-dia.decide.hoy{border-bottom-color:var(--accent);}
+/* El último día lleva subrayado dorado aunque falte: es el día del premio. */
+.estado-dia.decide{border-bottom-color:var(--accent-dim); opacity:0.8;}
+.estado-dia.decide.hoy{border-bottom-color:var(--accent); opacity:1;}
 
-.estado-premio{border-left:1px solid var(--border-soft); padding-left:18px; min-width:0;}
+@media (max-width:640px){
+  .estado{grid-template-columns:minmax(0,1fr); gap:10px;}
+  .estado-premio{padding-left:16px;}
+  .estado-reloj{font-size:21px;}
+}
+
+/* UNA sola definición. Estuvo un rato duplicada —una arriba con el resto de
+   la tarjeta nueva y esta— y ganaba la de abajo por orden, así que tocar la de
+   arriba no hacía nada. Es la tercera vez en el día que aparece la misma
+   trampa en este archivo. */
+.estado-premio{border-left:1px solid var(--border-soft); padding:0 16px 0 18px; min-width:0;}
 .estado-premio-titulo{
   display:block; font-size:14.5px; font-weight:650; line-height:1.3;
   color:var(--text-primary); letter-spacing:-0.01em;
