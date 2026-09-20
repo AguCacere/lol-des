@@ -11,7 +11,31 @@ de leerse a la segunda vez.
 Lo que es de la liga **que viene** —dos semanas, bot nuevo, los "te cojo", el rebranding—
 no está acá: vive en **`PROXIMO-TORNEO.md`**. Esto es lo que le falta a la de hoy.
 
-Última revisión: 17 de septiembre de 2026.
+Última revisión: 20 de septiembre de 2026.
+
+## El plan de evolución: fases 5 a 7
+
+`GRIETA_CENTRAL_PLAN_EVOLUCION.md` tiene siete fases. **Van hechas la 1, la 2, la 3 y
+la 4** (sistema visual y navegación · Inicio · Ranking · Liga). Lo que falta, en el
+orden del plan:
+
+- **Fase 5 — Estadísticas** (P1). Filtro temporal 7/30/temporada, destacados, "quién
+  está on fire", especialistas por campeón con umbral razonable en vez del mínimo de
+  50 que deja la sección vacía, sinergia de dúo con "juntos vs separados", y un Hall
+  of Fame **solo con lo que se pueda calcular de verdad**.
+- **Fase 6 — "Mejora"** (P1, el diferenciador). Es la más grande: necesita motor de
+  datos antes que interfaz, y el plan lo dice explícitamente (no meter IA antes del
+  motor). Cuando se arranque, hay que revisar primero si los snapshots guardados
+  alcanzan para las baselines que pide.
+- **Fase 7 — Cara a cara / Clash / Equipo**. Consolidación y estados vacíos.
+
+Dos cosas de las fases hechas que quedaron **decididas y anotadas, no pendientes**:
+que no hay rutas por sección (son pestañas) y que Inicio no repite el estado de la
+barra de arriba. Las dos están en `DECISIONES.md` con el porqué; no son deuda.
+
+Lo único que se pierde por no tener rutas y conviene saber: **no se puede compartir un
+enlace a una sección**. Si alguna vez se pide, la forma barata es el hash (`#liga`),
+no el App Router.
 
 ## SQL sin correr
 

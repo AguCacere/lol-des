@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { LigaCarrera } from "./LigaCarrera";
 import { LigaEstado } from "./LigaEstado";
@@ -16,122 +16,7 @@ import { RoleIcon } from "./RoleIcon";
 import { championLabel } from "@/lib/champion-names";
 import { ROLES, tierFor } from "@/lib/ladder";
 import { puntajeTexto, rangoDeSemana } from "@/lib/liga";
-import type { RoleKey, TierKey } from "@/lib/types";
-
-interface Fila {
-  puuid: string;
-  name: string;
-  tag: string;
-  profileIconUrl: string | null;
-  /** El puntaje de la semana: lo que decide. Opcional por la ventana de caché del CDN. */
-  puntos?: number;
-  /** Victorias menos derrotas. Ya no puntúa; queda como cuenta rápida. */
-  netas?: number;
-  lpNeto: number;
-  /** Cuánto le recortó el tope por victoria. Opcional: una respuesta anterior al deploy no lo trae. */
-  lpRecortado?: number;
-  victorias: number;
-  derrotas: number;
-  sinJugar: boolean;
-  /** Partidas del último día y si cumple los dos mínimos. Opcionales por la ventana de caché del CDN. */
-  ultimoDia?: number;
-  habilitado?: boolean;
-  rango: { tier: TierKey; division: number; lp: number } | null;
-  /** El acumulado al cierre de cada día, para la carrera. Opcional por la ventana de caché del CDN. */
-  porDia?: number[];
-  entroTarde: string | null;
-  /** Ajuste a mano del puntaje de la semana. Ya viene sumado en `puntos`; está acá para poder decir por qué. Opcional por la ventana de caché del CDN. */
-  ajuste?: { puntos: number; motivo: string } | null;
-  /** Con qué racha viene DENTRO de la semana. Opcional: una respuesta anterior al deploy no lo trae. */
-  racha?: { resultado: "W" | "L"; cantidad: number } | null;
-  /** Con qué campeón y en qué línea jugó la semana. Opcionales: una respuesta anterior al deploy no los trae. */
-  champion?: string | null;
-  linea?: RoleKey | null;
-  /** Las últimas partidas con el LP de cada una. Opcional por la ventana de caché del CDN. */
-  ultimas?: PartidaLiga[];
-}
-interface PartidaLiga {
-  matchId: string;
-  champion: string | null;
-  win: boolean;
-  playedAt: string;
-  lp: number | null;
-  sinLp: "varias" | "sin-foto" | null;
-  /** Opcionales por la ventana de caché del CDN: una pestaña vieja no los trae. */
-  lpTramo?: number | null;
-  juntas?: number;
-  /** Cuánto sumó o restó esta partida: 1, 1,25 o −0,75. */
-  puntos?: number;
-  /**
-   * Cómo jugó esa partida. Opcionales por la misma ventana de caché: si la
-   * respuesta es anterior al deploy que los agregó, la línea sale sin el KDA
-   * en vez de con ceros inventados.
-   */
-  kills?: number;
-  deaths?: number;
-  assists?: number;
-  /** Cuánto duró, en segundos. Ver PartidaLiga en lib/liga.ts: está para auditar el filtro de remakes. */
-  duracionS?: number;
-  /** Se jugó pero no puntúa, y por qué: "afk" (se le fue un compañero) o "duo" (jugó con una cuenta vetada, ver lib/vetados.ts). Lleva el motivo y no un booleano porque el cartel explica cosas distintas. */
-  anulada?: "afk" | "duo" | "mitigada";
-}
-interface DelPlantel {
-  puuid: string;
-  name: string;
-  tag: string;
-  participa: boolean;
-}
-interface Datos {
-  /** Si la semana en curso ya es de la liga. Antes del arranque no hay tabla, no marcadores viejos. */
-  arrancada: boolean;
-  /**
-   * Si el pistoletazo ya sonó. No es lo mismo que `arrancada`: a esa le
-   * alcanza con que la semana TERMINE después del arranque, así que el lunes
-   * antes de las 23:30 daba true y la tabla se dibujaba como una liga en curso
-   * llena de ceros. Opcional por si llega una respuesta anterior al deploy.
-   */
-  arrancoYa?: boolean;
-  arrancaEl: string;
-  semana: string;
-  desde: string;
-  hasta: string;
-  tabla: Fila[];
-  plantel: DelPlantel[];
-  /** La vitrina de campeones, de la semana más nueva a la más vieja. */
-  historial: {
-    semana: string;
-    puuid: string | null;
-    nombre: string | null;
-    iconUrl: string | null;
-    /** El puntaje con el que ganó: lo que decide la liga. Null en las semanas anteriores a que se guardara. */
-    puntos: number | null;
-    jugadores: number;
-  }[];
-  /** Para el arte de campeón. Opcional por la misma razón. */
-  ddragonVersion?: string | null;
-  /**
-   * Cuándo se escribieron por última vez estos números. Opcional por la
-   * ventana de caché del CDN: una pestaña vieja contra la API nueva no lo
-   * trae, y ahí lo correcto es no mostrar nada — no inventar una hora.
-   */
-  actualizado?: string | null;
-  /** Los dos mínimos para cobrar y si el último día ya arrancó. Opcionales por la caché del CDN. */
-  minimoSemanal?: number;
-  minimoUltimoDia?: number;
-  ultimoDia?: boolean;
-  /** Los siete días de la semana ("lun", "mar"…) y cuántos van corridos. Opcionales por la misma razón. */
-  dias?: string[];
-  diasCorridos?: number;
-  /** Cuántos días dura el torneo. Ya no es siempre 7. */
-  duracion?: number;
-  /** El día de la última partida, y los días que cubre el mínimo del final. */
-  cierraDia?: string;
-  diasDelCierre?: string[];
-  /** Qué torneo está corriendo, y si sale de una fila editable o del lunes a domingo deducido. */
-  torneo?: { id: string | null; nombre: string | null; guardado: boolean };
-  /** La tabla de puntos, para escribir la regla con los mismos números que la calculan. */
-  puntaje?: { victoria: number; derrota: number; rachaDesde: number; enRacha: number };
-}
+import { useLiga, type Datos, type Fila, type PartidaLiga } from "./useLiga";
 
 const dia = (iso: string) =>
   new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "short", timeZone: "America/Argentina/Buenos_Aires" });
@@ -191,6 +76,15 @@ interface DiaDeLaSemana {
   partidas: PartidaLiga[];
   delta: number;
   acumulado: number;
+  /**
+   * El récord del día, contando TODAS las que se jugaron —anuladas incluidas—
+   * porque es lo que se ve en la lista de abajo: si el día muestra cuatro ✕ y
+   * el encabezado dice "3D", el que abrió el detalle para auditar el puntaje
+   * se encuentra con que la app no sabe contar. Lo que las anuladas no mueven
+   * es el `delta`, que va al lado y es otro número.
+   */
+  victorias: number;
+  derrotas: number;
 }
 
 /**
@@ -233,6 +127,8 @@ function agruparPorDia(f: Fila, semana: string, dias: string[]): DiaDeLaSemana[]
       partidas: [...partidas].sort((a, b) => Date.parse(b.playedAt) - Date.parse(a.playedAt)),
       acumulado: serie[dia + 1] ?? 0,
       delta: (serie[dia + 1] ?? 0) - (serie[dia] ?? 0),
+      victorias: partidas.filter((m) => m.win).length,
+      derrotas: partidas.filter((m) => !m.win).length,
     }));
 }
 
@@ -258,35 +154,31 @@ function loQueFalta(hasta: string): string {
  * Compite solo el que se anota. Anotarlos pide la contraseña del grupo.
  */
 export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean } = {}) {
-  const [d, setD] = useState<Datos | null>(null);
-  const [cargando, setCargando] = useState(true);
+  /**
+   * Los datos salen de useLiga y no de un fetch propio: Inicio muestra el
+   * adelanto de la competencia y pedía la MISMA respuesta por su cuenta. Ver
+   * el header de components/useLiga.ts.
+   */
+  const { d, cargando, recargar: cargar } = useLiga();
   const [admin, setAdmin] = useState(false);
   const [guardando, setGuardando] = useState<string | null>(null);
   /** Qué fila está abierta mostrando sus últimas partidas. */
   const [abierta, setAbierta] = useState<string | null>(null);
+  /**
+   * Qué días del detalle están desplegados. `null` significa "nadie tocó
+   * nada todavía", y ahí vale la regla por defecto: el día más nuevo abierto
+   * y los anteriores cerrados.
+   *
+   * Existe porque el detalle de alguien que jugó toda la semana son cuarenta
+   * partidas, y cuarenta renglones abiertos de una en un celular no son
+   * transparencia: son media hora de scroll para encontrar la de anoche. El
+   * día de hoy es el que se viene a mirar; los de atrás están a un toque.
+   */
+  const [diasAbiertos, setDiasAbiertos] = useState<Set<number> | null>(null);
   /** Qué semana vieja está abierta en el cartel de "cómo terminó". Null = ninguna. */
   const [torneo, setTorneo] = useState<string | null>(null);
   /** Si está abierta la grilla del día a día. */
   const [diaADia, setDiaADia] = useState(false);
-
-  /**
-   * `forzar` saltea la caché del CDN con un parámetro que cambia. Hace falta
-   * después de anotar o desanotar a alguien: sin esto vuelve la respuesta
-   * cacheada de antes del cambio y parece que el botón no hizo nada.
-   */
-  const cargar = useCallback(async (forzar = false) => {
-    try {
-      const res = await fetch(forzar ? `/api/liga?t=${Date.now()}` : "/api/liga");
-      if (!res.ok) return;
-      setD((await res.json()) as Datos);
-    } finally {
-      setCargando(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    cargar();
-  }, [cargar]);
 
   /**
    * Un tick cada 30 segundos, SOLO para que el "actualizado hace X" envejezca
@@ -316,6 +208,16 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
     } finally {
       setGuardando(null);
     }
+  }
+
+  /**
+   * Abre (o cierra) el detalle de una fila. Resetea los días desplegados: el
+   * estado de "qué días miré" es de ESE jugador, y arrastrarlo al siguiente
+   * abriría el martes de alguien que nunca se tocó.
+   */
+  function abrirFila(puuid: string) {
+    setAbierta(abierta === puuid ? null : puuid);
+    setDiasAbiertos(null);
   }
 
   if (cargando) {
@@ -609,11 +511,11 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                   }${(f.ultimas?.length ?? 0) > 0 ? " tocable" : ""}`}
                   role={(f.ultimas?.length ?? 0) > 0 ? "button" : undefined}
                   tabIndex={(f.ultimas?.length ?? 0) > 0 ? 0 : undefined}
-                  onClick={() => (f.ultimas?.length ?? 0) > 0 && setAbierta(abierta === f.puuid ? null : f.puuid)}
+                  onClick={() => (f.ultimas?.length ?? 0) > 0 && abrirFila(f.puuid)}
                   onKeyDown={(e) => {
                     if ((e.key === "Enter" || e.key === " ") && (f.ultimas?.length ?? 0) > 0) {
                       e.preventDefault();
-                      setAbierta(abierta === f.puuid ? null : f.puuid);
+                      abrirFila(f.puuid);
                     }
                   }}
                   // El escalonado de la entrada. Va como variable y no como
@@ -821,8 +723,20 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                         De dónde sale su {puntajeTexto(f.puntos ?? 0)}, partida por partida y día por día.
                       </span>
                     </p>
-                    {agruparPorDia(f, d.semana, d.dias ?? []).map((grupo) => (
-                      <div className="liga-dia" key={grupo.dia}>
+                    {agruparPorDia(f, d.semana, d.dias ?? []).map((grupo, iDia, grupos) => {
+                      // Por defecto solo el día más nuevo —el primero, que la
+                      // lista viene del más nuevo al más viejo—. Desde que
+                      // alguien toca un encabezado manda el Set.
+                      const abiertoDia = diasAbiertos ? diasAbiertos.has(grupo.dia) : iDia === 0;
+                      function alternarDia() {
+                        const base = diasAbiertos ?? new Set(grupos.length > 0 ? [grupos[0].dia] : []);
+                        const proximo = new Set(base);
+                        if (abiertoDia) proximo.delete(grupo.dia);
+                        else proximo.add(grupo.dia);
+                        setDiasAbiertos(proximo);
+                      }
+                      return (
+                      <div className={`liga-dia${abiertoDia ? " abierto" : ""}`} key={grupo.dia}>
                         {/* El encabezado del día: qué hizo ESE día y en cuánto
                             quedó después. Es lo que convierte una lista de
                             cuarenta partidas en algo auditable — con solo los
@@ -830,12 +744,33 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                             entender de dónde salió el número grande de arriba.
                             El acumulado sale de la MISMA curva que dibuja la
                             carrera, así que las dos no se pueden contradecir. */}
-                        <div className="liga-dia-head">
+                        <button
+                          type="button"
+                          className="liga-dia-head"
+                          onClick={alternarDia}
+                          aria-expanded={abiertoDia}
+                          title={abiertoDia ? "Cerrar el día" : "Ver las partidas del día"}
+                        >
+                          <span className="liga-dia-flecha" aria-hidden>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="9 18 15 12 9 6" />
+                            </svg>
+                          </span>
                           <span className="liga-dia-nombre">{grupo.nombre}</span>
+                          {/* El récord del día, y en qué quedó. Cerrado, esta
+                              línea es TODO lo que se ve del día: sin el "3V ·
+                              1D" el encabezado decía cuánto se movió pero no
+                              cómo, y eso es justamente lo que se viene a
+                              mirar. */}
+                          <span className="liga-dia-record">
+                            <span className="wc-v">{grupo.victorias}V</span>
+                            <span className="wc-sep">·</span>
+                            <span className="wc-d">{grupo.derrotas}D</span>
+                          </span>
                           <span className={`liga-dia-delta ${tono(grupo.delta)}`}>{puntajeTexto(grupo.delta)}</span>
                           <span className="liga-dia-acum">quedó en {puntajeTexto(grupo.acumulado)}</span>
-                        </div>
-                        {grupo.partidas.map((m) => (
+                        </button>
+                        {abiertoDia && grupo.partidas.map((m) => (
                       <div className={`liga-partida ${m.win ? "gano" : "perdio"}${m.anulada ? " anulada" : ""}`} key={m.matchId}>
                         {/* El nodo de la línea de tiempo. Es el resultado y el
                             punto de la secuencia a la vez: un ✓ o una ✕ del
@@ -912,6 +847,31 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                             </span>
                           ) : (
                             <span className="liga-partida-netas">
+                              {/* La marca de racha. Una victoria puede valer
+                                  1 o 1,25 y del "✓" de la izquierda no se
+                                  deduce cuál: el bonus arranca en la cuarta
+                                  al hilo y ese estado no se ve en la fila.
+                                  Sin la marca, dos renglones idénticos —misma
+                                  ✓, mismo campeón— muestran números distintos
+                                  y parece un error de la app.
+
+                                  Se compara contra la tabla de puntos que
+                                  manda la API, no contra un 1 escrito acá: el
+                                  día que cambie el valor de la victoria, esto
+                                  sigue diciendo la verdad. Sin esa tabla —una
+                                  pestaña vieja contra la API nueva— no se
+                                  dibuja nada, que es mejor que marcar mal. */}
+                              {tp && m.win && (m.puntos ?? 0) > tp.victoria && (
+                                <i
+                                  className="liga-partida-racha"
+                                  title={`Valió ${puntajeTexto(m.puntos ?? tp.enRacha)} en vez de ${puntajeTexto(tp.victoria)}: iba ${tp.rachaDesde} o más al hilo.`}
+                                  aria-label="Con bonus de racha"
+                                >
+                                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                                    <path d="M13.5 2c.4 3.2-1.1 5-2.7 6.6C9 10.4 7 12.2 7 15a5 5 0 0 0 10 0c0-1.6-.6-2.8-1.3-3.8-.3.9-.9 1.6-1.7 1.9.3-2-.2-3.9-1.2-5.3.6 2-.4 3.3-1.4 4.1-.6.5-1 1.1-1 1.9a1.8 1.8 0 0 0 3.6 0c0-.3 0-.5-.1-.8 1 .9 1.6 2 1.6 3.2a3.5 3.5 0 0 1-7 0c0-2 1.5-3.4 3-4.9C13.3 9.6 14.6 7.8 13.5 2z" />
+                                  </svg>
+                                </i>
+                              )}
                               {puntajeTexto(m.puntos ?? (m.win ? 1 : -1))}
                               <i className="liga-partida-unidad">pt</i>
                             </span>
@@ -941,7 +901,8 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                       </div>
                         ))}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
                 </div>

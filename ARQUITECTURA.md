@@ -7,7 +7,8 @@ evitables.
 
 ## Forma general
 
-Una sola página cliente (`app/page.tsx`) con cinco pestañas, y 23 route handlers.
+Una sola página cliente (`app/page.tsx`) con **seis** pestañas, y 23 route handlers.
+Abre en **Inicio**, no en el ladder.
 **No hay Server Components de datos**: todo entra por `fetch` a `/api/*` desde el
 navegador. El servidor solo existe en las rutas.
 
@@ -164,6 +165,12 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
 - `coach.ts` — el prompt del análisis del pool.
 
 **Presentación**
+- `actividad.ts` — lo que alimenta Inicio: `movimientosRecientes` (ascensos,
+  descensos, LP y rachas de las últimas 24 horas, sacados de restar dos fotos de LP
+  reales) y `resumenDeHoy` (partidas, V/D y cuántos jugaron HOY, por día calendario
+  argentino). **Se calla antes que inventar**: si `lpHistory` —que son las últimas 20
+  fotos, no las de las últimas N horas— no llega hasta el corte de la ventana, ese
+  movimiento no se publica. Ver el header y DECISIONES.
 - `chart.ts` — la geometría de las líneas y áreas de los gráficos: recta o curva
   suave (cúbica monótona: pasa por cada punto y no se pasa entre dos), con escala
   propia o compartida entre varias series. Y la paleta de series: `PALETA_SERIES`
@@ -268,9 +275,15 @@ descarta.
 
 ## Componentes por pestaña
 
-`TopBar` (agregar invocador, refrescar, cerradura), `TabNav` (`ranking` · `stats` ·
-`versus` · `clash` · `team`), `LiveTray` y `CommandPalette` viven fuera de las
+`TopBar` (agregar invocador, refrescar, cerradura), `TabNav` (`inicio` · `ranking` ·
+`stats` · `versus` · `clash` · `team`), `LiveTray` y `CommandPalette` viven fuera de las
 pestañas.
+
+- **Inicio** → `Inicio`. El hub: qué pasó hoy, el adelanto de la liga (los dos
+  punteros y cuánto los separa), el top 3 del ladder, quién está en partida y "qué se
+  movió". No pide NADA al servidor: los `Player` ya vienen del ladder y la liga sale
+  de `useLiga`. Los bloques de "en partida" y "qué se movió" **no existen** cuando no
+  hay nada que mostrar — no hay tarjeta vacía.
 
 - **Ranking** → `LadderTable` (que adentro tiene `LigaSemanal`, `TierEmblem`,
   `SparkChart`, `RoleIcon`, `PlayerAvatar`) + `PlayerProfile`.
@@ -285,6 +298,8 @@ pestañas.
   Desde el pie de la carrera se abre `LigaDiaADia`, la grilla de jugadores × días
   con lo que hizo cada uno y en qué puesto cerró (dos vistas, un toggle). Sale del
   mismo `porDia` que dibuja la carrera, así que no pide nada al servidor.
+  El detalle que se abre agrupa las partidas por día y **cada día se despliega**, con
+  el más nuevo abierto por defecto (ver DECISIONES).
   Desde la vitrina se abre `LigaTorneo`, el cartel de "cómo terminó" una semana
   vieja: va encima y no en una pantalla propia porque es una foto de diez segundos
   y mandar a otra página obliga a irse de la liga y volver.
@@ -296,6 +311,10 @@ pestañas.
 - **Cara a cara** → `HeadToHead`. No pide nada al servidor.
 - **Clash** → `ClashHistory`.
 - **Equipo** → `TeamDigest`.
+
+`useLiga` (`components/useLiga.ts`) es el caché de módulo de `/api/liga`: lo comparten
+Inicio y `LigaSemanal` para no pedir dos veces la misma respuesta pesada. Ahí viven
+también los tipos `Datos`, `Fila` y `PartidaLiga`.
 
 Compartidos: `ChampIcon`, `TierEmblem`, `PlayerAvatar`, `SparkChart`, `InfoTip`,
 `StatIcons`, `StreakIcon`, `RoleIcon`, `Select`, `Cerradura` (que exporta

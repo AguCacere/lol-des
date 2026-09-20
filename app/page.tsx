@@ -5,6 +5,7 @@ import type { ChampionLeaderboardEntry, ClashPlayerStats, ClashTournament, DuoPa
 import { TopBar, type AddStatus } from "@/components/TopBar";
 import { TabNav, type TabKey } from "@/components/TabNav";
 import { HeadToHead } from "@/components/HeadToHead";
+import { Inicio } from "@/components/Inicio";
 import { CommandPalette, EVENTO_ABRIR } from "@/components/CommandPalette";
 import { PwaRegister } from "@/components/PwaRegister";
 import { conTransicion } from "@/lib/view-transition";
@@ -47,7 +48,12 @@ export default function Home() {
 
   const [filterText, setFilterText] = useState("");
   const [activeKey, setActiveKey] = useState<string | null>(null);
-  const [tab, setTab] = useState<TabKey>("ranking");
+  /**
+   * Arranca en Inicio y no en el ladder. La app abría directo en la tabla:
+   * para saber si estaba pasando algo había que leer siete filas de números.
+   * Inicio contesta eso de un vistazo y deja el ladder a un toque.
+   */
+  const [tab, setTab] = useState<TabKey>("inicio");
   const [addStatus, setAddStatus] = useState<AddStatus>({ kind: "idle" });
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   /** Invocadores que el cron no pudo refrescar en los últimos 35 min. Casi siempre 0. */
@@ -310,7 +316,18 @@ export default function Home() {
         </button>
       </div>
 
-      {tab === "ranking" ? (
+      {tab === "inicio" ? (
+        <div id="view-inicio">
+          <Inicio
+            players={players}
+            loading={loading}
+            ddragonVersion={ddragonVersion}
+            onPlayer={abrirPerfil}
+            onRanking={() => conTransicion(() => { setTab("ranking"); setVista("ladder"); })}
+            onLiga={() => conTransicion(() => { setTab("ranking"); setVista("liga"); })}
+          />
+        </div>
+      ) : tab === "ranking" ? (
         <div id="view-ranking">
           <LadderTable
             players={players}

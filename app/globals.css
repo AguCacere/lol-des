@@ -299,8 +299,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    de la DERECHA. Antes ocupaban un renglón entero de borde a borde y, sumados
    a las pestañas y al título, hacían tres bandas seguidas con algo pegado a
    cada costado — el ojo iba izquierda-derecha tres veces en 159px. */
+/* Dos desplegables y nada más: los rótulos "Línea" y "Ordenar por" se
+   mudaron adentro del valor de cada uno (ver LadderTable). Gap más chico
+   porque ya no hay que separar cuatro elementos, solo dos controles. */
 .ladder-controls{
-  display:flex; align-items:center; gap:18px; flex-wrap:wrap; align-self:center;
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap; align-self:center;
 }
 /* El grupo de la IZQUIERDA: qué tabla estás mirando, y cómo ir a la otra. */
 .vista-titulo{display:flex; align-items:center; gap:13px; min-width:0; align-self:center; flex-wrap:wrap;}
@@ -317,20 +320,27 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    es lo que termina de decir "esto es un botón". */
 .vista-ir{
   display:inline-flex; align-items:center; gap:7px; cursor:pointer; white-space:nowrap;
-  padding:7px 14px; border-radius:999px;
-  border:1px solid var(--accent-dim);
-  /* Degradado y no un plano: una pastilla lisa se leía como una etiqueta.
-     El brillo arriba y la sombra propia la levantan de la página. */
-  background:linear-gradient(180deg, var(--accent-wash) 0%, var(--accent-wash-soft) 100%);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.4);
-  font-family:var(--font-body); font-size:12.5px; font-weight:700; letter-spacing:0.01em;
+  padding:5px 12px; border-radius:999px;
+  border:1px solid var(--accent-dim-border);
+  /* Plana y sin sombra propia. El degradado y el aro dorado del hover la
+     levantaban de la página tanto que la fila se leía como un botón con un
+     título al lado, y no como un título con una salida al lado. Ahora el h2
+     gana por tamaño y por peso, que es como corresponde.
+
+     Lo que NO se toca: el fondo, el borde, la copa y el movimiento de la
+     flecha. Ya se probó dejarla como texto gris suelto y no se leía como algo
+     que se toca (está en DECISIONES). Bajarle el volumen no es volver a eso.
+
+     Y ahora además no es la única puerta a la liga: Inicio abre con el
+     adelanto de la competencia, así que esta no tiene que gritar. */
+  background:var(--accent-wash-soft);
+  font-family:var(--font-body); font-size:12px; font-weight:600; letter-spacing:0.01em;
   color:var(--accent);
-  transition:background .16s ease, border-color .16s ease, box-shadow .16s ease;
+  transition:background .16s ease, border-color .16s ease;
 }
 .vista-ir:hover{
-  background:linear-gradient(180deg, rgba(212,175,55,0.2) 0%, var(--accent-wash) 100%);
-  border-color:var(--accent);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.1), 0 0 0 3px var(--accent-wash-soft);
+  background:var(--accent-wash);
+  border-color:var(--accent-dim);
 }
 .vista-ir-copa{width:14px; height:14px; flex:none;}
 .vista-ir span{transition:transform .16s ease;}
@@ -394,7 +404,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .vista-ir{font-size:12px; padding:6px 12px;}
 }
 
-.sort-select-wrap{display:flex; align-items:center; gap:8px; white-space:nowrap;}
 /* El de "Ordenar por" es la variante chica y con forma de píldora. */
 .sort-select .sel-btn{font-size:12px; border-radius:999px; padding:6px 10px 6px 12px;}
 .live-dot{
@@ -635,12 +644,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .ladder-row.is-you{box-shadow:inset 2px 0 0 var(--gold);}
 .ladder-row.is-you.is-active{box-shadow:inset 2px 0 0 var(--accent);}
 .ladder-row.is-you:focus-visible{box-shadow:inset 0 0 0 2px var(--accent);}
-.ladder-head{
-  display:grid; grid-template-columns:34px 1.85fr 0.85fr 1.1fr minmax(0,230px) 28px; gap:14px;
-  padding:10px 18px; border-bottom:1px solid var(--border-soft);
-  font-size:10.5px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase;
-  color:var(--text-muted);
-}
 .col-rank{
   display:flex; align-items:center; justify-content:center;
   font-family:var(--font-mono); color:var(--text-muted); font-size:13px;
@@ -725,9 +728,20 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   border-radius:0; background:none; clip-path:none; box-shadow:none;
 }
 .tier-badge-real img{width:100%; height:100%; object-fit:contain; display:block;}
-.tier-text{line-height:1.25;}
-.tier-name{display:block; font-size:13.5px; font-weight:700;}
-.tier-lp{display:block; font-family:var(--font-mono); font-size:11px; color:var(--text-muted);}
+/* El emblema dice el tier; el número dice dónde estás adentro de él. Por eso
+   el LP es lo grande de la celda y el nombre del rango es el rótulo de abajo:
+   antes era al revés y la celda decía "Esmeralda 4" en 13,5px al lado de un
+   emblema de Esmeralda 4, con el único dato que el emblema no puede dar —los
+   LP— en 11px y en gris apagado. */
+.tier-text{line-height:1.2; display:flex; flex-direction:column; gap:1px;}
+.tier-lp{
+  display:block; font-family:var(--font-stat); font-size:15px; font-weight:800;
+  letter-spacing:-0.01em; color:var(--text-primary); font-variant-numeric:tabular-nums;
+}
+/* La unidad, más chica y apagada que el número: "1247 LP" con las dos letras
+   del mismo tamaño hace que la celda se lea como texto y no como una cifra. */
+.tier-lp i{font-style:normal; font-size:10px; font-weight:700; color:var(--text-muted); margin-left:1px;}
+.tier-name{display:block; font-size:11.5px; font-weight:600; white-space:nowrap;}
 .col-winrate{min-width:0;}
 .wr-top{display:flex; align-items:baseline; gap:7px; margin-bottom:5px; white-space:nowrap;}
 /* wr-pct is the hero number (font-stat, heavy weight); wr-count is supporting
@@ -2409,7 +2423,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 
 @media (max-width:680px){
   .ladder{background:transparent; box-shadow:none; overflow:visible;}
-  .ladder-head{display:none;}
   .ladder-row{
     grid-template-columns:22px 1fr auto;
     grid-template-areas:"rank player chev" ". tier tier" ". winrate winrate" ". spark spark";
@@ -4302,6 +4315,16 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-style:normal; font-size:9px; font-weight:700; margin-left:2px;
   color:var(--text-muted); letter-spacing:0.02em;
 }
+/* La llamita del bonus de racha. Va ANTES del número y en dorado —el color de
+   la competencia en esta app— y es lo más chico que se puede dibujar y seguir
+   entendiendo: la fila ya tiene ✓, campeón, KDA, duración, puntos y LP, y un
+   sexto elemento gritando ahí adentro la rompe. No lleva texto: el título lo
+   explica y el número al lado ya es distinto del resto. */
+.liga-partida-racha{
+  display:inline-flex; vertical-align:baseline; margin-right:3px;
+  color:var(--gold); opacity:0.9;
+}
+.liga-partida-racha svg{width:9px; height:9px; display:block;}
 .liga-partida-lp{
   font-family:var(--font-mono); font-size:9.5px; font-weight:600;
   font-variant-numeric:tabular-nums; color:var(--text-muted);
@@ -4785,11 +4808,45 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    continua que lo atraviesa dice lo contrario: que las partidas del jueves y
    las del viernes son una sola tirada. Ahora el hilo queda en tramos, uno por
    día, que es como está agrupado el contenido. */
+/* Y ahora además ABRE Y CIERRA el día. Es un <button>, no un <div>: el
+   detalle de alguien que jugó toda la semana son cuarenta partidas, y
+   cuarenta renglones desplegados de una en un celular no son transparencia,
+   son scroll. Por defecto queda abierto el día más nuevo —el que se viene a
+   mirar— y los de atrás a un toque.
+
+   Cerrado, este renglón es TODO lo que se ve del día, así que lleva las cuatro
+   cosas que contestan "¿cómo me fue el jueves?": el día, el récord, lo que
+   movió y en cuánto quedó. */
 .liga-dia-head{
   position:relative; z-index:1;
   background:var(--surface-hover);
   display:flex; align-items:baseline; gap:8px;
   padding:5px 10px 4px 0; margin-left:-4px;
+  width:calc(100% + 4px); text-align:left;
+  appearance:none; -webkit-appearance:none; border:none; cursor:pointer;
+  border-radius:var(--radius-sm);
+  transition:background .12s ease;
+}
+.liga-dia-head:hover .liga-dia-nombre{color:var(--text-secondary);}
+.liga-dia-head:hover .liga-dia-flecha{color:var(--text-secondary);}
+.liga-dia-head:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
+/* La flecha gira en vez de cambiar de dibujo: el ojo sigue el mismo objeto y
+   no aparece uno nuevo. Alineada con `align-self:center` porque el resto del
+   renglón va por línea base y una flecha no tiene línea base. */
+.liga-dia-flecha{
+  align-self:center; display:inline-flex; flex:none;
+  color:var(--text-muted); transition:transform .16s ease, color .12s ease;
+}
+.liga-dia-flecha svg{width:11px; height:11px; display:block;}
+.liga-dia.abierto .liga-dia-flecha{transform:rotate(90deg);}
+@media (prefers-reduced-motion:reduce){ .liga-dia-flecha{transition:color .12s ease;} }
+/* El récord del día. Chico y con los colores de siempre —verde las ganadas,
+   rojo las perdidas—, para que se lea de un vistazo sin competir con el
+   delta, que es el número que decide. */
+.liga-dia-record{
+  font-family:var(--font-mono); font-size:10px; font-weight:700;
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+  display:inline-flex; align-items:baseline; gap:3px;
 }
 .liga-dia-nombre{
   font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
@@ -4816,8 +4873,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* La rayita que los une como frase. */
 .liga-dia-acum::before{content:"·"; margin-right:7px; opacity:0.6;}
 @media (max-width:560px){
-  .liga-dia-head{padding-right:0;}
+  .liga-dia-head{padding-right:0; gap:6px;}
   .liga-dia-acum{font-size:10px;}
+}
+/* Abajo de ~430px los cinco elementos del renglón no entran. El que se va es
+   el acumulado: es el contexto, y el récord y el delta son lo que se vino a
+   ver. El acumulado de la semana sigue estando arriba, en la fila del
+   jugador. */
+@media (max-width:430px){
+  .liga-dia-acum{display:none;}
 }
 
 
@@ -4840,7 +4904,210 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   /* Los chips de la carrera son el control principal del gráfico en el
      teléfono —son los que eligen a quién seguir— y eran de 21px. */
   .carrera-chip{padding-block:9px; margin-block:-6px;}
+  /* El encabezado del día abre y cierra sus partidas, así que ahora es un
+     botón: medido a 390px daba 24px de alto. Crece el área con padding —el
+     fondo es el de la sección, así que agrandarlo no dibuja una caja nueva—
+     sin tocar los tamaños de letra de adentro. */
+  .liga-dia-head{padding-block:9px; min-height:34px; align-items:center;}
   /* Y los que sí son botones con caja propia crecen de verdad. */
   .dxd-vista{min-height:34px;}
   .liga-admin-toggle{min-height:34px;}
+}
+/* ═══════════════════════════════════════════════════════════════════════════
+   INICIO — el hub del grupo
+
+   Compuesto con jerarquía y aire, NO con una tarjeta por dato: de los cinco
+   bloques solo dos tienen superficie propia (la liga y el ladder), y es porque
+   esos dos se tocan enteros. Una caja alrededor de algo que no se puede tocar
+   es decoración, y cinco cajas iguales apiladas son un tablero, que es
+   exactamente lo que esta pantalla no tiene que ser.
+
+   Arranca por el ancho del celular: los tres bloques con lista son filas
+   apiladas, no columnas — nada que reflow-ear, nada que comprimir. Lo que
+   cambia en pantalla grande es el aire y el tamaño de los números, no la
+   estructura.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Ancho de LECTURA propio, más angosto que la página. Inicio son cuatro
+   listas de dos o tres renglones cada una, y a 1180px el 1fr del nombre
+   empujaba el número contra el filo derecho: "VORE" a la izquierda, "+7,25" a
+   ochocientos píxeles, y nada en el medio. Es la misma trampa del 1fr que ya
+   está anotada en DECISIONES por la lista de la liga y por el acumulado del
+   día — acá volvió a pasar en dos bloques a la vez.
+
+   Alineado a la izquierda y no centrado: el logo, las pestañas y el título de
+   cada sección arrancan todos en el margen izquierdo, y centrar esta columna
+   le rompería esa línea a la única pantalla de la app que la tendría corrida. */
+.inicio{display:flex; flex-direction:column; gap:26px; max-width:840px;}
+
+/* ── Hoy en el grupo ────────────────────────────────────────────────────── */
+/* Sin superficie y sin título: es la primera línea de la página, y ponerle un
+   encabezado arriba sería un rótulo para un solo renglón. El número grande y
+   su contexto chico abajo alcanzan para saber de qué se está hablando. */
+.inicio-hoy{display:flex; flex-direction:column; gap:3px; margin:0;}
+.inicio-hoy strong{
+  font-family:var(--font-display); font-size:26px; font-weight:800;
+  letter-spacing:-0.02em; color:var(--text-primary); line-height:1.1;
+}
+.inicio-hoy-det{
+  display:flex; align-items:center; gap:4px; flex-wrap:wrap;
+  font-size:12px; color:var(--text-muted); font-variant-numeric:tabular-nums;
+}
+
+/* ── El encabezado que comparten los bloques ───────────────────────────── */
+.inicio-bloque-head{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  margin-bottom:10px;
+}
+.inicio-bloque-titulo{
+  display:inline-flex; align-items:center; gap:7px;
+  font-family:var(--font-display); font-size:13.5px; font-weight:700;
+  letter-spacing:-0.01em; color:var(--text-primary);
+}
+.inicio-bloque-meta{font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+.inicio-copa{width:14px; height:14px; color:var(--accent); flex:none;}
+
+/* El enlace a la pantalla completa. Es texto con una flecha, no un botón con
+   fondo: compite con el bloque entero si se pinta, y el bloque ya lleva a
+   la misma parte. */
+.inicio-cta{
+  display:inline-flex; align-items:center; gap:5px;
+  font-size:12px; font-weight:600; color:var(--accent);
+  background:none; border:none; padding:0; cursor:pointer;
+  transition:color .15s ease, gap .15s ease;
+}
+.inicio-cta.chico{font-size:11.5px; color:var(--text-secondary);}
+.inicio-cta:hover{color:var(--accent);}
+.inicio-liga:hover .inicio-cta{gap:8px;}
+@media (prefers-reduced-motion:reduce){ .inicio-cta{transition:none;} .inicio-liga:hover .inicio-cta{gap:5px;} }
+
+/* ── Liga de la semana ──────────────────────────────────────────────────── */
+/* El único bloque con el filete dorado: es la competencia con premio, y el
+   dorado en esta app significa exactamente eso. */
+.inicio-liga{
+  display:flex; flex-direction:column; width:100%; text-align:left;
+  appearance:none; -webkit-appearance:none; cursor:pointer;
+  background:var(--surface); border:1px solid var(--accent-dim-border);
+  border-radius:var(--radius-lg); box-shadow:var(--shadow);
+  padding:15px 17px 13px;
+  transition:background .15s ease, border-color .15s ease;
+}
+.inicio-liga:hover{background:var(--surface-raised); border-color:rgba(166,134,46,0.36);}
+.inicio-liga:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+/* Los dos punteros, uno arriba del otro y no en dos columnas. En tres
+   columnas —uno, la ventaja, el otro— a 390px cada nombre queda en 90px y se
+   corta; apilados entran enteros en cualquier ancho y además se leen como lo
+   que son: los dos primeros puestos de una tabla. */
+.inicio-liga-duelo{display:flex; flex-direction:column; gap:2px; margin-bottom:11px;}
+.inicio-liga-quien{display:flex; align-items:center; gap:9px; padding:4px 0; min-width:0;}
+.inicio-liga-nombre{
+  flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  font-family:var(--font-display); font-size:14px; font-weight:600; color:var(--text-secondary);
+}
+.inicio-liga-quien.puntero .inicio-liga-nombre{font-weight:700; color:var(--text-primary);}
+.inicio-liga-pts{
+  font-family:var(--font-stat); font-size:16px; font-weight:800;
+  font-variant-numeric:tabular-nums; color:var(--text-secondary); flex:none;
+}
+.inicio-liga-quien.puntero .inicio-liga-pts{font-size:20px; color:var(--accent);}
+/* La ventaja va ENTRE los dos y sangrada hasta donde arrancan los nombres:
+   así se lee como la distancia que los separa y no como una tercera fila. */
+.inicio-liga-ventaja{
+  margin-left:37px; padding:1px 0;
+  font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;
+}
+
+/* ── Ladder del grupo ───────────────────────────────────────────────────── */
+.inicio-fila{
+  display:grid; grid-template-columns:18px 30px minmax(0,1fr) auto auto;
+  align-items:center; gap:10px; width:100%; text-align:left;
+  appearance:none; -webkit-appearance:none; cursor:pointer;
+  background:none; border:none; border-bottom:1px solid var(--border-soft);
+  padding:10px 4px; border-radius:var(--radius-sm);
+  transition:background .12s ease;
+}
+.inicio-fila:last-child{border-bottom:none;}
+.inicio-fila:hover{background:var(--surface-hover);}
+.inicio-fila:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
+.inicio-puesto{
+  font-family:var(--font-stat); font-size:12px; font-weight:800;
+  color:var(--text-muted); font-variant-numeric:tabular-nums; text-align:center;
+}
+.inicio-puesto.primero{color:var(--gold);}
+.inicio-avatar{width:30px; height:30px; border-radius:50%; flex:none;}
+.inicio-avatar.chico{width:24px; height:24px;}
+.inicio-nombre{
+  font-family:var(--font-display); font-size:13.5px; font-weight:600;
+  color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+/* El tag necesita su aire: acá el nombre no es flex (tiene que poder cortarse
+   con puntos suspensivos), así que sin esto salía "VORE#CHESS" pegado. En el
+   ladder el gap lo da el flex de .player-name. */
+.inicio-nombre .player-tag{margin-left:4px;}
+.inicio-fila .tier-emblem{width:22px; height:22px;}
+.inicio-rango{display:flex; flex-direction:column; align-items:flex-end; gap:1px; flex:none;}
+.inicio-rango-nombre{font-size:11.5px; font-weight:600; white-space:nowrap;}
+.inicio-rango-lp{
+  font-family:var(--font-stat); font-size:12.5px; font-weight:700;
+  color:var(--text-secondary); font-variant-numeric:tabular-nums;
+}
+
+/* ── En partida ahora ───────────────────────────────────────────────────── */
+.inicio-vivo-lista{display:flex; flex-direction:column; gap:2px;}
+.inicio-vivo-item{
+  display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+  appearance:none; -webkit-appearance:none; cursor:pointer;
+  background:none; border:none; padding:8px 4px; border-radius:var(--radius-sm);
+  transition:background .12s ease;
+}
+.inicio-vivo-item:hover{background:var(--surface-hover);}
+.inicio-vivo-item:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
+.inicio-vivo-champ{width:32px; height:32px; border-radius:var(--radius-sm); flex:none;}
+.inicio-vivo-txt{display:flex; flex-direction:column; gap:2px; min-width:0;}
+.inicio-vivo-meta{
+  font-size:11px; color:var(--text-muted);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+
+/* ── Qué se movió ───────────────────────────────────────────────────────── */
+.inicio-movidas-lista{display:flex; flex-direction:column; gap:2px;}
+.inicio-movida{
+  display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+  appearance:none; -webkit-appearance:none; cursor:pointer;
+  background:none; border:none; padding:8px 4px; border-radius:var(--radius-sm);
+  transition:background .12s ease;
+}
+.inicio-movida:hover{background:var(--surface-hover);}
+.inicio-movida:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
+.inicio-movida-txt{display:flex; flex-direction:column; gap:1px; min-width:0; flex:1 1 auto;}
+.inicio-movida-det{font-size:10.5px; color:var(--text-muted); white-space:nowrap;}
+/* El QUÉ pasó va a la derecha y es lo único con color de la fila: el nombre
+   es texto, el color dice si fue bueno o malo. */
+.inicio-movida-que{
+  font-family:var(--font-stat); font-size:13px; font-weight:700;
+  font-variant-numeric:tabular-nums; white-space:nowrap; flex:none; text-align:right;
+}
+.inicio-movida-que.bueno{color:var(--good);}
+.inicio-movida-que.malo{color:var(--critical);}
+.inicio-movida-que.neutro{color:var(--text-secondary);}
+
+/* ── El pie ─────────────────────────────────────────────────────────────── */
+.inicio-pie{
+  margin:2px 0 0; text-align:center;
+  font-size:11.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;
+}
+
+/* ── Esqueletos ─────────────────────────────────────────────────────────── */
+/* Con el alto real de cada bloque, no un "Cargando…": el cartel de texto mide
+   otra cosa y cuando llegan los datos la página entera pega un salto. */
+.sk-inicio-pulso{height:52px; border-radius:var(--radius-sm);}
+.sk-inicio-bloque{height:150px; border-radius:var(--radius-lg);}
+
+/* En pantalla grande crece el aire y el número del día, no la estructura. */
+@media (min-width:760px){
+  .inicio{gap:32px;}
+  .inicio-hoy strong{font-size:31px;}
+  .inicio-liga{padding:17px 20px 15px;}
+  .inicio-fila{padding:11px 8px;}
 }

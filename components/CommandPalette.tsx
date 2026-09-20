@@ -33,6 +33,7 @@ interface Opcion {
 }
 
 const TABS: { key: TabKey; label: string }[] = [
+  { key: "inicio", label: "Inicio" },
   { key: "ranking", label: "Ranking" },
   { key: "stats", label: "Estadísticas" },
   { key: "versus", label: "Cara a cara" },

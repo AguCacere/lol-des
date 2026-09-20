@@ -34,11 +34,11 @@ interface LadderTableProps {
 
 /** Los criterios de orden del ladder, con el detalle que explica cada uno. */
 const ORDENES: OpcionSelect[] = [
-  { value: "ladder", label: "LP (ranking)", detalle: "El orden del ladder" },
-  { value: "winrate", label: "Winrate", detalle: "% de la season" },
-  { value: "wins", label: "Victorias", detalle: "Total ganadas" },
-  { value: "streak", label: "Racha", detalle: "La actual, ganando o perdiendo" },
-  { value: "recent", label: "Progreso reciente", detalle: "Movimiento de LP" },
+  { value: "ladder", label: "Por LP (ranking)", detalle: "El orden del ladder" },
+  { value: "winrate", label: "Por winrate", detalle: "% de la season" },
+  { value: "wins", label: "Por victorias", detalle: "Total ganadas" },
+  { value: "streak", label: "Por racha", detalle: "La actual, ganando o perdiendo" },
+  { value: "recent", label: "Por progreso reciente", detalle: "Movimiento de LP" },
 ];
 
 export function playerKey(p: Player): string {
@@ -173,26 +173,30 @@ export function LadderTable({
           <div className="ladder-controls">
             {/* La línea pasó de seis chips a un desplegable. Ocupaba un renglón
                 entero para algo que casi no se toca. */}
-            <div className="sort-select-wrap">
-              <span className="meta">Línea</span>
-              <Select
-                className="sort-select"
-                value={roleFilter}
-                onChange={(v) => onRoleFilterChange(v as RoleKey | "all")}
-                ariaLabel="Filtrar el ladder por línea"
-                options={ROLE_FILTERS.map((r) => ({ value: r, label: r === "all" ? "Todas" : ROLES[r].label }))}
-              />
-            </div>
-            <div className="sort-select-wrap">
-              <span className="meta">Ordenar por</span>
-              <Select
-                className="sort-select a-la-derecha"
-                value={sortKey}
-                onChange={(v) => onSortKeyChange(v as SortKey)}
-                ariaLabel="Ordenar el ladder por"
-                options={ORDENES}
-              />
-            </div>
+            {/* Dos controles, no cuatro elementos. Antes cada desplegable
+                llevaba su rótulo al lado ("Línea [Todas]", "Ordenar por [LP
+                (ranking)]") y la tira de filtros tenía más texto fijo que
+                opciones. Ahora el rótulo está ADENTRO del valor —"Todas las
+                líneas", "Por winrate"— así que cada control se explica solo y
+                la fila se lee de un saque. El nombre completo sigue estando
+                para los lectores de pantalla, en aria-label. */}
+            <Select
+              className="sort-select"
+              value={roleFilter}
+              onChange={(v) => onRoleFilterChange(v as RoleKey | "all")}
+              ariaLabel="Filtrar el ladder por línea"
+              options={ROLE_FILTERS.map((r) => ({
+                value: r,
+                label: r === "all" ? "Todas las líneas" : `Solo ${ROLES[r].label}`,
+              }))}
+            />
+            <Select
+              className="sort-select a-la-derecha"
+              value={sortKey}
+              onChange={(v) => onSortKeyChange(v as SortKey)}
+              ariaLabel="Ordenar el ladder por"
+              options={ORDENES}
+            />
           </div>
         )}
       </div>
@@ -201,15 +205,18 @@ export function LadderTable({
         <LigaSemanal conEncabezado={false} />
       ) : (
         <>
+      {/* Sin banda de encabezado de columnas. Era lo que hacía que el ladder se
+          leyera como una PLANILLA y no como una lista de personas: seis
+          rótulos en mayúsculas de 10px arriba de todo, rotulando cosas que se
+          reconocen solas —una cara con un nombre, un emblema de rango, un
+          porcentaje, una curva—. En el celular ya estaba escondida desde
+          siempre (`display:none`), o sea que la pantalla donde más se usa la
+          app venía funcionando sin ella hace meses. La lista de la liga hizo
+          el mismo camino y quedó mejor.
+
+          Lo único que el rótulo aportaba era el "Últimos 20" de la curva, y
+          eso lo dice ahora la propia columna con su "▲ 72 LP" debajo. */}
       <div className="ladder">
-        <div className="ladder-head">
-          <span>#</span>
-          <span>Invocador</span>
-          <span>Rango</span>
-          <span>Winrate</span>
-          <span>Últimos 20</span>
-          <span></span>
-        </div>
         <div>
           {loading ? (
             // Esqueletos con la forma de las filas reales y no un "Cargando…":
@@ -376,11 +383,21 @@ export function LadderTable({
                   </span>
                   <span className="col-tier">
                     <TierEmblem tierKey={p.tierKey} division={p.division} />
+                    {/* El LP arriba y grande, el nombre del rango abajo y
+                        chico. Es al revés de como estaba, y el que manda es el
+                        LP por una razón concreta: el EMBLEMA que está al lado
+                        ya dice el tier —es su único trabajo— así que escribir
+                        "Esmeralda 4" en el tamaño más grande de la celda es
+                        decir dos veces lo mismo. Lo que el emblema no puede
+                        decir es en qué parte de esa división está, y eso es
+                        justo lo que se mira para saber quién va ganando. */}
                     <span className="tier-text">
+                      <span className="tier-lp">
+                        {p.lp} <i>LP</i>
+                      </span>
                       <span className="tier-name" style={{ color: t.fg }}>
                         {t.name} {p.division}
                       </span>
-                      <span className="tier-lp">{p.lp} LP</span>
                     </span>
                   </span>
                   <span className="col-winrate">

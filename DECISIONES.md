@@ -1805,3 +1805,182 @@ el relleno va solo abajo de la línea en foco porque con siete es un manchón.
 componente): con siete líneas el resaltado saltaba de una a otra al cruzar el gráfico. El
 hover aclara; el click fija. Lo que se agregó no contradice eso — el travesaño del día no
 cambia quién está en foco.
+
+## La app abre en Inicio, y la navegación son pestañas, no rutas
+
+**No hay rutas por sección y no se agregaron.** `app/page.tsx` es una sola página
+cliente con seis pestañas en estado de React; `/` es la única ruta de la app. El plan
+de evolución habla de "rutas" (`/` abre Home, Ranking conserva la suya), y eso acá se
+cumple con la pestaña por defecto: la app arranca en Inicio y ninguna dirección cambió.
+
+Partir esto en rutas de verdad sería reescribir el flujo de datos entero, no mover
+archivos: `/api/ladder` se pide UNA vez y de ahí salen Ranking, Estadísticas y Cara a
+cara sin pedir nada más (ver ARQUITECTURA → El flujo de datos). Con una ruta por
+sección, cambiar de sección vuelve a montar todo y cada una tendría que traerse el
+ladder por su cuenta — cinco veces el mismo JSON pesado, que es exactamente lo que
+tiró la base en septiembre.
+
+Lo que sí se pierde y hay que saberlo: **no se puede compartir un enlace a una
+sección**. Si alguna vez hace falta, la forma barata es el hash (`#liga`) leído al
+montar, no el App Router.
+
+## Inicio no repite el estado que ya dice la barra de arriba
+
+La barra dice cuántos invocadores hay, la región, cuántos están en partida y cuándo
+se actualizó — en TODAS las pantallas. El plan pedía un bloque "Hoy en el grupo" con
+esos mismos cuatro datos, y ponerlos otra vez treinta píxeles más abajo y más grandes
+no es un resumen: es la misma línea dos veces.
+
+Lo que Inicio dice en su lugar es lo que **ninguna otra pantalla dice**: qué pasó HOY
+—partidas, V/D, cuántos jugaron— que es la pregunta con la que uno entra. Los cuatro
+datos de la barra quedan abajo, en 12px, como contexto de esa frase.
+
+Sale de `resumenDeHoy` en `lib/actividad.ts`, por días CALENDARIO argentinos y no por
+bloques de 24 horas: es la misma cuenta que reparte las partidas por día en la liga,
+así que las dos pantallas no se pueden contradecir.
+
+## "Qué se movió" se calla antes que inventar
+
+No hay tabla de eventos y no se va a inventar una. El feed de Inicio sale de restar
+dos FOTOS de LP reales (`lp_snapshots`), y cuando las fotos no alcanzan, no dice nada.
+
+El caso concreto está en el header de `lib/actividad.ts`: `lpHistory` son las
+**últimas 20 fotos**, no las de las últimas N horas. Quien jugó veinte veces en una
+tarde tiene su foto más vieja a tres horas de distancia, y ahí "en las últimas 24
+horas subió 40 LP" sería mentira por defecto — subió eso *y lo de antes, que ya no
+está en la ventana*. Por eso `desde()` exige una foto ANTERIOR al corte y devuelve
+null si no la hay.
+
+Dos reglas más del mismo módulo:
+
+- **Se compara con `rankScore`, nunca con el LP crudo.** El LP se resetea a un número
+  bajo en cada ascenso, así que restar LP pelado convierte una promoción —el mejor
+  momento de la semana— en una caída de 70.
+- **Un cambio de rango se cuenta siempre, aunque el neto sea de un punto.** Ascender
+  es lo que el grupo festeja y pasa justo cuando el LP vuelve a cero, o sea con el
+  delta más flaco. Por eso no pasa por el mínimo de `LP_MINIMO`.
+
+## El 1fr volvió a pasar, ahora en Inicio
+
+Tercera vez. La lista de la liga, el acumulado del día y ahora dos bloques de Inicio:
+un `1fr` en el nombre empuja el número contra el filo derecho y deja ochocientos
+píxeles de nada en el medio.
+
+El remedio es siempre el mismo y ya estaba escrito para `.jug`: **la lista tiene ancho
+de LECTURA propio**, más angosto que la página. `.inicio` va con `max-width:840px`.
+Alineado a la izquierda y no centrado, porque el logo, las pestañas y los títulos de
+sección arrancan todos en ese margen.
+
+Si aparece un bloque nuevo con "algo a la izquierda y un número a la derecha", el ancho
+ya está puesto: no hace falta descubrirlo otra vez.
+
+## El ladder perdió su banda de encabezado de columnas
+
+`.ladder-head` —seis rótulos en mayúsculas de 10px: `# · Invocador · Rango · Winrate ·
+Últimos 20`— era lo que hacía que el ladder se leyera como una PLANILLA. Rotulaba
+cosas que se reconocen solas: una cara con un nombre, un emblema de rango, un
+porcentaje, una curva.
+
+El dato que decide: **en el celular estaba escondida desde siempre** (`display:none`),
+o sea que la pantalla donde más se usa la app venía funcionando sin ella hace meses. La
+lista de la liga ya había hecho el mismo camino.
+
+Lo único que el rótulo aportaba era el "Últimos 20" de la curva, y eso lo dice ahora la
+propia columna con su "▲ 72 LP" debajo.
+
+## En la celda de rango manda el LP, no el nombre del tier
+
+Estaba al revés: "Esmeralda 3" en 13,5px y en negrita, los LP en 11px y gris apagado.
+Al lado de un emblema de Esmeralda 3, que es lo único que ese emblema hace.
+
+El emblema dice el tier. El número dice en qué parte de esa división estás, que es lo
+que no se puede leer en ningún otro lado y lo que se mira para saber quién va ganando.
+Ahora el LP es el número de la celda (15px, `font-stat`, blanco) y el nombre del rango
+es el rótulo de abajo, en 11,5px y con el color del tier.
+
+## La salida a la liga bajó el volumen, pero NO volvió a ser texto gris
+
+`.vista-ir` era una pastilla con degradado dorado, borde de acento y un aro en el
+hover, al lado del `<h2>` del ladder. Se leía como un botón con un título al costado, y
+no como un título con una salida al costado.
+
+Ahora es plana: fondo `--accent-wash-soft`, borde de un escalón, 12px. **Lo que no se
+toca es que siga siendo un botón** —fondo, borde, la copa y el movimiento de la
+flecha—: ya se probó dejarla como texto gris suelto y no se leía como algo que se toca.
+Bajarle el volumen no es volver a eso.
+
+Y ahora tiene compañía: Inicio abre con el adelanto de la competencia, así que esta
+dejó de ser la única puerta a la liga.
+
+## El detalle de la liga se despliega por día, con hoy abierto
+
+El historial de alguien que jugó toda la semana son cuarenta partidas. Cuarenta
+renglones abiertos de una en un celular no son transparencia: son media hora de scroll
+para encontrar la de anoche.
+
+Ahora cada día abre y cierra, y por defecto **queda abierto el más nuevo** —el que se
+viene a mirar— con los anteriores a un toque. El estado se resetea al abrir la fila de
+otro jugador: "qué días miré" es de ESE jugador, y arrastrarlo abriría el martes de
+alguien que nunca se tocó.
+
+Cerrado, el encabezado del día es todo lo que se ve de ese día, así que lleva las
+cuatro cosas que contestan "¿cómo me fue el jueves?": el día, el récord (V/D), lo que
+movió y en cuánto quedó. El récord cuenta **todas** las partidas jugadas, anuladas
+incluidas, porque es lo que se ve en la lista de abajo — si el día muestra cuatro ✕ y
+el encabezado dice "3D", el que abrió el detalle para auditar se encuentra con que la
+app no sabe contar. Lo que las anuladas no mueven es el `delta`, que va al lado y es
+otro número.
+
+Debajo de 430px el acumulado se esconde: los cinco elementos no entran, y el acumulado
+de la semana ya está arriba, en la fila del jugador.
+
+**Y el encabezado es ahora un botón, así que entró a la auditoría de área táctil.**
+Medido a 390px daba 24px de alto. Tiene su `padding-block` en el bloque
+`@media (pointer:coarse)`, igual que los otros controles chicos.
+
+## La marca del bonus de racha
+
+Una victoria de la liga puede valer 1 o 1,25 y del ✓ de la izquierda no se deduce cuál:
+el bonus arranca en la cuarta al hilo y ese estado no se ve en la fila. Sin marca, dos
+renglones idénticos —misma ✓, mismo campeón— muestran números distintos y parece un
+error de la app.
+
+Es una llamita dorada de 9px antes del número, sin texto. La fila ya tiene ✓, campeón,
+KDA, duración, puntos y LP: un sexto elemento con palabras la rompe.
+
+**Se compara contra la tabla de puntos que manda la API (`d.puntaje.victoria`), no
+contra un 1 escrito en el componente.** El día que cambie el valor de la victoria, esto
+sigue diciendo la verdad. Sin esa tabla —una pestaña vieja contra la API nueva— no se
+dibuja nada, que es mejor que marcar mal.
+
+## `/api/liga` se pide una vez por pestaña, no una por componente
+
+Desde que Inicio muestra el adelanto de la competencia son dos componentes en dos
+secciones distintas pidiendo la misma respuesta, y `/api/liga` no es liviana: trae
+TODAS las partidas de la semana de cada uno con su LP y su KDA.
+
+El CDN ya la cachea 240 segundos, así que el segundo pedido no llegaba a la base ni al
+pool de Supabase —que es lo que importa—, pero seguía siendo una descarga entera de más
+por cambiar de pestaña, y el adelanto parpadeaba cargando algo que ya estaba en memoria
+dos pantallas más allá.
+
+`components/useLiga.ts` es un caché de módulo con oyentes, **no un contexto de React**:
+no hay proveedor que envolver (LigaSemanal se dibuja tres niveles adentro de
+LadderTable) y lo único que se comparte es el resultado de un fetch. `recargar(true)`
+sigue salteando el CDN, que es lo que hace falta después de anotar o desanotar a
+alguien.
+
+## Medir con Playwright: el `pointer:coarse` y el frame viejo
+
+Dos trampas que costaron una vuelta cada una en la sesión del plan de evolución.
+
+**El hot reload devuelve frames viejos.** Un `.liga-dia-head` medía 24px justo después
+de editar el CSS y 34px en una corrida limpia, con la misma regla. Ya estaba anotado y
+volvió a pasar: si un número no da lo que el CSS dice, **volvé a correr la medición
+antes de "arreglar" nada**.
+
+**Y `hasTouch:true` no siempre emula `pointer:coarse`.** En un contexto recién creado
+sí; en el mismo script, después de haber abierto y cerrado uno de escritorio, no —
+`matchMedia("(pointer:coarse)").matches` daba false y las reglas del bloque táctil no
+aplicaban. Para medir un área táctil, **un script aparte con ese contexto como el
+primero del navegador**.
