@@ -153,6 +153,16 @@ export function LigaCarrera({
   // tiene que aclarar lo mismo desde cualquiera. Solo cambia opacidad y color:
   // nada se mueve de lugar, que es lo que hacía insoportable el hover viejo.
   const [resaltado, setResaltado] = useState<string | null>(null);
+  /**
+   * El día que está mirando el mouse, para el travesaño y el panel.
+   *
+   * Va por DÍA y no por punto de una línea: en una carrera la pregunta es
+   * "¿cómo venía la cosa el miércoles?", no "¿cuánto tenía este acá?". Con un
+   * tooltip por punto habría que acertarle a un círculo de 3px de la línea
+   * correcta entre siete; con la columna del día alcanza con estar a la altura
+   * y contesta por todos de una.
+   */
+  const [diaHover, setDiaHover] = useState<number | null>(null);
   const gid = "carrera-" + useId().replace(/:/g, "");
 
   // Con un solo día corrido —el lunes a la mañana— no hay carrera que dibujar:
@@ -197,6 +207,28 @@ export function LigaCarrera({
     return { ...c, color: colores.get(c.puuid) ?? "", line: g.line, area: g.area, last: g.last, points: g.points, yOf: g.yOf };
   });
   const enFocoTrazo = trazos.find((t) => t.puuid === foco.puuid) ?? trazos[0];
+
+  /**
+   * La clasificación de un día, para el panel. Ordenada por lo acumulado A ESE
+   * DÍA y no por la posición final: el sentido de mirar el miércoles es ver
+   * quién iba ganando el miércoles.
+   *
+   * `delta` es lo que hizo ESE día —la diferencia con el cierre del anterior—
+   * y sale de los mismos números que ya están dibujados; no se calcula nada
+   * nuevo ni se pide nada más.
+   */
+  const claseDelDia =
+    diaHover == null
+      ? null
+      : trazos
+          .map((t) => {
+            const serie = [...t.porDia];
+            while (serie.length < largo) serie.push(serie[serie.length - 1]);
+            const acum = serie[Math.min(diaHover, serie.length - 1)];
+            const previo = diaHover > 0 ? serie[Math.min(diaHover - 1, serie.length - 1)] : 0;
+            return { puuid: t.puuid, name: t.name, color: t.color, acum, delta: Math.round((acum - previo) * 100) / 100 };
+          })
+          .sort((a, b) => b.acum - a.acum);
   const { yOf, points } = enFocoTrazo;
   const colorFoco = enFocoTrazo.color;
 
@@ -281,11 +313,15 @@ export function LigaCarrera({
               <stop offset="45%" stopColor={colorFoco} stopOpacity={0.04} />
               <stop offset="100%" stopColor={colorFoco} stopOpacity={0} />
             </linearGradient>
-            {/* El mismo brillo contenido que usa SparkChart: sin él la línea se
-                lee como un pelo plano sobre el fondo. Poco radio a propósito —
-                más se empasta en una mancha abajo del trazo. */}
+            {/* El brillo contenido que usa SparkChart: sin él la línea se lee
+                como un pelo plano sobre el fondo.
+                Bajó de 2.4 a 1.5 al bajar las demás líneas a 0.24: el brillo
+                estaba ahí para separar la línea en foco de un fondo que
+                competía, y ese fondo ya no compite. Dejarlo en 2.4 era pedirle
+                dos veces el mismo trabajo a la jerarquía, y de cerca se veía
+                como un halo. */}
             <filter id={`${gid}-glow`} filterUnits="userSpaceOnUse" x={-12} y={-12} width={W + 24} height={H + 24}>
-              <feGaussianBlur stdDeviation="2.4" result="blur" />
+              <feGaussianBlur stdDeviation="1.5" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
@@ -344,6 +380,19 @@ export function LigaCarrera({
             />
           ))}
 
+          {/* El travesaño del día que mira el mouse. Abajo de las líneas: es
+              referencia, no dato. */}
+          {diaHover != null && points[diaHover] && (
+            <line
+              x1={points[diaHover][0]}
+              y1={PAD_Y - 8}
+              x2={points[diaHover][0]}
+              y2={H - PAD_Y + 8}
+              className="carrera-travesano"
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
+
           {/* Los que NO están en foco, primero, para que queden por debajo. */}
           {trazos
             .filter((t) => t.puuid !== foco.puuid)
@@ -384,9 +433,72 @@ export function LigaCarrera({
             filter={`url(#${gid}-glow)`}
           />
           {points.map(([x, y], i) => (
-            <circle key={i} cx={x} cy={y} r={i === points.length - 1 ? 4 : 2.8} className="carrera-punto" stroke={colorFoco} />
+            <circle key={i} cx={x} cy={y} r={i === points.length - 1 ? 4 : 2.4} className="carrera-punto" stroke={colorFoco} />
           ))}
+
+          {/* La zona que escucha al mouse, arriba de todo y transparente.
+              Cubre el área de dibujo entera y no cada línea: el travesaño es
+              del DÍA, así que lo único que hay que saber es a qué altura
+              horizontal está el puntero.
+
+              Va después de las líneas —y no antes— para que el hover de la
+              columna no le robe el click a los trazos de abajo: el `agarre` de
+              cada línea sigue funcionando porque esto es `pointer-events` solo
+              para el movimiento, y el click pasa de largo. */}
+          <rect
+            x={EJE}
+            y={0}
+            width={PLOT - EJE}
+            height={H}
+            fill="transparent"
+            style={{ pointerEvents: "all" }}
+            onMouseMove={(e) => {
+              // De píxeles de pantalla a índice de día. El SVG va con
+              // preserveAspectRatio="none", así que el ancho en CSS y el del
+              // viewBox no coinciden y hay que pasar por la fracción.
+              const caja = e.currentTarget.ownerSVGElement?.getBoundingClientRect();
+              if (!caja || caja.width === 0) return;
+              const xSvg = ((e.clientX - caja.left) / caja.width) * W;
+              let mejor = 0;
+              let dist = Infinity;
+              points.forEach(([px], i) => {
+                const d = Math.abs(px - xSvg);
+                if (d < dist) { dist = d; mejor = i; }
+              });
+              setDiaHover(mejor);
+            }}
+            onMouseLeave={() => setDiaHover(null)}
+          />
         </svg>
+
+        {/* El panel del día. En HTML y no en el SVG por lo mismo que las
+            etiquetas: el texto de un SVG escala con la caja. Se ubica con la
+            fracción del punto del día, y se da vuelta contra el borde derecho
+            para no salirse. */}
+        {diaHover != null && claseDelDia && points[diaHover] && (
+          <div
+            className="carrera-panel"
+            style={{
+              left: `${(points[diaHover][0] / W) * 100}%`,
+              transform: points[diaHover][0] > W * 0.62 ? "translateX(calc(-100% - 12px))" : "translateX(12px)",
+            }}
+          >
+            <span className="carrera-panel-dia">{dias[diaHover] ?? ""}</span>
+            {claseDelDia.map((c) => (
+              <span
+                key={c.puuid}
+                className={`carrera-panel-fila${c.puuid === foco.puuid ? " en-foco" : ""}`}
+              >
+                <i className="carrera-panel-color" style={{ background: c.color }} />
+                <b className="carrera-panel-nombre">{c.name}</b>
+                <span className="carrera-panel-pts">{pts(c.acum)}</span>
+                {/* Lo que hizo ESE día. Solo cuando se movió: un "+0" en seis
+                    de siete filas es ruido que tapa a los dos que jugaron. */}
+                <span className="carrera-panel-delta">{c.delta !== 0 ? pts(c.delta) : ""}</span>
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Todas las etiquetas van en HTML encima del SVG y no adentro: el
             <text> de un SVG escala con la caja, y con preserveAspectRatio="none"

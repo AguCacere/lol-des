@@ -3654,8 +3654,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* La grilla. Hairlines sólidas y bien apagadas: es la referencia, no el dato.
    Las columnas marcan el cierre de cada día y son lo que le da estructura de
    grilla a lo que antes eran líneas flotando. */
-.carrera-columna{stroke:var(--border-soft); stroke-width:1; opacity:0.5;}
-.carrera-grilla{stroke:var(--border-soft); stroke-width:1; opacity:0.9;}
+/* La grilla baja un escalón entero. Estaba en 0.5 y 0.9 —las columnas de día
+   casi tan marcadas como una línea de datos— y eso es lo que hacía que el
+   dibujo se leyera como una hoja cuadriculada con curvas encima en vez de una
+   carrera. Ahora la grilla es referencia: está cuando la buscás y no cuando
+   no. El cero se queda como estaba, que es lo único del mobiliario que separa
+   la semana ganada de la perdida. */
+.carrera-columna{stroke:var(--border-soft); stroke-width:1; opacity:0.22;}
+.carrera-grilla{stroke:var(--border-soft); stroke-width:1; opacity:0.45;}
 /* El cero. Llegó a ir punteado, con el color del texto y a 0.75 de opacidad
    —más marcado que las líneas de la gente, que van a 0.4—. Se leía como un
    jugador más: punteado es un estilo de serie, no de eje, y una línea más
@@ -3684,8 +3690,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    Las de contexto van a 0,6 y no más abajo: con colores saturados sobre negro,
    apagarlas hasta el 0,4 que tenían cuando eran todas grises las volvía barro.
    La jerarquía la hace el GROSOR —1,5 contra 2,6— y el relleno, no la opacidad. */
+/* LA JERARQUÍA, que es de lo que se trata todo esto.
+   Las que no están en foco estaban en 0.6 de opacidad: lo bastante fuertes
+   como para competir con la elegida, así que elegir a alguien casi no cambiaba
+   nada y seguir una línea entre siete era imposible. Ahora 0.24 — se ven, y
+   ése es el punto: apagarlas del todo convertiría "la carrera" en el gráfico
+   de una persona sola, y lo que hace que esto sea una carrera es ver CONTRA
+   QUIÉN iba y cuándo lo pasaron. Quedan de contexto, no de competencia. */
 .carrera-linea{
-  fill:none; stroke-width:1.5; stroke-opacity:0.6;
+  fill:none; stroke-width:1.5; stroke-opacity:0.24;
   stroke-linecap:round; stroke-linejoin:round;
   transition:stroke-opacity .16s ease, stroke-width .16s ease;
 }
@@ -3697,19 +3710,65 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* Trazo ancho e invisible para agarrar el mouse: una línea de 1,5px no se
    puede apuntar, y un gráfico que no reacciona a nada se siente muerto. */
 .carrera-agarre{fill:none; stroke:transparent; stroke-width:16; cursor:pointer;}
+
+/* El travesaño del día. Más marcado que una columna de la grilla pero menos
+   que cualquier línea de datos: dice DÓNDE está mirando el panel, no cuánto. */
+.carrera-travesano{stroke:var(--text-muted); stroke-width:1; opacity:0.35;}
+
+/* El panel del día: la clasificación a esa altura de la semana.
+   Va pegado al travesaño y centrado en vertical, así el ojo no salta. */
+.carrera-panel{
+  position:absolute; top:50%; transform-origin:left center;
+  margin-top:-1px; translate:0 -50%;
+  z-index:5; pointer-events:none;
+  display:flex; flex-direction:column; gap:1px;
+  padding:8px 10px; min-width:172px;
+  background:var(--surface-hover); border:1px solid var(--border-soft);
+  border-radius:var(--radius-md); box-shadow:0 8px 24px rgba(0,0,0,0.55);
+}
+.carrera-panel-dia{
+  font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.09em;
+  color:var(--text-muted); margin-bottom:4px;
+}
+.carrera-panel-fila{
+  display:grid; grid-template-columns:7px minmax(0,1fr) auto auto;
+  align-items:center; gap:7px;
+  font-size:11.5px; color:var(--text-secondary); line-height:1.5;
+}
+/* El que está en foco, resaltado también acá: es el mismo jugador que la
+   línea gruesa del dibujo, y que se reconozca de los dos lados es lo que ata
+   el panel al gráfico. */
+.carrera-panel-fila.en-foco{color:var(--text-primary);}
+.carrera-panel-fila.en-foco .carrera-panel-nombre{font-weight:700;}
+.carrera-panel-color{width:7px; height:7px; border-radius:50%; flex:none;}
+.carrera-panel-nombre{
+  font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.carrera-panel-pts{font-variant-numeric:tabular-nums; font-weight:700;}
+/* Lo del día, apagado y a la derecha: es el detalle, no el marcador. Ancho
+   fijo para que la columna de puntos no baile entre filas. */
+.carrera-panel-delta{
+  font-variant-numeric:tabular-nums; font-size:10.5px;
+  color:var(--text-muted); min-width:32px; text-align:right;
+}
+@media (max-width:640px){
+  /* En el celular el panel taparía medio gráfico: el travesaño queda, que ya
+     dice dónde estás mirando, y los números están en "Ver los números". */
+  .carrera-panel{display:none;}
+}
 .carrera-punto{fill:var(--bg); stroke-width:1.8;}
 /* El punto donde termina cada línea de contexto. Es el ancla que le faltaba a
    una gris para poder seguirla: primero se encuentra dónde termina, y de ahí
    sale la guía hasta el nombre. */
 .carrera-punta{
-  fill:var(--bg); stroke-width:1.4; stroke-opacity:0.85;
+  fill:var(--bg); stroke-width:1.4; stroke-opacity:0.45;
   transition:stroke-opacity .16s ease;
 }
 .carrera-punta.resaltada{stroke-opacity:1;}
 /* La guía del final de la línea al nombre. Más apagada que la línea a
    propósito: es la que ata, no la que se lee. */
 .carrera-guia{
-  fill:none; stroke-width:1; stroke-opacity:0.45;
+  fill:none; stroke-width:1; stroke-opacity:0.22;
   transition:stroke-opacity .16s ease;
 }
 .carrera-guia.resaltada,.carrera-guia.en-foco{stroke-opacity:0.9;}

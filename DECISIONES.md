@@ -1768,3 +1768,40 @@ lleva el premio"; "se define el lunes" es la respuesta de hoy, no el tema. Con
 `.tab-btn.is-active`, `.liga-reglas-nota` y `.estado-premio`. En un archivo de cuatro mil
 líneas, antes de escribir una regla conviene `grep -c "^\.clase{"`. Las tres se
 encontraron midiendo en el DOM, no leyendo.
+
+
+## La carrera: la jerarquía estaba en el número equivocado
+
+El pedido era "que se pueda seguir a un jugador". La interacción para eso ya estaba
+entera —hover y click desde la línea, el nombre del pasillo y el chip de abajo, los tres
+resaltando lo mismo— y sin embargo no se podía seguir a nadie. El problema era un solo
+valor: **las líneas de fondo estaban en `stroke-opacity: 0.6`**. A ese nivel compiten con
+la elegida, así que elegir casi no cambiaba nada y el sistema de resaltado que ya existía
+no se notaba. Ahora 0.24.
+
+**No se apagan del todo, y es el punto.** A 0.05 el gráfico sería el de una persona sola;
+lo que lo hace una CARRERA es ver contra quién iba y cuándo lo pasaron. Quedan de
+contexto, no de competencia.
+
+Y de ahí salió un ajuste que no se hubiera visto de otra forma: **el brillo de la línea
+en foco bajó de 2.4 a 1.5**. Ese filtro estaba para separarla de un fondo que competía, y
+ese fondo dejó de competir — mantenerlo era pedirle dos veces el mismo trabajo a la
+jerarquía, y de cerca se leía como un halo.
+
+**El tooltip va por DÍA, no por punto.** En una carrera la pregunta es "¿cómo venía la
+cosa el miércoles?", no "¿cuánto tenía este acá". Con un tooltip por punto hay que
+acertarle a un círculo de 3px de la línea correcta entre siete; con la columna del día
+alcanza con la altura horizontal y contesta por todos de una, ordenados por lo acumulado
+A ESE DÍA —no por la posición final, que es lo que haría inútil mirar el miércoles—. El
+`delta` sale de los mismos números ya dibujados: no se calcula ni se pide nada nuevo.
+
+**Lo que ya estaba y NO se tocó, para que nadie lo "arregle" de nuevo:** la curva es
+monótona cúbica (pasa por cada punto, no inventa picos), los colores salen del PUUID y no
+del puesto (si salieran del puesto, el día que dos se pasan intercambiarían de color), las
+guías del final de cada línea al nombre ya resuelven el amontonamiento de los empatados, y
+el relleno va solo abajo de la línea en foco porque con siete es un manchón.
+
+**El hover sobre la línea para SELECCIONAR sigue descartado** (ver el header del
+componente): con siete líneas el resaltado saltaba de una a otra al cruzar el gráfico. El
+hover aclara; el click fija. Lo que se agregó no contradice eso — el travesaño del día no
+cambia quién está en foco.
