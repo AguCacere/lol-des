@@ -167,7 +167,8 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
 **Presentación**
 - `actividad.ts` — lo que alimenta Inicio: `movimientosRecientes` (ascensos,
   descensos, LP y rachas de las últimas 24 horas, sacados de restar dos fotos de LP
-  reales) y `resumenDeHoy` (partidas, V/D y cuántos jugaron HOY, por día calendario
+  reales; cada uno trae el cambio ya escrito en UNA línea —"Esmeralda 2 → Esmeralda 1"—
+  porque en pantalla el nombre y lo que le pasó son una sola unidad) y `resumenDeHoy` (partidas, V/D y cuántos jugaron HOY, por día calendario
   argentino). **Se calla antes que inventar**: si `lpHistory` —que son las últimas 20
   fotos, no las de las últimas N horas— no llega hasta el corte de la ventana, ese
   movimiento no se publica. Ver el header y DECISIONES.
@@ -279,11 +280,15 @@ descarta.
 `stats` · `versus` · `clash` · `team`), `LiveTray` y `CommandPalette` viven fuera de las
 pestañas.
 
-- **Inicio** → `Inicio`. El hub: qué pasó hoy, el adelanto de la liga (los dos
-  punteros y cuánto los separa), el top 3 del ladder, quién está en partida y "qué se
-  movió". No pide NADA al servidor: los `Player` ya vienen del ladder y la liga sale
-  de `useLiga`. Los bloques de "en partida" y "qué se movió" **no existen** cuando no
-  hay nada que mostrar — no hay tarjeta vacía.
+- **Inicio** → `Inicio`. El hub. Tres zonas, no una pila de secciones: la cabecera del
+  día (`.inicio-intro`: qué pasó hoy, la fecha y quién está jugando), la liga
+  (`.liga-spot`, la ÚNICA superficie de la pantalla) y una grilla de áreas
+  (`.inicio-cuerpo`) donde el ladder va abajo de la liga y "qué se movió" ocupa las dos
+  filas de la derecha. El interior de la card de la liga se parte en dos por
+  **consulta de contenedor**, no por ancho de ventana. Ver DECISIONES para el porqué de
+  cada una. No pide NADA al servidor: los `Player` ya vienen del ladder y la liga sale
+  de `useLiga`. Los chips de "en partida" y el bloque de "qué se movió" **no existen**
+  cuando no hay nada que mostrar — no hay tarjeta vacía.
 
 - **Ranking** → `LadderTable` (que adentro tiene `LigaSemanal`, `TierEmblem`,
   `SparkChart`, `RoleIcon`, `PlayerAvatar`) + `PlayerProfile`.

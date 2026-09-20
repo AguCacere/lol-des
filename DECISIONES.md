@@ -1860,19 +1860,112 @@ Dos reglas más del mismo módulo:
   es lo que el grupo festeja y pasa justo cuando el LP vuelve a cero, o sea con el
   delta más flaco. Por eso no pasa por el mínimo de `LP_MINIMO`.
 
-## El 1fr volvió a pasar, ahora en Inicio
+## El 1fr volvió a pasar, ahora en Inicio (tres veces seguidas)
 
-Tercera vez. La lista de la liga, el acumulado del día y ahora dos bloques de Inicio:
-un `1fr` en el nombre empuja el número contra el filo derecho y deja ochocientos
+La lista de la liga, el acumulado del día y después dos bloques de Inicio: un
+`1fr` en el nombre empuja el número contra el filo derecho y deja ochocientos
 píxeles de nada en el medio.
 
-El remedio es siempre el mismo y ya estaba escrito para `.jug`: **la lista tiene ancho
-de LECTURA propio**, más angosto que la página. `.inicio` va con `max-width:840px`.
-Alineado a la izquierda y no centrado, porque el logo, las pestañas y los títulos de
-sección arrancan todos en ese margen.
+La primera respuesta fue un tope de ancho en `.inicio` (840px), y estaba mal
+diagnosticada: tapaba el síntoma en una columna angosta y dejaba media pantalla
+vacía a la derecha. **El void no se arregla angostando la página: se arregla
+dándole a cada bloque el ancho que su contenido pide.** Hoy lo hace la grilla
+—la liga y el ladder en una columna de ~660px, los movimientos en una de
+~420—, y ningún bloque tiene tope propio.
 
-Si aparece un bloque nuevo con "algo a la izquierda y un número a la derecha", el ancho
-ya está puesto: no hace falta descubrirlo otra vez.
+Si aparece un bloque nuevo con "algo a la izquierda y un número a la derecha",
+la pregunta no es qué `max-width` ponerle: es en qué columna va.
+
+## La composición de Inicio: una grilla, no cuatro secciones apiladas
+
+La primera versión apilaba título, card, título, lista, título, lista. El
+contenido estaba bien elegido; la composición era el problema. En un monitor de
+1180px eso es una columna angosta con media pantalla vacía a la derecha, y se
+lee como un formulario. **Cuatro bloques del mismo peso uno abajo del otro no
+tienen jerarquía: tienen orden.**
+
+Ahora son tres zonas con una grilla de áreas:
+
+```
+.inicio-intro        <- el día. Sin superficie.
++-- LIGA --------+ +- QUÉ SE MOVIÓ -+
++----------------+ |                |
+  LADDER           |    (sigue)     |
+                   +----------------+
+```
+
+Los movimientos ocupan **las dos filas** de la derecha, y eso es lo que la hace
+asimétrica en vez de un grid de cuatro cajas. Resuelve dos cosas de una: el
+ladder son tres renglones y dejaba medio metro de aire abajo, y los movimientos
+son cinco líneas cortas que no tienen por qué compartir el alto de nadie.
+
+Y de paso baja la card de la liga de 1140px a ~660. **La proporción de una
+superficie la decide cuánto contenido tiene, no cuánta pantalla hay**: con el
+ancho entero, la frase de la tensión y los dos punteros nadaban adentro.
+
+Una sola superficie en toda la pantalla, y es la liga. No es porque brille más
+—no tiene degradado, ni glow, ni sombra grande, solo el filete dorado— sino
+porque es la ÚNICA: es lo único temporal, con cuenta regresiva y premio, y esa
+tensión es la razón de volver a entrar. Lo demás se separa con tipografía y
+aire.
+
+## La liga cuenta la diferencia, no dos puntajes
+
+"marlboro +11,75 / compren bitcoin +10,25" son dos números. **"La punta está a
+1,5 puntos" es una competencia**: dice si esto ya está definido o si el domingo
+se da vuelta.
+
+Sale de restar los dos primeros de la tabla —ordenada de nuevo acá aunque la
+API ya la mande ordenada, porque si algún día cambia el orden de allá esta
+frase pasaría a ser falsa sin que nadie se entere—. Con empate dice "La punta
+está empatada", y el singular/plural de "punto" también sale del número.
+
+El reloj es la segunda zona de la card y no una línea chiquita arriba a la
+derecha: en una competencia que cierra, **el tiempo que queda es
+co-protagonista de la diferencia de puntos**. Los dos juntos son la tensión;
+cualquiera de los dos solo, no.
+
+## Una consulta de contenedor la contesta el contenedor para sus HIJOS
+
+El interior de la card de la liga se parte en dos por `@container` y no por
+ancho de ventana: la card cambia de ancho con la grilla que la contiene, así
+que la que sabe cuánto mide es ella. Mismo patrón que `.match-detail`.
+
+La trampa, y costó una medición: **un elemento no puede estilarse a sí mismo
+desde su propia consulta de contenedor.** Con `container-type` en `.liga-spot` y
+la regla apuntando a `.liga-spot`, no aplicaba nunca — medido, la card llegaba a
+1140px y seguía apilada. Por eso existe `.liga-spot-cuerpo`: la card es el
+contenedor y el cuerpo es el hijo que se reacomoda.
+
+## En "Qué se movió", el nombre y el cambio son UNA unidad
+
+Estaban partidos: el nombre a la izquierda y "Ascendió a Esmeralda 1" contra el
+filo derecho, con "desde Esmeralda 2" abajo del nombre. Había que cruzar la
+pantalla para armar una frase que es una sola cosa.
+
+Ahora van uno arriba del otro y pegados, con la flecha al costado:
+
+```
+^  Sagitaryus
+   Esmeralda 2 -> Esmeralda 1
+```
+
+**La flecha reemplaza al verbo.** Con la flecha adelante, "Esmeralda 2 →
+Esmeralda 1" ya no necesita el "Ascendió", y de paso el glifo es lo único con
+color de la fila: se ve para dónde fue antes de leer una palabra. Por eso
+`Movimiento` de `lib/actividad.ts` tiene un campo `cambio` y no un verbo más un
+destino.
+
+## "En partida ahora" es una línea de estado, no un módulo
+
+Tenía sección propia con título y lista, en el medio de Inicio. Dos problemas:
+cuando hay alguien jugando es lo más urgente de la pantalla y estaba tercero, y
+cuando no hay nadie —que es casi siempre— desaparecía y dejaba un salto en el
+medio de la composición.
+
+Ahora vive en la cabecera del día, al lado de la fecha, como chips con la cara
+del campeón. Arriba cuando importa, y cuando no hay nadie se va sin mover nada
+de lugar porque no era una fila de la grilla.
 
 ## El ladder perdió su banda de encabezado de columnas
 

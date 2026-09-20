@@ -48,10 +48,19 @@ export interface Movimiento {
   tag: string;
   profileIconUrl: string | null;
   tipo: TipoMovimiento;
-  /** El título del movimiento, ya en castellano. */
-  texto: string;
-  /** El contexto corto que va al lado, o null si el título se basta solo. */
-  detalle: string | null;
+  /**
+   * QUÉ cambió, en una sola línea y ya en castellano: "Esmeralda 2 →
+   * Esmeralda 1", "+73 LP", "4 ganadas al hilo".
+   *
+   * Va en un solo campo y no partido en "verbo" + "destino" porque en la
+   * pantalla es UNA unidad: el nombre arriba y esto abajo, juntos. Antes eran
+   * dos pedazos —"Ascendió a Esmeralda 1" contra el borde derecho y "desde
+   * Esmeralda 2" abajo del nombre, a setecientos píxeles— y había que leer de
+   * punta a punta para armar una frase que es una sola cosa.
+   */
+  cambio: string;
+  /** El contexto corto que va al lado, o null si el cambio se basta solo. */
+  contexto: string | null;
   /** Para pintarlo: si el movimiento es bueno, malo o neutro. */
   tono: "bueno" | "malo" | "neutro";
   /**
@@ -115,8 +124,11 @@ export function movimientosRecientes(players: Player[], ahora = Date.now()): Mov
         elegido = {
           ...base,
           tipo: subio ? "ascenso" : "descenso",
-          texto: `${subio ? "Ascendió" : "Bajó"} a ${rangoTexto(ultima.tier, ultima.division)}`,
-          detalle: `desde ${rangoTexto(previa.tier, previa.division)}`,
+          // De dónde a dónde, con la flecha en el medio. Decía "Ascendió a
+          // Esmeralda 1" y abajo "desde Esmeralda 2": dos pedazos de la misma
+          // frase, y el verbo lo dice igual de bien la flecha del costado.
+          cambio: `${rangoTexto(previa.tier, previa.division)} → ${rangoTexto(ultima.tier, ultima.division)}`,
+          contexto: null,
           tono: subio ? "bueno" : "malo",
           // Por encima de cualquier movimiento de LP puro: 10.000 es más que
           // el LP que se puede mover en un día por cualquier camino.
@@ -126,8 +138,8 @@ export function movimientosRecientes(players: Player[], ahora = Date.now()): Mov
         elegido = {
           ...base,
           tipo: "lp",
-          texto: `${delta > 0 ? "+" : "−"}${Math.abs(delta)} LP`,
-          detalle: rangoTexto(ultima.tier, ultima.division),
+          cambio: `${delta > 0 ? "+" : "−"}${Math.abs(delta)} LP`,
+          contexto: rangoTexto(ultima.tier, ultima.division),
           tono: delta > 0 ? "bueno" : "malo",
           peso: Math.abs(delta),
         };
@@ -146,8 +158,8 @@ export function movimientosRecientes(players: Player[], ahora = Date.now()): Mov
         elegido = {
           ...base,
           tipo: "racha",
-          texto: `${racha.count}${racha.capped ? "+" : ""} ${gana ? "ganadas" : "perdidas"} al hilo`,
-          detalle: rangoTexto(p.tierKey, p.division),
+          cambio: `${racha.count}${racha.capped ? "+" : ""} ${gana ? "ganadas" : "perdidas"} al hilo`,
+          contexto: rangoTexto(p.tierKey, p.division),
           tono: gana ? "bueno" : "malo",
           // Escalado para que compita con el LP sin taparlo: cinco al hilo
           // pesan como 50 LP, que es más o menos lo que valen.
