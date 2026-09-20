@@ -39,17 +39,20 @@ export function TopBar({ invocadores, enVivo, lastUpdated, desactualizados, filt
   return (
     <header className="topbar">
       <div className="brand">
-        {/* La misma marca que el ícono de la pestaña y el de la app instalada:
-            un círculo partido por una grieta. Que los tres sean el mismo dibujo
-            es la mitad de lo que hace que algo parezca un producto y no una
-            página. */}
-        <svg className="brand-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-          {/* El trazo del color del fondo abre el hueco; el dorado encima es la
-              grieta. Sin el primero se lee como un rayo pegado al círculo. */}
-          <polyline points="13,2 10,11 13,13 10,22" stroke="var(--bg)" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
-          <polyline points="13,2 10,11 13,13 10,22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        {/* El monograma GC con la lanza. Sale del PNG que subió el dueño
+            (primer_iconov1.png, 1254px y 664KB), recortado al dibujo sólido y
+            bajado a 207x256 / 27KB: el original tiene un 20% de margen
+            transparente y un glow que a 34px de alto no se ve, solo pesa.
+            El recorte deja algo de ese glow para que se desvanezca en vez de
+            cortarse con un borde duro.
+
+            Va con <img> y no con next/image por lo mismo que los avatares de
+            campeón: es un icono chico de tamaño fijo, ya optimizado, y no
+            justifica el wrapper. Y el alto manda sobre el ancho porque la
+            marca es vertical (207x256) — encajarla en un cuadrado la haría
+            ver más chica de lo que es. */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- icono local chico de tamaño fijo, ya optimizado */}
+        <img className="brand-mark" src="/icons/app/grieta-central.png" alt="" width={26} height={32} aria-hidden="true" />
         <div className="brand-text">
           <h1>Grieta Central</h1>
           <p className="brand-meta">
@@ -112,7 +115,11 @@ export function TopBar({ invocadores, enVivo, lastUpdated, desactualizados, filt
           value={filterText}
           onChange={(e) => onFilterChange(e.target.value)}
         />
-        <span className="search-hint">{canAdd ? "↵ agregar" : "/"}</span>
+        {/* La pista del atajo. Cambia a "agregar" cuando lo tipeado es un Riot
+            ID completo, así que el mismo lugar dice qué va a pasar si apretás
+            Enter. Va como <kbd> —no como <span>— porque es literalmente una
+            tecla, y así el navegador y un lector de pantalla lo saben. */}
+        <kbd className="search-hint">{canAdd ? "↵ agregar" : "/"}</kbd>
         {addStatus.kind === "adding" && <span className="search-status">Buscando en la Riot API…</span>}
         {addStatus.kind === "error" && <span className="search-status is-error">{addStatus.message}</span>}
       </form>

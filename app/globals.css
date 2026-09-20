@@ -103,41 +103,112 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .app{max-width:1180px; margin:0 auto; padding:28px 20px 80px;}
 
 /* ---------- header ---------- */
+/* GRID de tres columnas, no flex con space-between.
+   Ese era el problema de composición y no el estilo: con `space-between` las
+   tres zonas se empujan a los extremos y el buscador queda flotando en el
+   medio de lo que sobre — a 1180px de ancho, nadando. Con
+   `auto minmax(0,1fr) auto` el buscador OCUPA la columna del medio y las otras
+   dos miden lo que miden, así que las tres quedan atadas a la misma grilla en
+   vez de ser tres cosas puestas una al lado de la otra.
+   Y sin `flex-wrap`: lo angosto lo resuelve el media query de abajo a
+   propósito, no el reflow automático, que mandaba el candado solo a un
+   renglón. */
 .topbar{
-  display:flex; align-items:center; justify-content:space-between; gap:20px;
-  flex-wrap:wrap; margin-bottom:22px; padding-bottom:22px;
-  border-bottom:1px solid var(--border-soft);
+  display:grid; grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center; gap:20px;
+  position:relative; margin-bottom:18px; padding-bottom:16px;
 }
-.brand{display:flex; align-items:center; gap:12px;}
-.brand-text h1{
-  font-family:var(--font-display); font-weight:700; font-size:22px; letter-spacing:0.01em;
-  margin:0; text-wrap:balance;
+/* El separador se desvanece en las puntas en vez de cortar de lado a lado.
+   Una línea de borde a borde es lo que hace que un header se lea como el
+   encabezado de un formulario; con las puntas en transparente separa igual y
+   deja de ser un renglón de tabla. */
+.topbar::after{
+  content:""; position:absolute; left:0; right:0; bottom:0; height:1px;
+  background:linear-gradient(90deg, transparent, var(--border-soft) 10%, var(--border-soft) 90%, transparent);
 }
-.brand-text p{margin:1px 0 0; font-size:12.5px; color:var(--text-muted);}
 
-.search-wrap{position:relative; flex:1; min-width:240px; max-width:420px;}
+/* El lockup: marca y nombre pegados, como UNA identidad. El gap de 12 con un
+   ícono de 29 los dejaba leyéndose como dos elementos vecinos. */
+.brand{display:flex; align-items:center; gap:10px; min-width:0;}
+/* Alto fijo y ancho automático: la marca es vertical (207x256) y meterla en un
+   cuadrado la haría ver más chica de lo que es. */
+.brand-mark{height:34px; width:auto; flex:none; display:block;}
+.brand-text{min-width:0;}
+.brand-text h1{
+  font-family:var(--font-display); font-weight:650; font-size:19px; letter-spacing:-0.004em;
+  line-height:1.15; margin:0;
+}
+.brand-text p{margin:2px 0 0; font-size:12px; line-height:1.25; color:var(--text-muted);}
+
+/* El buscador es la acción principal, así que se ancla al centro de SU columna
+   y no al centro de lo que sobra. El alto (38) es el mismo del candado: las
+   dos puntas de la barra apoyan en la misma línea. */
+.search-wrap{position:relative; justify-self:center; width:100%; max-width:520px;}
 .search-input{
-  width:100%; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow-sm);
-  border-radius:999px; padding:10px 16px 10px 40px; color:var(--text-primary);
-  font-family:var(--font-body); font-size:13.5px; outline:none;
-  transition:border-color .15s ease, background .15s ease;
+  width:100%; height:38px; display:block;
+  background:var(--surface); border:1px solid var(--border-soft);
+  /* radius-md y no 999px: la píldora es lo único de la app que no usa el
+     sistema de radios, y es justo lo que la hacía parecer de otra época. */
+  border-radius:var(--radius-md);
+  padding:0 66px 0 36px; color:var(--text-primary);
+  font-family:var(--font-body); font-size:13px; outline:none;
+  transition:border-color .15s ease, background .15s ease, box-shadow .15s ease;
 }
 .search-input::placeholder{color:var(--text-muted);}
-.search-input:focus{border-color:var(--accent-dim); background:var(--surface-raised);}
-.search-icon{
-  position:absolute; left:14px; top:50%; transform:translateY(-50%);
-  width:15px; height:15px; color:var(--text-muted); pointer-events:none;
+/* Hover en el WRAP y no en el input: el área sensible incluye la lupa y la
+   tecla, que es lo que uno percibe como "el buscador". */
+.search-wrap:hover .search-input{background:var(--surface-raised); border-color:rgba(255,255,255,0.10);}
+/* Foco con anillo y no con glow. Arrancó en accent-wash-soft (7%) y en la
+   captura no se veía: un foco que no se percibe no es sutil, es un foco roto.
+   Con accent-wash (12%) se lee sin brillar. */
+.search-input:focus{
+  background:var(--surface-raised); border-color:var(--accent-dim-border);
+  box-shadow:0 0 0 3px var(--accent-wash);
 }
+/* El candado con el mismo anillo, para que las dos acciones de la barra tengan
+   el mismo foco. Antes no tenía ninguno visible. */
+.cerradura:focus-visible{
+  outline:none; border-color:var(--accent-dim-border);
+  box-shadow:0 0 0 3px var(--accent-wash);
+}
+.search-icon{
+  position:absolute; left:13px; top:50%; transform:translateY(-50%);
+  width:14px; height:14px; color:var(--text-muted); pointer-events:none;
+  transition:color .15s ease;
+}
+.search-wrap:focus-within .search-icon{color:var(--text-secondary);}
+/* Como una tecla de verdad: fondo propio, borde y el mismo mono de la app. */
 .search-hint{
-  position:absolute; right:12px; top:50%; transform:translateY(-50%);
-  font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted);
-  border:1px solid var(--border); border-radius:5px; padding:2px 6px;
-  pointer-events:none;
+  position:absolute; right:8px; top:50%; transform:translateY(-50%);
+  font-family:var(--font-mono); font-size:10px; line-height:1; color:var(--text-muted);
+  background:var(--surface-raised); border:1px solid var(--border-soft);
+  border-radius:var(--radius-sm); padding:4px 6px;
+  pointer-events:none; white-space:nowrap;
 }
 .search-status{
-  position:absolute; top:calc(100% + 6px); left:16px; font-size:11.5px; color:var(--text-muted);
+  position:absolute; top:calc(100% + 6px); left:14px; font-size:11.5px; color:var(--text-muted);
 }
 .search-status.is-error{color:var(--critical);}
+
+/* Angosto: dos renglones a propósito. Identidad y candado arriba —el candado
+   queda enganchado a la fila de la identidad en vez de irse solo— y el
+   buscador abajo, a todo el ancho, que es donde más lo vas a usar. */
+@media (max-width:820px){
+  .topbar{grid-template-columns:minmax(0,1fr) auto; gap:14px 16px; padding-bottom:14px;}
+  /* Ubicadas a mano y no por auto-placement. Con el buscador en `1 / -1` el
+     acomodado automático lo manda a un renglón nuevo y empuja al candado a un
+     TERCER renglón, solo y a la izquierda — se vio en la captura de 430px.
+     Diciendo dónde va cada una, el candado queda enganchado a la fila de la
+     identidad, que es lo que se quería. */
+  .brand{grid-column:1; grid-row:1;}
+  .topbar > .cerradura{grid-column:2; grid-row:1; justify-self:end;}
+  .search-wrap{grid-column:1 / -1; grid-row:2; max-width:none; justify-self:stretch;}
+}
+@media (max-width:420px){
+  .brand-mark{height:30px;}
+  .brand-text h1{font-size:17px;}
+  .brand-text p{font-size:11.5px;}
+}
 
 /* ---------- tab nav ---------- */
 .tabnav{
@@ -2949,9 +3020,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 
 /* ── Cabecera y barra de secciones ────────────────────────────────────────
    La marca es la misma que el favicon y el ícono de la app instalada. */
-.brand-mark{width:29px; height:29px; flex:none; color:var(--accent);}
-.brand-meta{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
-.brand-sep{opacity:0.45;}
+.brand-meta{display:flex; align-items:center; gap:0; flex-wrap:wrap;}
+/* El punto separador es puntuación, no contenido: bien tenue y con el aire
+   metido en el margen, así los grupos se leen como grupos. Con gap:6 y opacidad
+   0.45 los puntos pesaban casi como las palabras. */
+.brand-sep{opacity:0.3; margin:0 7px;}
 /* Ámbar y no rojo: alguien atrasado no es un error de la app, es un aviso
    de que a ese invocador le viene fallando el refresco. */
 .brand-atrasados{color:var(--accent);}
@@ -3311,7 +3384,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    que escribe o que cuesta. De ahí que sea chico y esté al costado. */
 .cerradura{
   display:inline-flex; align-items:center; justify-content:center; flex:none;
-  width:32px; height:32px; border-radius:var(--radius-sm);
+  /* 38 y radius-md para que apoye en la misma línea y hable el mismo idioma
+     que el buscador. Con 32 y radius-sm quedaba como un botón de otra pantalla
+     pegado al final de la barra. */
+  width:38px; height:38px; border-radius:var(--radius-md);
   border:1px solid var(--border-soft); background:var(--surface);
   color:var(--text-muted); cursor:pointer;
   transition:color .12s ease, border-color .12s ease, background .12s ease;
