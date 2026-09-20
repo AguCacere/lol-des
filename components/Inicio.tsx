@@ -25,14 +25,21 @@ interface InicioProps {
 
 const clave = (p: Player) => `${p.name}#${p.tag}`;
 
-/** "domingo 20 de septiembre", en argentino. */
+/**
+ * "domingo 20 de septiembre", en argentino y SIN la coma que mete el
+ * formateador después del día de la semana. Acá la fecha ya viene detrás de
+ * un punto medio ("Hoy · …") y dos signos de puntuación seguidos en un rótulo
+ * de once píxeles se leen como un error de tipeo.
+ */
 function fechaDeHoy(): string {
-  return new Date().toLocaleDateString("es-AR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    timeZone: "America/Argentina/Buenos_Aires",
-  });
+  return new Date()
+    .toLocaleDateString("es-AR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      timeZone: "America/Argentina/Buenos_Aires",
+    })
+    .replace(",", "");
 }
 
 /**
@@ -138,56 +145,64 @@ export function Inicio({ players, loading, ddragonVersion, onPlayer, onRanking, 
 
   return (
     <div className="inicio">
-      {/* ═══ 1. La cabecera del día ═══
-          Los números del día a la izquierda, el calendario y quién está
-          jugando a la derecha. Sin superficie y sin rótulo: es la primera
-          línea de la página y un encabezado arriba sería un rótulo para un
-          rótulo. Es también el ÚNICO lugar donde se cuentan las partidas de
-          hoy — no se repite más abajo en una card de estado. */}
-      <header className="inicio-intro">
-        <div className="inicio-intro-dato">
+      {/* ═══ 1. El pulso de hoy ═══
+          Una FRANJA, no un encabezado. El cambio es conceptual y no de
+          tamaño: "20 partidas hoy" en 34px era el <h1> de una página que
+          parecía llamarse así, cuando en realidad es una MÉTRICA — el
+          contexto del día, no el título de nada. Y con la fecha y el jugador
+          en vivo tirados contra el borde derecho, la franja se leía como tres
+          cosas sueltas en vez de una.
+
+          Ahora son dos renglones y una sola unidad: arriba el rótulo con la
+          fecha, abajo la línea de datos con el estado vivo al final. La
+          jerarquía la hace el TAMAÑO de cada pedazo dentro de la frase, no un
+          titular gigante arriba de una metadata. */}
+      <header className="pulso">
+        <p className="pulso-rotulo">
+          Hoy <span className="pulso-fecha">· {fechaDeHoy()}</span>
+        </p>
+        <div className="pulso-linea">
           {hoy.partidas === 0 ? (
-            <>
-              <h2 className="inicio-titular">Todavía no jugó nadie</h2>
-              <p className="inicio-sub">{players.length} invocadores en el grupo</p>
-            </>
+            <p className="pulso-datos">
+              <span className="pulso-cifra">Todavía no jugó nadie</span>
+            </p>
           ) : (
-            <>
-              <h2 className="inicio-titular">
-                {hoy.partidas} partida{hoy.partidas === 1 ? "" : "s"} hoy
-              </h2>
-              <p className="inicio-sub">
-                <span className="wc-v">{hoy.victorias}V</span>
-                <span className="wc-sep">·</span>
-                <span className="wc-d">{hoy.derrotas}D</span>
-                <span className="inicio-sub-sep">·</span>
+            <p className="pulso-datos">
+              <span className="pulso-cifra">
+                {hoy.partidas} partida{hoy.partidas === 1 ? "" : "s"}
+              </span>
+              {/* El primero lleva clase propia porque en celular se esconde:
+                  la cifra se lleva su renglón y este punto quedaría abriendo
+                  el de abajo. `:first-of-type` no sirve — el primer <span> de
+                  la frase es la cifra, no un separador. */}
+              <span className="pulso-sep pulso-sep-corte">·</span>
+              <span className="pulso-vd">
+                <b className="wc-v">{hoy.victorias}V</b> <i>·</i> <b className="wc-d">{hoy.derrotas}D</b>
+              </span>
+              <span className="pulso-sep">·</span>
+              <span className="pulso-meta">
                 {hoy.jugaron} de {players.length} jugaron
-              </p>
-            </>
+              </span>
+            </p>
           )}
-        </div>
-        <div className="inicio-intro-dia">
-          <span className="inicio-fecha">{fechaDeHoy()}</span>
-          {/* "En partida ahora" vive acá y no en una sección propia más abajo.
-              Es una línea de estado, no un módulo: cuando hay alguien jugando
-              es lo más urgente de la pantalla y tiene que estar arriba; cuando
-              no hay nadie, desaparece sin dejar un hueco en la composición. */}
+          {/* El estado vivo cierra la franja en vez de flotar arriba a la
+              derecha. Es lo único verde de la zona: el verde acá significa
+              "está pasando ahora", no "es bueno". */}
           {enVivo.length > 0 && (
-            <div className="inicio-vivo">
+            <div className="pulso-vivo">
               <span className="live-dot" />
-              {enVivo.slice(0, 3).map((p) => (
-                <button
-                  type="button"
-                  className="inicio-vivo-chip"
-                  key={clave(p)}
-                  onClick={() => onPlayer(clave(p))}
-                  title={`${p.name} · ${championLabel(p.liveGame!.champion)} · ${liveGameTimeLabel(p.liveGame!.startedMinutesAgo)}`}
-                >
-                  <ChampIcon champ={p.liveGame!.champion} version={ddragonVersion} className="inicio-vivo-champ" />
-                  <span className="inicio-vivo-nombre">{p.name}</span>
-                </button>
-              ))}
-              {enVivo.length > 3 && <span className="inicio-vivo-mas">+{enVivo.length - 3}</span>}
+              <button
+                type="button"
+                className="pulso-vivo-chip"
+                onClick={() => onPlayer(clave(enVivo[0]))}
+                title={`${enVivo[0].name} · ${championLabel(enVivo[0].liveGame!.champion)} · ${liveGameTimeLabel(enVivo[0].liveGame!.startedMinutesAgo)}`}
+              >
+                <ChampIcon champ={enVivo[0].liveGame!.champion} version={ddragonVersion} className="pulso-vivo-champ" />
+                <span className="pulso-vivo-nombre">{enVivo[0].name}</span>
+              </button>
+              <span className="pulso-vivo-txt">
+                {enVivo.length === 1 ? "está jugando" : `y ${enVivo.length - 1} más están jugando`}
+              </span>
             </div>
           )}
         </div>

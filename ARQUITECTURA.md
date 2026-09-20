@@ -280,8 +280,8 @@ descarta.
 `stats` · `versus` · `clash` · `team`), `LiveTray` y `CommandPalette` viven fuera de las
 pestañas.
 
-- **Inicio** → `Inicio`. El hub. Tres zonas, no una pila de secciones: la cabecera del
-  día (`.inicio-intro`: qué pasó hoy, la fecha y quién está jugando), la liga
+- **Inicio** → `Inicio`. El hub. Tres zonas, no una pila de secciones: la franja del
+  día (`.pulso`: la fecha, los números de hoy y quién está jugando, en ~46px), la liga
   (`.liga-spot`, la ÚNICA superficie de la pantalla) y una grilla de áreas
   (`.inicio-cuerpo`) donde el ladder va abajo de la liga y "qué se movió" ocupa las dos
   filas de la derecha. El interior de la card de la liga se parte en dos por

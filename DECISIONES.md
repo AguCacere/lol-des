@@ -1876,6 +1876,67 @@ dándole a cada bloque el ancho que su contenido pide.** Hoy lo hace la grilla
 Si aparece un bloque nuevo con "algo a la izquierda y un número a la derecha",
 la pregunta no es qué `max-width` ponerle: es en qué columna va.
 
+## La franja del día NO es el título de la página
+
+"20 partidas hoy" en 34px, con la fecha y el jugador en vivo contra el borde
+derecho. Parecía el `<h1>` de una web llamada *20 partidas hoy*, y la franja se
+leía como tres cosas sueltas en vez de una.
+
+El error era conceptual, no de tamaño: **eso es una MÉTRICA —el contexto del
+día— y no el título de nada.** El nivel 1 de Inicio es la frase de la liga, que
+es lo que está en juego; esta franja es con qué se la lee.
+
+Ahora son dos renglones y ~46px de alto: el rótulo con la fecha arriba, y abajo
+una sola frase —"49 partidas · 32V · 17D · 7 de 7 jugaron"— con el estado vivo
+cerrándola. La jerarquía vive DENTRO de la frase (20px la cifra, 13 el récord,
+12 la metadata) en vez de estar repartida entre un titular gigante y una línea
+de metadata.
+
+Y se fue la divisoria de borde a borde que tenía debajo. La card de la liga
+empieza treinta píxeles más abajo y su propio borde ya separa: **una línea de
+1140px para despegar dos renglones de texto era un corte más fuerte que lo que
+estaba cortando.**
+
+En celular la cifra se lleva su propio renglón. Entra en una sola línea con los
+números de hoy, pero con tres dígitos de partidas y "14 de 14" el corte cae en
+el medio de un grupo; partirlo a propósito es más robusto que dejar que lo
+parta el ancho.
+
+## El feed tiene un hilo, y se tiene que ver
+
+"Qué se movió" eran cinco renglones de texto y se leía como otra tabla. Ahora
+lleva un hilo vertical de 1px que corre a lo largo de todos los eventos: eso es
+lo que lo convierte en ACTIVIDAD, una cosa atrás de la otra en el tiempo.
+
+Arranca y termina adentro del primer y el último evento para no sobresalir por
+las puntas como una barra, y el botón de cada fila empieza doce píxeles a la
+derecha para que el fondo del hover no se lo coma.
+
+**Va en `--border-firm` (13%) y no en `--border-soft` (6%).** Al 6% sobre el
+fondo real —#050504— el hilo directamente no se veía; se descubrió mirando la
+captura, no el valor. Es la misma regla que ya estaba anotada para el anillo de
+foco: lo que no se percibe no es sutil, es que no está.
+
+Y el aire: más ENTRE eventos (11px), menos DENTRO (1px entre el nombre y su
+cambio). Antes estaban parejos y la lista se leía como diez renglones en vez de
+cinco cosas que pasaron.
+
+## Las dos columnas de Inicio arrancan en la misma línea
+
+El título de "Qué se movió" se alinea con el RÓTULO de la liga, no con el borde
+de arriba de la card: el desplazamiento es el padding de la card más su borde
+(18px). Los dos textos arrancan en la misma horizontal y las dos columnas se
+leen como una composición, en vez de dos bloques puestos al lado.
+
+## "N invocadores trackeados." no va en Inicio
+
+Es exactamente lo que dice la barra de arriba —"N invocadores"— en todas las
+pantallas, y solo al final de una página se lee como una nota técnica.
+
+Se saca **solo en Inicio**. En las otras pestañas se queda, porque ahí el
+"Cargando ladder…" que comparte ese mismo renglón todavía es la única señal de
+que algo está viniendo: no tienen esqueleto propio.
+
 ## La composición de Inicio: una grilla, no cuatro secciones apiladas
 
 La primera versión apilaba título, card, título, lista, título, lista. El

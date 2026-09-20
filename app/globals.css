@@ -4921,8 +4921,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 
    Tres zonas, tres pesos distintos:
 
-     1. `.inicio-intro`  — la cabecera del día. Dos lados: los números de hoy
-                           y el calendario con quién está jugando. Sin caja.
+     1. `.pulso`         — la franja del día: rótulo con la fecha arriba, los
+                           números y el estado vivo abajo. Sin caja y sin
+                           divisoria: son ~48px de alto, no una sección.
      2. `.liga-spot`     — la liga. La ÚNICA superficie de la pantalla, porque
                            es lo único temporal: tiene cuenta regresiva y
                            premio, y esa tensión es la razón de volver a
@@ -4948,55 +4949,75 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    abajo se activan recién cuando hay ancho de verdad. */
 .inicio{display:flex; flex-direction:column; gap:18px;}
 
-/* ── 1. La cabecera del día ──────────────────────────────────────────────── */
-.inicio-intro{
-  display:flex; align-items:flex-end; justify-content:space-between;
-  gap:16px; flex-wrap:wrap;
-  padding-bottom:14px; border-bottom:1px solid var(--border-soft);
+/* ── 1. El pulso de hoy ─────────────────────────────────────────────────── */
+/* Una FRANJA, no un encabezado de página. Dos renglones, ~48px de alto, sin
+   superficie y SIN la divisoria de borde a borde que tenía: la card de la
+   liga empieza treinta píxeles más abajo y su propio borde ya separa. Una
+   línea de 1140px para despegar dos renglones de texto era un corte más
+   fuerte que lo que estaba cortando.
+
+   Lo que se arregló acá es conceptual, no de tamaño: "20 partidas hoy" en
+   34px era el <h1> de una página que parecía llamarse así. Es una MÉTRICA
+   —el contexto del día— y ahora la jerarquía vive dentro de la frase. */
+.pulso{display:flex; flex-direction:column; gap:5px;}
+.pulso-rotulo{
+  margin:0; font-size:10.5px; font-weight:700; letter-spacing:0.09em;
+  text-transform:uppercase; color:var(--text-secondary);
 }
-.inicio-intro-dato{display:flex; flex-direction:column; gap:2px; min-width:0;}
-/* El dato del día es el nivel 1 de la página. Es un <h2> y no un <p> con
-   estilo: es el encabezado real de la pantalla. */
-.inicio-titular{
-  margin:0; font-family:var(--font-display); font-size:26px; font-weight:800;
-  letter-spacing:-0.025em; color:var(--text-primary); line-height:1.05;
+.pulso-fecha{color:var(--text-muted); font-weight:600;}
+.pulso-linea{
+  display:flex; align-items:baseline; justify-content:space-between;
+  gap:14px 20px; flex-wrap:wrap;
 }
-.inicio-sub{
-  margin:0; display:flex; align-items:center; gap:4px; flex-wrap:wrap;
-  font-family:var(--font-mono); font-size:11.5px; font-weight:600;
-  color:var(--text-muted); font-variant-numeric:tabular-nums;
+/* Los tres datos en UNA frase, separados por puntos medios y no por columnas:
+   son "20 partidas, de las cuales 12 se ganaron, entre 6 personas". Tres
+   celdas de una grilla dirían que son tres cosas distintas. */
+.pulso-datos{
+  margin:0; display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; min-width:0;
 }
-.inicio-sub .wc-v{color:var(--good);}
-.inicio-sub .wc-d{color:var(--critical);}
-.inicio-sub .wc-sep, .inicio-sub-sep{color:var(--text-muted); opacity:0.5;}
-/* En celular esto cae a un renglón propio debajo del titular, así que va
-   alineado a la IZQUIERDA como todo lo demás. Estaba con `align-items:flex-end`
-   siempre y, al envolver, el chip de "en partida" se acomodaba contra el borde
-   derecho de la fecha —que es lo único que hay al lado— y quedaba flotando a
-   cien píxeles del margen, alineado con nada. Se endereza recién a los 768,
-   cuando de verdad comparte renglón con el titular. */
-.inicio-intro-dia{display:flex; flex-direction:column; align-items:flex-start; gap:6px; min-width:0;}
-.inicio-vivo{justify-content:flex-start;}
-.inicio-fecha{
-  font-size:11px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase;
-  color:var(--text-muted);
+/* En celular la cifra se lleva su propio renglón y el resto baja completo.
+   Entra en una sola línea con los números de hoy —"49 partidas · 32V · 17D · 7
+   de 7 jugaron"—, pero con tres dígitos de partidas y "14 de 14" se parte por
+   cualquier lado y el corte cae en el medio de un grupo. Partirlo a propósito
+   es más robusto que dejar que lo parta el ancho. El punto medio que quedaría
+   abriendo el segundo renglón se esconde. */
+@media (max-width:767px){
+  .pulso-cifra{flex:1 0 100%;}
+  .pulso-sep-corte{display:none;}
 }
-/* Quién está jugando AHORA. Es una línea de estado y no un módulo: cuando hay
-   alguien es lo más urgente de la pantalla y tiene que estar arriba; cuando no
-   hay nadie, desaparece sin dejar un hueco en la composición. */
-.inicio-vivo{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
-.inicio-vivo-chip{
-  display:inline-flex; align-items:center; gap:6px;
+/* El dato principal. Grande, pero del tamaño de un dato y no de un título:
+   el nivel 1 de la página es la frase de la liga, que es lo que está en
+   juego. Esto es el contexto con el que se la lee. */
+.pulso-cifra{
+  font-family:var(--font-display); font-size:20px; font-weight:800;
+  letter-spacing:-0.02em; color:var(--text-primary); line-height:1.15;
+}
+.pulso-sep{color:var(--text-muted); opacity:0.45; font-size:13px;}
+.pulso-vd{
+  font-family:var(--font-mono); font-size:13px; font-weight:700;
+  font-variant-numeric:tabular-nums;
+}
+.pulso-vd .wc-v{color:var(--good);}
+.pulso-vd .wc-d{color:var(--critical);}
+.pulso-vd i{font-style:normal; color:var(--text-muted); opacity:0.5;}
+.pulso-meta{font-size:12px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+/* El estado vivo CIERRA la franja en vez de flotar arriba a la derecha. Es lo
+   único verde de la zona, y acá el verde significa "está pasando ahora", no
+   "es bueno" — por eso lo lleva el punto y no el texto. */
+.pulso-vivo{display:flex; align-items:center; gap:7px; min-width:0;}
+.pulso-vivo-chip{
+  display:inline-flex; align-items:center; gap:6px; min-width:0;
   appearance:none; -webkit-appearance:none; border:none; cursor:pointer;
-  background:var(--surface); border-radius:999px; padding:3px 10px 3px 3px;
-  color:var(--text-secondary); font-family:var(--font-body); font-size:12px; font-weight:600;
-  transition:background .12s ease, color .12s ease;
+  background:none; padding:0; border-radius:var(--radius-sm);
+  color:var(--text-primary); font-family:var(--font-display);
+  font-size:13px; font-weight:700;
+  transition:color .12s ease;
 }
-.inicio-vivo-chip:hover{background:var(--surface-hover); color:var(--text-primary);}
-.inicio-vivo-chip:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
-.inicio-vivo-champ{width:20px; height:20px; border-radius:50%; flex:none;}
-.inicio-vivo-nombre{max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.inicio-vivo-mas{font-size:11px; color:var(--text-muted); font-weight:600;}
+.pulso-vivo-chip:hover{color:var(--accent);}
+.pulso-vivo-chip:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+.pulso-vivo-champ{width:20px; height:20px; border-radius:50%; flex:none;}
+.pulso-vivo-nombre{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.pulso-vivo-txt{font-size:12px; color:var(--text-muted); white-space:nowrap;}
 
 /* ── 2. La liga ──────────────────────────────────────────────────────────── */
 /* La única card. Filete dorado y nada más: sin degradado, sin glow y sin
@@ -5183,11 +5204,35 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 
    La flecha del costado reemplaza al verbo: con "↑" adelante, "Esmeralda 2 →
    Esmeralda 1" ya no necesita el "Ascendió". */
-.inicio-movidas{list-style:none; margin:0; padding:0;}
+/* El hilo. Un pelo de 1px que corre a lo largo de todos los eventos: es lo
+   que convierte cinco renglones de texto en ACTIVIDAD, una cosa atrás de la
+   otra en el tiempo. Va apenas visible a propósito —el mismo color que
+   cualquier divisoria de la app— porque si se nota es una decoración y no un
+   hilo.
+
+   Arranca y termina adentro del primer y el último evento (top/bottom 10px)
+   para no sobresalir por las puntas como una barra. */
+.inicio-movidas{list-style:none; margin:0; padding:0; position:relative;}
+.inicio-movidas::before{
+  content:""; position:absolute; left:0; top:10px; bottom:10px; width:1px;
+  /* --border-firm y no --border-soft: al 6% sobre el fondo real (#050504) el
+     hilo directamente no se veía —medido en la captura, no en el valor— y un
+     hilo que no se percibe no es sutil, es que no está. Al 13% se lee como
+     estructura sin pedir atención, que es para lo que existe ese token. */
+  background:var(--border-firm);
+}
+/* Más aire ENTRE eventos, menos DENTRO. Antes los cinco estaban parejos y la
+   lista se leía como una tabla de diez renglones en vez de cinco cosas que
+   pasaron. El nombre y su cambio siguen a 1px; lo que crece es la distancia
+   al evento siguiente. */
+.inicio-movidas li + li{margin-top:11px;}
+/* El botón arranca DESPUÉS del hilo para que el fondo del hover no se lo
+   coma: el hilo vive en el 0 y la fila en el 12. */
 .inicio-movida{
-  display:flex; align-items:flex-start; gap:9px; width:100%; text-align:left;
+  display:flex; align-items:flex-start; gap:9px;
+  width:calc(100% - 12px); margin-left:12px; text-align:left;
   appearance:none; -webkit-appearance:none; border:none; cursor:pointer;
-  background:none; padding:7px 8px 7px 0; border-radius:var(--radius-sm);
+  background:none; padding:3px 8px 3px 0; border-radius:var(--radius-sm);
   transition:background .12s ease;
 }
 .inicio-movida:hover{background:var(--surface-hover);}
@@ -5216,7 +5261,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* ── Esqueletos ─────────────────────────────────────────────────────────── */
 /* Con el alto real de cada zona, no un "Cargando…": el cartel de texto mide
    otra cosa y cuando llegan los datos la página entera pega un salto. */
-.sk-inicio-intro{height:56px; border-radius:var(--radius-sm);}
+.sk-inicio-intro{height:46px; border-radius:var(--radius-sm);}
 .sk-inicio-liga{height:132px; border-radius:var(--radius-lg);}
 .sk-inicio-lista{height:132px; border-radius:var(--radius-sm);}
 
@@ -5225,24 +5270,22 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    se partió sola antes, por su consulta de contenedor. */
 @media (min-width:768px){
   .inicio{gap:22px;}
-  .inicio-intro-dia{align-items:flex-end; text-align:right; flex:none;}
-  .inicio-vivo{justify-content:flex-end;}
   .inicio-cuerpo{
     grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);
     grid-template-areas:"liga movidas" "ladder movidas";
     gap:22px 34px;
     align-items:start;
   }
-  /* La divisoria de los movimientos arranca a la misma altura que el borde de
-     arriba de la card: las dos columnas empiezan en la misma línea. */
-  .zona-movidas{padding-top:2px;}
-  .inicio-titular{font-size:30px;}
+  /* El título de los movimientos se alinea con el RÓTULO de la liga, no con
+     el borde de la card: los dos textos arrancan en la misma línea y las dos
+     columnas se leen como una composición y no como dos bloques puestos al
+     lado. El desplazamiento es el padding de la card (17px) más su borde. */
+  .zona-movidas{padding-top:18px;}
 }
 /* 1024px y arriba: más aire y el dato del día un escalón más grande. La
    estructura NO cambia: ya está resuelta desde los 768. */
 @media (min-width:1024px){
   .inicio{gap:26px;}
   .inicio-cuerpo{gap:26px 44px;}
-  .inicio-titular{font-size:34px;}
-  .inicio-intro{padding-bottom:16px;}
+  .pulso-cifra{font-size:22px;}
 }

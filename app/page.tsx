@@ -393,11 +393,19 @@ export default function Home() {
         </div>
       )}
 
-      <p className="footnote">
-        {loading
-          ? "Cargando ladder…"
-          : `${players.length} invocador${players.length === 1 ? "" : "es"} trackeados.`}
-      </p>
+      {/* En Inicio no va. "N invocadores trackeados." al pie es exactamente lo
+          mismo que dice la barra de arriba —"N invocadores"— treinta píxeles
+          más arriba y en todas las pantallas, y solo al final de una página se
+          lee como una nota técnica. En el resto de las pestañas queda: ahí el
+          "Cargando ladder…" todavía es la única señal de que algo está
+          viniendo, porque no tienen esqueleto propio. */}
+      {tab !== "inicio" && (
+        <p className="footnote">
+          {loading
+            ? "Cargando ladder…"
+            : `${players.length} invocador${players.length === 1 ? "" : "es"} trackeados.`}
+        </p>
+      )}
 
       <LiveTray players={players} ddragonVersion={ddragonVersion} onPlayer={abrirPerfil} />
     </div>
