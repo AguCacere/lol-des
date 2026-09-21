@@ -1928,14 +1928,23 @@ de arriba de la card: el desplazamiento es el padding de la card más su borde
 (18px). Los dos textos arrancan en la misma horizontal y las dos columnas se
 leen como una composición, en vez de dos bloques puestos al lado.
 
-## "N invocadores trackeados." no va en Inicio
+## "N invocadores trackeados." no va en ningún lado
 
 Es exactamente lo que dice la barra de arriba —"N invocadores"— en todas las
-pantallas, y solo al final de una página se lee como una nota técnica.
+pantallas, y al final de una página se lee como una nota técnica.
 
-Se saca **solo en Inicio**. En las otras pestañas se queda, porque ahí el
-"Cargando ladder…" que comparte ese mismo renglón todavía es la única señal de
-que algo está viniendo: no tienen esqueleto propio.
+Sacarlo destapó algo que ese pie venía tapando: mientras carga el ladder,
+`players` está vacío, y con la lista vacía **Estadísticas afirma "Todavía nadie
+llega a 20 partidas" y Cara a cara "Hace falta más de un invocador"**. Las dos
+son afirmaciones sobre datos que todavía no llegaron, y las dos son falsas. El
+"Cargando ladder…" del pie era lo único que las desmentía.
+
+Por eso esas dos pestañas ahora muestran `<Cargando/>` EN LUGAR de su
+contenido mientras carga, no además. Ranking no lo necesita (la tabla dibuja
+filas fantasma) ni Clash ni Equipo (tienen su propio `loading`).
+
+Es el patrón, no el caso: **un estado vacío que se dibuja sin saber si hay
+datos no es un estado vacío, es una mentira con formato de cartel.**
 
 ## La composición de Inicio: una grilla, no cuatro secciones apiladas
 
@@ -2091,6 +2100,29 @@ de la semana ya está arriba, en la fila del jugador.
 **Y el encabezado es ahora un botón, así que entró a la auditoría de área táctil.**
 Medido a 390px daba 24px de alto. Tiene su `padding-block` en el bloque
 `@media (pointer:coarse)`, igual que los otros controles chicos.
+
+## Una partida anulada dice POR QUÉ, no "no contó"
+
+Las tres razones —se te fue un compañero, pérdida mitigada, duo con alguien de
+afuera— decían lo mismo: **"no contó"**, con el motivo escondido en el
+`title`. O sea que para saber cuál de las tres era había que pasar el mouse, y
+en un teléfono directamente no había forma.
+
+El desglose existe para terminar discusiones. Una respuesta que exige hover no
+termina ninguna.
+
+Ahora la etiqueta ES el motivo: `mitigada`, `compa AFK`, `duo de afuera`. El
+`title` sigue con la regla entera. Que la partida no sumó lo dicen el lugar
+donde está escrito —el del puntaje— y la fila apagada, no la palabra.
+
+Las tres entran en la columna de 76px sin empujar nada (medido: 42, 51 y 66px
+a 1280 y a 390). Y `.liga-partida-anulada` perdió su
+`text-transform:lowercase`: estaba para uniformar las tres etiquetas viejas y
+ahora se comía el acrónimo, "compa afk".
+
+Viven en `MOTIVOS` (`components/LigaSemanal.tsx`), un mapa razón → etiqueta +
+detalle. Una razón nueva se agrega ahí y nada más; el ternario anidado de
+antes ya había hecho decir "Se te fue un compañero" a una anulada por duo.
 
 ## La marca del bonus de racha
 

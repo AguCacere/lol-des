@@ -31,6 +31,27 @@ function sameLiveGame(a: LiveGame | null, b: LiveGame | null): boolean {
   return a.gameId === b.gameId && a.champion === b.champion && a.startedMinutesAgo === b.startedMinutesAgo;
 }
 
+/**
+ * "Cargando…" para las dos pestañas que no tienen esqueleto propio.
+ *
+ * Existe porque al sacar el pie de página se destapó algo que ese pie venía
+ * tapando: mientras carga el ladder, `players` está vacío, y con la lista
+ * vacía Estadísticas dice "Todavía nadie llega a 20 partidas" y Cara a cara
+ * dice "Hace falta más de un invocador". Las dos son AFIRMACIONES sobre datos
+ * que todavía no llegaron, y las dos son falsas. El "Cargando ladder…" del
+ * pie era lo único que las desmentía.
+ *
+ * Ranking no lo necesita (la tabla dibuja filas fantasma) ni Clash ni Equipo
+ * (tienen su propio `loading`).
+ */
+function Cargando() {
+  return (
+    <div className="empty-state">
+      <strong>Cargando…</strong>
+    </div>
+  );
+}
+
 export default function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [duoSynergy, setDuoSynergy] = useState<DuoPair[]>([]);
@@ -362,15 +383,21 @@ export default function Home() {
         </div>
       ) : tab === "stats" ? (
         <div id="view-stats">
-          <TopWinrate players={players} />
-          <ChampionWinrateLeaderboard entries={championLeaderboard} ddragonVersion={ddragonVersion} />
-          <DuoSynergy pairs={duoSynergy} loading={loading} ddragonVersion={ddragonVersion} />
+          {loading ? (
+            <Cargando />
+          ) : (
+            <>
+              <TopWinrate players={players} />
+              <ChampionWinrateLeaderboard entries={championLeaderboard} ddragonVersion={ddragonVersion} />
+              <DuoSynergy pairs={duoSynergy} loading={loading} ddragonVersion={ddragonVersion} />
+            </>
+          )}
         </div>
       ) : tab === "versus" ? (
         <div id="view-versus">
           {/* No pide nada al servidor: los Player ya vienen completos del
               ladder, con radar, pool y rango. */}
-          <HeadToHead players={players} duos={duoSynergy} ddragonVersion={ddragonVersion} />
+          {loading ? <Cargando /> : <HeadToHead players={players} duos={duoSynergy} ddragonVersion={ddragonVersion} />}
         </div>
       ) : tab === "clash" ? (
         <div id="view-clash">
@@ -393,19 +420,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* En Inicio no va. "N invocadores trackeados." al pie es exactamente lo
-          mismo que dice la barra de arriba —"N invocadores"— treinta píxeles
-          más arriba y en todas las pantallas, y solo al final de una página se
-          lee como una nota técnica. En el resto de las pestañas queda: ahí el
-          "Cargando ladder…" todavía es la única señal de que algo está
-          viniendo, porque no tienen esqueleto propio. */}
-      {tab !== "inicio" && (
-        <p className="footnote">
-          {loading
-            ? "Cargando ladder…"
-            : `${players.length} invocador${players.length === 1 ? "" : "es"} trackeados.`}
-        </p>
-      )}
+
 
       <LiveTray players={players} ddragonVersion={ddragonVersion} onPlayer={abrirPerfil} />
     </div>

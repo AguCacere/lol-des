@@ -132,6 +132,39 @@ function agruparPorDia(f: Fila, semana: string, dias: string[]): DiaDeLaSemana[]
     }));
 }
 
+/**
+ * Por qué una partida no puntuó: la etiqueta que se VE y el texto que explica
+ * la regla entera.
+ *
+ * Antes las tres decían "no contó" y el motivo vivía solo en el title. O sea
+ * que para saber si la derrota se te perdonó por un AFK, por una mitigada o
+ * porque jugaste con alguien de afuera había que pasar el mouse por encima —y
+ * en un teléfono, directamente no había forma—. El desglose existe para
+ * terminar discusiones; una respuesta que exige hover no las termina.
+ *
+ * Las etiquetas son cortas a propósito: entran en la columna de 76px sin
+ * empujar nada, y el title sigue estando para la regla completa. Que la
+ * partida no sumó lo dice el lugar donde está escrito —el del puntaje— más la
+ * fila apagada, no la palabra.
+ */
+const MOTIVOS: Record<"afk" | "duo" | "mitigada", { etiqueta: string; detalle: string }> = {
+  afk: {
+    etiqueta: "compa AFK",
+    detalle:
+      "Se te fue un compañero: Riot no te saca LP por una así, y la liga no cobra lo que Riot no cobra. La partida está acá para que se vea que pasó, pero no suma, no resta y no cuenta para las 10 del mínimo.",
+  },
+  duo: {
+    etiqueta: "duo de afuera",
+    detalle:
+      "Jugaste en duo con alguien que no está en la liga. Esa partida no suma, no resta y no cuenta para las 10 del mínimo — es la regla del duo con gente de afuera.",
+  },
+  mitigada: {
+    etiqueta: "mitigada",
+    detalle:
+      "Pérdida mitigada: Riot no te sacó LP por esta derrota, así que la liga tampoco te cobra. Está acá para que se vea que pasó, pero no suma, no resta y no cuenta para las 10 del mínimo.",
+  },
+};
+
 /** Cuánto falta para que cierre, en criollo. */
 function loQueFalta(hasta: string): string {
   const ms = Date.parse(hasta) - Date.now();
@@ -833,18 +866,17 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                               de dónde sale el puntaje y una derrota que
                               desaparece parece que la app se la comió. */}
                           {m.anulada ? (
-                            <span
-                              className="liga-partida-anulada"
-                              title={
-                                m.anulada === "duo"
-                                  ? "Jugaste en duo con alguien que no está en la liga. Esa partida no suma, no resta y no cuenta para las 10 del mínimo — es la regla del duo con gente de afuera."
-                                  : m.anulada === "mitigada"
-                                    ? "Pérdida mitigada: Riot no te sacó LP por esta derrota, así que la liga tampoco te cobra. Está acá para que se vea que pasó, pero no suma, no resta y no cuenta para las 10 del mínimo."
-                                    : "Se te fue un compañero: Riot no te saca LP por una así, y la liga no cobra lo que Riot no cobra. La partida está acá para que se vea que pasó, pero no suma, no resta y no cuenta para las 10 del mínimo."
-                              }
-                            >
-                              no contó
-                            </span>
+                            // Con guarda: una respuesta anterior al deploy que
+                            // trajo el motivo no lo manda, y hasta ahí el
+                            // único caso que existía era el AFK.
+                            (() => {
+                              const motivo = MOTIVOS[m.anulada] ?? MOTIVOS.afk;
+                              return (
+                                <span className="liga-partida-anulada" title={motivo.detalle}>
+                                  {motivo.etiqueta}
+                                </span>
+                              );
+                            })()
                           ) : (
                             <span className="liga-partida-netas">
                               {/* La marca de racha. Una victoria puede valer
