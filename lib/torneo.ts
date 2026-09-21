@@ -303,16 +303,32 @@ export async function torneoDe(supabase: SupabaseClient, instante: Date = new Da
 }
 
 /**
- * El último torneo que YA terminó: el candidato a cerrarse.
+ * El último torneo que YA terminó: el candidato a cerrarse. **null cuando no
+ * terminó ninguno**, que es distinto de "no hay fila".
  *
  * Antes esto era "la semana anterior a la actual", que con ventanas fijas de
  * siete días era lo mismo. Con torneos de duración variable no: entre el cierre
  * de uno y el arranque del siguiente puede no haber ninguna relación.
  *
- * Sin fila cae al derivado —la semana anterior a la de hoy—, que es exactamente
- * lo que se venía haciendo.
+ * ## Por qué puede devolver null
+ *
+ * El 21/9 el bot anunció el cierre de la semana del 14 con el torneo TODAVÍA
+ * EN CURSO: la fila decía 14/9 00:00 → 22/9 00:00 (extendida con el lunes),
+ * pero como ninguna fila tenía `cierra_at <= ahora`, esto caía al derivado y
+ * el derivado inventa la semana lunes a domingo —14/9 → 21/9 00:00— que sí
+ * "había terminado". O sea: el fallback pisó al dato.
+ *
+ * Y no fue un cartel de más. `liga_semanas` es el candado de idempotencia del
+ * cierre, así que la semana quedó archivada con la foto del domingo a la
+ * noche, sin el lunes, y el cierre de verdad ya no iba a poder correr.
+ *
+ * **La regla es que el derivado es un RESPALDO, no una alternativa.** Solo
+ * vale cuando no hay ninguna fila guardada que se pise con esos días. Si la
+ * hay, esos días son de ese torneo, y si ese torneo no terminó no hay nada que
+ * cerrar: null.
  */
-export async function torneoAnterior(supabase: SupabaseClient, ahora: Date = new Date()): Promise<Torneo> {
+export async function torneoAnterior(supabase: SupabaseClient, ahora: Date = new Date()): Promise<Torneo | null> {
+  const derivado = semanaAnteriorDerivada(ahora);
   try {
     const { data, error } = await supabase
       .from("liga_torneos")
@@ -321,14 +337,33 @@ export async function torneoAnterior(supabase: SupabaseClient, ahora: Date = new
       .order("cierra_at", { ascending: false })
       .limit(1)
       .returns<FilaTorneo[]>();
-    if (error) {
-      console.log(`torneoAnterior: sigo con la semana deducida (${error.message})`);
-      return semanaAnteriorDerivada(ahora);
+    if (!error && data && data[0]) return deFila(data[0]);
+
+    // Ninguno terminó —o no se pudo preguntar—. Antes de inventar la semana
+    // deducida hay que ver si esos días YA son de un torneo guardado: dos
+    // ventanas se pisan cuando cada una empieza antes de que termine la otra.
+    const { data: pisa, error: errorPisa } = await supabase
+      .from("liga_torneos")
+      .select("id")
+      .lt("arranca_at", derivado.cierra.toISOString())
+      .gt("cierra_at", derivado.arranca.toISOString())
+      .limit(1)
+      .returns<{ id: string }[]>();
+
+    // Esta consulta es la que decide, así que su error es el que distingue los
+    // dos motivos por los que la de arriba puede haber fallado. Si TAMPOCO se
+    // puede leer, la tabla no está —la migración se corre a mano— y ahí el
+    // derivado es el comportamiento de siempre, el que permite desplegar sin
+    // el SQL corrido. Si esta anda, manda ella, haya fallado la otra o no.
+    if (errorPisa) {
+      console.log(`torneoAnterior: sigo con la semana deducida (${errorPisa.message})`);
+      return derivado;
     }
-    return data && data[0] ? deFila(data[0]) : semanaAnteriorDerivada(ahora);
+    if (error) console.log(`torneoAnterior: no pude leer el último cerrado (${error.message})`);
+    return pisa && pisa[0] ? null : derivado;
   } catch (err) {
     console.error("torneoAnterior falló —", err instanceof Error ? err.message : err);
-    return semanaAnteriorDerivada(ahora);
+    return null;
   }
 }
 

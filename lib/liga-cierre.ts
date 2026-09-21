@@ -365,6 +365,13 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
   // duración variable no, porque entre el cierre de uno y el arranque del
   // siguiente puede no haber ninguna relación.
   const anterior = await torneoAnterior(supabase);
+  // null = no terminó ninguno. Pasa cuando hay un torneo guardado que cubre
+  // estos días y sigue corriendo: el 21/9 el derivado lunes-a-domingo se comió
+  // a la semana extendida y el bot anunció un campeón con el torneo en curso.
+  // Ver el header de torneoAnterior.
+  if (!anterior) {
+    return { cerrada: null, ganador: null, lpNeto: null, jugadores: 0, motivo: "no terminó ningún torneo todavía" };
+  }
   const clave = claveDeTorneo(anterior);
 
   // Antes que nada: que la semana sea DE la liga. La app tiene meses de LP

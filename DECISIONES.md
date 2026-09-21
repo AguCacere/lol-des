@@ -2170,3 +2170,47 @@ sí; en el mismo script, después de haber abierto y cerrado uno de escritorio, 
 `matchMedia("(pointer:coarse)").matches` daba false y las reglas del bloque táctil no
 aplicaban. Para medir un área táctil, **un script aparte con ese contexto como el
 primero del navegador**.
+
+## El torneo deducido es un RESPALDO, no una alternativa
+
+El 21/9 el bot anunció el cierre de la semana del 14 con el torneo **todavía
+en curso**. La fila de `liga_torneos` estaba perfecta —14/9 00:00 → 22/9 00:00,
+la semana extendida con el lunes— y el cierre salió igual, un día antes.
+
+`torneoAnterior` buscaba la última fila con `cierra_at <= ahora`. Como ninguna
+había terminado (22 > 21), caía al derivado. **Y el derivado inventa la semana
+lunes a domingo**: 14/9 → 21/9 00:00, que sí "había terminado" — a las 00:00 de
+ese mismo día. El respaldo le pasó por encima al dato.
+
+No fue un cartel de más. `liga_semanas` es el candado de idempotencia del
+cierre, así que la semana quedó archivada con la foto del domingo a la noche,
+sin el lunes, y el cierre de verdad ya no podía correr. Un bug de lectura que
+escribe.
+
+**La regla ahora: el derivado solo vale si no hay ninguna fila guardada que se
+pise con esos días.** Si la hay, esos días son de ese torneo; si ese torneo no
+terminó, no hay nada que cerrar y `torneoAnterior` devuelve `null`.
+
+El error de la consulta también se separó en dos, porque son dos cosas
+distintas: si falla la consulta del solapamiento, la tabla no está (la
+migración se corre a mano) y ahí el derivado es el comportamiento de siempre,
+el que permite desplegar sin el SQL corrido. Si esa anda, manda ella, haya
+fallado la del último cerrado o no.
+
+Probado con un Supabase falso en los nueve escenarios que importan: el bug
+exacto, el minuto en que se cerró mal, el cierre de verdad, la pre-migración,
+una fila futura que no se pisa, una ya cerrada, y las dos formas de fallar.
+
+### Lo que hay que mirar cuando se extiende un torneo
+
+Un torneo que no termina en domingo deja **dos** agujeros, y el segundo no lo
+arregla este fix:
+
+1. El derivado se le adelanta al cierre — eso es lo de arriba, ya está.
+2. **Cuando termina, si no hay fila para el día siguiente, el derivado arranca
+   el LUNES de esa semana.** Medido: sin fila, el 22/9 da un torneo 21/9 →
+   28/9, o sea que el lunes 21 cuenta para los dos. Las partidas de ese día
+   puntúan dos veces.
+
+Al extender un torneo hay que cargar el siguiente con su `arranca_at` pegado al
+`cierra_at` del anterior. No hay código que lo obligue: es un dato.
