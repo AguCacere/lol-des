@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { LigaCarrera } from "./LigaCarrera";
+import { PlayerAvatar } from "./PlayerAvatar";
 import { puntajeTexto, rangoDeSemana } from "@/lib/liga";
+import { comoSeDefinio, dueloDeLaEdicion } from "@/lib/palmares";
 
 /**
  * Cómo terminó un torneo pasado, encima de lo que estabas mirando.
@@ -11,18 +13,23 @@ import { puntajeTexto, rangoDeSemana } from "@/lib/liga";
  * segundo, con cuánto, si alguien se escapó el miércoles o si se definió el
  * domingo: eso no estaba en ninguna parte una vez que la semana cerraba.
  *
- * Va en un cartel encima y no en una pantalla propia a propósito. Es una foto
- * que se mira diez segundos y se cierra; mandar a otra página para eso obliga a
- * irse de la liga y volver, y perder dónde estabas por un vistazo es peor que
- * no tener el vistazo. Por la misma razón se cambia de semana DESDE ADENTRO,
- * con las flechas: la comparación entre dos semanas es media gracia del asunto
- * y cerrar y volver a abrir la mata.
+ * Va en un cartel encima y no en una pantalla propia a propósito. La app es una
+ * sola página con pestañas en estado de React —no hay rutas por sección, ver
+ * DECISIONES— así que "una pantalla propia" no daría enlace compartible ni
+ * botón de atrás: daría exactamente esto con más pasos. Y es una foto que se
+ * mira y se cierra; mandar a otra página obliga a irse de la liga y volver.
+ * Por la misma razón se cambia de edición DESDE ADENTRO, con las flechas: la
+ * comparación entre dos ediciones es media gracia del asunto y cerrar y volver
+ * a abrir la mata.
  *
  * Los datos salen de `/api/liga/semana`, que los arma con el mismo código que
  * usó el cierre para coronar. No es una optimización: si esta pantalla armara
  * la tabla por su cuenta, una semana vieja podría mostrar un ganador distinto
  * del que anunció el bot.
  */
+
+/** El podio se marca con medalla; del cuarto para abajo, número. */
+const MEDALLAS = ["🥇", "🥈", "🥉"];
 
 interface FilaTorneo {
   puuid: string;
@@ -107,6 +114,8 @@ export function LigaTorneo({
 
   const campeon = datos?.tabla.find((f) => f.puuid === datos.ganadorPuuid) ?? null;
   const puntero = datos?.tabla[0] ?? null;
+  const duelo = datos ? dueloDeLaEdicion(datos.tabla, datos.ganadorPuuid) : null;
+  const relato = datos ? comoSeDefinio(datos.tabla, datos.dias, datos.ganadorPuuid) : null;
 
   return (
     <div className="torneo-fondo" onClick={onCerrar} role="presentation">
@@ -117,19 +126,23 @@ export function LigaTorneo({
         aria-modal="true"
         aria-label={`Cómo terminó la semana del ${rangoDeSemana(semana)}`}
       >
+        {/* El encabezado del ARCHIVO, no de un cartel. Arriba a qué pertenece
+            esta pantalla, abajo qué edición se está mirando y las flechas para
+            moverse. Antes decía "Cómo terminó" y la fecha con el mismo peso:
+            dos rótulos discutiendo cuál era el título. */}
         <div className="torneo-head">
           <div className="torneo-titulo">
-            <span className="torneo-rotulo">Cómo terminó</span>
+            <span className="torneo-rotulo">Historial de la liga</span>
             <strong>{rangoDeSemana(semana)}</strong>
           </div>
           <div className="torneo-nav">
-            <button type="button" onClick={() => irA(1)} disabled={i + 1 >= semanas.length} aria-label="Semana anterior">
+            <button type="button" onClick={() => irA(1)} disabled={i + 1 >= semanas.length} aria-label="Edición anterior">
               ‹
             </button>
             <span className="torneo-nav-cuenta">
               {semanas.length - i} de {semanas.length}
             </span>
-            <button type="button" onClick={() => irA(-1)} disabled={i <= 0} aria-label="Semana siguiente">
+            <button type="button" onClick={() => irA(-1)} disabled={i <= 0} aria-label="Edición siguiente">
               ›
             </button>
             <button type="button" className="torneo-cerrar" onClick={onCerrar} aria-label="Cerrar">
@@ -141,7 +154,7 @@ export function LigaTorneo({
         {error ? (
           <p className="torneo-vacio">{error}</p>
         ) : cargando && !datos ? (
-          <p className="torneo-vacio">Buscando esa semana…</p>
+          <p className="torneo-vacio">Buscando esa edición…</p>
         ) : !datos || datos.tabla.length === 0 ? (
           // "No jugó nadie" y "había gente anotada y no aparece ninguna
           // partida" son dos cosas distintas, y la segunda es un bug. Decir la
@@ -156,63 +169,115 @@ export function LigaTorneo({
           </p>
         ) : (
           <div className={cargando ? "torneo-cuerpo cambiando" : "torneo-cuerpo"}>
-            {/* El titular. Quedar primero y cobrar son dos cosas distintas y acá
-                sí se dicen las dos: la semana ya cerró, no hay nada que se
-                pueda dar vuelta en dos horas. */}
+            {/* ── El campeón ──
+                Un hero compacto, no una línea de texto y no un banner. Antes
+                era una frase corrida —"X se llevó la semana con +10,75, entre
+                6"— y el que ganó una edición entera se leía igual que una nota
+                al pie. */}
             <div className="torneo-campeon">
               {campeon ? (
                 <>
-                  <span className="torneo-copa" aria-hidden>
-                    🏆
+                  <span className="torneo-copa" aria-hidden>🏆</span>
+                  <PlayerAvatar name={campeon.name} iconUrl={null} className="torneo-campeon-avatar" />
+                  <span className="torneo-campeon-quien">
+                    <span className="torneo-campeon-rotulo">Campeón</span>
+                    <strong className="torneo-campeon-nombre">{campeon.name}</strong>
                   </span>
-                  <strong>{campeon.name}</strong> se llevó la semana con{" "}
-                  <span className={campeon.puntos >= 0 ? "gd-pos" : "gd-neg"}>{puntajeTexto(campeon.puntos)}</span>, entre{" "}
-                  {datos.jugadores}
-                  {puntero && puntero.puuid !== campeon.puuid && (
-                    <span className="torneo-nota">
-                      {" "}
-                      · arriba terminó {puntero.name}, pero no llegó a los mínimos
-                    </span>
-                  )}
+                  <span className="torneo-campeon-pts">{puntajeTexto(campeon.puntos)}</span>
                 </>
               ) : (
                 <>
-                  <span className="torneo-copa" aria-hidden>
-                    🫥
+                  <span className="torneo-copa" aria-hidden>🫥</span>
+                  <span className="torneo-campeon-quien">
+                    <span className="torneo-campeon-rotulo">Sin campeón</span>
+                    <strong className="torneo-campeon-nombre">No cobró nadie</strong>
                   </span>
-                  Esa semana <strong>no cobró nadie</strong>: nadie llegó a los mínimos
-                  {puntero && <span className="torneo-nota"> · arriba terminó {puntero.name}</span>}
                 </>
               )}
             </div>
 
-            {/* La carrera de ESA semana, con los mismos colores que la de hoy:
-                el color sale del PUUID, así que el que es azul esta semana es
-                azul en todas. */}
-            <LigaCarrera
-              corredores={datos.tabla.map((f) => ({ puuid: f.puuid, name: f.name, porDia: f.porDia, puntos: f.puntos }))}
-              dias={datos.dias}
-              cerrada
-            />
+            {/* Los tres datos de la edición, en una tira. Cada uno se dibuja
+                solo si existe: el margen no está cuando el campeón no terminó
+                primero, y ahí lo cuenta la nota de abajo. */}
+            <div className="torneo-datos">
+              {campeon && (
+                <span>
+                  <b className="wc-v">{campeon.victorias}V</b> · <b className="wc-d">{campeon.derrotas}D</b>
+                </span>
+              )}
+              <span>
+                {datos.jugadores} {datos.jugadores === 1 ? "participante" : "participantes"}
+              </span>
+              {duelo && (
+                <span>
+                  {duelo.margen === 0
+                    ? `empatado con ${duelo.segundo}`
+                    : `${puntajeTexto(Math.abs(duelo.margen)).replace("+", "")} sobre ${duelo.segundo}`}
+                </span>
+              )}
+            </div>
 
-            <div className="torneo-tabla">
-              {datos.tabla.map((f, idx) => (
-                <div key={f.puuid} className={`torneo-fila${f.puuid === datos.ganadorPuuid ? " campeon" : ""}`}>
-                  <span className="torneo-puesto">{idx + 1}</span>
-                  <span className="torneo-nombre">{f.name}</span>
-                  <span className="torneo-vd">
-                    {f.victorias}V-{f.derrotas}D
-                  </span>
-                  {/* Si cobraba o no. Es la mitad del drama de la liga y sin
-                      esto la tabla es un ranking cualquiera. */}
-                  <span className={`torneo-minimos${f.habilitado ? " cumple" : ""}`}>
-                    {f.habilitado ? "cumplió" : "sin mínimos"}
-                  </span>
-                  <span className={`torneo-pts ${f.puntos > 0 ? "gd-pos" : f.puntos < 0 ? "gd-neg" : ""}`}>
-                    {puntajeTexto(f.puntos)}
-                  </span>
-                </div>
-              ))}
+            {/* Quedar primero y cobrar son dos cosas distintas, y cuando no
+                coinciden es LA historia de esa edición. */}
+            {puntero && campeon && puntero.puuid !== campeon.puuid && (
+              <p className="torneo-nota">Arriba terminó {puntero.name}, pero no llegó a los mínimos.</p>
+            )}
+            {!campeon && puntero && <p className="torneo-nota">Arriba terminó {puntero.name}.</p>}
+
+            {/* ── Cómo se definió ──
+                Armado con restas sobre la curva, no con un modelo: dice
+                exactamente lo que muestra el gráfico de abajo. Si no alcanza
+                para contar algo que el marcador no diga ya, no se dibuja. */}
+            {relato && (
+              <div className="torneo-relato">
+                <span className="torneo-seccion">Cómo se definió</span>
+                <p>{relato}</p>
+              </div>
+            )}
+
+            {/* ── La carrera ──
+                Con los mismos colores que la de hoy: el color sale del PUUID,
+                así que el que es azul esta semana es azul en todas. */}
+            {/* Sin rótulo propio: LigaCarrera ya trae el suyo —"LA CARRERA" y
+                la frase de quién terminó arriba de quién— y puesto uno encima
+                el título salía dos veces seguidas. El bloque queda solo por su
+                borde y su aire. */}
+            <div className="torneo-bloque">
+              <LigaCarrera
+                corredores={datos.tabla.map((f) => ({ puuid: f.puuid, name: f.name, porDia: f.porDia, puntos: f.puntos }))}
+                dias={datos.dias}
+                cerrada
+              />
+            </div>
+
+            {/* ── La clasificación final ──
+                El podio se distingue con medalla en vez de número. El resto
+                sigue numerado: tres medallas y un 4 dicen dónde termina el
+                podio sin escribirlo. */}
+            <div className="torneo-bloque">
+              <span className="torneo-seccion">Clasificación final</span>
+              <div className="torneo-tabla">
+                {datos.tabla.map((f, idx) => (
+                  <div
+                    key={f.puuid}
+                    className={`torneo-fila${f.puuid === datos.ganadorPuuid ? " campeon" : ""}${idx < 3 ? " podio" : ""}`}
+                  >
+                    <span className="torneo-puesto">{MEDALLAS[idx] ?? idx + 1}</span>
+                    <span className="torneo-nombre">{f.name}</span>
+                    <span className="torneo-vd">
+                      {f.victorias}V-{f.derrotas}D
+                    </span>
+                    {/* Si cobraba o no. Es la mitad del drama de la liga y sin
+                        esto la tabla es un ranking cualquiera. */}
+                    <span className={`torneo-minimos${f.habilitado ? " cumple" : ""}`}>
+                      {f.habilitado ? "cumplió" : "sin mínimos"}
+                    </span>
+                    <span className={`torneo-pts ${f.puntos > 0 ? "gd-pos" : f.puntos < 0 ? "gd-neg" : ""}`}>
+                      {puntajeTexto(f.puntos)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}

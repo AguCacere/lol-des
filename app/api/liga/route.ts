@@ -5,6 +5,8 @@ import { exigirSesion } from "@/lib/auth";
 import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
 import { tablaDeLaSemana, puntosDeSecuencia, puntosPorDia, PUNTOS_VICTORIA, PUNTOS_DERROTA, PUNTOS_EN_RACHA, RACHA_DESDE, lpPorPartida, type AjusteLiga, type Participante, type RecordSemanal, type Snapshot, lpAtribuido, derrotaMitigada } from "@/lib/liga";
 import { claveDeTorneo, diaCorriente, diaDeCierre, diasDelCierre, duracionEnDias, empezoElUltimoDia, esTorneoDeLiga, etiquetasDeDias, LIGA_INICIO, torneoDe } from "@/lib/torneo";
+import { dueloDeLaEdicion } from "@/lib/palmares";
+import type { ResumenSemana } from "@/lib/liga-cierre";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { roleFromTeamPosition } from "@/lib/mapping";
 
@@ -347,17 +349,38 @@ export async function GET() {
   const vitrina = (historial ?? []).map((h) => {
     const s = h.ganador_puuid ? porPuuid.get(h.ganador_puuid) : null;
     const label: string | null = h.ganador_label ?? null;
+    // Con guarda doble: `resumen` es una columna nueva (migración a mano) y
+    // además las semanas cerradas antes de que existiera la tienen en null.
+    const resumen = (h.resumen ?? null) as ResumenSemana | null;
+    const campeonDeEsaSemana =
+      resumen && Array.isArray(resumen.tabla) ? resumen.tabla.find((f) => f.puuid === resumen.ganadorPuuid) ?? null : null;
     return {
       semana: h.semana as string,
       puuid: (h.ganador_puuid as string | null) ?? null,
       // El label guardado es el respaldo: sobrevive a que se borre el invocador.
       nombre: s?.game_name ?? (label ? label.split("#")[0] : null),
       iconUrl: version && s?.profile_icon_id != null ? profileIconUrl(version, s.profile_icon_id) : null,
-      puntos: (h.puntos as number | null) ?? null,
+      // La columna `puntos` es nueva y las semanas que cerraron antes la
+      // tienen en null — pero el `resumen` de esas mismas semanas SÍ guarda el
+      // puntaje del campeón. Es el mismo número y de la misma foto, así que no
+      // hay razón para mostrar un hueco donde el dato existe.
+      puntos: (h.puntos as number | null) ?? campeonDeEsaSemana?.puntos ?? null,
       // El lp_neto se sigue guardando pero no se manda: el LP no se mide en
       // esta liga, así que en la vitrina era un número de una unidad que no
       // compite puesto ahí por no dejar el lugar vacío.
       jugadores: (h.jugadores as number | null) ?? 0,
+      // Por cuánto ganó y contra quién. Sale del `resumen` que ya vino en el
+      // `select("*")` de arriba —la foto final entera de esa semana— así que
+      // no cuesta una consulta más. Sin él, la vitrina solo podía decir QUIÉN
+      // ganó, que es la mitad de la historia: "ganó por 0,25" y "ganó por 6"
+      // son dos ediciones completamente distintas.
+      //
+      // Null cuando el campeón no terminó primero (ver dueloDeLaEdicion) o
+      // cuando la semana cerró antes de que se guardara el resumen.
+      duelo: resumen ? dueloDeLaEdicion(resumen.tabla, resumen.ganadorPuuid) : null,
+      record: campeonDeEsaSemana
+        ? { victorias: campeonDeEsaSemana.victorias, derrotas: campeonDeEsaSemana.derrotas }
+        : null,
     };
   });
 

@@ -5,6 +5,7 @@ import { PlayerAvatar } from "./PlayerAvatar";
 import { LigaCarrera } from "./LigaCarrera";
 import { LigaEstado } from "./LigaEstado";
 import { LigaTorneo } from "./LigaTorneo";
+import { LigaHistorial } from "./LigaHistorial";
 import { LigaDiaADia } from "./LigaDiaADia";
 import { InfoTip } from "./InfoTip";
 import LigaTorneoAdmin from "./LigaTorneoAdmin";
@@ -15,8 +16,8 @@ import { ChampIcon } from "./ChampIcon";
 import { RoleIcon } from "./RoleIcon";
 import { championLabel } from "@/lib/champion-names";
 import { ROLES, tierFor } from "@/lib/ladder";
-import { puntajeTexto, rangoDeSemana } from "@/lib/liga";
-import { useLiga, type Datos, type Fila, type PartidaLiga } from "./useLiga";
+import { puntajeTexto } from "@/lib/liga";
+import { useLiga, type Fila, type PartidaLiga } from "./useLiga";
 
 const dia = (iso: string) =>
   new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "short", timeZone: "America/Argentina/Buenos_Aires" });
@@ -108,10 +109,26 @@ interface DiaDeLaSemana {
 function agruparPorDia(f: Fila, semana: string, dias: string[]): DiaDeLaSemana[] {
   const lunes = Date.parse(`${semana}T03:00:00Z`);
   if (Number.isNaN(lunes)) return [];
+  /**
+   * Cuántos días dura ESTE torneo, que ya no es siempre siete.
+   *
+   * Acá estaba escrito a mano —`if (i < 0 || i > 6) continue`— y era el sexto
+   * lugar con el 7 clavado, después de los cinco que están anotados en el
+   * header de lib/torneo.ts. Con la semana extendida al lunes, ese día es el
+   * índice 7 y el filtro lo tiraba: las partidas de la madrugada del lunes
+   * existían, puntuaban y estaban contadas en el total de arriba —"las 24 de
+   * la semana"— pero no aparecían en ningún día del desglose. O sea que el
+   * bloque que existe para AUDITAR el puntaje se comía las partidas.
+   *
+   * `dias` viene de la API con una etiqueta por día del torneo, así que su
+   * largo es la duración. Con guarda: una pestaña vieja contra la API nueva no
+   * lo trae, y ahí vale la semana de siempre.
+   */
+  const duracion = dias.length > 0 ? dias.length : 7;
   const porIndice = new Map<number, PartidaLiga[]>();
   for (const m of f.ultimas ?? []) {
     const i = Math.floor((Date.parse(m.playedAt) - lunes) / 86400000);
-    if (i < 0 || i > 6) continue;
+    if (i < 0 || i >= duracion) continue;
     const arr = porIndice.get(i) ?? [];
     arr.push(m);
     porIndice.set(i, arr);
@@ -943,117 +960,12 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
         </div>
       )}
 
-      {/* La vitrina. Era una línea de log —la clave ISO de la semana, el Riot ID
-          con tag y un "+144" verde— y tenía un problema peor que el aspecto: ese
-          número era el LP NETO, y la liga se gana por PUNTOS. Un tipo que ganó
-          con +10,25 aparecía con un +144 al lado, contradiciendo a la tabla de
-          la que había salido.
-
-          La forma sale del patrón de vitrina que usan las ligas de fantasy: el
-          campeón vigente va destacado y con cara, las semanas viejas quedan
-          compactas debajo, y cuando alguien gana más de una vez eso se cuenta
-          —que en una liga SEMANAL es la estadística que importa rápido—. */}
-      {d.arrancada && d.historial.length > 0 && (() => {
-        const [vigente, ...viejas] = d.historial;
-        const veces = new Map<string, number>();
-        for (const h of d.historial) if (h.nombre) veces.set(h.nombre, (veces.get(h.nombre) ?? 0) + 1);
-        const repiten = [...veces.entries()].filter(([, n]) => n > 1).sort((a, b) => b[1] - a[1]);
-        /* El marcador de cada semana: el puntaje con el que ganó, que es lo que
-           decide la liga.
-
-           Las semanas que cerraron ANTES de que el puntaje se guardara no lo
-           tienen. Ahí llegó a mostrarse el `lp_neto` rotulado ("+144 LP") y se
-           sacó: el LP no se mide en esta liga, así que poner un número de una
-           unidad que no compite es ruido por no dejar el lugar vacío. En su
-           lugar va la cuenta de títulos del que ganó esa semana —"1 🏆"—, que
-           es el otro dato que una vitrina tiene para decir. Va en gris y con la
-           copa justamente para que no se lea como el puntaje de la semana. */
-        const marcador = (h: Datos["historial"][number]) => {
-          if (h.puntos != null) return <span className={`vitrina-pts ${tono(h.puntos)}`}>{puntajeTexto(h.puntos)}</span>;
-          const titulos = h.nombre ? (veces.get(h.nombre) ?? 0) : 0;
-          if (titulos === 0) return null;
-          return (
-            <span className="vitrina-pts es-titulos" aria-label={`${titulos} ${titulos === 1 ? "título" : "títulos"}`}>
-              {titulos} <span aria-hidden>🏆</span>
-            </span>
-          );
-        };
-        return (
-          <div className="vitrina">
-            {/* El botón va acá arriba y no adentro de cada fila: una fila con
-                un botón adentro es un control, y estas son un registro que se
-                lee. Igual cada fila abre SU semana al tocarla — el botón es la
-                afordancia, el click en la fila es el atajo. */}
-            <div className="vitrina-head">
-              <span className="vitrina-label">Campeones anteriores</span>
-              <button type="button" className="vitrina-ver" onClick={() => setTorneo(vigente.semana)}>
-                Ver cómo terminó
-              </button>
-            </div>
-
-            <div
-              className="vitrina-vigente"
-              onClick={() => setTorneo(vigente.semana)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  setTorneo(vigente.semana);
-                }
-              }}
-            >
-              <span className="vitrina-trofeo" aria-hidden>🏆</span>
-              <PlayerAvatar name={vigente.nombre ?? "?"} iconUrl={vigente.iconUrl} className="duo-avatar vitrina-avatar" />
-              <span className="vitrina-quien">
-                <strong className="vitrina-nombre">{vigente.nombre ?? "No ganó nadie"}</strong>
-                <span className="vitrina-meta">
-                  {rangoDeSemana(vigente.semana)}
-                  {vigente.jugadores > 0 && ` · entre ${vigente.jugadores}`}
-                </span>
-              </span>
-              {marcador(vigente)}
-            </div>
-
-            {viejas.length > 0 && (
-              <div className="vitrina-viejas">
-                {viejas.map((h) => (
-                  <div className="vitrina-fila" key={h.semana} onClick={() => setTorneo(h.semana)}>
-                    <span className="vitrina-fila-semana">{rangoDeSemana(h.semana)}</span>
-                    <span className="vitrina-fila-quien">{h.nombre ?? "no ganó nadie"}</span>
-                    {marcador(h)}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {repiten.length > 0 && (
-              <span className="vitrina-repiten">
-                {repiten.map(([n, v]) => `${n} ganó ${v} veces`).join(" · ")}
-              </span>
-            )}
-
-            {torneo && (
-              <LigaTorneo semanas={d.historial.map((h) => h.semana)} inicial={torneo} onCerrar={() => setTorneo(null)} />
-            )}
-          </div>
-        );
-      })()}
-
-      {/* La grilla del día a día va ACÁ, al nivel de la sección, y no adentro
-          del bloque de la vitrina como estaba primero: ese bloque solo se
-          dibuja si hay semanas cerradas, así que con la liga recién arrancada
-          el botón de la carrera abría la nada. */}
-      {diaADia && d.dias && (
-        <LigaDiaADia
-          dias={d.dias}
-          corridos={d.diasCorridos ?? 1}
-          rango={rangoTexto}
-          tabla={d.tabla}
-          onCerrar={() => setDiaADia(false)}
-        />
-      )}
-
+      {/* "Quién compite" va ACÁ, pegado a la clasificación de esta semana, y
+          ya no al final de todo. Es el control de la liga EN CURSO —quién está
+          anotado y quién todavía no jugó— y quedaba flotando debajo del
+          historial, o sea colgando de una sección que habla de otras semanas.
+          Un control huérfano debajo del bloque equivocado se lee como que
+          pertenece a ese bloque. */}
       {/* El pie dice quiénes están en carrera. Los que todavía no jugaron se
           cuentan aparte a propósito: es la parte que dice "esto no está
           cerrado", que en una liga de siete días es la mitad de la gracia. */}
@@ -1112,6 +1024,38 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
           ))}
         </div>
       )}
+
+      {/* El historial. Era "Campeones anteriores": una caja chica al final de
+          todo que decía QUIÉN ganó cada semana y nada más — que es la mitad de
+          la historia, porque "ganó por 0,25" y "ganó por 6" son dos ediciones
+          completamente distintas y las dos se veían igual.
+
+          Ahora es una sección con nombre propio, la última edición con su
+          margen real y contra quién, las anteriores compactas con la cuenta de
+          títulos, y el palmarés desde que alguien gana dos veces. Ver
+          components/LigaHistorial.tsx. */}
+      {d.arrancada && d.historial.length > 0 && (
+        <LigaHistorial ediciones={d.historial} onAbrir={setTorneo} />
+      )}
+
+      {torneo && (
+        <LigaTorneo semanas={d.historial.map((h) => h.semana)} inicial={torneo} onCerrar={() => setTorneo(null)} />
+      )}
+
+      {/* La grilla del día a día va ACÁ, al nivel de la sección, y no adentro
+          del bloque de la vitrina como estaba primero: ese bloque solo se
+          dibuja si hay semanas cerradas, así que con la liga recién arrancada
+          el botón de la carrera abría la nada. */}
+      {diaADia && d.dias && (
+        <LigaDiaADia
+          dias={d.dias}
+          corridos={d.diasCorridos ?? 1}
+          rango={rangoTexto}
+          tabla={d.tabla}
+          onCerrar={() => setDiaADia(false)}
+        />
+      )}
+
     </section>
   );
 }

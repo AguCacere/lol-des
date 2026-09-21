@@ -2214,3 +2214,87 @@ arregla este fix:
 
 Al extender un torneo hay que cargar el siguiente con su `arranca_at` pegado al
 `cierra_at` del anterior. No hay código que lo obligue: es un dato.
+
+## El 7 clavado, sexto lugar: el desglose se comía el lunes
+
+`agruparPorDia` en `components/LigaSemanal.tsx` filtraba con
+`if (i < 0 || i > 6) continue`. Con la semana extendida al lunes ese día es el
+índice 7, así que el filtro lo tiraba: **las partidas de la madrugada del lunes
+existían, puntuaban y estaban contadas en el total de arriba —"las 24 de la
+semana"— pero no aparecían en ningún día del desglose.**
+
+El bloque que existe para AUDITAR el puntaje se comía partidas. Peor que un
+número mal: un número bien con la prueba incompleta.
+
+Son los cinco lugares anotados en el header de `lib/torneo.ts` más este. Ahora
+sale de `dias.length`, que la API manda con una etiqueta por día del torneo.
+
+**Si aparece otro 7 escrito a mano en algo que recorra días de la liga, es un
+bug.** El grep que lo encontró:
+
+```
+grep -n "i > 6\|> 6\b\|Math.min(7\|length: 7\|>= 7\|=== 7" components/*.tsx lib/liga.ts
+```
+
+## El historial de la liga: de una vitrina a una historia
+
+"Campeones anteriores" era una caja chica al final del ranking que decía QUIÉN
+ganó cada semana y nada más. Es la mitad de la historia: **"ganó por 0,25" y
+"ganó por 6" son dos ediciones completamente distintas y las dos se veían
+igual.**
+
+Ahora la sección cuenta tres cosas y el archivo de cada edición cuenta el
+resto.
+
+**El margen sale de restar, y se calla cuando no puede.** `dueloDeLaEdicion`
+devuelve null si el campeón NO terminó primero — pasa cuando el de arriba no
+llegó a los mínimos, y ahí la resta daría negativo. Un margen con el signo al
+revés no es un margen, es una frase que miente. En ese caso la pantalla cuenta
+la otra historia, que es la que importa: arriba terminó otro sin los mínimos.
+
+**El palmarés cuenta por `puuid`, no por nombre.** El puuid es para siempre y
+el "Nombre#TAG" no. Contar por nombre partiría el palmarés de alguien que se
+renombró en dos personas con un título cada una — y en este grupo se renombran.
+Verificado con datos reales: las dos ediciones del mismo puuid con nombres
+distintos dan una sola persona con dos copas, mostrando el nombre más nuevo.
+
+Y aparece recién cuando alguien ganó dos veces: con una copa cada uno no es un
+palmarés, es la misma lista de arriba ordenada distinto. Lo mismo con la copita
+de cada fila, que sale desde dos: contar hasta uno no es una estadística.
+
+**"Cómo se definió" se arma con restas, no con un modelo.** Sale de `porDia`
+—la misma curva que dibuja la carrera— así que dice exactamente lo que muestra
+el gráfico. Una narración generada podría decir "se escapó el miércoles" de una
+semana que se definió el domingo, y esto va a quedar como el registro de cómo
+se ganó cada edición. Con menos de tres puntos de curva no se dibuja: ahí no
+hay un "venía así y terminó asá", hay un final.
+
+Probado contra el `resumen` REAL de la semana del 7/9: "Llegó al sáb con 9,75,
+sumó 1 el dom y cerró en 10,75: 6 puntos arriba de Sagitaryus."
+
+**El margen y el récord no cuestan una consulta.** Salen del `resumen` que ya
+venía en el `select("*")` de `liga_semanas`. Y el puntaje cae al resumen cuando
+la columna `puntos` está en null —las semanas que cerraron antes de que
+existiera—: es el mismo número y de la misma foto.
+
+### Por qué el archivo sigue siendo un cartel y no una pantalla
+
+La app es una sola página con pestañas en estado de React (ver arriba). "Una
+pantalla propia" no daría enlace compartible ni botón de atrás: daría
+exactamente el mismo cartel con más pasos. Y se cambia de edición DESDE
+ADENTRO, con las flechas, porque comparar dos ediciones es media gracia del
+asunto y cerrar y volver a abrir la mata.
+
+### El 1fr, cuarta aparición
+
+Las filas del historial se estiraban a los 1140px de la liga. Esta vez la
+respuesta no fue un tope de ancho sino **una columna**: desde 900px el palmarés
+se va al costado, que además es lo correcto —es otra pregunta, no la
+continuación de la lista de ediciones—. Medido: 665/443.
+
+### "Quién compite" dejó de flotar
+
+Estaba después del historial, o sea colgando de una sección que habla de otras
+semanas. Es el control de la liga EN CURSO y ahora va pegado a su clasificación.
+Un control huérfano debajo del bloque equivocado se lee como que pertenece a
+ese bloque.

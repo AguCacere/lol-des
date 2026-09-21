@@ -4357,77 +4357,164 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
      sin perder el dato (queda "Seraphi…" y se entiende). */
   .liga-partida{grid-template-columns:18px 22px minmax(0,1fr) 52px 34px 68px; gap:7px; width:auto;}
 }
-.vitrina{
-  margin-top:12px; padding:11px 12px 12px;
-  background:var(--surface); border-radius:var(--radius-sm);
-  /* Acotada y no a todo el ancho de la tarjeta. Con la tarjeta en 1150 y dos
-     cosas cortas —un nombre a la izquierda y un número a la derecha— quedaban
-     novecientos píxeles de aire en el medio y la fila se leía partida en dos.
-     Un bloque de pie angosto abajo de una tabla ancha es una jerarquía; una
-     banda vacía de punta a punta es un error de maquetación. */
-  max-width:640px;
-}
-.vitrina-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:9px;}
-.vitrina-label{
-  display:block;
-  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-muted);
-}
-/* El botón del cartel. Apagado a propósito: lo que importa de la vitrina es
-   quién ganó, no el control para mirar el detalle. */
-.vitrina-ver{
-  padding:3px 9px; border-radius:999px; cursor:pointer; flex:none;
-  background:transparent; border:1px solid var(--border-soft);
-  font-family:inherit; font-size:10.5px; color:var(--text-muted);
-  transition:color .14s ease, border-color .14s ease, background .14s ease;
-}
-.vitrina-ver:hover{color:var(--text-primary); background:var(--surface-hover);}
+/* ═══════════════════════════════════════════════════════════════════════════
+   HISTORIAL DE LA LIGA
 
-/* El vigente. El baño de accent y el trofeo son lo único que lo separa de una
-   fila más, y alcanza: es UNA fila, no hace falta gritar. */
-.vitrina-vigente{
-  display:flex; align-items:center; gap:10px; cursor:pointer;
-  padding:9px 11px; border-radius:var(--radius-sm);
-  background:var(--accent-wash-soft); box-shadow:inset 2px 0 0 var(--accent);
+   Era "Campeones anteriores": una caja chica al final de todo con el último
+   ganador y una fila por semana vieja. El problema no era el tamaño sino lo
+   que decía — QUIÉN ganó y nada más, que es la mitad de la historia. "Ganó
+   por 0,25" y "ganó por 6" son dos ediciones completamente distintas y las dos
+   se veían igual.
+
+   Tres pisos, de más a menos:
+
+     .hist-ultima    la edición anterior, con superficie propia. Es la única
+                     de la sección: es la que todavía está fresca.
+     .hist-viejas    las anteriores, en filas. Registro, no destaque.
+     .hist-palmares  quién ganó más veces. Aparece recién cuando alguien
+                     repite, y es lo que hace que esto no se resetee todos los
+                     lunes: con veinte ediciones, "quién tiene más copas" es
+                     una segunda competencia corriendo en paralelo.
+
+   Sin dorado más allá del borde de la card y la copa. Es historia, no la
+   competencia de esta semana: si brillara igual que la liga en curso,
+   competirían.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.hist{margin-top:26px; padding-top:18px; border-top:1px solid var(--border-soft);}
+.hist-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:11px;}
+.hist-titulo{
+  margin:0; font-family:var(--font-display); font-size:14px; font-weight:700;
+  letter-spacing:-0.01em; color:var(--text-primary);
 }
-.vitrina-trofeo{font-size:15px; line-height:1; flex:none;}
-.vitrina-avatar{width:34px; height:34px; border-radius:10px; font-size:12px; box-shadow:0 0 0 2px var(--accent);}
-.vitrina-quien{display:flex; flex-direction:column; gap:2px; flex:1 1 auto; min-width:0;}
-.vitrina-nombre{
-  font-size:13.5px; font-weight:700; color:var(--text-primary); letter-spacing:-0.01em;
+.hist-ver{
+  display:inline-flex; align-items:center; gap:5px;
+  background:none; border:none; padding:0; cursor:pointer;
+  font-family:var(--font-body); font-size:12px; font-weight:600; color:var(--accent);
+  transition:gap .15s ease;
+}
+.hist-ver:hover{gap:8px;}
+.hist-ver:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:3px;}
+@media (prefers-reduced-motion:reduce){ .hist-ver{transition:none;} .hist-ver:hover{gap:5px;} }
+
+/* ── La última edición ─────────────────────────────────────────────────── */
+.hist-ultima{
+  display:flex; flex-direction:column; gap:9px; width:100%; text-align:left;
+  appearance:none; -webkit-appearance:none; cursor:pointer;
+  background:var(--surface); border:1px solid var(--accent-dim-border);
+  border-radius:var(--radius-lg); padding:13px 15px;
+  transition:background .14s ease, border-color .14s ease;
+}
+.hist-ultima:hover{background:var(--surface-raised); border-color:var(--accent-dim);}
+.hist-ultima:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+.hist-ultima-rotulo{
+  display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;
+  font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--text-muted);
+}
+.hist-ultima-rotulo i{font-style:normal; letter-spacing:0.04em; opacity:0.75;}
+.hist-campeon{display:flex; align-items:center; gap:10px; min-width:0;}
+.hist-copa{font-size:16px; line-height:1; flex:none;}
+.hist-avatar{
+  width:34px; height:34px; border-radius:50%; flex:none; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--surface-hover); color:var(--text-secondary);
+  font-family:var(--font-display); font-weight:700; font-size:12px;
+}
+.hist-avatar.chico{width:22px; height:22px; font-size:9px;}
+.hist-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
+.hist-campeon-quien{display:flex; flex-direction:column; gap:2px; flex:1 1 auto; min-width:0;}
+.hist-campeon-quien strong{
+  font-family:var(--font-display); font-size:15px; font-weight:700; color:var(--text-primary);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.vitrina-meta{font-size:11px; color:var(--text-muted);}
-/* El marcador. Antes era el LP NETO sin rotular, al lado de un tipo que había
-   ganado por PUNTOS: el número contradecía a la tabla de la que salía. Ahora
-   son los puntos, y el LP solo aparece en las semanas viejas que se cerraron
-   antes de que el puntaje se guardara — y ahí va con su "LP" escrito. */
-.vitrina-pts{
-  font-family:var(--font-stat); font-weight:700; font-size:14px;
-  font-variant-numeric:tabular-nums; flex:none;
+/* El contexto de la edición en una línea: por cuánto ganó, con qué récord y
+   entre cuántos. Es lo que convierte "este ganó" en "así estuvo la semana". */
+.hist-campeon-meta{
+  display:flex; align-items:baseline; gap:5px; flex-wrap:wrap;
+  font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;
 }
-/* La cuenta de títulos, para las semanas que cerraron sin puntaje guardado.
-   Gris y con la copa: comparte columna con el puntaje de la semana y tiene que
-   quedar claro que no es lo mismo. */
-.vitrina-pts.es-titulos{font-size:12.5px; color:var(--text-secondary); font-weight:650;}
+.hist-campeon-meta i{font-style:normal; opacity:0.45;}
+.hist-campeon-meta .wc-v{color:var(--good); font-weight:600;}
+.hist-campeon-meta .wc-d{color:var(--critical); font-weight:600;}
+.hist-campeon-pts{
+  flex:none; font-family:var(--font-stat); font-size:20px; font-weight:800;
+  color:var(--accent); font-variant-numeric:tabular-nums;
+}
+/* El segundo. Sangrado hasta donde arranca el nombre del campeón, para que se
+   lea como el puesto de abajo y no como otra fila de la sección. */
+.hist-segundo{
+  display:flex; align-items:baseline; gap:7px; margin-left:26px;
+  font-size:12px; color:var(--text-muted);
+}
+.hist-medalla{font-size:11px; line-height:1;}
+.hist-segundo b{
+  font-family:var(--font-stat); font-weight:700; color:var(--text-secondary);
+  font-variant-numeric:tabular-nums;
+}
+.hist-cta{
+  align-self:flex-end; display:inline-flex; align-items:center; gap:5px;
+  font-size:11.5px; font-weight:600; color:var(--accent);
+}
 
-/* Las semanas viejas: compactas, sin foto y sin trofeo. */
-.vitrina-viejas{margin-top:4px;}
-.vitrina-fila{
-  display:flex; align-items:baseline; gap:10px; padding:5px 11px; cursor:pointer;
-  font-size:11.5px; color:var(--text-secondary); border-top:1px solid var(--border-soft);
+/* ── Las anteriores y el palmarés ──────────────────────────────────────── */
+/* En celular, una columna. Desde 900px el palmarés se va al costado: es otra
+   pregunta —"quién ganó más veces"— y no la continuación de la lista de
+   ediciones. Apilados, cada fila se estiraba al ancho de la liga (1140px) y
+   dejaba el nombre contra un borde y el puntaje contra el otro; es la trampa
+   del 1fr que ya está anotada en DECISIONES, cuarta aparición. */
+.hist-cuerpo{display:flex; flex-direction:column; gap:0;}
+.hist-principal{min-width:0;}
+@media (min-width:900px){
+  .hist-cuerpo{
+    display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);
+    gap:32px; align-items:start;
+  }
+  .hist-palmares{margin-top:0;}
 }
-.vitrina-fila:first-child{border-top:none;}
-.vitrina-fila:hover,.vitrina-vigente:hover{background:var(--surface-hover);}
-.vitrina-vigente:hover{background:var(--accent-wash);}
-/* Ancho fijo para que los nombres arranquen todos en la misma columna: "28
-   sept – 4 oct" y "7 – 13 sept" no miden lo mismo y sin esto la lista queda
-   escalonada. */
-.vitrina-fila-semana{font-size:10.5px; color:var(--text-muted); flex:none; min-width:104px;}
-.vitrina-fila-quien{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.vitrina-fila .vitrina-pts{font-size:12px;}
-/* Cuántas veces ganó cada uno. Sale solo cuando alguien repite: con una semana
-   por campeonato, "ganó 3 veces" es LA estadística de la vitrina, pero antes de
-   que se repita ninguno la línea diría lo mismo que la lista de arriba. */
+.hist-viejas,.hist-palmares{margin-top:14px;}
+.hist-viejas-rotulo{
+  display:block; margin-bottom:5px;
+  font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--text-muted);
+}
+.hist-fila,.hist-palmares-fila{
+  display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+  padding:7px 8px 7px 0; border-radius:var(--radius-sm);
+  font-size:12.5px; color:var(--text-secondary);
+}
+.hist-fila{
+  appearance:none; -webkit-appearance:none; border:none; background:none; cursor:pointer;
+  transition:background .12s ease;
+}
+.hist-fila:hover{background:var(--surface-hover);}
+.hist-fila:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
+.hist-fila-semana{
+  flex:none; min-width:100px; font-size:10.5px; color:var(--text-muted);
+  font-variant-numeric:tabular-nums;
+}
+.hist-fila-quien{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-primary);}
+/* La cuenta de títulos. Sale recién con dos: contar hasta uno no es una
+   estadística, es un adorno en cada fila. */
+.hist-titulos{
+  flex:none; display:inline-flex; align-items:center; gap:3px;
+  font-size:10.5px; font-weight:700; color:var(--gold); font-variant-numeric:tabular-nums;
+}
+.hist-fila-pts{
+  flex:none; min-width:48px; text-align:right;
+  font-family:var(--font-stat); font-weight:700; font-size:12.5px; font-variant-numeric:tabular-nums;
+}
+.hist-fila-pts.pos{color:var(--good);}
+.hist-fila-pts.neg{color:var(--critical);}
+.hist-copas{flex:none; font-size:12px; letter-spacing:-1px;}
+
+@media (max-width:560px){
+  /* La fecha pasa a ser el dato más chico de la fila: en 390px el nombre es
+     lo que hay que poder leer entero. */
+  .hist-fila-semana{min-width:84px; font-size:10px;}
+  .hist-campeon-pts{font-size:18px;}
+  .hist-segundo{margin-left:0;}
+}
+
 /* El cartel de "cómo terminó". Mismo patrón que la cerradura: fondo oscuro con
    desenfoque y una caja centrada. Va encima y no en una pantalla propia porque
    es una foto que se mira diez segundos — mandar a otra página por eso obliga a
@@ -4484,28 +4571,88 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    toque apagado. Vaciarlo y poner "cargando" hace saltar el alto del cartel
    entero y se siente peor que esperar medio segundo. */
 .torneo-cuerpo.cambiando{opacity:0.45; transition:opacity .12s ease;}
+/* ── El campeón ──
+   Un hero compacto, no una línea de texto y no un banner. Antes era una frase
+   corrida —"X se llevó la semana con +10,75, entre 6"— y el que ganó una
+   edición entera se leía igual que una nota al pie. */
 .torneo-campeon{
-  padding:13px 18px; font-size:13px; line-height:1.5; color:var(--text-secondary);
-  border-bottom:1px solid var(--border-soft);
+  display:flex; align-items:center; gap:12px;
+  padding:16px 18px 12px;
 }
-.torneo-campeon strong{color:var(--text-primary); font-weight:700;}
-.torneo-copa{margin-right:6px;}
-.torneo-nota{color:var(--text-muted); font-size:12px;}
-/* La carrera adentro del cartel no lleva su propio borde de abajo: ya está la
-   tabla separada por el suyo. */
-.torneo-cuerpo .carrera{border-bottom:1px solid var(--border-soft);}
+.torneo-copa{font-size:22px; line-height:1; flex:none;}
+.torneo-campeon-avatar{
+  width:40px; height:40px; border-radius:50%; flex:none; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--surface-hover); color:var(--text-secondary);
+  font-family:var(--font-display); font-weight:700; font-size:13px;
+}
+.torneo-campeon-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
+.torneo-campeon-quien{display:flex; flex-direction:column; gap:1px; flex:1 1 auto; min-width:0;}
+.torneo-campeon-rotulo{
+  font-size:9.5px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+  color:var(--accent);
+}
+.torneo-campeon-nombre{
+  font-family:var(--font-display); font-size:19px; font-weight:800; letter-spacing:-0.02em;
+  color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.torneo-campeon-pts{
+  flex:none; font-family:var(--font-stat); font-size:24px; font-weight:800;
+  color:var(--accent); font-variant-numeric:tabular-nums; letter-spacing:-0.02em;
+}
+/* Los tres datos de la edición, en una tira debajo del campeón. Separados por
+   puntos medios y no por columnas: son una frase sobre la misma cosa. */
+.torneo-datos{
+  display:flex; align-items:baseline; gap:6px; flex-wrap:wrap;
+  padding:0 18px 12px; font-size:11.5px; color:var(--text-muted);
+  font-variant-numeric:tabular-nums;
+}
+.torneo-datos > span + span::before{content:"·"; margin-right:6px; opacity:0.5;}
+.torneo-datos .wc-v{color:var(--good); font-weight:600;}
+.torneo-datos .wc-d{color:var(--critical); font-weight:600;}
+.torneo-nota{
+  margin:0; padding:0 18px 12px; color:var(--text-muted); font-size:11.5px;
+}
+/* ── Cómo se definió ──
+   Armado con restas sobre la curva, no con un modelo. Va con comillas y en
+   bastardilla para que se lea como el relato de la edición y no como otro dato
+   más de la tira de arriba. */
+.torneo-relato{
+  margin:0 18px 14px; padding:11px 13px;
+  background:var(--surface-raised); border-radius:var(--radius-md);
+  border-left:2px solid var(--accent-dim);
+}
+.torneo-relato p{
+  margin:4px 0 0; font-size:12.5px; line-height:1.55; color:var(--text-secondary);
+}
+/* El rótulo de cada zona del archivo. */
+.torneo-seccion{
+  display:block; font-size:10px; font-weight:700; letter-spacing:0.08em;
+  text-transform:uppercase; color:var(--text-muted);
+}
+.torneo-bloque{padding:14px 18px 0; border-top:1px solid var(--border-soft);}
+/* El de la carrera trae su propio encabezado adentro, así que no necesita el
+   aire de arriba que sí necesita uno que arranca con un rótulo. */
+.torneo-bloque:has(> .carrera){padding-top:4px;}
+.torneo-bloque + .torneo-bloque{margin-top:14px;}
+/* La carrera adentro del archivo no lleva su propio marco: el bloque que la
+   contiene ya la separa. */
+.torneo-cuerpo .carrera{border:none; background:none; padding-left:0; padding-right:0;}
 
-.torneo-tabla{padding:6px 10px 12px;}
+.torneo-tabla{padding:8px 0 14px;}
 .torneo-fila{
   display:flex; align-items:center; gap:12px; padding:7px 8px;
   border-top:1px solid var(--border-soft); font-size:12.5px; color:var(--text-secondary);
 }
 .torneo-fila:first-child{border-top:none;}
 .torneo-fila.campeon{background:var(--accent-wash-soft); border-radius:var(--radius-sm); box-shadow:inset 2px 0 0 var(--accent);}
+/* El podio se marca con medalla y el resto con número: tres medallas y un 4
+   dicen dónde termina el podio sin tener que escribirlo. */
 .torneo-puesto{
-  width:18px; flex:none; text-align:right;
+  width:20px; flex:none; text-align:center;
   font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;
 }
+.torneo-fila.podio .torneo-puesto{font-size:13px;}
 .torneo-nombre{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-primary);}
 .torneo-vd{flex:none; font-size:11.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
 /* Si cobraba o no: es la mitad del drama de la liga y sin esto la tabla es un
@@ -4522,12 +4669,18 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 @media (max-width:560px){
   .torneo-fondo{padding:10px;}
   .torneo-vd,.torneo-minimos{display:none;}
+  /* El hero se achica pero NO se apila: en dos renglones el nombre del campeón
+     y su puntaje dejan de leerse como una sola cosa. */
+  .torneo-campeon{gap:9px; padding:13px 14px 10px;}
+  .torneo-copa{font-size:18px;}
+  .torneo-campeon-avatar{width:34px; height:34px;}
+  .torneo-campeon-nombre{font-size:16px;}
+  .torneo-campeon-pts{font-size:19px;}
+  .torneo-datos,.torneo-nota{padding-left:14px; padding-right:14px;}
+  .torneo-relato{margin-left:14px; margin-right:14px;}
+  .torneo-bloque{padding-left:14px; padding-right:14px;}
 }
 
-.vitrina-repiten{
-  display:block; margin-top:9px; padding-top:8px; border-top:1px solid var(--border-soft);
-  font-size:11px; color:var(--text-muted);
-}
 /* El pie: quiénes compiten y cuántos todavía no jugaron. Va en una línea
    sola con el botón para que se lea como una frase y no como dos controles. */
 .liga-pie{display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-top:12px;}
@@ -4896,7 +5049,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   /* Los que viven adentro de una frase: el margen negativo evita que el
      renglón se estire. */
   .carrera-ver,
-  .vitrina-ver{
+  .hist-ver{
     padding-block:10px; margin-block:-10px;
   }
   /* Los chips de la carrera son el control principal del gráfico en el

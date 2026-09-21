@@ -165,7 +165,7 @@ export interface Datos {
   hasta: string;
   tabla: Fila[];
   plantel: DelPlantel[];
-  /** La vitrina de campeones, de la semana más nueva a la más vieja. */
+  /** El historial de la liga, de la edición más nueva a la más vieja. */
   historial: {
     semana: string;
     puuid: string | null;
@@ -174,6 +174,16 @@ export interface Datos {
     /** El puntaje con el que ganó: lo que decide la liga. Null en las semanas anteriores a que se guardara. */
     puntos: number | null;
     jugadores: number;
+    /**
+     * Por cuánto ganó y contra quién. Opcionales por la ventana de caché del
+     * CDN y porque las semanas viejas no guardaron la foto final. Null también
+     * cuando el campeón NO terminó primero —pasa cuando el de arriba no llegó
+     * a los mínimos— porque ahí el margen daría negativo y una resta con el
+     * signo al revés no es un margen (ver lib/palmares.ts).
+     */
+    duelo?: { segundo: string; margen: number } | null;
+    /** El récord del campeón esa semana. Opcional por lo mismo. */
+    record?: { victorias: number; derrotas: number } | null;
   }[];
   /** Para el arte de campeón. Opcional por la misma razón. */
   ddragonVersion?: string | null;

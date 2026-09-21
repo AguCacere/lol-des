@@ -141,6 +141,12 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   hoy). `mensajeDelDia` devuelve **null** cuando no hay nada que mandar: los
   domingos —ese día sale el cierre y dos mensajes se pisan— y los días en que no
   jugó nadie.
+- `palmares.ts` — el historial de la liga: `dueloDeLaEdicion` (por cuánto ganó y
+  contra quién, null si el campeón no terminó primero), `palmares` y `titulosDe`
+  (cuántas copas tiene cada uno, contadas por PUUID para que un renombre no
+  parta a una persona en dos) y `comoSeDefinio`, la narración de la edición
+  armada con restas sobre `porDia` y no con un modelo. Todas devuelven null
+  cuando el dato no alcanza.
 - `liga-titulos.ts` — los títulos de la semana: `repartirTitulos` da UNO por persona
   (el que más la destaca de los que quedan libres), no el líder de cada categoría. Ver
   DECISIONES para por qué, y para la regla de relativas contra absolutas antes de agregar
@@ -305,8 +311,8 @@ pestañas.
   mismo `porDia` que dibuja la carrera, así que no pide nada al servidor.
   El detalle que se abre agrupa las partidas por día y **cada día se despliega**, con
   el más nuevo abierto por defecto (ver DECISIONES).
-  Desde la vitrina se abre `LigaTorneo`, el cartel de "cómo terminó" una semana
-  vieja: va encima y no en una pantalla propia porque es una foto de diez segundos
+  Al pie, `LigaHistorial` —la última edición con su margen real, las anteriores
+  y el palmarés— y desde ahí se abre `LigaTorneo`, el archivo de una edición: va encima y no en una pantalla propia porque es una foto de diez segundos
   y mandar a otra página obliga a irse de la liga y volver.
   `PlayerProfile` es el más grande: `RadarChart`, `InsightsCard`, `RecentForm`,
   `TiltCard`, `ChampionPool`, `MasteryPool`, `ChampionInsights`, `Matchups`,
