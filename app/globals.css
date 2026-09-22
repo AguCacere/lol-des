@@ -5681,10 +5681,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 
 /* Tira horizontal, con scroll lateral cuando no entra. Apilarlos en vertical
    reproduciría exactamente la lista kilométrica que se quería sacar. */
+/* En escritorio ENVUELVE, no scrollea. La barra nativa de Chromium sobre un
+   fondo negro es una franja gris clara de borde a borde: pesa más que los
+   campeones que tiene abajo, y encima en escritorio no hace falta — hay
+   lugar de sobra para un segundo renglón, que además llena el hueco que
+   quedaba a la derecha. El scroll horizontal queda solo en teléfono, que es
+   donde de verdad no entra, y ahí va sin barra. */
 .ec-tira{
   list-style:none; margin:0; padding:0 0 10px;
-  display:flex; gap:30px; overflow-x:auto; scrollbar-width:thin;
-  scroll-snap-type:x proximity;
+  display:flex; flex-wrap:wrap; gap:26px 30px;
 }
 .ec-item{
   display:flex; flex-direction:column; align-items:center; gap:1px;
@@ -5761,8 +5766,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* ---- con quién juega cada uno ---- */
 /* El roster: caras en fila que se desplaza de costado. No catorce botones
    cuadrados grandes — es una lista de gente. */
+/* Misma historia que .ec-tira: catorce caras entran en dos renglones sin
+   necesidad de una barra de scroll encima. */
 .ds-roster{
-  display:flex; gap:6px; overflow-x:auto; scrollbar-width:thin;
+  display:flex; flex-wrap:wrap; gap:4px 6px;
   padding-bottom:8px; margin-bottom:6px;
 }
 .ds-cara-btn{
@@ -5946,8 +5953,18 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   /* La tira se sale del margen de la página a propósito: el recorte contra el
      borde es lo que dice "esto sigue", en vez de cortarse limpio y parecer
      que ahí se terminó. */
-  .ec-tira{gap:20px; margin:0 -20px; padding:0 20px 10px;}
-  .ec-item{min-width:84px;}
+  /* Acá sí scrollea de costado: apilar diez campeones en vertical es
+     exactamente la lista kilométrica que se quería sacar. La barra va
+     oculta —la afirmación de que "esto sigue" la da el ítem cortado contra
+     el borde, gracias al margen negativo— y el scroll táctil no la
+     necesita. */
+  .ec-tira{
+    flex-wrap:nowrap; gap:20px; margin:0 -20px; padding:0 20px 10px;
+    overflow-x:auto; scroll-snap-type:x proximity;
+    scrollbar-width:none; -ms-overflow-style:none;
+  }
+  .ec-tira::-webkit-scrollbar{display:none;}
+  .ec-item{min-width:84px; scroll-snap-align:start;}
   .ec-arte{width:56px; height:56px; border-radius:15px;}
 
   .er-pared{grid-template-columns:repeat(2, minmax(0,1fr)); gap:0 20px;}
@@ -5963,7 +5980,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .er-medio .er-valor{font-size:21px;}
   .er-chico .er-valor{font-size:19px;}
 
-  .ds-roster{margin:0 -20px 6px; padding:0 20px 8px;}
+  .ds-roster{
+    flex-wrap:nowrap; margin:0 -20px 6px; padding:0 20px 8px;
+    overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none;
+  }
+  .ds-roster::-webkit-scrollbar{display:none;}
   .ds-vinculo{grid-template-columns:28px 32px minmax(0,1fr) 54px; gap:10px;}
   /* El V/D se va del renglón: el winrate y el "N partidas juntos" que está
      debajo del nombre ya dan la muestra. */

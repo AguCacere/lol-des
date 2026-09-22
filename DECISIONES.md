@@ -2565,3 +2565,24 @@ Con los siete valores en dorado el color no distinguía nada y la jerarquía que
 solo en el tamaño. Ahora lo usan los dos grandes —la racha más larga y el pico de
 rango, los únicos dos de toda la historia y de una sola persona— y el resto va en
 tinta normal. El color dice "estos dos son LOS récords" en vez de decorar.
+
+## Una tira horizontal no lleva barra de scroll en escritorio
+
+La tira de campeones y el roster de dúos scrolleaban de costado en todos los anchos.
+En escritorio eso dibuja la barra nativa de Chromium: sobre `#050504` es una franja
+gris clara de borde a borde que **pesa más que los campeones que tiene abajo**.
+
+La solución no fue maquillar la barra, fue no necesitarla: en escritorio las dos
+tiras **envuelven** (`flex-wrap:wrap`). Hay lugar de sobra para un segundo renglón y
+de paso se llena el hueco que quedaba a la derecha. El scroll horizontal queda solo
+en teléfono, que es donde de verdad no entra — y ahí va sin barra
+(`scrollbar-width:none` + `::-webkit-scrollbar{display:none}`, el mismo par que ya
+usaba `.duo-chip-row`).
+
+**Lo que reemplaza a la barra como señal de "esto sigue"** es el margen negativo: la
+tira se sale hasta el borde de la pantalla y el último ítem queda cortado contra él.
+Un contenedor que scrollea, sin barra y sin nada cortado, no se descubre.
+
+Medido a 390/430/768/1024/1440: en teléfono `scrollWidth > clientWidth` con
+`scrollbar-width: none`; de 768 para arriba `overflow-x` vuelve a `visible` y no hay
+contenedor de scroll en absoluto.
