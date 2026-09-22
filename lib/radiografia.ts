@@ -634,13 +634,7 @@ function ventana(
           lpDelta: primero.lpDelta,
         }
       : null,
-    // Sin la del winrate —esa ES el protagonista— y sin las que repiten
-    // datos que el protagonista ya cuenta en su propio bloque.
-    secundarias: destacados.filter(
-      (d) =>
-        d.clave !== "winrate" &&
-        !(primero && d.persona.puuid === primero.persona.puuid && (d.clave === "racha" || d.clave === "subida"))
-    ),
+    secundarias: notasSecundarias(destacados, primero),
   };
 
   return {
@@ -654,6 +648,43 @@ function ventana(
     minimoEspecialista,
     minimoWinrate,
   };
+}
+
+/**
+ * Las notas que acompañan al protagonista: UNA por persona.
+ *
+ * Se sacan dos cosas. La primera es obvia: lo que el protagonista ya cuenta
+ * en su propio bloque (su winrate, su racha, su LP) no se repite al costado.
+ *
+ * La segunda es la que se veía fea en pantalla. Los destacados son de
+ * CATEGORÍAS distintas, pero nada impide que la misma persona gane dos: el
+ * que más jugó suele ser también el de la mejor racha, porque jugó más. Y
+ * entonces la portada decía "marlboro de diez tuvo la mejor racha" arriba de
+ * "marlboro de diez fue el que más jugó", que parece un bug aunque las dos
+ * sean ciertas.
+ *
+ * Se queda con la PRIMERA de cada persona, y el orden en que vienen los
+ * destacados es el que decide cuál la destaca más (racha antes que volumen,
+ * volumen antes que constancia). Es la misma regla que `repartirTitulos` en
+ * lib/liga-titulos.ts, que da un título por persona y no el líder de cada
+ * categoría — y está acá por la misma razón.
+ *
+ * La nota que se cae NO se le pasa al segundo: "fue el que más jugó" sobre
+ * alguien que no fue el que más jugó sería mentira. Simplemente no se
+ * publica esa categoría en esta ventana.
+ */
+function notasSecundarias(destacados: Destacado[], primero: FilaWinrate | null): Destacado[] {
+  const yaSalio = new Set<string>();
+  if (primero) yaSalio.add(primero.persona.puuid);
+  const notas: Destacado[] = [];
+  for (const d of destacados) {
+    // El winrate ES el protagonista, no una nota al costado.
+    if (d.clave === "winrate") continue;
+    if (yaSalio.has(d.persona.puuid)) continue;
+    yaSalio.add(d.persona.puuid);
+    notas.push(d);
+  }
+  return notas;
 }
 
 /**

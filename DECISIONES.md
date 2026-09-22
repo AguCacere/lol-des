@@ -2665,3 +2665,24 @@ mismo renglón, se envuelven, y la nota terminaba midiendo **96px a 768 contra 4
 
 Es el mismo error de siempre con `auto-fit`: el mínimo hay que elegirlo por el ancho
 que el CONTENIDO necesita para no envolverse, no por cuántas columnas uno quiere ver.
+
+## En la portada del período, UNA nota por persona
+
+Los destacados son de categorías distintas, pero nada impide que la misma persona
+gane dos: el que más jugó suele ser también el de la mejor racha, **porque jugó
+más**. Y entonces la portada decía
+
+> marlboro de diez — tuvo la mejor racha
+> marlboro de diez — fue el que más jugó
+
+una abajo de la otra, que parece un bug aunque las dos sean ciertas.
+
+Se queda con la **primera de cada persona**, y el orden en que vienen los destacados
+es el que decide cuál la destaca más: racha antes que volumen, volumen antes que
+constancia. Es la misma regla que `repartirTitulos` en `lib/liga-titulos.ts`, que da
+un título por persona y no el líder de cada categoría — y está acá por la misma
+razón.
+
+**La nota que se cae NO se le pasa al segundo.** "Fue el que más jugó" sobre alguien
+que no fue el que más jugó sería mentira; esa categoría simplemente no se publica en
+esa ventana. Achicar la lista es siempre preferible a llenarla con algo falso.
