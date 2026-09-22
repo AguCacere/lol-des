@@ -2334,3 +2334,40 @@ minutos. La fecha del entorno estaba en UTC, un día adelante.
 Antes de decir que algo no pasó, preguntarle la hora a la base:
 `select now() at time zone 'America/Argentina/Buenos_Aires'`. Toda la liga se
 mide en hora argentina y el servidor no vive ahí.
+
+## El 7 clavado, séptimo lugar: "8 días de siete"
+
+El anuncio de cierre del torneo extendido dijo, literal:
+
+> 📅 **marlboro de diez** — no faltó, **8 días de siete**
+
+El `detalle` de la categoría `presente` en `lib/liga-titulos.ts` tenía el siete
+escrito a mano: `d === 7 ? "los siete días" : \`${d} días de siete\``. Con ocho
+días, el que no faltó ninguno salía anunciado con una frase imposible.
+
+Ahora `repartirTitulos` recibe la duración y la pasa a cada `detalle`. Los dos
+lugares que lo llaman ya tenían el torneo a mano. Probado a 7 y a 8 días: "los
+siete días" / "los 8 días" / "3 de 8 días".
+
+**Séptimo lugar.** Van los cinco del header de `lib/torneo.ts`, `agruparPorDia`
+y este. El patrón es siempre el mismo: algo que recorre o cuenta días de la
+liga con el 7 adentro. El grep está arriba, en la entrada del sexto.
+
+## Los números del anuncio salen de la tabla de la liga, no de las partidas crudas
+
+El grupo desconfió del "376 muertes" del kamikaze. Es exacto — pero para
+comprobarlo hay que contar con los MISMOS filtros que la liga, y no son pocos:
+queue 420, duración ≥ 300s, sin derrotas con aliado AFK, sin partidas con un
+duo vetado, solo anotados, y desde el `liga_desde` de cada uno.
+
+Contadas crudas daban 394 sobre 55 partidas; con los filtros de la liga, 376
+sobre 51. Las dos son ciertas y miden cosas distintas.
+
+Y hay un filtro más que no es SQL: **las partidas anuladas no cuentan como
+partidas jugadas.** Por eso "el fierro" decía 64 y las filas crudas eran 65 —
+la diferencia era una derrota mitigada del viernes 18 (11 → 11 LP). Es la misma
+regla que ya dice la pantalla ("no suma, no resta y no cuenta para las 10 del
+mínimo"), aplicada también al conteo de los títulos.
+
+Si alguien vuelve a dudar de un número del anuncio, el camino es ese: replicar
+los filtros, no contar `matches` a secas.

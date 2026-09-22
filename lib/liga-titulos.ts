@@ -57,7 +57,8 @@ interface Categoria {
   etiqueta: string;
   minimo: number;
   valor: (f: FilaLiga) => number;
-  detalle: (f: FilaLiga) => string;
+  /** `duracion` son los días que dura ESTE torneo, que ya no es siempre siete. */
+  detalle: (f: FilaLiga, duracion: number) => string;
 }
 
 /** Las partidas de la semana de esa fila. */
@@ -93,9 +94,13 @@ const CATEGORIAS: Categoria[] = [
     // Dos días no es "no faltar". Desde tres empieza a significar algo.
     minimo: 3,
     valor: (f) => f.detalle?.dias ?? 0,
-    detalle: (f) => {
+    // "8 días de siete" es lo que decía el anuncio del torneo extendido: el
+    // siete estaba escrito a mano acá también. Son los cinco lugares anotados
+    // en el header de lib/torneo.ts, más agruparPorDia, más este.
+    detalle: (f, duracion) => {
       const d = f.detalle?.dias ?? 0;
-      return d === 7 ? "los siete días" : `${d} días de siete`;
+      if (d >= duracion) return duracion === 7 ? "los siete días" : `los ${duracion} días`;
+      return `${d} de ${duracion} días`;
     },
   },
   {
@@ -216,7 +221,7 @@ function kda(f: FilaLiga): number | null {
  * dice "la racha: 1 al hilo" no reconoce nada — deja en evidencia que no había
  * nada que reconocer.
  */
-export function repartirTitulos(tabla: FilaLiga[]): Titulo[] {
+export function repartirTitulos(tabla: FilaLiga[], duracion = 7): Titulo[] {
   const jugaron = tabla.filter((f) => !f.sinJugar && partidas(f) > 0);
   if (jugaron.length === 0) return [];
 
@@ -254,7 +259,7 @@ export function repartirTitulos(tabla: FilaLiga[]): Titulo[] {
       name: f.name,
       emoji: mejor.c.emoji,
       etiqueta: mejor.c.etiqueta,
-      detalle: mejor.c.detalle(f),
+      detalle: mejor.c.detalle(f, duracion),
     });
     sinTitulo.delete(mejor.puuid);
     libres.delete(mejor.c.clave);

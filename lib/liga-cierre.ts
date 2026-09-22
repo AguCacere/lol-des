@@ -3,7 +3,7 @@ import { sendDiscordNotification } from "./discord";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "./refresh";
 import { type AjusteLiga, type DetalleSemanal, type FilaDelDia, type FilaLiga, ganadorDe, mensajeDeCierre, mensajeDelDia, puntajeDe, puntosPorDia, tablaDeLaSemana, type Participante, type RecordSemanal, type Snapshot, lpAtribuido, derrotaMitigada } from "./liga";
 import { cargarVetados, conVetado } from "./vetados";
-import { claveDeTorneo, diaCorriente, esTorneoDeLiga, etiquetasDeDias, type Torneo, torneoAnterior, torneoDe } from "./torneo";
+import { claveDeTorneo, diaCorriente, duracionEnDias, esTorneoDeLiga, etiquetasDeDias, type Torneo, torneoAnterior, torneoDe } from "./torneo";
 import { repartirTitulos } from "./liga-titulos";
 
 /**
@@ -353,7 +353,7 @@ export async function vistaPreviaDeCierre(
 ): Promise<{ texto: string; semana: string; jugadores: number }> {
   const tabla = (await tablaDeSemanaEnBase(supabase, torneo)) ?? [];
   return {
-    texto: mensajeDeCierre(torneo, tabla, repartirTitulos(tabla)),
+    texto: mensajeDeCierre(torneo, tabla, repartirTitulos(tabla, duracionEnDias(torneo))),
     semana: claveDeTorneo(torneo),
     jugadores: tabla.filter((f) => !f.sinJugar).length,
   };
@@ -427,7 +427,7 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
   // candado funcionando.
   if (error) return { cerrada: null, ganador: null, lpNeto: null, jugadores: 0, motivo: `no se registró: ${error.message}` };
 
-  await sendDiscordNotification(mensajeDeCierre(anterior, tabla, repartirTitulos(tabla)));
+  await sendDiscordNotification(mensajeDeCierre(anterior, tabla, repartirTitulos(tabla, duracionEnDias(anterior))));
 
   return {
     cerrada: clave,
