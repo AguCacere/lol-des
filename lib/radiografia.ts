@@ -77,6 +77,14 @@ export const MINIMO_WINRATE: Record<Periodo, number> = {
 /** Para el récord de campeón del salón de la fama, que es de toda la historia. */
 export const MINIMO_RECORD_CAMPEON = 20;
 
+/**
+ * Cuántos campeones muestra cada lista. Es un número de PANTALLA, no un
+ * umbral: el primero va grande y los demás en una tira horizontal, y con
+ * ocho la tira dejaba doscientos píxeles muertos a la derecha en escritorio.
+ * No toca qué califica ni cómo se ordena.
+ */
+const CAMPEONES_MOSTRADOS = 10;
+
 /** Cuántas partidas mira "la forma": las últimas diez de cada uno. */
 export const VENTANA_FORMA = 10;
 
@@ -134,12 +142,44 @@ export interface Destacado {
   tono: "good" | "bad" | "neutral";
 }
 
+/**
+ * Una fila del estado de forma: TODO lo que se sabe de esa persona en el
+ * período, junto.
+ *
+ * Antes eran dos listas —"quién está on fire" y "mayor winrate"— que en
+ * pantalla quedaban una abajo de la otra contando casi lo mismo. La fusión
+ * es de COMPOSICIÓN, no de cálculo: cada número se sigue calculando igual
+ * que antes, con los mismos filtros y el mismo mínimo. Lo único nuevo es que
+ * viajan en la misma fila en vez de en dos listas separadas.
+ */
 export interface FilaWinrate {
   persona: PersonaRadiografia;
   partidas: number;
   victorias: number;
   derrotas: number;
   winrate: number;
+  /**
+   * Si llega a `MINIMO_WINRATE` del período. Antes esta lista venía ya
+   * filtrada y quien no llegaba simplemente no existía; ahora viaja con la
+   * marca puesta para que la pantalla pueda mostrarlo aparte y apagado en
+   * vez de tragárselo. El mínimo NO cambió: sigue decidiendo quién entra al
+   * ranking, solo que ahora el que no entra se ve.
+   */
+  alcanzaMinimo: boolean;
+  /** Lo que se abre al tocar la fila. Mismos cálculos, expuestos por persona. */
+  mejorRacha: number;
+  /** Días argentinos distintos con al menos una partida. */
+  dias: number;
+  /** Movimiento de rankScore en la ventana. Null si no hay dos fotos que comparar. */
+  lpDelta: number | null;
+  /** El campeón que más jugó en el período. */
+  campeon: { champion: string; partidas: number; victorias: number } | null;
+  /**
+   * Sus últimas diez de SIEMPRE (no del período) contra su propio promedio —
+   * es la misma `FilaForma` de antes, pegada acá. Null si todavía no tiene
+   * diez partidas guardadas.
+   */
+  forma: FilaForma | null;
 }
 
 export interface FilaCampeon {
@@ -179,10 +219,43 @@ export interface RecordGrupo {
   cuando: string | null;
 }
 
+/**
+ * La historia del período: UN dato protagonista y el resto como notas al
+ * costado.
+ *
+ * Reemplaza a la fila de seis fichas iguales. No hay cálculo nuevo: el
+ * protagonista es el primero del ranking de winrate —el mismo que antes
+ * ocupaba la ficha "Mejor winrate"— y lo que lo rodea son sus propios
+ * números del período, que ya se calculaban por separado en otras fichas.
+ * Lo que cambia es que dejan de ser seis datos sueltos para ser una frase.
+ */
+export interface HistoriaDelPeriodo {
+  protagonista: {
+    persona: PersonaRadiografia;
+    /** "dominó la semana" / "dominó el mes" / "dominó la temporada". */
+    titular: string;
+    winrate: number;
+    victorias: number;
+    derrotas: number;
+    partidas: number;
+    /** Su mejor racha ganadora del período. 0 si no llegó a tres. */
+    racha: number;
+    lpDelta: number | null;
+  } | null;
+  /** Lo demás que pasó, sin repetir lo que ya cuenta el protagonista. */
+  secundarias: Destacado[];
+}
+
 export interface VentanaRadiografia {
   /** Partidas del grupo entero dentro de la ventana — el denominador de toda la pantalla. */
   partidas: number;
   jugadores: number;
+  historia: HistoriaDelPeriodo;
+  /**
+   * Se sigue mandando aunque la pantalla nueva no lo dibuje: durante la
+   * ventana de caché del CDN hay pestañas con el bundle viejo recibiendo
+   * este JSON. Ver DECISIONES → roleDistribution.
+   */
   destacados: Destacado[];
   winrate: FilaWinrate[];
   especialistas: FilaCampeon[];
@@ -341,6 +414,7 @@ function ventana(
   partidas: PartidaRadiografia[],
   fotos: FotoRadiografia[],
   personas: Map<string, PersonaRadiografia>,
+  formaPorPuuid: Map<string, FilaForma>,
   ahora: number
 ): VentanaRadiografia {
   const dias = PERIODOS.find((p) => p.clave === periodo)?.dias ?? null;
@@ -357,20 +431,40 @@ function ventana(
   const minimoEspecialista = MINIMO_ESPECIALISTA[periodo];
   const minimoWinrate = MINIMO_WINRATE[periodo];
 
-  // ── Winrate del período ────────────────────────────────────────────────
+  // ── El estado de forma del período ─────────────────────────────────────
+  // Entran TODOS los que jugaron; el mínimo se marca, no excluye. Quien no
+  // llega sigue sin estar en el ranking —la pantalla lo pone aparte y
+  // apagado—, pero deja de desaparecer sin explicación.
   const winrate: FilaWinrate[] = [];
   for (const [puuid, acc] of porJugador) {
     const persona = personas.get(puuid);
-    if (!persona || acc.partidas.length < minimoWinrate) continue;
+    if (!persona) continue;
+    let mejorCampeon: { champion: string; partidas: number; victorias: number } | null = null;
+    for (const [champion, c] of acc.porCampeon) {
+      if (!mejorCampeon || c.partidas > mejorCampeon.partidas) {
+        mejorCampeon = { champion, partidas: c.partidas, victorias: c.victorias };
+      }
+    }
     winrate.push({
       persona,
       partidas: acc.partidas.length,
       victorias: acc.victorias,
       derrotas: acc.partidas.length - acc.victorias,
       winrate: winrateExacto(acc.victorias, acc.partidas.length),
+      alcanzaMinimo: acc.partidas.length >= minimoWinrate,
+      mejorRacha: rachaMasLarga(acc.partidas.map((p) => p.win)),
+      dias: acc.dias.size,
+      lpDelta: movimiento.get(puuid) ?? null,
+      campeon: mejorCampeon,
+      forma: formaPorPuuid.get(puuid) ?? null,
     });
   }
-  winrate.sort((a, b) => b.winrate - a.winrate || b.partidas - a.partidas);
+  // Los que llegan al mínimo primero, y adentro de cada grupo por winrate.
+  winrate.sort(
+    (a, b) =>
+      Number(b.alcanzaMinimo) - Number(a.alcanzaMinimo) || b.winrate - a.winrate || b.partidas - a.partidas
+  );
+  const ranqueados = winrate.filter((f) => f.alcanzaMinimo);
 
   // ── Especialistas y más jugados ────────────────────────────────────────
   const todosLosCampeones: FilaCampeon[] = [];
@@ -402,8 +496,8 @@ function ventana(
   const especialistas = todosLosCampeones
     .filter((f) => f.partidas >= minimoEspecialista && f.victorias > f.derrotas)
     .sort((a, b) => wilsonLower(b.victorias, b.partidas) - wilsonLower(a.victorias, a.partidas))
-    .slice(0, 8);
-  const masJugados = [...todosLosCampeones].sort((a, b) => b.partidas - a.partidas).slice(0, 8);
+    .slice(0, CAMPEONES_MOSTRADOS);
+  const masJugados = [...todosLosCampeones].sort((a, b) => b.partidas - a.partidas).slice(0, CAMPEONES_MOSTRADOS);
 
   // ── Destacados ─────────────────────────────────────────────────────────
   const destacados: Destacado[] = [];
@@ -412,8 +506,8 @@ function ventana(
   };
 
   // El mejor winrate del período, sobre los que llegan al mínimo.
-  if (winrate.length > 0) {
-    const mejor = winrate[0];
+  if (ranqueados.length > 0) {
+    const mejor = ranqueados[0];
     agregar({
       clave: "winrate",
       titulo: "Mejor winrate",
@@ -515,9 +609,44 @@ function ventana(
     });
   }
 
+  // ── La historia del período ────────────────────────────────────────────
+  // El protagonista es el primero del ranking: el mismo que antes ocupaba la
+  // ficha "Mejor winrate". Lo que lo acompaña son sus propios números, que
+  // antes vivían desparramados en otras fichas de la misma fila.
+  const TITULARES: Record<Periodo, string> = {
+    "7d": "dominó la semana",
+    "30d": "dominó el mes",
+    temporada: "domina la temporada",
+  };
+  const primero = ranqueados[0] ?? null;
+  const historia: HistoriaDelPeriodo = {
+    protagonista: primero
+      ? {
+          persona: primero.persona,
+          titular: TITULARES[periodo],
+          winrate: primero.winrate,
+          victorias: primero.victorias,
+          derrotas: primero.derrotas,
+          partidas: primero.partidas,
+          // Tres o más, que es el piso desde el que una racha se cuenta en
+          // toda la app. Abajo de eso no es una racha, son dos partidas.
+          racha: primero.mejorRacha >= 3 ? primero.mejorRacha : 0,
+          lpDelta: primero.lpDelta,
+        }
+      : null,
+    // Sin la del winrate —esa ES el protagonista— y sin las que repiten
+    // datos que el protagonista ya cuenta en su propio bloque.
+    secundarias: destacados.filter(
+      (d) =>
+        d.clave !== "winrate" &&
+        !(primero && d.persona.puuid === primero.persona.puuid && (d.clave === "racha" || d.clave === "subida"))
+    ),
+  };
+
   return {
     partidas: dentro.length,
     jugadores: porJugador.size,
+    historia,
     destacados,
     winrate,
     especialistas,
@@ -766,9 +895,14 @@ export function radiografia(
   ahora: number = Date.now()
 ): Radiografia {
   const porPuuid = new Map(personas.map((p) => [p.puuid, p]));
+  // La forma se calcula UNA vez, sobre todo lo guardado: son las últimas
+  // diez de cada uno, que no dependen del período. Cada ventana se la pega a
+  // sus filas por puuid.
+  const forma = calcularForma(partidas, porPuuid);
+  const formaPorPuuid = new Map(forma.map((f) => [f.persona.puuid, f]));
   const ventanas = {} as Record<Periodo, VentanaRadiografia>;
   for (const { clave } of PERIODOS) {
-    ventanas[clave] = ventana(clave, partidas, fotos, porPuuid, ahora);
+    ventanas[clave] = ventana(clave, partidas, fotos, porPuuid, formaPorPuuid, ahora);
   }
   let desde: string | null = null;
   for (const p of partidas) if (!desde || p.playedAt < desde) desde = p.playedAt;
@@ -776,7 +910,7 @@ export function radiografia(
   for (const f of fotos) if (!lpDesde || f.capturedAt < lpDesde) lpDesde = f.capturedAt;
   return {
     ventanas,
-    forma: calcularForma(partidas, porPuuid),
+    forma,
     records: calcularRecords(partidas, fotos, porPuuid, duo),
     desde,
     lpDesde,

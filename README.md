@@ -17,10 +17,12 @@ partidas con su timeline. Adentro de esta misma pestaña vive la **liga semanal*
 cambia con el enlace que está al lado del título.
 
 **Estadísticas** — la radiografía del grupo, filtrable por 7 días, 30 días o toda la
-temporada: lo que pasó en el período (mejor winrate, mejor racha, quién más jugó,
-quién más subió y quién más bajó), quién está on fire según sus últimas 10, el
-ranking de winrate, especialistas por campeón, los récords de siempre y la sinergia
-de dúos con "juntos vs separados". Todo porcentaje va con las partidas al lado.
+temporada. Arranca con la historia del período (quién lo dominó, y lo demás que
+pasó al costado), sigue con el estado de forma —una clasificación con las últimas 10
+de cada uno y el eje del 50% cruzándola, y cada fila se abre con su detalle—, los
+campeones (especialistas o los más jugados, de a uno), la pared de récords y con
+quién juega cada uno, que se explora eligiendo persona y compañero. Todo porcentaje
+va con las partidas al lado.
 
 **Cara a cara** — dos jugadores del grupo comparados de frente, sin pedirle nada más al
 servidor.

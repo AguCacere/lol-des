@@ -2481,3 +2481,87 @@ Vale por el método más que por el arreglo — **se vio midiendo `scrollWidth` 
 después de tocar un control**, no mirando una captura. Sobrevivió tanto porque solo
 aparece con un invocador seleccionado, que es un estado que ninguna captura del
 primer render toma.
+
+## Estadísticas: el problema no eran las cards, era que todo era una card
+
+La pestaña quedó prolija y seguía leyéndose como un backoffice. El diagnóstico —del
+usuario, y es el correcto— fue que casi toda la página usaba la misma maqueta:
+
+```
+título → rectángulo → filas → separador → título → rectángulo → filas → …
+```
+
+Con esa repetición ninguna sección se distingue de la de arriba, y la jerarquía no
+existe: seis fichas del mismo tamaño dicen "acá hay seis datos" y ninguno importa
+más que otro. La página se escaneaba, no se leía. **Arreglarlo con CSS era
+imposible**: había que reestructurar el JSX y, antes, repartir de nuevo la
+información.
+
+Lo que se hizo, sección por sección:
+
+| Antes | Ahora |
+|---|---|
+| 6 fichas KPI iguales | una portada: UN protagonista grande y 3 notas al costado |
+| "On fire" + "Mayor winrate", dos tablas seguidas | UNA clasificación, con el eje del 50% atravesándola |
+| Especialistas \| Más jugados, dos tablas a la vez | un selector, el arte del campeón como objeto |
+| 7 divs idénticos de récords | una pared con tres jerarquías por importancia |
+| chips + tabla + panel vacío | un explorador de tres pasos: roster → vínculos → comparación |
+
+**La regla que ordenó todo**: una sección no lleva un rectángulo detrás salvo que
+tenga una razón semántica. Quedaron tres superficies en toda la pantalla, y las tres
+significan algo: una fila ABIERTA, un vínculo ELEGIDO y el panel de comparación.
+Todo lo demás vive sobre el fondo de la página, estructurado con espacio, escala
+tipográfica, líneas finas y alineación.
+
+**Ningún cálculo cambió.** Ni fórmulas, ni filtros, ni períodos, ni mínimos. Lo único
+que se movió en `lib/radiografia.ts` es la FORMA en que viajan los datos: las dos
+listas que antes salían separadas ahora salen pegadas por persona, y se expone por
+jugador lo que ya se calculaba para elegir un ganador (racha, días, LP, campeón más
+jugado).
+
+### El mínimo ahora marca, no expulsa
+
+`MINIMO_WINRATE` sigue decidiendo quién entra al ranking. Lo que cambió es que quien
+no llega ya no desaparece: viaja con `alcanzaMinimo: false` y la pantalla lo muestra
+abajo, apagado y bajo un renglón que dice por qué. Desaparecer sin explicación era
+peor que mostrarlo: en 7 días el ranking tenía 9 personas y "on fire" 13, y las
+cuatro que faltaban no estaban en ningún lado.
+
+**Y no dibujan barra.** La escala sale de los ranqueados, así que un 75% sobre 8
+partidas se pasa de escala y dibujaba la barra MÁS LARGA de la clasificación justo
+abajo del renglón que dice que no cuenta. Se quedan con su winrate y su tira.
+
+### El eje del 50% tiene que ser UNA línea, y no lo era
+
+La idea es que la vertical del 50% atraviese la clasificación entera: eso convierte
+una columna de barritas sueltas en un gráfico. Cada fila dibuja su tramo y los tramos
+pegados forman la vertical.
+
+Solo que no estaban pegados. Un grid item se estira hasta la caja de **contenido**
+del contenedor —o sea sin su padding—, así que con `top:0; bottom:0` cada tramo
+quedaba 18px más corto que su fila. Medido con `getBoundingClientRect`:
+**13 cortes sobre 14 tramos**. Se arregla sacando el tramo por encima del padding
+(`top:-9px; bottom:-9px`, que son el padding vertical de la fila) → **0 cortes**.
+Los 2 que quedan son legítimos: la fila abierta y el corte del mínimo.
+
+En **teléfono el eje NO es continuo, a propósito**: la fila son dos renglones, así
+que una vertical que cruzara de una fila a la otra pasaría por encima del winrate
+del de abajo.
+
+### Dos cosas más que solo aparecieron midiendo
+
+- **El pie de una nota le fijaba el ancho a la columna del dato.** "desde el 26 ago,
+  que es de cuando hay datos" vivía en la columna 2 de la nota, y a 768px se comía
+  los 224px enteros dejando el nombre en **0px de ancho** (`quienW: 0`,
+  `quienScroll: 80`). Renglón propio de borde a borde y listo.
+- **El chequeo de desborde daba falsos positivos.** Marcaba como "fuera de pantalla"
+  a los hijos de la tira de campeones, que es un carrusel horizontal y está bien que
+  los tenga. El chequeo ahora ignora lo que esté adentro de un contenedor con
+  `overflow-x:auto` que de verdad scrollea.
+
+### El dorado se lo llevan dos récords, no los siete
+
+Con los siete valores en dorado el color no distinguía nada y la jerarquía quedaba
+solo en el tamaño. Ahora lo usan los dos grandes —la racha más larga y el pico de
+rango, los únicos dos de toda la historia y de una sola persona— y el resto va en
+tinta normal. El color dice "estos dos son LOS récords" en vez de decorar.

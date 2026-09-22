@@ -2333,29 +2333,12 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* Sinergia de dúo: a horizontal selector strip of invocadores, not a
    vertical list — picking one opens the two-column detail below (partners
    left, shared-match detail right) instead of stretching the page downward. */
-.duo-chip-row{display:flex; gap:10px; overflow-x:auto; padding:2px 2px 8px; margin-bottom:16px;}
 /* The portrait is what you actually pick by — the name under it is a
    confirmation, and truncates. Avatar up, padding in: same footprint, more
    of it spent on the thing being identified. */
-.duo-chip .duo-avatar{width:40px; height:40px; border-radius:11px; font-size:13px;}
-.duo-chip{
-  display:flex; flex-direction:column; align-items:center; gap:7px; flex:none;
-  width:78px; padding:9px 7px 10px; border-radius:var(--radius-md);
-  background:var(--surface-raised); box-shadow:var(--shadow-sm);
-  border:1px solid transparent; cursor:pointer;
-  transition:background .15s ease, border-color .15s ease, transform .15s ease;
-}
-.duo-chip:hover{background:var(--surface-hover); transform:translateY(-1px);}
-.duo-chip.is-active{border-color:var(--accent-dim); background:var(--accent-wash-soft);}
-.duo-chip-name{
-  font-size:11px; font-weight:600; color:var(--text-primary); text-align:center;
-  white-space:nowrap; max-width:100%; overflow:hidden; text-overflow:ellipsis;
-}
 /* Crossfades the detail panel when the selected invocador/compañero changes
    — same opacity transition as .profile.is-fading in PlayerProfile, so
    switching here reads as a change too instead of an instant content swap. */
-.duo-panel{opacity:1; transition:opacity .16s ease;}
-.duo-panel.is-fading{opacity:0;}
 /* flex-wrap y min-width:0 no son cosmética: sin ellos, en un teléfono el
    título ("Compañeros de EtoN0EhCocaPapi") y el interruptor de orden no
    entraban en un renglón, no podían partirse, y el min-content de la
@@ -2363,42 +2346,18 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    entero se salía de la pantalla y toda la página tomaba scroll
    horizontal. Se veía solo con un invocador elegido, que es por lo que
    sobrevivió tanto. */
-.duo-cols-head{
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  margin-bottom:10px; min-height:28px; flex-wrap:wrap; min-width:0;
-}
-.duo-cols-head .meta{min-width:0;}
 /* La misma razón, un nivel más arriba: las dos mitades del panel son items
    de un grid y un grid item no se encoge por debajo de su min-content si no
    se lo permite explícitamente. */
-.duo-panel > *{min-width:0;}
 /* These label their column, so they get the same uppercase treatment as
    every other sub-heading in the app instead of reading as loose grey copy
    floating above a list. */
-.duo-cols-head .meta{
-  font-size:10.5px; font-weight:700; color:var(--text-secondary);
-  text-transform:uppercase; letter-spacing:0.09em;
-}
 /* One control, two states — not two buttons that happen to sit together.
    The shared track (border + inset background) is what makes "Más jugado |
    Más WR" read as a single either/or switch. */
-.duo-filter-row{
-  display:inline-flex; gap:2px; flex:none; padding:3px; border-radius:999px;
-  background:var(--surface); border:1px solid var(--border-soft);
-}
-.duo-filter-btn{
-  padding:5px 11px; border-radius:999px; font-size:11px; font-weight:600;
-  background:transparent; color:var(--text-muted); border:none;
-  cursor:pointer; transition:background .15s ease, color .15s ease;
-}
-.duo-filter-btn:hover{color:var(--text-primary);}
-.duo-filter-btn.is-active{background:var(--accent); color:var(--accent-ink);}
-.duo-partner-row{width:100%; text-align:left; cursor:pointer;}
-.duo-partner-row.is-active{background:var(--accent-wash-soft);}
 
 /* Expanded detail: the last 5 games THIS DUO shared — both sides' own
    champ+KDA from the SAME game, not one player's generic recent matches. */
-.duosum-matches{display:flex; flex-direction:column; gap:6px;}
 /* Three readable zones — result stripe | champions + KDA | when/how long.
    The extra vertical padding and the gap between zones is the whole fix
    here; the row stays compact, it just stops running together. */
@@ -2947,13 +2906,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 #view-ranking > section + section{
   margin-top:36px; padding-top:30px; border-top:1px solid var(--border-soft);
 }
-.duo-vacio{margin-top:14px;}
 @media (max-width:760px){
   /* La fila de invocadores scrollea de costado en vez de envolverse en
      cuatro líneas que empujan el panel fuera de la pantalla. */
-  .duo-chip-row{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; padding-bottom:4px;}
-  .duo-chip-row::-webkit-scrollbar{display:none;}
-  .duo-chip{flex:none;}
 }
 
 /* ── Clash: secuencia de partidas del día ─────────────────────────────────
@@ -5455,236 +5410,570 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .inicio-cuerpo{gap:26px 44px;}
   .pulso-cifra{font-size:22px;}
 }
+/* ═══════════ Estadísticas ═══════════
+   La regla que ordena todo este bloque: una sección NO lleva un rectángulo
+   detrás salvo que tenga una razón semántica para llevarlo. La estructura la
+   hacen el espacio, la escala tipográfica, las líneas finas y la alineación.
+   Las únicas superficies que quedaron son las tres que significan algo: una
+   fila ABIERTA, un vínculo ELEGIDO y el panel de comparación. */
 
-/* ---------- Estadísticas: la radiografía del grupo ---------- */
+.est{display:flex; flex-direction:column; gap:52px;}
 
-/* La barra del filtro. Va ANTES de la primera sección y no adentro de una:
-   manda sobre toda la pantalla, así que no puede parecer el control de un
-   bloque. Sin .section-head a propósito — no tiene título, es un mando. */
-.rd-barra{
-  display:flex; align-items:center; justify-content:space-between; gap:14px;
-  flex-wrap:wrap; margin:22px 0 4px;
+/* ---- el período: contexto de la página, no control de un bloque ---- */
+.est-contexto{
+  display:flex; align-items:baseline; justify-content:space-between; gap:16px;
+  flex-wrap:wrap; margin:20px 0 0;
+  padding-bottom:14px; border-bottom:1px solid var(--border-soft);
 }
-.rd-filtro{
-  display:inline-flex; background:var(--surface); border-radius:999px;
-  padding:3px; gap:2px; box-shadow:var(--shadow-sm);
+/* Sin píldora ni fondo: tres palabras y una línea abajo de la elegida. Manda
+   sobre toda la pantalla, así que no puede parecer el filtro de una tabla. */
+.est-periodo{display:flex; gap:4px;}
+.est-periodo-op{
+  font-family:var(--font-display);
+  font-size:15px; font-weight:700; color:var(--text-muted);
+  padding:8px 14px; cursor:pointer; position:relative; min-height:40px;
+  transition:color .14s ease;
 }
-.rd-filtro-op{
-  font-size:12.5px; font-weight:600; color:var(--text-muted);
-  padding:7px 15px; border-radius:999px; cursor:pointer;
-  transition:background .14s ease, color .14s ease;
-  /* 38px de alto mínimo: es el control más tocado de la pestaña y en un
-     teléfono tiene que aceptar un pulgar, no un mouse. */
-  min-height:38px;
+.est-periodo-op:hover{color:var(--text-secondary);}
+.est-periodo-op.activo{color:var(--accent);}
+.est-periodo-op.activo::after{
+  content:""; position:absolute; left:14px; right:14px; bottom:-15px; height:2px;
+  background:var(--accent);
 }
-.rd-filtro-op:hover{color:var(--text-secondary);}
-.rd-filtro-op.activo{background:var(--accent-wash); color:var(--accent);}
-.rd-filtro-op:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
-.rd-muestra{font-size:11.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+.est-periodo-op:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+.est-muestra{font-size:12px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
 
-/* Los destacados: una fila de fichas, no tarjetas grandes. Seis datos de una
-   línea cada uno — si cada uno fuera una tarjeta con aire, la fila ocuparía
-   la pantalla entera para decir seis cosas. */
-.rd-destacados{
-  display:grid; grid-template-columns:repeat(auto-fit, minmax(178px, 1fr)); gap:10px;
+/* ---- la portada del período ---- */
+.hist-periodo{
+  display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);
+  gap:40px; align-items:start;
 }
-.rd-destacado{
-  background:var(--surface); border-radius:var(--radius-md); padding:13px 15px;
-  display:flex; flex-direction:column; gap:3px; box-shadow:var(--shadow-sm);
-  border-left:2px solid var(--border-firm);
+.hp-protagonista{display:grid; grid-template-columns:auto minmax(0,1fr); gap:4px 18px;}
+.hp-cara{
+  grid-row:1 / span 2; width:72px; height:72px; border-radius:20px; overflow:hidden;
+  display:flex; align-items:center; justify-content:center; align-self:start;
+  font-family:var(--font-display); font-weight:700; font-size:20px;
+  background:var(--surface-hover); color:var(--text-secondary);
 }
-/* El borde de la izquierda es la ÚNICA señal de color de la ficha, y siempre
-   acompañada del texto que dice lo mismo ("El que más bajó"). El valor va en
-   tinta normal: un número gigante en rojo al lado de otro en verde hace leer
-   la fila como un semáforo en vez de como seis datos distintos. */
-.rd-destacado.good{border-left-color:var(--good);}
-.rd-destacado.bad{border-left-color:var(--critical);}
-.rd-destacado-titulo{
-  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;
-  color:var(--text-muted);
-}
-.rd-destacado-valor{
-  font-family:var(--font-stat); font-size:21px; font-weight:800; line-height:1.15;
-  font-variant-numeric:tabular-nums; color:var(--text-primary);
-}
-.rd-destacado-quien{
-  display:flex; align-items:center; gap:7px; min-width:0;
-  font-size:13px; font-weight:600; color:var(--text-secondary);
+.hp-cara img{width:100%; height:100%; object-fit:cover; display:block;}
+/* El nombre grande y el verbo abajo: la página es sobre esta gente. */
+.hp-titular{margin:0; display:flex; flex-direction:column; gap:1px; min-width:0; align-self:start;}
+.hp-nombre{
+  font-family:var(--font-display); font-size:27px; font-weight:800; line-height:1.1;
+  letter-spacing:-0.015em; color:var(--text-primary);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.rd-destacado-avatar{
-  width:20px; height:20px; border-radius:6px; flex:none; overflow:hidden;
-  display:flex; align-items:center; justify-content:center;
-  font-size:8px; font-weight:700; background:var(--surface-hover); color:var(--text-secondary);
+.hp-verbo{font-size:15px; font-weight:600; color:var(--accent); letter-spacing:0.01em;}
+.hp-cifra{grid-column:2; display:flex; align-items:baseline; gap:9px; margin-top:14px;}
+.hp-wr{
+  font-family:var(--font-stat); font-size:52px; font-weight:800; line-height:1;
+  letter-spacing:-0.03em; font-variant-numeric:tabular-nums; color:var(--text-primary);
 }
-.rd-destacado-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
-.rd-destacado-pie{font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+.hp-wr-et{font-size:12.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em;}
+.hp-detalle{
+  grid-column:2; margin:8px 0 0; font-size:14px; color:var(--text-secondary);
+  font-variant-numeric:tabular-nums;
+}
+.hp-sep{color:var(--text-muted); opacity:0.5; margin:0 3px;}
+.hp-extras{grid-column:2; margin:12px 0 0; display:flex; flex-wrap:wrap; gap:8px 18px;}
+/* Una línea fina delante y nada más. Eran dos fichas con borde de color. */
+.hp-extra{
+  font-size:13px; color:var(--text-secondary); font-variant-numeric:tabular-nums;
+  padding-left:11px; border-left:2px solid var(--border-firm);
+}
+.hp-extra.good{border-left-color:var(--good);}
+.hp-extra.bad{border-left-color:var(--critical);}
 
-/* La forma */
-.rd-forma{background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); overflow:hidden;}
-.rd-forma-fila{
-  display:grid; grid-template-columns:34px minmax(0,1fr) auto 76px 56px 62px;
-  align-items:center; gap:13px; padding:11px 18px;
-  border-bottom:1px solid var(--border-soft);
+/* Las notas al costado: sin caja, separadas por una línea fina. */
+.hp-resto{display:flex; flex-direction:column;}
+.hp-nota{
+  display:grid; grid-template-columns:minmax(0,1fr) auto; gap:1px 14px;
+  padding:13px 0; border-top:1px solid var(--border-soft); align-items:baseline;
 }
-.rd-forma-fila:last-child{border-bottom:none;}
-.rd-forma-avatar{
-  width:34px; height:34px; border-radius:10px; flex:none; overflow:hidden;
+.hp-resto .hp-nota:first-child{border-top:none; padding-top:0;}
+.hp-nota-quien{
+  font-size:15px; font-weight:700; color:var(--text-primary);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.hp-nota-que{grid-column:1; font-size:12.5px; color:var(--text-muted);}
+.hp-nota-dato{
+  grid-column:2; grid-row:1; text-align:right;
+  font-family:var(--font-stat); font-size:20px; font-weight:800;
+  font-variant-numeric:tabular-nums; color:var(--text-primary);
+}
+.hp-nota-dato.good{color:var(--good);}
+.hp-nota-dato.bad{color:var(--critical);}
+/* Renglón propio de borde a borde, NO la columna 2. Ahí adentro su texto
+   —que puede ser largo: "desde el 26 ago, que es de cuando hay datos"— le
+   fijaba el ancho a la columna del dato, y a 768px se comía los 224px
+   enteros de la nota dejando el nombre en 0px de ancho. Medido: quienW 0,
+   quienScroll 80. Acá puede partirse sin empujar a nadie. */
+.hp-nota-pie{
+  grid-column:1 / -1; grid-row:3; text-align:right;
+  font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;
+}
+
+/* ---- estado de forma ---- */
+/* La grilla la comparten los rótulos y las filas: una sola definición, así
+   no se pueden desalinear. */
+.ef-rotulos, .ef-fila{
+  display:grid;
+  grid-template-columns:26px 36px minmax(0,1fr) 87px 52px minmax(150px,1.35fr) 58px 44px;
+  align-items:center; gap:14px;
+}
+.ef-rotulos{
+  padding:0 4px 8px; font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:0.06em; color:var(--text-muted);
+}
+.ef-rot-partidas, .ef-rot-wr, .ef-rot-bal{text-align:right;}
+/* Los dos lados del eje, rotulados sobre la columna de las barras. */
+.ef-rot-eje{display:flex; justify-content:space-between; gap:6px;}
+.ef-rot-menos{text-align:right; opacity:0.75;}
+.ef-rot-mas{text-align:left; opacity:0.75;}
+
+.ef-lista{display:flex; flex-direction:column;}
+.ef-fila{
+  width:100%; text-align:left; cursor:pointer;
+  padding:9px 4px; border-top:1px solid var(--border-soft);
+  transition:background .12s ease;
+}
+.ef-lista .ef-fila:first-child{border-top:none;}
+.ef-fila:hover{background:var(--surface);}
+.ef-fila:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
+/* La única superficie de la lista, y solo cuando la fila está ABIERTA: ahí sí
+   es "un elemento seleccionado" y no una fila más. */
+.ef-fila.abierta{background:var(--surface-raised);}
+.ef-fila.flojo{opacity:0.55;}
+.ef-puesto{
+  font-family:var(--font-mono); font-size:12px; color:var(--text-muted);
+  text-align:center; font-variant-numeric:tabular-nums;
+}
+.ef-cara{
+  width:36px; height:36px; border-radius:11px; overflow:hidden;
   display:flex; align-items:center; justify-content:center;
   font-family:var(--font-display); font-weight:700; font-size:11px;
   background:var(--surface-hover); color:var(--text-secondary);
 }
-.rd-forma-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
-.rd-forma-id{display:flex; flex-direction:column; gap:2px; min-width:0;}
-.rd-forma-nombre{font-size:14px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.rd-forma-pie{font-size:11px; color:var(--text-muted); white-space:nowrap;}
-/* La tira de diez. 6px de ancho y 3px de separación: a menos, diez
-   cuadraditos se leen como una sola barra rayada. */
-.rd-tira{display:flex; gap:3px;}
-.rd-pip{width:6px; height:18px; border-radius:2px; display:block;}
-.rd-pip.good{background:var(--good);}
-/* La derrota va a media opacidad además de roja: en deuteranopía el verde y
-   el rojo se separan poco, y el contraste contra el fondo sí se ve. */
-.rd-pip.bad{background:var(--critical); opacity:0.72;}
-.rd-forma-vd{font-size:12px; color:var(--text-secondary); font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap;}
-.rd-forma-wr{font-family:var(--font-stat); font-size:15px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums;}
-.rd-forma-delta{font-family:var(--font-stat); font-size:12px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;}
-.rd-forma-wr.good, .rd-forma-delta.good{color:var(--good);}
-.rd-forma-wr.bad, .rd-forma-delta.bad{color:var(--critical);}
-.rd-forma-wr.neutral, .rd-forma-delta.neutral{color:var(--text-secondary);}
-.rd-mas{
-  display:block; margin:10px auto 0; font-size:12px; font-weight:600;
-  color:var(--text-muted); padding:9px 16px; border-radius:999px; cursor:pointer;
-  min-height:38px;
+.ef-cara img{width:100%; height:100%; object-fit:cover; display:block;}
+.ef-id{display:flex; flex-direction:column; gap:1px; min-width:0;}
+.ef-nombre{font-size:14.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.ef-sub{font-size:11.5px; color:var(--text-muted); display:flex; align-items:center; gap:5px; white-space:nowrap;}
+.ef-punto{opacity:0.5;}
+.ef-tira{display:flex; gap:3px; align-items:center;}
+.ef-pip{width:6px; height:17px; border-radius:2px; display:block;}
+.ef-pip.good{background:var(--good);}
+/* La derrota va a media opacidad además de roja: en deuteranopía verde y rojo
+   se separan poco y el contraste contra el fondo sí se ve. */
+.ef-pip.bad{background:var(--critical); opacity:0.7;}
+.ef-partidas{
+  font-family:var(--font-stat); font-size:13px; color:var(--text-secondary);
+  font-variant-numeric:tabular-nums; text-align:right;
 }
-.rd-mas:hover{color:var(--accent); background:var(--surface);}
-.rd-mas:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+/* EL EJE. Cada fila dibuja su tramo de borde a borde de su propio alto; como
+   las filas se tocan, los tramos forman UNA vertical continua que atraviesa
+   toda la clasificación. Eso es lo que convierte una columna de barritas
+   sueltas en un gráfico. */
+/* align-self:stretch y NO una altura fija: el tramo de eje tiene que cubrir
+   el alto ENTERO de la fila, padding incluido. Con `height:26px` cada tramo
+   quedaba más corto que su fila y entre uno y otro sobraba el padding — se
+   veían catorce rayitas sueltas en vez de una vertical. Medido: 13 cortes
+   sobre 14 tramos antes, 0 después. */
+.ef-eje{position:relative; display:block; align-self:stretch; min-height:26px;}
+.ef-barra{position:absolute; top:50%; transform:translateY(-50%); height:8px; border-radius:0 4px 4px 0;}
+.ef-barra.good{left:50%; background:var(--good);}
+.ef-barra.bad{right:50%; background:var(--critical); border-radius:4px 0 0 4px;}
+.ef-barra.neutral{left:50%; background:var(--text-muted);}
+/* Los -9px son el padding VERTICAL de .ef-fila, y son a propósito: un grid
+   item se estira hasta la caja de CONTENIDO del contenedor, o sea sin su
+   padding, así que con `top:0; bottom:0` el tramo quedaba 18px más corto que
+   la fila y entre tramo y tramo sobraba ese aire. Si cambia el padding de la
+   fila, cambia acá. Medido con getBoundingClientRect: 13 cortes sobre 14
+   tramos antes, 0 después. */
+.ef-cero{
+  position:absolute; left:50%; top:-9px; bottom:-9px; width:1px;
+  background:var(--border-firm); transform:translateX(-0.5px);
+}
+.ef-wr{
+  font-family:var(--font-stat); font-size:15px; font-weight:700;
+  text-align:right; font-variant-numeric:tabular-nums;
+}
+.ef-balance{
+  font-family:var(--font-stat); font-size:12.5px; font-weight:700;
+  text-align:right; font-variant-numeric:tabular-nums;
+}
+.ef-wr.good, .ef-balance.good{color:var(--good);}
+.ef-wr.bad, .ef-balance.bad{color:var(--critical);}
+.ef-wr.neutral, .ef-balance.neutral{color:var(--text-secondary);}
 
-/* Campeones: especialistas y más jugados, uno al lado del otro */
-/* align-items:start: las dos listas casi nunca tienen el mismo largo (a
-   Especialistas le entran solo los que ganan), y estirando la corta quedaba
-   una caja con quince centímetros de vacío abajo. */
-.rd-campeones{display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start;}
-.rd-col{background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:15px 18px 8px;}
-.rd-h3{
-  font-family:var(--font-display); font-size:13px; font-weight:700; margin:0 0 10px;
-  display:flex; align-items:center; gap:6px; color:var(--text-primary);
+.ef-detalle{
+  background:var(--surface-raised); padding:14px 18px 16px;
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(132px,1fr)); gap:14px 22px;
 }
-.rd-vacio{font-size:12.5px; color:var(--text-muted); margin:0 0 12px; line-height:1.5;}
-.rd-lista{list-style:none; margin:0; padding:0;}
-.rd-camp{
-  display:grid; grid-template-columns:28px minmax(0,1fr) auto 56px;
-  align-items:center; gap:11px; padding:8px 0;
-  border-bottom:1px solid var(--border-soft);
-}
-.rd-camp:last-child{border-bottom:none;}
-.rd-camp-icono{
-  width:28px; height:28px; border-radius:8px; flex:none; overflow:hidden;
-  display:flex; align-items:center; justify-content:center;
-  font-size:9px; font-weight:700; background:var(--surface-hover); color:var(--text-secondary);
-}
-.rd-camp-icono img{width:100%; height:100%; object-fit:cover; display:block;}
-.rd-camp-id{display:flex; flex-direction:column; gap:1px; min-width:0;}
-.rd-camp-nombre{font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.rd-camp-quien{font-size:11px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.rd-camp-muestra{font-size:11.5px; color:var(--text-muted); font-variant-numeric:tabular-nums; white-space:nowrap;}
-.rd-camp-wr{font-family:var(--font-stat); font-size:13.5px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums;}
-.rd-camp-wr.good{color:var(--good);}
-.rd-camp-wr.bad{color:var(--critical);}
-.rd-camp-wr.neutral{color:var(--text-secondary);}
-
-/* Récords */
-/* 250px y no 212: con 212 entraban CINCO por fila a 1440 y los récords son
-   siete, así que la última fila quedaba con dos sueltas y un hueco enorme al
-   lado. Con 250 entran cuatro y la segunda fila lleva tres. */
-.rd-records{display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:10px;}
-.rd-record{
-  background:var(--surface); border-radius:var(--radius-md); padding:14px 16px;
-  display:flex; flex-direction:column; gap:4px; box-shadow:var(--shadow-sm);
-}
-.rd-record-titulo{
-  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;
+.ef-dato{display:flex; flex-direction:column; gap:2px; min-width:0;}
+.ef-dato-et{
+  font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em;
   color:var(--text-muted);
 }
-.rd-record-valor{
-  font-family:var(--font-stat); font-size:20px; font-weight:800; line-height:1.15;
-  font-variant-numeric:tabular-nums; color:var(--gold);
+.ef-dato-val{
+  font-family:var(--font-stat); font-size:14px; font-weight:700;
+  color:var(--text-primary); font-variant-numeric:tabular-nums;
+  display:flex; align-items:center; gap:7px; flex-wrap:wrap;
 }
-.rd-record-quien{
-  display:flex; align-items:center; gap:7px; min-width:0;
-  font-size:13px; font-weight:600; color:var(--text-primary);
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-}
-.rd-record-avatar{
-  width:20px; height:20px; border-radius:6px; flex:none; overflow:hidden;
+.ef-dato-val.good{color:var(--good);}
+.ef-dato-val.bad{color:var(--critical);}
+.ef-dato-campeon{grid-column:span 2;}
+.ef-champ-icono{
+  width:24px; height:24px; border-radius:7px; overflow:hidden; flex:none;
   display:flex; align-items:center; justify-content:center;
   font-size:8px; font-weight:700; background:var(--surface-hover); color:var(--text-secondary);
 }
-.rd-record-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
-.rd-record-pie{font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
-
-/* Juntos vs separados, adentro de la sinergia de dúo */
-.duovs-comp{
-  background:var(--surface); border-radius:var(--radius-md); padding:14px 16px;
-  box-shadow:var(--shadow-sm);
+.ef-champ-icono img{width:100%; height:100%; object-fit:cover; display:block;}
+.ef-dato-fino{font-family:var(--font-body); font-size:11.5px; font-weight:500; color:var(--text-muted);}
+.ef-dato-fino.good{color:var(--good);}
+.ef-dato-fino.bad{color:var(--critical);}
+.ef-corte{
+  font-size:11.5px; color:var(--text-muted); margin:22px 0 4px;
+  padding-top:12px; border-top:1px solid var(--border-soft);
 }
-.duovs-comp-lados{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.ef-nadie, .ec-vacio, .ds-vacio{font-size:13.5px; color:var(--text-muted); margin:0; line-height:1.55;}
+
+/* ---- campeones ---- */
+/* Mismo interruptor que el período, un escalón más chico: es el control de
+   una sección, no de la página. */
+.ec-tabs{display:flex; gap:4px; margin:-4px 0 20px;}
+.ec-tab{
+  font-size:13px; font-weight:700; color:var(--text-muted);
+  padding:7px 12px; cursor:pointer; position:relative; min-height:38px;
+  transition:color .14s ease;
+}
+.ec-tab:hover{color:var(--text-secondary);}
+.ec-tab.activo{color:var(--text-primary);}
+.ec-tab.activo::after{
+  content:""; position:absolute; left:12px; right:12px; bottom:4px; height:2px; background:var(--accent);
+}
+.ec-tab:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+.ec-cuerpo{display:grid; grid-template-columns:minmax(0,290px) minmax(0,1fr); gap:38px; align-items:start;}
+.ec-primero{display:flex; gap:18px; align-items:center;}
+/* El arte a 96px: el campeón deja de ser texto con un iconito al lado y pasa
+   a ser el objeto. */
+.ec-arte-grande{
+  width:96px; height:96px; border-radius:22px; overflow:hidden; flex:none;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:700; font-size:22px;
+  background:var(--surface-hover); color:var(--text-secondary);
+}
+.ec-arte-grande img{width:100%; height:100%; object-fit:cover; display:block;}
+.ec-primero-texto{display:flex; flex-direction:column; gap:1px; min-width:0;}
+.ec-primero-champ{
+  font-family:var(--font-display); font-size:19px; font-weight:800; letter-spacing:-0.01em;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.ec-primero-quien{font-size:12.5px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.ec-primero-dato{
+  font-family:var(--font-stat); font-size:30px; font-weight:800; line-height:1.15;
+  letter-spacing:-0.02em; font-variant-numeric:tabular-nums; margin-top:6px;
+}
+.ec-primero-dato.good{color:var(--good);}
+.ec-primero-dato.bad{color:var(--critical);}
+.ec-primero-dato.neutral{color:var(--text-secondary);}
+.ec-primero-pie{font-size:11.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+
+/* Tira horizontal, con scroll lateral cuando no entra. Apilarlos en vertical
+   reproduciría exactamente la lista kilométrica que se quería sacar. */
+.ec-tira{
+  list-style:none; margin:0; padding:0 0 10px;
+  display:flex; gap:30px; overflow-x:auto; scrollbar-width:thin;
+  scroll-snap-type:x proximity;
+}
+.ec-item{
+  display:flex; flex-direction:column; align-items:center; gap:1px;
+  min-width:94px; scroll-snap-align:start;
+}
+/* 64px y no 52: con el arte chico la tira ocupaba media columna y dejaba un
+   agujero de 350px a la derecha en escritorio. El campeón tiene que pesar
+   como objeto, que es el punto de la sección. */
+.ec-arte{
+  width:64px; height:64px; border-radius:17px; overflow:hidden; margin-bottom:8px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; background:var(--surface-hover); color:var(--text-secondary);
+}
+.ec-arte img{width:100%; height:100%; object-fit:cover; display:block;}
+.ec-dato{
+  font-family:var(--font-stat); font-size:16px; font-weight:800;
+  font-variant-numeric:tabular-nums; color:var(--text-primary);
+}
+.ec-dato.good{color:var(--good);}
+.ec-dato.bad{color:var(--critical);}
+.ec-dato.neutral{color:var(--text-secondary);}
+.ec-dato-et{font-size:10px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+.ec-champ{font-size:13px; font-weight:600; margin-top:5px; max-width:110px; text-align:center;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.ec-quien{font-size:11px; color:var(--text-muted); max-width:110px; text-align:center;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.ec-secundario{font-size:11px; font-family:var(--font-stat); font-weight:700; font-variant-numeric:tabular-nums;}
+.ec-secundario.good{color:var(--good);}
+.ec-secundario.bad{color:var(--critical);}
+.ec-secundario.neutral{color:var(--text-muted);}
+
+/* ---- la pared de récords ---- */
+/* Tres jerarquías repartidas por importancia (ver PESOS en EstRecords.tsx).
+   Los grandes ocupan la mitad del ancho y tienen la cifra al doble; los
+   chicos comparten fila. Sin rectángulos: la separación la hacen las líneas
+   y el espacio. */
+.er-pared{display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:0 32px;}
+.er-item{
+  display:flex; flex-direction:column; gap:2px; min-width:0;
+  padding:22px 0; border-top:1px solid var(--border-soft);
+}
+.er-grande{grid-column:span 3;}
+.er-medio{grid-column:span 2;}
+.er-chico{grid-column:span 3;}
+/* El dorado NO va en los siete. Con todos dorados el color no distingue
+   nada y la jerarquía queda solo en el tamaño. Se lo llevan los dos grandes
+   —la racha más larga y el pico de rango, los dos únicos de toda la historia
+   y de una sola persona—; el resto va en tinta normal. Así el color dice
+   "estos dos son LOS récords" en vez de decorar. */
+.er-valor{
+  font-family:var(--font-stat); font-weight:800; line-height:1.05;
+  letter-spacing:-0.025em; font-variant-numeric:tabular-nums; color:var(--text-primary);
+}
+.er-grande .er-valor{font-size:40px; color:var(--gold);}
+.er-medio .er-valor{font-size:27px;}
+.er-chico .er-valor{font-size:22px;}
+.er-que{
+  font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
+  color:var(--text-muted); margin-top:3px;
+}
+.er-quien{
+  display:flex; align-items:center; gap:7px; min-width:0; margin-top:7px;
+  font-size:14px; font-weight:700; color:var(--text-primary);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.er-cara{
+  width:22px; height:22px; border-radius:7px; overflow:hidden; flex:none;
+  display:flex; align-items:center; justify-content:center;
+  font-size:8px; font-weight:700; background:var(--surface-hover); color:var(--text-secondary);
+}
+.er-cara img{width:100%; height:100%; object-fit:cover; display:block;}
+.er-pie{font-size:11.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+
+/* ---- con quién juega cada uno ---- */
+/* El roster: caras en fila que se desplaza de costado. No catorce botones
+   cuadrados grandes — es una lista de gente. */
+.ds-roster{
+  display:flex; gap:6px; overflow-x:auto; scrollbar-width:thin;
+  padding-bottom:8px; margin-bottom:6px;
+}
+.ds-cara-btn{
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  padding:8px 6px; border-radius:var(--radius-md); cursor:pointer; min-width:72px;
+  transition:background .14s ease;
+}
+.ds-cara-btn:hover{background:var(--surface);}
+.ds-cara-btn:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
+.ds-cara{
+  width:42px; height:42px; border-radius:50%; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:700; font-size:12px;
+  background:var(--surface-hover); color:var(--text-secondary);
+  border:2px solid transparent; transition:border-color .14s ease;
+}
+.ds-cara img{width:100%; height:100%; object-fit:cover; display:block;}
+.ds-cara-btn.activo .ds-cara{border-color:var(--accent);}
+.ds-cara-nombre{
+  font-size:11px; color:var(--text-muted); max-width:68px; text-align:center;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.ds-cara-btn.activo .ds-cara-nombre{color:var(--text-primary); font-weight:600;}
+.ds-vacio-roster{max-width:52ch; margin-top:10px;}
+
+/* master/detail asimétrico: la lista de vínculos manda y el detalle la acompaña */
+.ds-panel{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,0.85fr); gap:36px; align-items:start;}
+.ds-panel.is-fading{opacity:0.35; transition:opacity .16s ease;}
+.ds-vinculos{list-style:none; margin:0; padding:0;}
+.ds-vinculo{
+  width:100%; text-align:left; cursor:pointer;
+  display:grid; grid-template-columns:34px 34px minmax(0,1fr) 58px 70px;
+  align-items:center; gap:12px; padding:10px 6px;
+  border-top:1px solid var(--border-soft); transition:background .12s ease;
+}
+.ds-vinculos li:first-child .ds-vinculo{border-top:none;}
+.ds-vinculo:hover{background:var(--surface);}
+.ds-vinculo:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
+/* Superficie solo para el vínculo ELEGIDO. */
+.ds-vinculo.activo{background:var(--surface-raised);}
+/* EL HILO. Su grosor es cuánto jugaron juntos, proporcional al vínculo más
+   pesado de esa persona. Una tabla no dejaba ver que algunos vínculos pesan
+   diez veces más que otros. */
+.ds-hilo{
+  display:block; width:100%; border-radius:999px; background:var(--accent-dim);
+  opacity:0.55;
+}
+.ds-vinculo.activo .ds-hilo{background:var(--accent); opacity:1;}
+.ds-vinculo-cara{
+  width:34px; height:34px; border-radius:50%; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:700; font-size:11px;
+  background:var(--surface-hover); color:var(--text-secondary);
+}
+.ds-vinculo-cara img{width:100%; height:100%; object-fit:cover; display:block;}
+.ds-vinculo-id{display:flex; flex-direction:column; gap:1px; min-width:0;}
+.ds-vinculo-nombre{font-size:14px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.ds-vinculo-juntos{font-size:11px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.ds-vinculo-wr{
+  font-family:var(--font-stat); font-size:14.5px; font-weight:700;
+  text-align:right; font-variant-numeric:tabular-nums;
+}
+.ds-vinculo-wr.good{color:var(--good);}
+.ds-vinculo-wr.bad{color:var(--critical);}
+.ds-vinculo-wr.neutral{color:var(--text-secondary);}
+/* Apagado hasta que la muestra alcance — ver DECISIONES. */
+.ds-vinculo-wr.flojo{color:var(--text-muted);}
+.ds-vinculo-vd{font-size:11.5px; color:var(--text-muted); text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;}
+
+.ds-detalle{min-width:0;}
+.ds-vacio-detalle{padding:18px 0;}
+.ds-par{
+  font-family:var(--font-display); font-size:17px; font-weight:800; margin:0 0 14px;
+  letter-spacing:-0.01em;
+}
+.ds-par-mas{color:var(--accent); margin:0 2px;}
+.ds-ultimas-et{
+  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em;
+  color:var(--text-muted); margin:22px 0 10px;
+}
+
+/* ---- juntos vs separados ---- */
+/* Esta SÍ lleva superficie: es el detalle expandido de una selección. */
+.duovs-comp{background:var(--surface-raised); border-radius:var(--radius-md); padding:15px 17px;}
+.duovs-comp-lados{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
 .duovs-comp-lado{display:flex; flex-direction:column; gap:2px; min-width:0;}
 .duovs-comp-et{
-  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;
+  font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em;
   color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.duovs-comp-wr{font-family:var(--font-stat); font-size:22px; font-weight:800; line-height:1.15; font-variant-numeric:tabular-nums;}
+.duovs-comp-wr{font-family:var(--font-stat); font-size:25px; font-weight:800; line-height:1.15; font-variant-numeric:tabular-nums;}
 .duovs-comp-wr.good{color:var(--good);}
 .duovs-comp-wr.bad{color:var(--critical);}
 .duovs-comp-wr.neutral{color:var(--text-secondary);}
 .duovs-comp-muestra{font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
 .duovs-comp-pie{
   font-size:11.5px; color:var(--text-muted); line-height:1.55;
-  margin:11px 0 0; padding-top:11px; border-top:1px solid var(--border-soft);
+  margin:12px 0 0; padding-top:12px; border-top:1px solid var(--border-soft);
 }
 .duovs-comp-diff{font-family:var(--font-stat); font-size:13px; font-weight:800; font-variant-numeric:tabular-nums;}
 .duovs-comp-diff.good{color:var(--good);}
 .duovs-comp-diff.bad{color:var(--critical);}
 .duovs-comp-diff.neutral{color:var(--text-secondary);}
-.duo-cols-head-2{margin-top:18px;}
-/* Un winrate calculado sobre cuatro partidas se muestra, pero no se pinta de
-   verde ni se agranda: en tinta apagada se lee como "esto todavía no
-   significa nada", que es la verdad. El 75% de 3-1 llamaba más la atención
-   que el 54% de 34-29. */
-.champ-pool-wr.flojo{color:var(--text-muted);}
 
-@media (max-width:900px){
-  .rd-campeones{grid-template-columns:1fr;}
-}
-@media (max-width:720px){
-  .rd-barra{gap:10px;}
-  .rd-filtro{width:100%; justify-content:stretch;}
-  .rd-filtro-op{flex:1; text-align:center; padding:7px 8px;}
-  /* En teléfono la fila de la forma pasa a dos renglones: la tira de diez
-     necesita 87px que no se pueden achicar sin volverla ilegible, y el resto
-     de las columnas se quedaba sin lugar. Nombre arriba, datos abajo. */
-  .rd-forma-fila{
-    grid-template-columns:34px minmax(0,1fr) auto;
-    grid-template-areas:"avatar id wr" "tira tira vd";
-    gap:8px 11px; padding:11px 14px;
+/* ═══ 1024 y abajo: la portada deja de ser dos columnas ═══ */
+@media (max-width:1040px){
+  .hist-periodo{grid-template-columns:1fr; gap:26px;}
+  .hp-resto{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr)); gap:0 28px;
   }
-  .rd-forma-avatar{grid-area:avatar;}
-  .rd-forma-id{grid-area:id;}
-  .rd-forma-wr{grid-area:wr;}
-  .rd-tira{grid-area:tira;}
-  .rd-forma-vd{grid-area:vd;}
-  /* Se va en teléfono: es el dato más fino de la fila y el que menos se
-     busca ahí. El winrate y la tira siguen contando la misma historia. */
-  .rd-forma-delta{display:none;}
-  .rd-destacados{grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px;}
-  .rd-destacado{padding:11px 13px;}
-  .rd-destacado-valor{font-size:19px;}
-  .rd-records{grid-template-columns:1fr 1fr; gap:8px;}
-  .rd-record{padding:12px 13px;}
-  .rd-record-valor{font-size:17px;}
-  .duovs-comp-wr{font-size:19px;}
+  /* En una sola columna las notas comparten fila, así que la línea de arriba
+     vuelve para todas: si no, la primera de cada fila quedaba sin separador. */
+  .hp-resto .hp-nota:first-child{border-top:1px solid var(--border-soft); padding-top:13px;}
+  .ec-cuerpo{grid-template-columns:1fr; gap:22px;}
+  .ds-panel{grid-template-columns:1fr; gap:26px;}
 }
-@media (max-width:420px){
-  .rd-records{grid-template-columns:1fr;}
+
+/* ═══ tablet ═══ */
+@media (max-width:860px){
+  .er-pared{grid-template-columns:repeat(4, minmax(0,1fr)); gap:0 24px;}
+  .er-grande{grid-column:span 4;}
+  .er-medio{grid-column:span 2;}
+  .er-chico{grid-column:span 2;}
+  /* La columna del rango/línea sobra antes que el resto: el nombre alcanza. */
+  .ef-rotulos, .ef-fila{grid-template-columns:22px 34px minmax(0,1fr) 87px 44px minmax(110px,1fr) 52px 40px; gap:10px;}
+  /* Con 10px de separación "PARTIDAS" y "DEBAJO DEL 50%" se tocaban y se
+     leían como una sola palabra. Los dos rótulos del eje se van: la barra
+     saliendo de la vertical ya dice para qué lado, y el InfoTip del
+     encabezado lo explica en palabras. */
+  .ef-rot-menos, .ef-rot-mas{display:none;}
+}
+
+/* ═══ teléfono: NO es la grilla de escritorio a width:100% ═══ */
+@media (max-width:720px){
+  .est{gap:40px;}
+  .est-contexto{align-items:center;}
+  .est-periodo-op{font-size:14px; padding:8px 10px;}
+  .est-periodo-op.activo::after{left:10px; right:10px;}
+
+  .hp-cara{width:54px; height:54px; border-radius:16px; font-size:16px;}
+  .hp-nombre{font-size:22px;}
+  .hp-verbo{font-size:13.5px;}
+  .hp-wr{font-size:42px;}
+  .hp-protagonista{gap:3px 14px;}
+  .hp-resto{grid-template-columns:1fr;}
+
+  /* La fila pasa a dos renglones. La tira de diez necesita 87px que no se
+     pueden achicar sin volverla ilegible, y el eje necesita ancho para que
+     la barra signifique algo — no entran los dos en un renglón de 390px.
+     Arriba la persona y su winrate; abajo la tira y el eje. */
+  .ef-rotulos{display:none;}
+  .ef-fila{
+    grid-template-columns:22px 34px minmax(0,1fr) auto;
+    grid-template-areas:
+      "puesto cara id wr"
+      "tira tira eje eje";
+    gap:9px 10px; padding:11px 4px;
+  }
+  .ef-puesto{grid-area:puesto;}
+  .ef-cara{grid-area:cara;}
+  .ef-id{grid-area:id;}
+  .ef-wr{grid-area:wr;}
+  .ef-tira{grid-area:tira;}
+  .ef-eje{grid-area:eje; min-height:20px;}
+  /* En teléfono el eje NO es continuo, y es a propósito. La fila son dos
+     renglones —persona arriba, tira y eje abajo— así que una vertical que
+     cruzara de una fila a la otra pasaría por encima del winrate del de
+     abajo. Acá cada fila se queda con su tramo, que con la barra y la marca
+     del centro alcanza para leer de qué lado está. La vertical continua es
+     una decisión de ESCRITORIO, donde la fila es un solo renglón. */
+  .ef-cero{top:0; bottom:0;}
+  /* Se van del renglón: el winrate y la tira ya cuentan lo mismo, y el
+     detalle completo está a un toque adentro de la fila. */
+  .ef-partidas, .ef-balance{display:none;}
+  .ef-detalle{grid-template-columns:1fr 1fr; padding:13px 14px 15px; gap:12px 16px;}
+  .ef-dato-campeon{grid-column:span 2;}
+
+  .ec-cuerpo{gap:18px;}
+  .ec-arte-grande{width:76px; height:76px; border-radius:18px;}
+  .ec-primero-dato{font-size:25px;}
+  /* La tira se sale del margen de la página a propósito: el recorte contra el
+     borde es lo que dice "esto sigue", en vez de cortarse limpio y parecer
+     que ahí se terminó. */
+  .ec-tira{gap:20px; margin:0 -20px; padding:0 20px 10px;}
+  .ec-item{min-width:84px;}
+  .ec-arte{width:56px; height:56px; border-radius:15px;}
+
+  .er-pared{grid-template-columns:repeat(2, minmax(0,1fr)); gap:0 20px;}
+  .er-grande{grid-column:span 2;}
+  .er-medio, .er-chico{grid-column:span 1;}
+  /* A media pantalla un nombre largo ("vas a perder con Viego") no entra en
+     un renglón, y con nowrap se cortaba al medio de la palabra. Acá puede
+     partirse: es una pared editorial, no una celda de tabla. */
+  .er-quien{white-space:normal; overflow:visible; align-items:flex-start; line-height:1.3;}
+  .er-cara{margin-top:1px;}
+  .er-item{padding:16px 0;}
+  .er-grande .er-valor{font-size:32px;}
+  .er-medio .er-valor{font-size:21px;}
+  .er-chico .er-valor{font-size:19px;}
+
+  .ds-roster{margin:0 -20px 6px; padding:0 20px 8px;}
+  .ds-vinculo{grid-template-columns:28px 32px minmax(0,1fr) 54px; gap:10px;}
+  /* El V/D se va del renglón: el winrate y el "N partidas juntos" que está
+     debajo del nombre ya dan la muestra. */
+  .ds-vinculo-vd{display:none;}
+}
+
+@media (max-width:430px){
+  .hp-wr{font-size:36px;}
+  .ef-detalle{grid-template-columns:1fr;}
+  .ef-dato-campeon{grid-column:span 1;}
+  .duovs-comp-lados{gap:10px;}
+  .duovs-comp-wr{font-size:21px;}
 }

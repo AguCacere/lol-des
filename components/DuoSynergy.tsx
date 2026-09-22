@@ -7,8 +7,6 @@ import { ChampIcon } from "./ChampIcon";
 import { tonoDeWinrate, winrateExacto, winrateTexto } from "@/lib/winrate";
 import { PlayerAvatar } from "./PlayerAvatar";
 
-type SortKey = "games" | "winrate";
-
 interface PlayerIdentity {
   name: string;
   tag: string;
@@ -179,13 +177,19 @@ function JuntosVsSeparados({ partner, quien }: { partner: PartnerRow; quien: str
 }
 
 /**
- * "Sinergia de dúo" — selector horizontal de invocadores (chips, uno al lado
- * del otro) en vez de una lista vertical: tocar uno abre, al lado, con quién
- * jugó del grupo — filtrable por partidas juntos o winrate — y tocar un
- * compañero de esa lista muestra las últimas 5 partidas que ESE dúo compartió
- * (campeón + KDA real de cada uno en la misma partida). Todo sale de `pairs`
- * (ya viene completo desde /api/ladder, recentMatches incluido) — no hay
- * fetch ni loading real, elegir un invocador o un compañero es instantáneo.
+ * "Sinergia de dúo" — un explorador de relaciones, no un formulario.
+ *
+ * Lo que había era: una fila de chips grandes, abajo una tabla de
+ * compañeros, y al costado un panel vacío esperando que toques algo. Tres
+ * rectángulos que no contaban que esto trata de VÍNCULOS entre personas.
+ *
+ * La composición ahora sigue el recorrido real, que tiene tres pasos y no
+ * uno: elegís a alguien del roster → aparecen sus compañeros COMO
+ * relaciones, ordenados por cuánto jugaron juntos y con el vínculo
+ * dibujado → elegís uno y recién ahí se abre la comparación y las partidas.
+ *
+ * Eso no esconde nada: muestra cada cosa cuando tiene sentido preguntarla.
+ * Antes las tres etapas estaban en pantalla a la vez y dos de ellas vacías.
  */
 export function DuoSynergy({
   pairs,
@@ -198,22 +202,18 @@ export function DuoSynergy({
 }) {
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [selectedPartner, setSelectedPartner] = useState<string | null>(null);
-  const [sortKey, setSortKey] = useState<SortKey>("games");
 
-  // The detail panel (compañeros + últimas partidas) crossfades to whatever
-  // was just picked instead of swapping content instantly — same 160ms
-  // pattern PlayerProfile uses when you click a different row in el
-  // ranking, so switching invocador/compañero here reads as a change too,
-  // not a jump-cut. Chip/row highlighting still tracks the selection
-  // immediately (selectedPlayer/selectedPartner below) — only the panel
-  // CONTENT lags behind the fade.
+  // El panel de detalle hace crossfade a lo que acabás de elegir en vez de
+  // cambiar de golpe — el mismo patrón de 160ms que usa PlayerProfile al
+  // cambiar de fila en el ranking. El resaltado del roster sí cambia al
+  // instante; lo que se demora es el CONTENIDO.
   const [displayedPlayer, setDisplayedPlayer] = useState<string | null>(null);
   const [displayedPartner, setDisplayedPartner] = useState<string | null>(null);
   const [fading, setFading] = useState(false);
 
   useEffect(() => {
     if (selectedPlayer === displayedPlayer && selectedPartner === displayedPartner) return;
-    // Crossfade on selection change, not a fetch — nothing to await before this.
+    // Crossfade por un cambio de selección, no por un fetch: no hay nada que esperar.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFading(true);
     const t = setTimeout(() => {
@@ -226,14 +226,18 @@ export function DuoSynergy({
 
   const players = distinctPlayers(pairs);
   const partners = displayedPlayer ? partnersOf(pairs, displayedPlayer) : [];
-  const sortedPartners =
-    sortKey === "games" ? [...partners].sort((a, b) => b.games - a.games) : [...partners].sort((a, b) => b.winrate - a.winrate);
+  // Por partidas juntos, siempre. El selector "Más jugado | Más WR" que había
+  // era un control de tabla: acá el vínculo se mide en cuánto jugaron juntos,
+  // y el winrate de un 3-1 arriba de todo ordenaba por quién jugó MENOS.
+  const ordenados = [...partners].sort((a, b) => b.games - a.games);
   const activePair = displayedPlayer && displayedPartner ? findPair(pairs, displayedPlayer, displayedPartner) : null;
-  // La fila del compañero elegido, que es de donde sale el "sin" del
-  // invocador — findPair devuelve el par, pero el par no sabe cuál de los dos
-  // lados se está mirando.
-  const activePartner = displayedPartner ? partners.find((p) => playerKey(p.name, p.tag) === displayedPartner) ?? null : null;
+  const activePartner = displayedPartner
+    ? ordenados.find((p) => playerKey(p.name, p.tag) === displayedPartner) ?? null
+    : null;
   const displayedName = displayedPlayer?.split("#")[0] ?? "";
+  // El vínculo más jugado marca la escala de los hilos: el resto se dibuja
+  // proporcional a ese, así que el grosor dice algo en vez de ser decoración.
+  const maxJuntos = Math.max(1, ...ordenados.map((p) => p.games));
 
   function selectPlayer(key: string) {
     setSelectedPlayer((cur) => (cur === key ? null : key));
@@ -241,131 +245,108 @@ export function DuoSynergy({
   }
 
   return (
-    <section>
+    <section className="ds">
       <div className="section-head">
-        <h2>
-          Sinergia de dúo
-        </h2>
-        <span className="meta">Elegí un invocador para ver con quién juega</span>
+        <h2>Con quién juega cada uno</h2>
+        <span className="meta">
+          {displayedName ? `Los compañeros de ${displayedName}` : "Elegí un invocador del roster"}
+        </span>
       </div>
 
       {loading ? (
-        <div className="empty-state">
-          <strong>Cargando…</strong>
-          Buscando partidas compartidas.
-        </div>
+        <p className="ds-vacio">Buscando partidas compartidas…</p>
       ) : players.length === 0 ? (
-        <div className="empty-state">
-          <strong>Todavía no hay dúos para mostrar</strong>
-          Se arma solo cuando dos invocadores del grupo comparten una partida de ranked como compañeros de equipo.
-        </div>
+        <p className="ds-vacio">
+          Se arma solo cuando dos invocadores del grupo comparten una ranked como compañeros de equipo.
+        </p>
       ) : (
         <>
-          <div className="duo-chip-row">
+          {/* El roster. Caras chicas en fila, que se desplaza de costado en
+              pantallas angostas: es una lista de gente, no catorce botones
+              cuadrados grandes. */}
+          <div className="ds-roster" role="group" aria-label="Invocadores">
             {players.map((pl) => {
               const key = playerKey(pl.name, pl.tag);
               return (
                 <button
                   type="button"
-                  className={`duo-chip${selectedPlayer === key ? " is-active" : ""}`}
+                  className={`ds-cara-btn${selectedPlayer === key ? " activo" : ""}`}
                   onClick={() => selectPlayer(key)}
+                  aria-pressed={selectedPlayer === key}
                   key={key}
                 >
-                  <PlayerAvatar name={pl.name} iconUrl={pl.profileIconUrl} className="duo-avatar" />
-                  <span className="duo-chip-name">{pl.name}</span>
+                  <PlayerAvatar name={pl.name} iconUrl={pl.profileIconUrl} className="ds-cara" />
+                  <span className="ds-cara-nombre">{pl.name}</span>
                 </button>
               );
             })}
           </div>
 
-          {!selectedPlayer && (
-            // Sin esto la sección terminaba en la fila de invocadores y
-            // abajo no había nada: se leía como algo a medio cargar en vez de
-            // como una sección esperando que elijas.
-            <div className="empty-state duo-vacio">
-              <strong>Elegí un invocador de arriba</strong>
-              Se arma la lista de con quién jugó, cuántas partidas hicieron juntos y qué winrate tienen como dúo.
-            </div>
-          )}
-
-          {selectedPlayer && (
-            <div className={`stack-cols duo-panel${fading ? " is-fading" : ""}`}>
-              <div>
-                <div className="duo-cols-head">
-                  <span className="meta">Compañeros de {displayedName}</span>
-                  <div className="duo-filter-row">
-                    <button
-                      type="button"
-                      className={`duo-filter-btn${sortKey === "games" ? " is-active" : ""}`}
-                      onClick={() => setSortKey("games")}
-                    >
-                      Más jugado
-                    </button>
-                    <button
-                      type="button"
-                      className={`duo-filter-btn${sortKey === "winrate" ? " is-active" : ""}`}
-                      onClick={() => setSortKey("winrate")}
-                    >
-                      Más WR
-                    </button>
-                  </div>
-                </div>
-                <div className="champ-pool">
-                  {sortedPartners.map((partner) => {
-                    const pKey = playerKey(partner.name, partner.tag);
-                    const losses = partner.games - partner.wins;
-                    return (
+          {!selectedPlayer ? (
+            <p className="ds-vacio ds-vacio-roster">
+              Tocá a alguien de arriba para ver con quién juega, cuánto jugaron juntos y si les va mejor o peor
+              cuando están los dos.
+            </p>
+          ) : (
+            <div className={`ds-panel${fading ? " is-fading" : ""}`}>
+              {/* Las relaciones. Cada una es un hilo desde la persona
+                  elegida hasta el compañero, y el grosor del hilo es cuánto
+                  jugaron juntos. La tabla que había acá no dejaba ver que
+                  algunos vínculos son diez veces más pesados que otros. */}
+              <ul className="ds-vinculos">
+                {ordenados.map((partner) => {
+                  const pKey = playerKey(partner.name, partner.tag);
+                  const losses = partner.games - partner.wins;
+                  const peso = Math.max(1, Math.round((partner.games / maxJuntos) * 6));
+                  const flojo = partner.games < MINIMO_DUO;
+                  return (
+                    <li key={pKey}>
                       <button
                         type="button"
-                        className={`champ-pool-row duo-partner-row${selectedPartner === pKey ? " is-active" : ""}`}
+                        className={`ds-vinculo${selectedPartner === pKey ? " activo" : ""}`}
                         onClick={() => setSelectedPartner((cur) => (cur === pKey ? null : pKey))}
-                        key={pKey}
+                        aria-pressed={selectedPartner === pKey}
                       >
-                        <PlayerAvatar name={partner.name} iconUrl={partner.profileIconUrl} className="champ-pool-avatar" />
-                        <div className="champ-pool-mid">
-                          <span className="champ-pool-name">
-                            {partner.name} <span className="player-tag">#{partner.tag}</span>
-                          </span>
-                          <span className="champ-pool-games">
-                            {partner.games} {partner.games === 1 ? "partida juntos" : "partidas juntos"} ·{" "}
+                        <span className="ds-hilo" style={{ height: `${peso}px` }} aria-hidden />
+                        <PlayerAvatar name={partner.name} iconUrl={partner.profileIconUrl} className="ds-vinculo-cara" />
+                        <span className="ds-vinculo-id">
+                          <span className="ds-vinculo-nombre">{partner.name}</span>
+                          <span className="ds-vinculo-juntos">
+                            {partner.games} {partner.games === 1 ? "partida" : "partidas"} juntos ·{" "}
                             {formatRelativeDate(partner.lastPlayedAt)}
                           </span>
-                        </div>
-                        <div className="champ-pool-stats">
-                          {/* Apagado mientras la muestra no alcance — ver
-                              .champ-pool-wr.flojo en globals.css. */}
-                          <span
-                            className={`champ-pool-wr ${partner.games < MINIMO_DUO ? "flojo" : tonoDeWinrate(partner.wins, partner.games)}`}
-                            title={partner.games < MINIMO_DUO ? `Solo ${partner.games} partidas juntos: el porcentaje todavía no dice nada` : undefined}
-                          >
-                            {winrateTexto(partner.wins, partner.games)}
-                          </span>
-                          <span className="champ-pool-kda">
-                            {partner.wins}V {losses}D
-                          </span>
-                        </div>
+                        </span>
+                        {/* Apagado mientras la muestra no alcance: el 75% de
+                            un 3-1 llamaba más la atención que el 54% de un
+                            34-29. */}
+                        <span
+                          className={`ds-vinculo-wr ${flojo ? "flojo" : tonoDeWinrate(partner.wins, partner.games)}`}
+                          title={flojo ? `Solo ${partner.games} partidas juntos: el porcentaje todavía no dice nada` : undefined}
+                        >
+                          {winrateTexto(partner.wins, partner.games)}
+                        </span>
+                        <span className="ds-vinculo-vd">
+                          {partner.wins}V · {losses}D
+                        </span>
                       </button>
-                    );
-                  })}
-                </div>
-              </div>
-              <div>
-                <div className="duo-cols-head">
-                  <span className="meta">{activePartner ? `${displayedName} con y sin ${activePartner.name}` : "Últimas partidas juntos"}</span>
-                </div>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              <div className="ds-detalle">
                 {!activePair || !activePartner ? (
-                  <div className="empty-state">
-                    <strong>Elegí un compañero</strong>
-                    Tocá alguno de la lista para ver cómo le va a {displayedName} con y sin él, y el detalle de sus
-                    últimas partidas juntos.
-                  </div>
+                  <p className="ds-vacio ds-vacio-detalle">
+                    Elegí a uno para ver cómo le va a {displayedName} con y sin él.
+                  </p>
                 ) : (
                   <>
+                    <h3 className="ds-par">
+                      {displayedName} <span className="ds-par-mas">+</span> {activePartner.name}
+                    </h3>
                     <JuntosVsSeparados partner={activePartner} quien={displayedName} />
-                    <div className="duo-cols-head duo-cols-head-2">
-                      <span className="meta">Últimas partidas juntos</span>
-                    </div>
-                    <div className="duosum-matches">
+                    <p className="ds-ultimas-et">Últimas partidas juntos</p>
+                    <div className="ds-ultimas">
                       {activePair.recentMatches.map((m) => (
                         <DuoSharedMatchRow m={m} ddragonVersion={ddragonVersion} key={m.matchId} />
                       ))}

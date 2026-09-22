@@ -182,10 +182,12 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   fotos, no las de las últimas N horas— no llega hasta el corte de la ventana, ese
   movimiento no se publica. Ver el header y DECISIONES.
 - `radiografia.ts` — lo que mira la pestaña Estadísticas, todo sobre una VENTANA
-  elegible (7 días, 30 días o toda la temporada guardada): los destacados del
-  período, el ranking de winrate, especialistas y campeones más jugados, "quién está
-  on fire" (las últimas 10 de cada uno contra su propio promedio) y el salón de la
-  fama. Los umbrales están arriba del archivo con la tabla de la que salieron
+  elegible (7 días, 30 días o toda la temporada guardada): la `historia` del período
+  (un protagonista y lo demás), el estado de forma —una sola lista por persona con
+  su winrate del período, sus últimas 10, su racha, sus días, su LP y su campeón—,
+  especialistas y campeones más jugados, y el salón de la fama. El mínimo del período
+  ya NO expulsa de la lista: la marca con `alcanzaMinimo` y la pantalla muestra
+  aparte y apagado a quien no llega, en vez de tragárselo sin decir por qué. Los umbrales están arriba del archivo con la tabla de la que salieron
   (`MINIMO_ESPECIALISTA`, `MINIMO_WINRATE`) — ver DECISIONES antes de tocarlos. Es
   cálculo puro: entran partidas, fotos de LP y personas; sale todo armado. Se llama
   UNA vez, desde `/api/ladder`, porque las dos consultas pesadas que necesita ya
@@ -330,10 +332,13 @@ pestañas.
   `TiltCard`, `ChampionPool`, `MasteryPool`, `ChampionInsights`, `Matchups`,
   `LineHistory`, `BuildStarts`, `PersonalRecords`, `AegisStats`, `CoachPanel`,
   `LiveGamePanel` y `MatchDetail` (que a su vez abre `MatchTimeline`).
-- **Estadísticas** → `Estadisticas` (el filtro de período y las secciones que
-  dependen de él: destacados, la forma, campeones y récords; adentro llama a
-  `TopWinrate`) y `DuoSynergy`. El filtro vive como estado de `Estadisticas`, no de
-  la página: no lo lee nadie más.
+- **Estadísticas** → `Estadisticas` (el armazón: elige la ventana y ordena las
+  piezas) → `EstHistoria` (la portada del período: un protagonista y notas al
+  costado), `EstForma` (UNA clasificación con el eje del 50% atravesándola y filas
+  que se abren), `EstCampeones` (un selector Especialistas/Más jugados, el arte del
+  campeón como protagonista) y `EstRecords` (la pared, con tres jerarquías). Al lado,
+  `DuoSynergy`, que es un explorador en tres pasos: roster → vínculos → comparación.
+  El período vive como estado de `Estadisticas`, no de la página: no lo lee nadie más.
 - **Cara a cara** → `HeadToHead`. No pide nada al servidor.
 - **Clash** → `ClashHistory`.
 - **Equipo** → `TeamDigest`.
