@@ -16,21 +16,27 @@ import { PlayerAvatar } from "./PlayerAvatar";
  */
 
 /**
- * Qué tan grande va cada récord, y en qué orden.
+ * Cuáles son LOS dos récords, y en qué orden va el resto.
  *
- * El criterio no es estético: es cuánto cuesta conseguirlo. Una racha larga
- * y un pico de rango son de toda la historia y de una persona; "más
- * partidas en un día" es sobre todo aguante. Los de LP van juntos porque se
- * leen de a pares (lo que subió contra lo que bajó).
+ * Dos grupos y no tres tamaños. Con tres, la pared era una grilla de seis
+ * columnas con spans de 2 y 3 que nunca cerraban: quedaba un hueco al lado
+ * de "mayor caída" y media fila vacía abajo del último. Ahora son dos
+ * bloques —los dos grandes arriba, los otros cinco en una fila pareja— y no
+ * hay espacio muerto en ninguna parte.
+ *
+ * Los dos grandes no se eligieron por estética: son los únicos dos de TODA
+ * la historia y de una sola persona. El resto son de un día o de un par.
  */
-const PESOS: Record<string, { tamano: "grande" | "medio" | "chico"; orden: number }> = {
-  racha: { tamano: "grande", orden: 1 },
-  pico: { tamano: "grande", orden: 2 },
-  subidaDia: { tamano: "medio", orden: 3 },
-  caidaDia: { tamano: "medio", orden: 4 },
-  partidasDia: { tamano: "medio", orden: 5 },
-  duo: { tamano: "chico", orden: 6 },
-  campeon: { tamano: "chico", orden: 7 },
+const GRANDES = new Set(["racha", "pico"]);
+
+const ORDEN: Record<string, number> = {
+  racha: 1,
+  pico: 2,
+  subidaDia: 3,
+  caidaDia: 4,
+  partidasDia: 5,
+  duo: 6,
+  campeon: 7,
 };
 
 function fecha(iso: string): string {
@@ -44,12 +50,27 @@ function fecha(iso: string): string {
 export function EstRecords({ records, lpDesde }: { records: RecordGrupo[]; lpDesde: string | null }) {
   if (records.length === 0) return null;
 
-  const ordenados = [...records].sort(
-    (a, b) => (PESOS[a.clave]?.orden ?? 99) - (PESOS[b.clave]?.orden ?? 99)
-  );
+  const ordenados = [...records].sort((a, b) => (ORDEN[a.clave] ?? 99) - (ORDEN[b.clave] ?? 99));
+  const grandes = ordenados.filter((r) => GRANDES.has(r.clave));
+  const resto = ordenados.filter((r) => !GRANDES.has(r.clave));
   // Los récords de puntos no pueden ser más viejos que la primera foto de LP
   // guardada. Decirlo es la diferencia entre un récord y una mentira cómoda.
   const deLp = records.some((r) => r.clave === "subidaDia" || r.clave === "caidaDia" || r.clave === "pico");
+
+  const item = (r: RecordGrupo, clase: string) => (
+    <div className={clase} key={r.clave}>
+      <span className="er-valor">{r.valor}</span>
+      <span className="er-que">{r.titulo}</span>
+      <span className="er-quien">
+        {r.persona ? <PlayerAvatar name={r.persona.name} iconUrl={r.persona.profileIconUrl} className="er-cara" /> : null}
+        {r.quien}
+      </span>
+      <span className="er-pie">
+        {r.contexto}
+        {r.cuando ? ` · ${fecha(r.cuando)}` : ""}
+      </span>
+    </div>
+  );
 
   return (
     <section className="er">
@@ -60,27 +81,8 @@ export function EstRecords({ records, lpDesde }: { records: RecordGrupo[]; lpDes
         ) : null}
       </div>
 
-      <div className="er-pared">
-        {ordenados.map((r) => {
-          const tamano = PESOS[r.clave]?.tamano ?? "chico";
-          return (
-            <div className={`er-item er-${tamano}`} key={r.clave}>
-              <span className="er-valor">{r.valor}</span>
-              <span className="er-que">{r.titulo}</span>
-              <span className="er-quien">
-                {r.persona ? (
-                  <PlayerAvatar name={r.persona.name} iconUrl={r.persona.profileIconUrl} className="er-cara" />
-                ) : null}
-                {r.quien}
-              </span>
-              <span className="er-pie">
-                {r.contexto}
-                {r.cuando ? ` · ${fecha(r.cuando)}` : ""}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+      {grandes.length > 0 ? <div className="er-grandes">{grandes.map((r) => item(r, "er-item er-grande"))}</div> : null}
+      {resto.length > 0 ? <div className="er-resto">{resto.map((r) => item(r, "er-item er-chico"))}</div> : null}
     </section>
   );
 }

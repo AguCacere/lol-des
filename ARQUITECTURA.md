@@ -336,7 +336,7 @@ pestañas.
   piezas) → `EstHistoria` (la portada del período: un protagonista y notas al
   costado), `EstForma` (UNA clasificación compacta: las últimas 10 en puntos, el récord
   del período, WR y balance; seis por defecto y filas que se abren), `EstCampeones` (un selector Especialistas/Más jugados, el arte del
-  campeón como protagonista) y `EstRecords` (la pared, con tres jerarquías). Al lado,
+  campeón como protagonista) y `EstRecords` (la pared: los dos grandes arriba, los otros cinco en una fila pareja). Al lado,
   `DuoSynergy`, que es un explorador en tres pasos: roster → vínculos → comparación.
   El período vive como estado de `Estadisticas`, no de la página: no lo lee nadie más.
 - **Cara a cara** → `HeadToHead`. No pide nada al servidor.

@@ -17,6 +17,19 @@ export function EstHistoria({ historia, etiqueta }: { historia: HistoriaDelPerio
   const p = historia.protagonista;
   if (!p && historia.secundarias.length === 0) return null;
 
+  // Las notas de subida y caída traen el mismo contexto largo ("desde el 25
+  // ago, que es de cuando hay datos") cuando las fotos no llegan al arranque
+  // de la ventana. Se saca de las notas y se dice una sola vez abajo.
+  const contextosDeLp = historia.secundarias
+    .filter((d) => d.clave === "subida" || d.clave === "caida")
+    .map((d) => d.contexto);
+  const avisoDeLp =
+    contextosDeLp.length > 0 && contextosDeLp.every((c) => c === contextosDeLp[0]) && contextosDeLp[0].startsWith("desde")
+      ? `Los puntos, ${contextosDeLp[0]}`
+      : null;
+  const contexto = (d: { clave: string; contexto: string }) =>
+    avisoDeLp && (d.clave === "subida" || d.clave === "caida") ? "" : d.contexto;
+
   return (
     <section className="hist-periodo">
       {p ? (
@@ -54,16 +67,20 @@ export function EstHistoria({ historia, etiqueta }: { historia: HistoriaDelPerio
       {historia.secundarias.length > 0 ? (
         <div className="hp-resto">
           {historia.secundarias.map((d) => (
+            // Dos renglones, no cuatro: nombre y dato arriba, qué pasó y el
+            // detalle abajo. Antes el contexto se llevaba un renglón entero
+            // para sí solo y cada nota medía 86px para decir tres cosas.
             <div className="hp-nota" key={d.clave}>
-              {/* El nombre primero y en grande; el rótulo abajo, como bajada.
-                  Invertido respecto de las fichas viejas, donde el rótulo en
-                  mayúsculas mandaba y la persona quedaba de pie de foto. */}
               <span className="hp-nota-quien">{d.persona.name}</span>
-              <span className="hp-nota-que">{bajada(d.clave)}</span>
               <span className={`hp-nota-dato ${d.tono}`}>{d.valor}</span>
-              <span className="hp-nota-pie">{d.contexto}</span>
+              <span className="hp-nota-que">{bajada(d.clave)}</span>
+              <span className="hp-nota-pie">{contexto(d)}</span>
             </div>
           ))}
+          {/* El aviso de hasta dónde llegan las fotos de LP va UNA vez abajo
+              del grupo y no repetido adentro de cada nota de puntos: es el
+              mismo dato las dos veces y se llevaba dos renglones enteros. */}
+          {avisoDeLp ? <p className="hp-aviso">{avisoDeLp}</p> : null}
         </div>
       ) : null}
     </section>

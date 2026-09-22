@@ -5450,23 +5450,23 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .hp-protagonista{display:grid; grid-template-columns:auto minmax(0,1fr); gap:4px 18px;}
 .hp-cara{
-  grid-row:1 / span 2; width:72px; height:72px; border-radius:20px; overflow:hidden;
+  grid-row:1 / span 2; width:58px; height:58px; border-radius:17px; overflow:hidden;
   display:flex; align-items:center; justify-content:center; align-self:start;
-  font-family:var(--font-display); font-weight:700; font-size:20px;
+  font-family:var(--font-display); font-weight:700; font-size:17px;
   background:var(--surface-hover); color:var(--text-secondary);
 }
 .hp-cara img{width:100%; height:100%; object-fit:cover; display:block;}
 /* El nombre grande y el verbo abajo: la página es sobre esta gente. */
 .hp-titular{margin:0; display:flex; flex-direction:column; gap:1px; min-width:0; align-self:start;}
 .hp-nombre{
-  font-family:var(--font-display); font-size:27px; font-weight:800; line-height:1.1;
+  font-family:var(--font-display); font-size:24px; font-weight:800; line-height:1.1;
   letter-spacing:-0.015em; color:var(--text-primary);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .hp-verbo{font-size:15px; font-weight:600; color:var(--accent); letter-spacing:0.01em;}
-.hp-cifra{grid-column:2; display:flex; align-items:baseline; gap:9px; margin-top:14px;}
+.hp-cifra{grid-column:2; display:flex; align-items:baseline; gap:9px; margin-top:10px;}
 .hp-wr{
-  font-family:var(--font-stat); font-size:52px; font-weight:800; line-height:1;
+  font-family:var(--font-stat); font-size:42px; font-weight:800; line-height:1;
   letter-spacing:-0.03em; font-variant-numeric:tabular-nums; color:var(--text-primary);
 }
 .hp-wr-et{font-size:12.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em;}
@@ -5475,7 +5475,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-variant-numeric:tabular-nums;
 }
 .hp-sep{color:var(--text-muted); opacity:0.5; margin:0 3px;}
-.hp-extras{grid-column:2; margin:12px 0 0; display:flex; flex-wrap:wrap; gap:8px 18px;}
+.hp-extras{grid-column:2; margin:10px 0 0; display:flex; flex-wrap:wrap; gap:8px 18px;}
 /* Una línea fina delante y nada más. Eran dos fichas con borde de color. */
 .hp-extra{
   font-size:13px; color:var(--text-secondary); font-variant-numeric:tabular-nums;
@@ -5486,31 +5486,38 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 
 /* Las notas al costado: sin caja, separadas por una línea fina. */
 .hp-resto{display:flex; flex-direction:column;}
+/* Dos renglones de verdad: fila 1 nombre + dato, fila 2 qué pasó + detalle.
+   Antes el pie ocupaba un tercer renglón de borde a borde y cada nota medía
+   86px para decir tres cosas. */
 .hp-nota{
-  display:grid; grid-template-columns:minmax(0,1fr) auto; gap:1px 14px;
-  padding:13px 0; border-top:1px solid var(--border-soft); align-items:baseline;
+  display:grid; grid-template-columns:minmax(0,1fr) auto; gap:0 14px;
+  padding:9px 0; border-top:1px solid var(--border-soft); align-items:baseline;
 }
 .hp-resto .hp-nota:first-child{border-top:none; padding-top:0;}
 .hp-nota-quien{
-  font-size:15px; font-weight:700; color:var(--text-primary);
+  grid-row:1; font-size:14.5px; font-weight:700; color:var(--text-primary); line-height:1.35;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.hp-nota-que{grid-column:1; font-size:12.5px; color:var(--text-muted);}
+.hp-nota-que{grid-column:1; grid-row:2; font-size:12px; color:var(--text-muted); line-height:1.35;}
 .hp-nota-dato{
-  grid-column:2; grid-row:1; text-align:right;
-  font-family:var(--font-stat); font-size:20px; font-weight:800;
+  grid-column:2; grid-row:1; text-align:right; line-height:1.35;
+  font-family:var(--font-stat); font-size:18px; font-weight:800;
   font-variant-numeric:tabular-nums; color:var(--text-primary);
 }
 .hp-nota-dato.good{color:var(--good);}
 .hp-nota-dato.bad{color:var(--critical);}
-/* Renglón propio de borde a borde, NO la columna 2. Ahí adentro su texto
-   —que puede ser largo: "desde el 26 ago, que es de cuando hay datos"— le
-   fijaba el ancho a la columna del dato, y a 768px se comía los 224px
-   enteros de la nota dejando el nombre en 0px de ancho. Medido: quienW 0,
-   quienScroll 80. Acá puede partirse sin empujar a nadie. */
+/* Columna 2, renglón 2: al lado del "qué pasó", no abajo de todo. Vuelve a
+   la columna del dato ahora que puede — el texto largo que antes le fijaba
+   el ancho ("desde el 25 ago, que es de cuando hay datos") se dice una sola
+   vez abajo del grupo, en .hp-aviso, y ya no vive acá adentro. */
 .hp-nota-pie{
-  grid-column:1 / -1; grid-row:3; text-align:right;
+  grid-column:2; grid-row:2; text-align:right; line-height:1.35;
   font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.hp-aviso{
+  font-size:11px; color:var(--text-muted); margin:10px 0 0;
+  padding-top:9px; border-top:1px solid var(--border-soft);
 }
 
 /* ---- estado de forma ---- */
@@ -5724,39 +5731,36 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .ec-secundario.neutral{color:var(--text-muted);}
 
 /* ---- la pared de récords ---- */
-/* Tres jerarquías repartidas por importancia (ver PESOS en EstRecords.tsx).
-   Los grandes ocupan la mitad del ancho y tienen la cifra al doble; los
-   chicos comparten fila. Sin rectángulos: la separación la hacen las líneas
-   y el espacio. */
-.er-pared{display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:0 32px;}
+/* Dos bloques parejos, no una grilla de seis columnas con spans de 2 y 3.
+   Con los spans la pared nunca cerraba: quedaba un hueco al lado de "mayor
+   caída" y media fila vacía abajo del último. Acá los dos grandes van a la
+   mitad cada uno y los otros cinco reparten una fila sola. Sin rectángulos:
+   la separación la hacen las líneas y el espacio. */
+.er-grandes{display:grid; grid-template-columns:1fr 1fr; gap:0 32px;}
+.er-resto{display:grid; grid-template-columns:repeat(auto-fit, minmax(168px,1fr)); gap:0 26px;}
 .er-item{
-  display:flex; flex-direction:column; gap:2px; min-width:0;
-  padding:22px 0; border-top:1px solid var(--border-soft);
+  display:flex; flex-direction:column; gap:1px; min-width:0;
+  padding:14px 0; border-top:1px solid var(--border-soft);
 }
-.er-grande{grid-column:span 3;}
-.er-medio{grid-column:span 2;}
-.er-chico{grid-column:span 3;}
-/* El dorado NO va en los siete. Con todos dorados el color no distingue
-   nada y la jerarquía queda solo en el tamaño. Se lo llevan los dos grandes
-   —la racha más larga y el pico de rango, los dos únicos de toda la historia
-   y de una sola persona—; el resto va en tinta normal. Así el color dice
-   "estos dos son LOS récords" en vez de decorar. */
 .er-valor{
   font-family:var(--font-stat); font-weight:800; line-height:1.05;
   letter-spacing:-0.025em; font-variant-numeric:tabular-nums; color:var(--text-primary);
 }
-.er-grande .er-valor{font-size:40px; color:var(--gold);}
-.er-medio .er-valor{font-size:27px;}
-.er-chico .er-valor{font-size:22px;}
+.er-grande .er-valor{font-size:34px; color:var(--gold);}
+.er-chico .er-valor{font-size:19px;}
+
 .er-que{
-  font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
-  color:var(--text-muted); margin-top:3px;
+  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
+  color:var(--text-muted); margin-top:2px;
 }
+/* Puede partirse en dos renglones: un récord de campeón es "vas a perder con
+   Viego", y con nowrap se cortaba al medio de la palabra en cuanto la
+   columna bajaba de ~190px. Es una pared editorial, no una celda de tabla. */
 .er-quien{
-  display:flex; align-items:center; gap:7px; min-width:0; margin-top:7px;
-  font-size:14px; font-weight:700; color:var(--text-primary);
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  display:flex; align-items:flex-start; gap:6px; min-width:0; margin-top:6px;
+  font-size:13.5px; font-weight:700; color:var(--text-primary); line-height:1.3;
 }
+.er-cara{margin-top:1px;}
 .er-cara{
   width:22px; height:22px; border-radius:7px; overflow:hidden; flex:none;
   display:flex; align-items:center; justify-content:center;
@@ -5879,8 +5883,12 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* ═══ 1024 y abajo: la portada deja de ser dos columnas ═══ */
 @media (max-width:1040px){
   .hist-periodo{grid-template-columns:1fr; gap:26px;}
+  /* 260px y no 190: en 190 el nombre y el dato no entran en el mismo
+     renglón, se envuelven, y la nota terminaba midiendo 96px a 768 contra
+     49px a 1440 — la versión "angosta" salía casi el doble de alta que la
+     ancha. Medido. */
   .hp-resto{
-    display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr)); gap:0 28px;
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:0 28px;
   }
   /* En una sola columna las notas comparten fila, así que la línea de arriba
      vuelve para todas: si no, la primera de cada fila quedaba sin separador. */
@@ -5891,10 +5899,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 
 /* ═══ tablet ═══ */
 @media (max-width:860px){
-  .er-pared{grid-template-columns:repeat(4, minmax(0,1fr)); gap:0 24px;}
-  .er-grande{grid-column:span 4;}
-  .er-medio{grid-column:span 2;}
-  .er-chico{grid-column:span 2;}
+  .er-resto{grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:0 22px;}
   .ef-rotulos, .ef-fila{grid-template-columns:22px 32px minmax(0,1fr) auto 56px 40px; gap:11px;}
 }
 
@@ -5953,18 +5958,12 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .ec-item{min-width:84px; scroll-snap-align:start;}
   .ec-arte{width:56px; height:56px; border-radius:15px;}
 
-  .er-pared{grid-template-columns:repeat(2, minmax(0,1fr)); gap:0 20px;}
-  .er-grande{grid-column:span 2;}
-  .er-medio, .er-chico{grid-column:span 1;}
-  /* A media pantalla un nombre largo ("vas a perder con Viego") no entra en
-     un renglón, y con nowrap se cortaba al medio de la palabra. Acá puede
-     partirse: es una pared editorial, no una celda de tabla. */
-  .er-quien{white-space:normal; overflow:visible; align-items:flex-start; line-height:1.3;}
-  .er-cara{margin-top:1px;}
-  .er-item{padding:16px 0;}
-  .er-grande .er-valor{font-size:32px;}
-  .er-medio .er-valor{font-size:21px;}
-  .er-chico .er-valor{font-size:19px;}
+  /* Los dos grandes uno abajo del otro; los otros cinco de a dos. */
+  .er-grandes{grid-template-columns:1fr;}
+  .er-resto{grid-template-columns:repeat(2, minmax(0,1fr)); gap:0 18px;}
+  .er-item{padding:12px 0;}
+  .er-grande .er-valor{font-size:28px;}
+  .er-chico .er-valor{font-size:17px;}
 
   .ds-roster{
     flex-wrap:nowrap; margin:0 -20px 6px; padding:0 20px 8px;

@@ -2617,3 +2617,51 @@ Un contenedor que scrollea, sin barra y sin nada cortado, no se descubre.
 Medido a 390/430/768/1024/1440: en teléfono `scrollWidth > clientWidth` con
 `scrollbar-width: none`; de 768 para arriba `overflow-x` vuelve a `visible` y no hay
 contenedor de scroll en absoluto.
+
+## La pared de récords no cerraba, y por eso parecía grande
+
+Siete récords en tres tamaños, sobre una grilla de seis columnas con spans de 2 y 3.
+Esos spans nunca cierran: quedaba un hueco al lado de "mayor caída" y media fila
+vacía abajo del último. El espacio muerto hace que una sección parezca más grande de
+lo que es, aunque el contenido sea el mismo.
+
+Ahora son **dos bloques parejos**: los dos grandes a la mitad cada uno, y los otros
+cinco repartiendo una fila sola (`repeat(auto-fit, minmax(168px,1fr))`, que da cinco
+columnas justas a 1440 y baja solo cuando hace falta). Sin spans no hay huecos.
+
+Los dos grandes no se eligen por estética: son los únicos dos de TODA la historia y
+de una sola persona (la racha más larga y el pico de rango). El resto son de un día
+o de un par de personas.
+
+Medido, con el mismo contenido:
+
+| | antes | después |
+|---|---|---|
+| 1440 | 500px | **322px** (−36%) |
+| 1024 | 500px | **334px** (−33%) |
+| 390 | 770px | **665px** (−14%) |
+
+## En la portada, el aviso del LP se decía dos veces
+
+Las notas de "el que más subió" y "el que más bajó" traen el mismo contexto cuando
+las fotos de LP no llegan al arranque de la ventana: *"desde el 26 ago, que es de
+cuando hay datos"*. Repetido en las dos, eran dos renglones enteros diciendo lo
+mismo.
+
+Se dice **una sola vez** abajo del grupo. La honestidad no se pierde —el dato sigue
+estando, y la sección de Récords lo repite en su propio encabezado— y las notas
+bajaron de cuatro renglones a dos: nombre y dato arriba, qué pasó y detalle abajo.
+
+La portada bajó bastante menos que los récords (202px contra 244 a 1440, un 17%), y
+está bien que así sea: ahí casi todo es contenido. Es la apertura de la pantalla y
+el único lugar donde una persona es la protagonista.
+
+### Una nota angosta salía MÁS alta que una ancha
+
+`.hp-resto` usaba `minmax(190px, 1fr)`. En 190px el nombre y el dato no entran en el
+mismo renglón, se envuelven, y la nota terminaba midiendo **96px a 768 contra 49px a
+1440** — la versión "angosta" casi el doble de alta que la ancha. Con
+`minmax(260px, 1fr)` entran los dos y la nota mide 63px en todos lados.
+
+Es el mismo error de siempre con `auto-fit`: el mínimo hay que elegirlo por el ancho
+que el CONTENIDO necesita para no envolverse, no por cuántas columnas uno quiere ver.
