@@ -14,6 +14,7 @@ import { PlayerProfile } from "@/components/PlayerProfile";
 import type { Radiografia } from "@/lib/radiografia";
 import { DuoSynergy } from "@/components/DuoSynergy";
 import { Estadisticas } from "@/components/Estadisticas";
+import { Mejora } from "@/components/Mejora";
 import { ClashHistory } from "@/components/ClashHistory";
 import { LiveTray } from "@/components/LiveTray";
 import { TeamDigest } from "@/components/TeamDigest";
@@ -394,6 +395,13 @@ export default function Home() {
               <DuoSynergy pairs={duoSynergy} loading={loading} ddragonVersion={ddragonVersion} />
             </>
           )}
+        </div>
+      ) : tab === "mejora" ? (
+        <div id="view-mejora">
+          {/* Pide su propia ruta, y solo cuando se abre la pestaña: lee TODO
+              el historial de una persona con columnas que el ladder no trae
+              en su agregado. Ver app/api/mejora/route.ts. */}
+          {loading ? <Cargando /> : <Mejora players={players} ddragonVersion={ddragonVersion} />}
         </div>
       ) : tab === "versus" ? (
         <div id="view-versus">

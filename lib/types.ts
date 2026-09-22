@@ -487,6 +487,13 @@ export interface RecentForm {
 }
 
 export interface Player {
+  /**
+   * El identificador de Riot. Ya viajaba al cliente por `/api/liga` y por la
+   * radiografía de Estadísticas; acá se agrega porque "Mejora" tiene que
+   * poder PEDIR por una persona (`/api/mejora?puuid=…`) y guardarle un
+   * objetivo, y `nombre#tag` no sirve de clave: se puede cambiar.
+   */
+  puuid: string;
   name: string;
   tag: string;
   you?: boolean;

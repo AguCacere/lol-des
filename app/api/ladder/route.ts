@@ -1156,6 +1156,9 @@ export async function GET() {
   );
 
   const players: Player[] = (ladderRows ?? []).map((row): Player => {
+    // El puuid viaja desde acá: lo necesita "Mejora" para pedir el historial
+    // de UNA persona y para guardarle un objetivo. Ya salía por /api/liga.
+
     const lp = row.lp ?? 0;
     const history = lpHistoryByPuuid.get(row.puuid) ?? [];
     const wins = row.wins ?? 0;
@@ -1180,6 +1183,7 @@ export async function GET() {
     const mastery = masteryPoolByPuuid.get(row.puuid) ?? [];
 
     return {
+      puuid: row.puuid,
       name: row.game_name,
       tag: row.tag_line,
       you: row.is_you,

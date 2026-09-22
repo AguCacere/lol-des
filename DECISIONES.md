@@ -2686,3 +2686,73 @@ razón.
 **La nota que se cae NO se le pasa al segundo.** "Fue el que más jugó" sobre alguien
 que no fue el que más jugó sería mentira; esa categoría simplemente no se publica en
 esa ventana. Achicar la lista es siempre preferible a llenarla con algo falso.
+
+## "Mejora" compara contra uno mismo, nunca contra una constante
+
+El plan daba un ejemplo de objetivo: *"llegar al minuto 10 con diferencia de oro
+≥ −300"*. Suena razonable hasta que se mira la distribución real del grupo, sobre
+las 1.276 partidas guardadas:
+
+| rol | p25 de dif. de oro @10 | mediana de CS/min | visión/min |
+|---|---|---|---|
+| Top | −552 | 6,7 | 0,90 |
+| Jungla | −391 | 6,5 | 0,89 |
+| Mid | −431 | 7,0 | 0,77 |
+| ADC | −542 | 7,7 | 0,96 |
+| Support | −283 | **1,4** | **2,80** |
+
+Un umbral fijo de −300 es casi el percentil 25 de un support y bastante más
+exigente que el de un top. Y 1,4 contra 7,7 de CS por minuto no son dos niveles de
+la misma cosa: son dos cosas distintas. **Un umbral global no mide personas, mide
+roles.**
+
+Por eso todo `lib/mejora.ts` sale de la línea de base del propio jugador: los
+patrones son "en 7 de tus últimas 10 quedaste debajo de TU mediana", el objetivo que
+se propone ES tu mediana, y los cruces se leen contra tu diferencia de oro habitual.
+La única comparación absoluta que queda es contra vos mismo en otro momento.
+
+El umbral sugerido es la **mediana** y no el percentil 75, que sería el "estírate":
+un objetivo que se cumple una de cada cuatro veces se abandona. La mediana es "hacé
+lo tuyo, pero todas las veces" — subir el piso en vez de mover el techo.
+
+## Los matchups se agrupan por RIVAL, no por (tu campeón, rival)
+
+Las dos cosas se pueden llamar matchup. La eligió el conteo:
+
+| agrupado por | cruces con ≥4 partidas | jugadores alcanzados |
+|---|---|---|
+| (tu campeón, rival) | 22 | **4 de 14** |
+| rival | 83 | **11 de 14** |
+
+Con el par, la sección no existiría para diez de las catorce personas. Y además el
+rival es la unidad de aprendizaje más útil: el campeón que llevás cambia, el que te
+toca enfrente es lo que aprendés a manejar. Con qué lo jugaste sigue estando al
+costado ("sobre todo con Jinx"), que es contexto sin partir la muestra.
+
+## Los empates no son mejoras
+
+`patrones()` contaba `mejores = total − peores`, o sea que quedar EXACTAMENTE en la
+mediana contaba como estar por encima de ella. Con métricas continuas casi no pasa;
+con `muertes`, que es un entero y cuya mediana en el grupo es 6,0 clavado, pasa
+media ventana. El resultado habría sido publicar *"en 9 de tus últimas 10 las
+muertes quedaron por debajo de tu mediana"* sobre nueve partidas de exactamente su
+mediana, que es falso.
+
+Ahora los dos lados se cuentan por separado y en sentido estricto, y los empates
+diluyen: si siempre caés justo en tu mediana, no hay patrón que contar. **Lo
+encontró el fixture, no la lectura del código** — el caso que lo destapó era el que
+comprobaba que una partida suelta no alcanza para ser un patrón.
+
+## La pestaña anda sin la migración
+
+`objetivos` la corre el usuario a mano desde el editor de Supabase, y el código se
+despliega antes. Si la ruta tratara "la tabla no existe" como un error cualquiera,
+Mejora tiraría 500 hasta que alguien corriera el SQL.
+
+El diagnóstico, los patrones, el progreso y los cruces son todos cálculo sobre
+`matches` y no necesitan nada de la tabla nueva. Así que la ruta mira el código de
+Postgres `42P01` (*undefined_table*), devuelve `faltaMigracion: true` y la pantalla
+dice qué falta en el lugar donde iría el foco. Todo lo demás se dibuja igual.
+
+Es la misma decisión que `liga_torneos`, que también se pensó para poder desplegarse
+antes de correrse.

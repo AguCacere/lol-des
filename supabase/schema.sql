@@ -345,3 +345,44 @@ alter table lp_snapshots enable row level security;
 alter table matches enable row level security;
 alter table champion_mastery enable row level security;
 alter table coach_reports enable row level security;
+
+-- ── Los objetivos de "Mejora" (lib/mejora.ts) ────────────────────────────
+-- Un objetivo es una métrica, un comparador, un umbral y una ventana:
+-- "diferencia de oro @10 de −250 o más, sobre las próximas 5 partidas".
+--
+-- SIN ESTA TABLA LA PESTAÑA SIGUE ANDANDO: el diagnóstico por partida, los
+-- patrones, el progreso y los matchups son todos cálculo sobre `matches` y no
+-- necesitan nada de acá. Lo único que falta hasta que se corra esto es poder
+-- GUARDAR un objetivo — la ruta detecta que la tabla no existe y devuelve
+-- `objetivo: null` con un aviso, en vez de tirar 500. Por eso se puede
+-- desplegar el código antes de correr esta migración.
+--
+-- Un objetivo pertenece a un PUUID, no a una persona logueada: la app tiene
+-- una sola contraseña compartida y no hay usuarios. Es el mismo modelo que
+-- `participa_liga` — cualquiera que entró puede anotarle un objetivo a
+-- cualquiera, igual que puede anotarlo a la liga.
+create table if not exists objetivos (
+  id          uuid primary key default gen_random_uuid(),
+  puuid       text not null references summoners(puuid) on delete cascade,
+  -- Una ClaveMetrica de lib/mejora.ts. Texto y no un enum de Postgres: el
+  -- catálogo de métricas se toca desde el código y un enum obligaría a una
+  -- migración por cada métrica nueva. La ruta valida contra METRICAS.
+  metrica     text not null,
+  comparador  text not null check (comparador in ('gte', 'lte')),
+  umbral      numeric not null,
+  -- Sobre cuántas partidas posteriores se evalúa.
+  ventana     int not null default 5 check (ventana between 3 and 20),
+  creado_at   timestamptz not null default now(),
+  -- Null mientras está activo. Se cierra en vez de borrarse para que quede
+  -- el historial de objetivos que pide la pantalla.
+  cerrado_at  timestamptz
+);
+
+-- "Uno principal activo a la vez", que es la regla del plan. Un índice único
+-- parcial lo hace cumplir en la BASE y no solo en la ruta: si dos pestañas
+-- guardan un objetivo a la vez, una de las dos falla en vez de dejar dos
+-- activos que después nadie sabe cuál manda.
+create unique index if not exists objetivos_uno_activo
+  on objetivos (puuid) where cerrado_at is null;
+
+create index if not exists objetivos_puuid_creado on objetivos (puuid, creado_at desc);

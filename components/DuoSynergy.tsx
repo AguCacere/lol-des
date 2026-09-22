@@ -264,19 +264,19 @@ export function DuoSynergy({
           {/* El roster. Caras chicas en fila, que se desplaza de costado en
               pantallas angostas: es una lista de gente, no catorce botones
               cuadrados grandes. */}
-          <div className="ds-roster" role="group" aria-label="Invocadores">
+          <div className="roster" role="group" aria-label="Invocadores">
             {players.map((pl) => {
               const key = playerKey(pl.name, pl.tag);
               return (
                 <button
                   type="button"
-                  className={`ds-cara-btn${selectedPlayer === key ? " activo" : ""}`}
+                  className={`roster-btn${selectedPlayer === key ? " activo" : ""}`}
                   onClick={() => selectPlayer(key)}
                   aria-pressed={selectedPlayer === key}
                   key={key}
                 >
-                  <PlayerAvatar name={pl.name} iconUrl={pl.profileIconUrl} className="ds-cara" />
-                  <span className="ds-cara-nombre">{pl.name}</span>
+                  <PlayerAvatar name={pl.name} iconUrl={pl.profileIconUrl} className="roster-cara" />
+                  <span className="roster-nombre">{pl.name}</span>
                 </button>
               );
             })}

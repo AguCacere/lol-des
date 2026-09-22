@@ -7,7 +7,7 @@ evitables.
 
 ## Forma general
 
-Una sola página cliente (`app/page.tsx`) con **seis** pestañas, y 23 route handlers.
+Una sola página cliente (`app/page.tsx`) con **siete** pestañas, y 23 route handlers.
 Abre en **Inicio**, no en el ladder.
 **No hay Server Components de datos**: todo entra por `fetch` a `/api/*` desde el
 navegador. El servidor solo existe en las rutas.
@@ -28,6 +28,8 @@ cerradura no está puesta, nadie escribe).
 
 | Ruta | Método | Qué hace | Escribe | Sesión | Cache-Control |
 |---|---|---|---|---|---|
+| `/api/mejora` | GET | Todo lo que dibuja la pestaña Mejora para UNA persona: diagnóstico de la última, patrones, progreso, cruces, líneas de base y el objetivo activo. Sin caché: se abre justo después de jugar | no | no | `no-store` |
+| `/api/mejora` | POST | Guarda un objetivo o cierra el activo | sí | **sí** | — |
 | `/api/ladder` | GET | El plato fuerte: arma los `Player` completos, la sinergia de dúos y la **radiografía** que dibuja Estadísticas | no | no | `s-maxage=240, swr=600` |
 | `/api/live` | GET | Solo quién está en partida ahora (poll de 60s) | no | no | — |
 | `/api/live-detail` | GET | Los diez de una partida en vivo, con líneas estimadas | no | no | `s-maxage=120` |
@@ -181,6 +183,15 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   argentino). **Se calla antes que inventar**: si `lpHistory` —que son las últimas 20
   fotos, no las de las últimas N horas— no llega hasta el corte de la ventana, ese
   movimiento no se publica. Ver el header y DECISIONES.
+- `mejora.ts` — el motor determinístico de la pestaña Mejora: el catálogo de
+  `METRICAS` (siete), la línea de base propia de cada una (`baselineDe`, por
+  percentiles), el `diagnostico` de una partida en tres capas, los `patrones`
+  sobre una ventana, el `progreso` contra uno mismo, `matchupsDeMejora` y la
+  evaluación de objetivos. **Todo se compara contra el propio historial del
+  jugador, nunca contra una constante** — la mediana de CS por minuto del grupo
+  va de 1,4 (support) a 7,7 (ADC), así que un umbral fijo mide roles, no
+  personas. Cálculo puro, probado con fixture. No hay IA acá y el plan es
+  explícito en que no tiene que hacer falta.
 - `radiografia.ts` — lo que mira la pestaña Estadísticas, todo sobre una VENTANA
   elegible (7 días, 30 días o toda la temporada guardada): la `historia` del período
   (un protagonista y lo demás), el estado de forma —una sola lista por persona con
@@ -339,6 +350,9 @@ pestañas.
   campeón como protagonista) y `EstRecords` (la pared: los dos grandes arriba, los otros cinco en una fila pareja). Al lado,
   `DuoSynergy`, que es un explorador en tres pasos: roster → vínculos → comparación.
   El período vive como estado de `Estadisticas`, no de la página: no lo lee nadie más.
+- **Mejora** → `Mejora`. La única pestaña que pide por UNA persona: carga
+  `/api/mejora?puuid=…` al elegir a alguien del roster, con un guardia contra
+  respuestas que vuelven fuera de orden.
 - **Cara a cara** → `HeadToHead`. No pide nada al servidor.
 - **Clash** → `ClashHistory`.
 - **Equipo** → `TeamDigest`.

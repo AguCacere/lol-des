@@ -13,16 +13,24 @@ no está acá: vive en **`PROXIMO-TORNEO.md`**. Esto es lo que le falta a la de 
 
 Última revisión: 20 de septiembre de 2026.
 
-## El plan de evolución: fases 6 y 7
+## MIGRACIÓN SIN CORRER: la tabla `objetivos`
 
-`GRIETA_CENTRAL_PLAN_EVOLUCION.md` tiene siete fases. **Van hechas de la 1 a la 5**
-(sistema visual y navegación · Inicio · Ranking · Liga · Estadísticas). Lo que falta,
-en el orden del plan:
+**Hay que correrla una vez desde el editor SQL de Supabase.** Está en
+`supabase/schema.sql`, al final. Sin ella la pestaña Mejora funciona entera —
+diagnóstico, patrones, progreso y cruces son todos cálculo sobre `matches`— pero no
+se puede GUARDAR un foco: la ruta detecta que la tabla no existe y lo dice en
+pantalla en vez de tirar 500.
 
-- **Fase 6 — "Mejora"** (P1, el diferenciador). Es la más grande: necesita motor de
-  datos antes que interfaz, y el plan lo dice explícitamente (no meter IA antes del
-  motor). Cuando se arranque, hay que revisar primero si los snapshots guardados
-  alcanzan para las baselines que pide.
+## El plan de evolución: fase 7
+
+`GRIETA_CENTRAL_PLAN_EVOLUCION.md` tiene siete fases. **Van hechas de la 1 a la 6**
+(sistema visual y navegación · Inicio · Ranking · Liga · Estadísticas · Mejora). Lo
+que falta:
+
+- **De la fase 6 quedó afuera, a propósito, la capa de IA (8.9).** El plan la pone
+  explícitamente después del motor determinístico y dice que la pestaña tiene que
+  ser útil sin ella. El motor ya calcula todo lo que un modelo necesitaría recibir
+  (`lib/mejora.ts`); cuando se haga, recibe ESOS números y no los reemplaza.
 - **Fase 7 — Cara a cara / Clash / Equipo**. Consolidación y estados vacíos.
 
 Lo único que quedó abierto de la fase 5, y es de una línea:

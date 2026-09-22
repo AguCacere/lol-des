@@ -25,6 +25,13 @@ campeones (especialistas o los más jugados, de a uno), la pared de récords y c
 quién juega cada uno, que se explora eligiendo persona y compañero. Todo porcentaje
 va con las partidas al lado.
 
+**Mejora** — la pestaña personal. Elegís a alguien del grupo y muestra: qué marcó
+su última partida, qué hizo bien y una acción medible para la próxima; un foco
+—un objetivo con un número, que se evalúa solo con cada partida nueva—; cómo viene
+esa métrica contra sí mismo; lo que se repite en sus últimas diez; y cómo le va
+contra cada rival de línea. Todo se compara contra su propio historial, nunca
+contra una tabla general, y ninguna lectura afirma una causa.
+
 **Cara a cara** — dos jugadores del grupo comparados de frente, sin pedirle nada más al
 servidor.
 

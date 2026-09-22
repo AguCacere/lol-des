@@ -1,4 +1,4 @@
-export type TabKey = "inicio" | "ranking" | "stats" | "versus" | "clash" | "team";
+export type TabKey = "inicio" | "ranking" | "stats" | "mejora" | "versus" | "clash" | "team";
 
 interface TabNavProps {
   active: TabKey;
@@ -9,6 +9,10 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "inicio", label: "Inicio" },
   { key: "ranking", label: "Ranking" },
   { key: "stats", label: "Estadísticas" },
+  // Después de Estadísticas y antes de Cara a cara: Estadísticas dice qué
+  // pasó en el grupo y Mejora qué hacer con lo tuyo — el orden es de lo
+  // general a lo personal, y de ahí para la derecha ya son comparaciones.
+  { key: "mejora", label: "Mejora" },
   { key: "versus", label: "Cara a cara" },
   { key: "clash", label: "Clash" },
   { key: "team", label: "Equipo" },
