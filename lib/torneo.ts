@@ -37,6 +37,25 @@ export const ARG_OFFSET_MS = 3 * 60 * 60 * 1000;
 const UN_DIA_MS = 24 * 60 * 60 * 1000;
 
 /**
+ * El torneo corta 23:55, no a medianoche.
+ *
+ * Es una regla del grupo, no un detalle técnico: **después de las 23:55 no
+ * entran más partidas**. Nace de que el cierre corre en el tick del cron de
+ * las 00:00 y una partida que termina 23:58 quedaba en una tierra de nadie —
+ * adentro de la ventana, pero sin garantía de estar ingerida cuando el cierre
+ * arma la tabla—. Con el corte cinco minutos antes, lo que cuenta ya está
+ * guardado cuando se cuenta.
+ *
+ * No cambia ningún día del calendario: `duracionEnDias` y `diaDeCierre` miran
+ * el cierre menos un milisegundo, y 23:54:59.999 cae en el mismo día que
+ * 23:59:59.999. Lo único que cambia es qué partidas entran.
+ *
+ * Las filas de `liga_torneos` tienen que seguir la misma convención: su
+ * `cierra_at` va a las 23:55 del último día, no a las 00:00 del siguiente.
+ */
+export const CORTE_ANTES_DE_MEDIANOCHE_MS = 5 * 60 * 1000;
+
+/**
  * El lunes en que la liga arrancó de verdad. NADA anterior a esta fecha cuenta:
  * ni aparece en la tabla ni se cierra ni se anuncia.
  *
@@ -98,8 +117,15 @@ export function finDeSemana(inicio: Date): Date {
  * migración sin que cambie nada.
  */
 export function torneoDerivado(ahora: Date = new Date()): Torneo {
-  const lunes = inicioDeSemana(ahora);
-  const cierra = finDeSemana(lunes);
+  let lunes = inicioDeSemana(ahora);
+  let cierra = new Date(finDeSemana(lunes).getTime() - CORTE_ANTES_DE_MEDIANOCHE_MS);
+  // Los últimos cinco minutos del domingo ya no son de esta semana: ahí
+  // arranca la que viene. Sin esto, preguntar a las 23:57 devolvía una semana
+  // que según su propio cierre ya había terminado.
+  if (ahora.getTime() >= cierra.getTime()) {
+    lunes = finDeSemana(lunes);
+    cierra = new Date(finDeSemana(lunes).getTime() - CORTE_ANTES_DE_MEDIANOCHE_MS);
+  }
   return {
     id: null,
     nombre: null,
@@ -367,9 +393,17 @@ export async function torneoAnterior(supabase: SupabaseClient, ahora: Date = new
   }
 }
 
-/** La semana de lunes a domingo anterior a la de `ahora`. Un milisegundo antes del lunes cae adentro. */
+/**
+ * La semana anterior a la de `ahora`.
+ *
+ * Se pregunta por un DÍA ENTERO antes del lunes y no por un milisegundo: desde
+ * que el corte es 23:55, el domingo a las 23:59:59.999 ya cae después del
+ * cierre de su propia semana y `torneoDerivado` lo empuja a la siguiente — o
+ * sea que "un milisegundo antes del lunes" devolvía la semana ACTUAL. Un día
+ * antes cae cómodo adentro de la anterior.
+ */
 function semanaAnteriorDerivada(ahora: Date): Torneo {
-  return torneoDerivado(new Date(inicioDeSemana(ahora).getTime() - 1));
+  return torneoDerivado(new Date(inicioDeSemana(ahora).getTime() - UN_DIA_MS));
 }
 
 /** Todos los torneos cargados, del más nuevo al más viejo. Para el panel. */

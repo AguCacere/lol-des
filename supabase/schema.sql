@@ -292,7 +292,13 @@ create table if not exists liga_torneos (
   id            uuid primary key default gen_random_uuid(),
   nombre        text,                         -- "Semana del 14", "Torneo de octubre". Solo para la pantalla
   arranca_at    timestamptz not null,
-  cierra_at     timestamptz not null,         -- EXCLUSIVO: un torneo que cierra el lunes 00:00 termina el domingo
+  -- EXCLUSIVO, y a las 23:55 del ÚLTIMO DÍA — no a las 00:00 del siguiente.
+  -- Es una regla del grupo: después de las 23:55 no entran más partidas. El
+  -- cierre corre en el tick del cron de las 00:00, que refresca ANTES de
+  -- cerrar, así que con el corte cinco minutos antes lo que cuenta ya está
+  -- guardado cuando se cuenta. No mueve ningún día del calendario: ver
+  -- CORTE_ANTES_DE_MEDIANOCHE_MS en lib/torneo.ts.
+  cierra_at     timestamptz not null,
   minimo_total  int not null default 10,      -- partidas en TODO el torneo para cobrar
   minimo_ultimo int not null default 3,       -- partidas en el "último día"
   -- Desde cuándo cuenta el "último día". Se guarda y NO se deduce del cierre a

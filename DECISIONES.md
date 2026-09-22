@@ -2298,3 +2298,39 @@ Estaba después del historial, o sea colgando de una sección que habla de otras
 semanas. Es el control de la liga EN CURSO y ahora va pegado a su clasificación.
 Un control huérfano debajo del bloque equivocado se lee como que pertenece a
 ese bloque.
+
+## El torneo corta 23:55, no a medianoche
+
+Regla del grupo, no detalle técnico: **después de las 23:55 no entran más
+partidas**. Sale de que el cierre corre en el tick del cron de las 00:00 y una
+partida que termina 23:58 quedaba en tierra de nadie — adentro de la ventana,
+pero sin garantía de estar ingerida cuando el cierre arma la tabla. El cron
+refresca ANTES de cerrar, así que con el corte cinco minutos antes lo que
+cuenta ya está guardado cuando se cuenta.
+
+**No mueve ningún día.** `duracionEnDias` y `diaDeCierre` miran el cierre menos
+un milisegundo, y 23:54:59.999 cae en el mismo día que 23:59:59.999. Medido:
+siete días, cierra el domingo, misma clave de semana.
+
+Dos cosas que sí hubo que tocar, y las dos son la misma trampa —los últimos
+cinco minutos del domingo dejaron de pertenecer a esa semana—:
+
+- `torneoDerivado` preguntado a las 23:57 devolvía una semana que según su
+  propio cierre ya había terminado. Ahora rueda a la siguiente.
+- `semanaAnteriorDerivada` pedía "un milisegundo antes del lunes", que ahora
+  cae DESPUÉS del cierre de su semana y por lo tanto rodaba a la actual: pedía
+  la anterior y devolvía la de hoy. Ahora pide un día entero antes.
+
+Las filas de `liga_torneos` siguen la misma convención: `cierra_at` a las 23:55
+del último día. Entre las 23:55 y las 00:00 no hay torneo que cubra, y eso es
+a propósito: son los cinco minutos en los que ya no entra nada.
+
+## El reloj del servidor no es el reloj del grupo
+
+Casi reporto como bug que el cierre del 21 no había corrido. No había corrido
+porque **en Argentina todavía eran las 23:44 del lunes**: faltaban dieciséis
+minutos. La fecha del entorno estaba en UTC, un día adelante.
+
+Antes de decir que algo no pasó, preguntarle la hora a la base:
+`select now() at time zone 'America/Argentina/Buenos_Aires'`. Toda la liga se
+mide en hora argentina y el servidor no vive ahí.
