@@ -18,8 +18,9 @@ cambia con el enlace que está al lado del título.
 
 **Estadísticas** — la radiografía del grupo, filtrable por 7 días, 30 días o toda la
 temporada. Arranca con la historia del período (quién lo dominó, y lo demás que
-pasó al costado), sigue con el estado de forma —una clasificación con las últimas 10
-de cada uno y el eje del 50% cruzándola, y cada fila se abre con su detalle—, los
+pasó al costado), sigue con el estado de forma —una clasificación compacta con las últimas 10
+de cada uno en puntos, el récord del período y el winrate, y cada fila se abre con
+su detalle—, los
 campeones (especialistas o los más jugados, de a uno), la pared de récords y con
 quién juega cada uno, que se explora eligiendo persona y compañero. Todo porcentaje
 va con las partidas al lado.

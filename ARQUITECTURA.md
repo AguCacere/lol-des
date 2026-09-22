@@ -334,8 +334,8 @@ pestañas.
   `LiveGamePanel` y `MatchDetail` (que a su vez abre `MatchTimeline`).
 - **Estadísticas** → `Estadisticas` (el armazón: elige la ventana y ordena las
   piezas) → `EstHistoria` (la portada del período: un protagonista y notas al
-  costado), `EstForma` (UNA clasificación con el eje del 50% atravesándola y filas
-  que se abren), `EstCampeones` (un selector Especialistas/Más jugados, el arte del
+  costado), `EstForma` (UNA clasificación compacta: las últimas 10 en puntos, el récord
+  del período, WR y balance; seis por defecto y filas que se abren), `EstCampeones` (un selector Especialistas/Más jugados, el arte del
   campeón como protagonista) y `EstRecords` (la pared, con tres jerarquías). Al lado,
   `DuoSynergy`, que es un explorador en tres pasos: roster → vínculos → comparación.
   El período vive como estado de `Estadisticas`, no de la página: no lo lee nadie más.

@@ -2531,22 +2531,53 @@ cuatro que faltaban no estaban en ningún lado.
 partidas se pasa de escala y dibujaba la barra MÁS LARGA de la clasificación justo
 abajo del renglón que dice que no cuenta. Se quedan con su winrate y su tira.
 
-### El eje del 50% tiene que ser UNA línea, y no lo era
+### El eje del 50%: se hizo bien, y después se borró
 
-La idea es que la vertical del 50% atraviese la clasificación entera: eso convierte
-una columna de barritas sueltas en un gráfico. Cada fila dibuja su tramo y los tramos
-pegados forman la vertical.
+**Se borró. Queda anotado porque la lección no es sobre el eje.**
 
-Solo que no estaban pegados. Un grid item se estira hasta la caja de **contenido**
-del contenedor —o sea sin su padding—, así que con `top:0; bottom:0` cada tramo
-quedaba 18px más corto que su fila. Medido con `getBoundingClientRect`:
-**13 cortes sobre 14 tramos**. Se arregla sacando el tramo por encima del padding
-(`top:-9px; bottom:-9px`, que son el padding vertical de la fila) → **0 cortes**.
-Los 2 que quedan son legítimos: la fila abierta y el corte del mínimo.
+Estuvo un rato: la vertical del 50% atravesando la clasificación, con cada fila
+dibujando su tramo. Costó hacerlo andar —un grid item se estira hasta la caja de
+**contenido** del contenedor, o sea sin su padding, así que cada tramo quedaba 18px
+más corto que su fila y había **13 cortes sobre 14 tramos** medidos con
+`getBoundingClientRect`; se arregló sacando el tramo por encima del padding.
 
-En **teléfono el eje NO es continuo, a propósito**: la fila son dos renglones, así
-que una vertical que cruzara de una fila a la otra pasaría por encima del winrate
-del de abajo.
+Y después se sacó entero, porque estaba contestando la pregunta equivocada. La
+barra divergente gastaba unos **400px de ancho** para decir exactamente lo que ya
+dice el `56,9%` verde tres columnas más allá. Con ella, sola esta sección medía
+914px en escritorio y 1.377 en teléfono: una pantalla entera para doce filas.
+
+**No todo dato necesita una visualización.** Un porcentaje es de los números más
+fáciles de leer que hay; ponerle una barra al lado no lo hace más claro, lo hace más
+grande. Y tres señales para lo mismo en la misma fila —la barra, el color y el
+número— no son redundancia útil, son ruido.
+
+Lo que **sí** se quedó es la tira de las últimas diez, porque cuenta algo que el
+porcentaje **no puede** contar: una SECUENCIA. "Viene de perder cuatro" y "perdió
+cuatro repartidas" dan el mismo winrate y no son lo mismo. Ese es el criterio para
+decidir si algo merece dibujo: **¿el número ya lo dice?** Si la respuesta es sí, el
+dibujo sobra.
+
+### La clasificación compacta: qué se ganó
+
+| | antes | después |
+|---|---|---|
+| sección, escritorio | 914px | **408px** (−55%) |
+| sección, teléfono | 1.377px | **537px** (−61%) |
+| alto de fila, escritorio | 54px | **44px** |
+
+Tres cambios, además de sacar la barra:
+
+- **Los puntos, no barritas.** 6px redondos en vez de barras verticales de 17px.
+  Misma información, la mitad de alto.
+- **El récord en vez del volumen.** `33V · 25D` en lugar de `58`: dice volumen Y
+  resultado con los mismos píxeles. El total sigue estando, adentro de la fila.
+- **Seis por defecto, el resto a un clic.** Esto es Estadísticas, no una tabla de
+  posiciones que tenga que mostrar a todos de entrada. El orden NO cambió: "los
+  primeros seis" son los primeros seis del mismo criterio de siempre, no un
+  puntaje de forma nuevo.
+
+Y se fueron casi todas las líneas horizontales: doce divisiones entre doce filas no
+dividían nada. Queda el hover y el ritmo de la grilla.
 
 ### Dos cosas más que solo aparecieron midiendo
 
