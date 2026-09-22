@@ -16,7 +16,11 @@ línea (con detección de autofill), órdenes de compra, récords personales y l
 partidas con su timeline. Adentro de esta misma pestaña vive la **liga semanal**: se
 cambia con el enlace que está al lado del título.
 
-**Estadísticas** — mejores winrates del grupo, ranking de campeones y sinergia de duos.
+**Estadísticas** — la radiografía del grupo, filtrable por 7 días, 30 días o toda la
+temporada: lo que pasó en el período (mejor winrate, mejor racha, quién más jugó,
+quién más subió y quién más bajó), quién está on fire según sus últimas 10, el
+ranking de winrate, especialistas por campeón, los récords de siempre y la sinergia
+de dúos con "juntos vs separados". Todo porcentaje va con las partidas al lado.
 
 **Cara a cara** — dos jugadores del grupo comparados de frente, sin pedirle nada más al
 servidor.

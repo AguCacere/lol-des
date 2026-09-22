@@ -2356,7 +2356,22 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    switching here reads as a change too instead of an instant content swap. */
 .duo-panel{opacity:1; transition:opacity .16s ease;}
 .duo-panel.is-fading{opacity:0;}
-.duo-cols-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; min-height:28px;}
+/* flex-wrap y min-width:0 no son cosmética: sin ellos, en un teléfono el
+   título ("Compañeros de EtoN0EhCocaPapi") y el interruptor de orden no
+   entraban en un renglón, no podían partirse, y el min-content de la
+   columna quedaba en 394px adentro de un contenedor de 350 — el panel
+   entero se salía de la pantalla y toda la página tomaba scroll
+   horizontal. Se veía solo con un invocador elegido, que es por lo que
+   sobrevivió tanto. */
+.duo-cols-head{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  margin-bottom:10px; min-height:28px; flex-wrap:wrap; min-width:0;
+}
+.duo-cols-head .meta{min-width:0;}
+/* La misma razón, un nivel más arriba: las dos mitades del panel son items
+   de un grid y un grid item no se encoge por debajo de su min-content si no
+   se lo permite explícitamente. */
+.duo-panel > *{min-width:0;}
 /* These label their column, so they get the same uppercase treatment as
    every other sub-heading in the app instead of reading as loose grey copy
    floating above a list. */
@@ -5439,4 +5454,237 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .inicio{gap:26px;}
   .inicio-cuerpo{gap:26px 44px;}
   .pulso-cifra{font-size:22px;}
+}
+
+/* ---------- Estadísticas: la radiografía del grupo ---------- */
+
+/* La barra del filtro. Va ANTES de la primera sección y no adentro de una:
+   manda sobre toda la pantalla, así que no puede parecer el control de un
+   bloque. Sin .section-head a propósito — no tiene título, es un mando. */
+.rd-barra{
+  display:flex; align-items:center; justify-content:space-between; gap:14px;
+  flex-wrap:wrap; margin:22px 0 4px;
+}
+.rd-filtro{
+  display:inline-flex; background:var(--surface); border-radius:999px;
+  padding:3px; gap:2px; box-shadow:var(--shadow-sm);
+}
+.rd-filtro-op{
+  font-size:12.5px; font-weight:600; color:var(--text-muted);
+  padding:7px 15px; border-radius:999px; cursor:pointer;
+  transition:background .14s ease, color .14s ease;
+  /* 38px de alto mínimo: es el control más tocado de la pestaña y en un
+     teléfono tiene que aceptar un pulgar, no un mouse. */
+  min-height:38px;
+}
+.rd-filtro-op:hover{color:var(--text-secondary);}
+.rd-filtro-op.activo{background:var(--accent-wash); color:var(--accent);}
+.rd-filtro-op:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+.rd-muestra{font-size:11.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+
+/* Los destacados: una fila de fichas, no tarjetas grandes. Seis datos de una
+   línea cada uno — si cada uno fuera una tarjeta con aire, la fila ocuparía
+   la pantalla entera para decir seis cosas. */
+.rd-destacados{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(178px, 1fr)); gap:10px;
+}
+.rd-destacado{
+  background:var(--surface); border-radius:var(--radius-md); padding:13px 15px;
+  display:flex; flex-direction:column; gap:3px; box-shadow:var(--shadow-sm);
+  border-left:2px solid var(--border-firm);
+}
+/* El borde de la izquierda es la ÚNICA señal de color de la ficha, y siempre
+   acompañada del texto que dice lo mismo ("El que más bajó"). El valor va en
+   tinta normal: un número gigante en rojo al lado de otro en verde hace leer
+   la fila como un semáforo en vez de como seis datos distintos. */
+.rd-destacado.good{border-left-color:var(--good);}
+.rd-destacado.bad{border-left-color:var(--critical);}
+.rd-destacado-titulo{
+  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;
+  color:var(--text-muted);
+}
+.rd-destacado-valor{
+  font-family:var(--font-stat); font-size:21px; font-weight:800; line-height:1.15;
+  font-variant-numeric:tabular-nums; color:var(--text-primary);
+}
+.rd-destacado-quien{
+  display:flex; align-items:center; gap:7px; min-width:0;
+  font-size:13px; font-weight:600; color:var(--text-secondary);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.rd-destacado-avatar{
+  width:20px; height:20px; border-radius:6px; flex:none; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  font-size:8px; font-weight:700; background:var(--surface-hover); color:var(--text-secondary);
+}
+.rd-destacado-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
+.rd-destacado-pie{font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+
+/* La forma */
+.rd-forma{background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); overflow:hidden;}
+.rd-forma-fila{
+  display:grid; grid-template-columns:34px minmax(0,1fr) auto 76px 56px 62px;
+  align-items:center; gap:13px; padding:11px 18px;
+  border-bottom:1px solid var(--border-soft);
+}
+.rd-forma-fila:last-child{border-bottom:none;}
+.rd-forma-avatar{
+  width:34px; height:34px; border-radius:10px; flex:none; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:700; font-size:11px;
+  background:var(--surface-hover); color:var(--text-secondary);
+}
+.rd-forma-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
+.rd-forma-id{display:flex; flex-direction:column; gap:2px; min-width:0;}
+.rd-forma-nombre{font-size:14px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.rd-forma-pie{font-size:11px; color:var(--text-muted); white-space:nowrap;}
+/* La tira de diez. 6px de ancho y 3px de separación: a menos, diez
+   cuadraditos se leen como una sola barra rayada. */
+.rd-tira{display:flex; gap:3px;}
+.rd-pip{width:6px; height:18px; border-radius:2px; display:block;}
+.rd-pip.good{background:var(--good);}
+/* La derrota va a media opacidad además de roja: en deuteranopía el verde y
+   el rojo se separan poco, y el contraste contra el fondo sí se ve. */
+.rd-pip.bad{background:var(--critical); opacity:0.72;}
+.rd-forma-vd{font-size:12px; color:var(--text-secondary); font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap;}
+.rd-forma-wr{font-family:var(--font-stat); font-size:15px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums;}
+.rd-forma-delta{font-family:var(--font-stat); font-size:12px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;}
+.rd-forma-wr.good, .rd-forma-delta.good{color:var(--good);}
+.rd-forma-wr.bad, .rd-forma-delta.bad{color:var(--critical);}
+.rd-forma-wr.neutral, .rd-forma-delta.neutral{color:var(--text-secondary);}
+.rd-mas{
+  display:block; margin:10px auto 0; font-size:12px; font-weight:600;
+  color:var(--text-muted); padding:9px 16px; border-radius:999px; cursor:pointer;
+  min-height:38px;
+}
+.rd-mas:hover{color:var(--accent); background:var(--surface);}
+.rd-mas:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+/* Campeones: especialistas y más jugados, uno al lado del otro */
+/* align-items:start: las dos listas casi nunca tienen el mismo largo (a
+   Especialistas le entran solo los que ganan), y estirando la corta quedaba
+   una caja con quince centímetros de vacío abajo. */
+.rd-campeones{display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start;}
+.rd-col{background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:15px 18px 8px;}
+.rd-h3{
+  font-family:var(--font-display); font-size:13px; font-weight:700; margin:0 0 10px;
+  display:flex; align-items:center; gap:6px; color:var(--text-primary);
+}
+.rd-vacio{font-size:12.5px; color:var(--text-muted); margin:0 0 12px; line-height:1.5;}
+.rd-lista{list-style:none; margin:0; padding:0;}
+.rd-camp{
+  display:grid; grid-template-columns:28px minmax(0,1fr) auto 56px;
+  align-items:center; gap:11px; padding:8px 0;
+  border-bottom:1px solid var(--border-soft);
+}
+.rd-camp:last-child{border-bottom:none;}
+.rd-camp-icono{
+  width:28px; height:28px; border-radius:8px; flex:none; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  font-size:9px; font-weight:700; background:var(--surface-hover); color:var(--text-secondary);
+}
+.rd-camp-icono img{width:100%; height:100%; object-fit:cover; display:block;}
+.rd-camp-id{display:flex; flex-direction:column; gap:1px; min-width:0;}
+.rd-camp-nombre{font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.rd-camp-quien{font-size:11px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.rd-camp-muestra{font-size:11.5px; color:var(--text-muted); font-variant-numeric:tabular-nums; white-space:nowrap;}
+.rd-camp-wr{font-family:var(--font-stat); font-size:13.5px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums;}
+.rd-camp-wr.good{color:var(--good);}
+.rd-camp-wr.bad{color:var(--critical);}
+.rd-camp-wr.neutral{color:var(--text-secondary);}
+
+/* Récords */
+/* 250px y no 212: con 212 entraban CINCO por fila a 1440 y los récords son
+   siete, así que la última fila quedaba con dos sueltas y un hueco enorme al
+   lado. Con 250 entran cuatro y la segunda fila lleva tres. */
+.rd-records{display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:10px;}
+.rd-record{
+  background:var(--surface); border-radius:var(--radius-md); padding:14px 16px;
+  display:flex; flex-direction:column; gap:4px; box-shadow:var(--shadow-sm);
+}
+.rd-record-titulo{
+  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;
+  color:var(--text-muted);
+}
+.rd-record-valor{
+  font-family:var(--font-stat); font-size:20px; font-weight:800; line-height:1.15;
+  font-variant-numeric:tabular-nums; color:var(--gold);
+}
+.rd-record-quien{
+  display:flex; align-items:center; gap:7px; min-width:0;
+  font-size:13px; font-weight:600; color:var(--text-primary);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.rd-record-avatar{
+  width:20px; height:20px; border-radius:6px; flex:none; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  font-size:8px; font-weight:700; background:var(--surface-hover); color:var(--text-secondary);
+}
+.rd-record-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
+.rd-record-pie{font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+
+/* Juntos vs separados, adentro de la sinergia de dúo */
+.duovs-comp{
+  background:var(--surface); border-radius:var(--radius-md); padding:14px 16px;
+  box-shadow:var(--shadow-sm);
+}
+.duovs-comp-lados{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.duovs-comp-lado{display:flex; flex-direction:column; gap:2px; min-width:0;}
+.duovs-comp-et{
+  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;
+  color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.duovs-comp-wr{font-family:var(--font-stat); font-size:22px; font-weight:800; line-height:1.15; font-variant-numeric:tabular-nums;}
+.duovs-comp-wr.good{color:var(--good);}
+.duovs-comp-wr.bad{color:var(--critical);}
+.duovs-comp-wr.neutral{color:var(--text-secondary);}
+.duovs-comp-muestra{font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+.duovs-comp-pie{
+  font-size:11.5px; color:var(--text-muted); line-height:1.55;
+  margin:11px 0 0; padding-top:11px; border-top:1px solid var(--border-soft);
+}
+.duovs-comp-diff{font-family:var(--font-stat); font-size:13px; font-weight:800; font-variant-numeric:tabular-nums;}
+.duovs-comp-diff.good{color:var(--good);}
+.duovs-comp-diff.bad{color:var(--critical);}
+.duovs-comp-diff.neutral{color:var(--text-secondary);}
+.duo-cols-head-2{margin-top:18px;}
+/* Un winrate calculado sobre cuatro partidas se muestra, pero no se pinta de
+   verde ni se agranda: en tinta apagada se lee como "esto todavía no
+   significa nada", que es la verdad. El 75% de 3-1 llamaba más la atención
+   que el 54% de 34-29. */
+.champ-pool-wr.flojo{color:var(--text-muted);}
+
+@media (max-width:900px){
+  .rd-campeones{grid-template-columns:1fr;}
+}
+@media (max-width:720px){
+  .rd-barra{gap:10px;}
+  .rd-filtro{width:100%; justify-content:stretch;}
+  .rd-filtro-op{flex:1; text-align:center; padding:7px 8px;}
+  /* En teléfono la fila de la forma pasa a dos renglones: la tira de diez
+     necesita 87px que no se pueden achicar sin volverla ilegible, y el resto
+     de las columnas se quedaba sin lugar. Nombre arriba, datos abajo. */
+  .rd-forma-fila{
+    grid-template-columns:34px minmax(0,1fr) auto;
+    grid-template-areas:"avatar id wr" "tira tira vd";
+    gap:8px 11px; padding:11px 14px;
+  }
+  .rd-forma-avatar{grid-area:avatar;}
+  .rd-forma-id{grid-area:id;}
+  .rd-forma-wr{grid-area:wr;}
+  .rd-tira{grid-area:tira;}
+  .rd-forma-vd{grid-area:vd;}
+  /* Se va en teléfono: es el dato más fino de la fila y el que menos se
+     busca ahí. El winrate y la tira siguen contando la misma historia. */
+  .rd-forma-delta{display:none;}
+  .rd-destacados{grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px;}
+  .rd-destacado{padding:11px 13px;}
+  .rd-destacado-valor{font-size:19px;}
+  .rd-records{grid-template-columns:1fr 1fr; gap:8px;}
+  .rd-record{padding:12px 13px;}
+  .rd-record-valor{font-size:17px;}
+  .duovs-comp-wr{font-size:19px;}
+}
+@media (max-width:420px){
+  .rd-records{grid-template-columns:1fr;}
 }

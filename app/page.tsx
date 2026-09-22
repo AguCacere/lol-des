@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { ChampionLeaderboardEntry, ClashPlayerStats, ClashTournament, DuoPair, LiveGame, Player, RoleKey, TeamDigest as TeamDigestData } from "@/lib/types";
+import type { ClashPlayerStats, ClashTournament, DuoPair, LiveGame, Player, RoleKey, TeamDigest as TeamDigestData } from "@/lib/types";
 import { TopBar, type AddStatus } from "@/components/TopBar";
 import { TabNav, type TabKey } from "@/components/TabNav";
 import { HeadToHead } from "@/components/HeadToHead";
@@ -11,9 +11,9 @@ import { PwaRegister } from "@/components/PwaRegister";
 import { conTransicion } from "@/lib/view-transition";
 import { LadderTable, playerKey, type SortKey } from "@/components/LadderTable";
 import { PlayerProfile } from "@/components/PlayerProfile";
+import type { Radiografia } from "@/lib/radiografia";
 import { DuoSynergy } from "@/components/DuoSynergy";
-import { TopWinrate } from "@/components/TopWinrate";
-import { ChampionWinrateLeaderboard } from "@/components/ChampionWinrateLeaderboard";
+import { Estadisticas } from "@/components/Estadisticas";
 import { ClashHistory } from "@/components/ClashHistory";
 import { LiveTray } from "@/components/LiveTray";
 import { TeamDigest } from "@/components/TeamDigest";
@@ -55,7 +55,7 @@ function Cargando() {
 export default function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [duoSynergy, setDuoSynergy] = useState<DuoPair[]>([]);
-  const [championLeaderboard, setChampionLeaderboard] = useState<ChampionLeaderboardEntry[]>([]);
+  const [radiografia, setRadiografia] = useState<Radiografia | null>(null);
   const [clashTournaments, setClashTournaments] = useState<ClashTournament[]>([]);
   const [clashPlayerStats, setClashPlayerStats] = useState<ClashPlayerStats[]>([]);
   const [clashLoading, setClashLoading] = useState(false);
@@ -98,7 +98,10 @@ export default function Home() {
       if (!res.ok) throw new Error(data.error ?? "No se pudo cargar el ladder.");
       setPlayers(data.players as Player[]);
       setDuoSynergy((data.duoSynergy as DuoPair[]) ?? []);
-      setChampionLeaderboard((data.championLeaderboard as ChampionLeaderboardEntry[]) ?? []);
+      // Puede venir null durante la ventana de caché del CDN: hay pestañas
+      // con el bundle nuevo recibiendo el JSON viejo, que todavía no lo trae.
+      // La pestaña sabe mostrar el estado vacío en vez de romperse.
+      setRadiografia((data.radiografia as Radiografia | undefined) ?? null);
       setLastUpdated((data.lastUpdated as string | null) ?? null);
       // Con guarda: durante la ventana de caché del CDN llega el JSON viejo,
       // que no trae el campo.
@@ -387,8 +390,7 @@ export default function Home() {
             <Cargando />
           ) : (
             <>
-              <TopWinrate players={players} />
-              <ChampionWinrateLeaderboard entries={championLeaderboard} ddragonVersion={ddragonVersion} />
+              <Estadisticas radiografia={radiografia} players={players} ddragonVersion={ddragonVersion} />
               <DuoSynergy pairs={duoSynergy} loading={loading} ddragonVersion={ddragonVersion} />
             </>
           )}

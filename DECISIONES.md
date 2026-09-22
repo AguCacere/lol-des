@@ -2371,3 +2371,113 @@ mínimo"), aplicada también al conteo de los títulos.
 
 Si alguien vuelve a dudar de un número del anuncio, el camino es ese: replicar
 los filtros, no contar `matches` a secas.
+
+## Los umbrales de Estadísticas salieron de contar, no de elegir
+
+La pestaña tenía un "mínimo 50 partidas con ese campeón" heredado de cuando el
+ranking por campeón era lo único que había ahí. Contando sobre las 1.276 partidas
+guardadas, ese umbral deja **tres** pares (jugador, campeón) en pie. O sea: la
+sección existía para mostrar un cartel de "todavía no hay datos".
+
+Lo que se midió, con los pares que califican en cada ventana:
+
+| umbral | 7 días | 30 días | temporada |
+|---|---|---|---|
+| 50 | — | — | 3 |
+| 20 | — | — | 7 |
+| 15 | — | 12 | **15** (11 jugadores) |
+| 10 | — | **18** | 25 |
+| 5 | **16** | — | — |
+
+Quedaron **5 / 10 / 15**, que es el umbral más alto que todavía llena la lista en
+cada ventana. Viven en `MINIMO_ESPECIALISTA` (`lib/radiografia.ts`), arriba de todo y
+con la tabla al lado, justamente para que el día que el grupo tenga el doble de
+partidas se suban leyendo por qué estaban ahí y no adivinando.
+
+Hay un segundo filtro que no salió de contar sino de mirar la pantalla: **un
+especialista tiene que tener récord ganador con ese campeón**. Sin eso la lista se
+completaba hasta ocho con lo que hubiera y quedaba un "Especialistas: Lee Sin, 38,1%"
+arriba de todo. Si no llegan ocho, la lista sale más corta.
+
+Y el orden es por el **límite inferior de Wilson** (`lib/wilson.ts`), no por el
+winrate crudo: con un umbral de cinco partidas, ordenar por el porcentaje pelado pone
+un 5-de-5 arriba de un 14-de-20, que no es un ranking de especialistas sino uno de
+quién jugó menos.
+
+## "Mayor winrate" dejó de mirar la season de Riot
+
+Miraba `wins + losses` de League-V4 —el récord de season completo— con un piso de 100
+partidas. Dos problemas, y el segundo es el grave:
+
+1. **No se movía.** Un fin de semana entero corre el winrate de season medio punto.
+2. **Medía otro universo.** Todo lo demás de la pestaña sale de las partidas
+   guardadas; ese ranking salía de Riot. El mismo jugador podía mostrar dos winrates
+   distintos en la misma pantalla y los dos estaban bien.
+
+Ahora sale de las partidas guardadas y de la ventana elegida, igual que el resto.
+El podio de tres tarjetas que tenía arriba se fue con el cambio: los Destacados, que
+están justo encima, ya coronan al mejor winrate del período con nombre y foto — era
+el mismo dato dos veces, ocupando media pantalla para repetir la primera fila de la
+tabla.
+
+## Toda cifra viaja con su muestra
+
+Es la regla que ordena la pestaña entera y la que más veces se aplicó:
+
+- el winrate del período lleva la columna "Partidas" y el balance V−D;
+- cada fila de campeón lleva `14V · 8D` **antes** del porcentaje, porque es el número
+  que decide si el porcentaje se puede creer;
+- en la lista de compañeros, un winrate con menos de 8 partidas juntas se muestra
+  **en tinta apagada** en vez de verde: el 75% de un 3-1 llamaba más la atención que
+  el 54% de un 34-29;
+- el "juntos vs separados" no dibuja la diferencia en puntos si no hay 8 partidas de
+  cada lado — dice cuántas faltan.
+
+## El dúo es una asociación, no una causa
+
+"Juntos vs separados" compara el winrate del dúo con el del invocador cuando ese
+compañero no está. Es el número que le da sentido al de arriba: un 60% juntos no dice
+nada hasta saber si solo anda en 58 —o sea, da igual— o en 42.
+
+Pero **no es causalidad y el pie de la tarjeta lo dice con todas las letras**: juegan
+juntos los findes, con otros campeones, a otra hora y contra otra gente. Se muestra
+"+11,3 pp con Simiestro al lado. Es lo que pasó, no por qué". El plan de evolución lo
+pide explícitamente y es fácil de perder en la próxima reescritura.
+
+## Los récords de LP no pueden ser más viejos que las fotos de LP
+
+`matches` arranca en abril para algunos del grupo; `lp_snapshots` arranca el 26 de
+agosto. Entonces "mayor subida en un día" no es un récord histórico, es un récord de
+las últimas cuatro semanas, y decirlo no es un detalle: es la diferencia entre un
+récord y una mentira cómoda.
+
+Dos lugares lo dicen solos, sin que nadie tenga que acordarse:
+
+- el encabezado de Récords muestra "los de puntos, desde el 26 ago — que es cuando se
+  empezaron a guardar", con la fecha sacada de la primera foto que hay (`lpDesde`), no
+  escrita a mano;
+- el destacado de subida/caída de la ventana **Temporada** cambia su pie a "desde el
+  26 ago, que es de cuando hay datos" cuando las fotos no llegan hasta el arranque de
+  la ventana. En 7 y 30 días sí llegan, y ahí dice "de punta a punta del período".
+
+La regla general, que ya estaba en `lib/actividad.ts` y ahora también acá: **si el
+dato no alcanza, no se publica**. Toda función de `lib/radiografia.ts` devuelve menos
+filas antes que inventar una.
+
+## La sinergia de dúo se salía de la pantalla en teléfono
+
+Pre-existente, encontrado midiendo la fase 5. Con un invocador elegido, el
+`scrollWidth` del documento pasaba de 390 a 414 y TODA la página tomaba scroll
+horizontal.
+
+La causa no era ancho de más: era que `.duo-cols-head` ponía el título
+("Compañeros de EtoN0EhCocaPapi") y el interruptor de orden en un renglón **sin
+`flex-wrap`**, así que su min-content quedaba en 394px; y un grid item no se encoge
+por debajo de su min-content salvo que se lo permitan. La columna del grid medía
+394px adentro de un contenedor de 350.
+
+Dos líneas: `flex-wrap:wrap` en el encabezado y `min-width:0` en los hijos del panel.
+Vale por el método más que por el arreglo — **se vio midiendo `scrollWidth` antes y
+después de tocar un control**, no mirando una captura. Sobrevivió tanto porque solo
+aparece con un invocador seleccionado, que es un estado que ninguna captura del
+primer render toma.

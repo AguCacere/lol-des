@@ -13,8 +13,11 @@ Abre en **Inicio**, no en el ladder.
 navegador. El servidor solo existe en las rutas.
 
 `app/page.tsx` carga `/api/ladder` una vez y de ahí sale casi toda la app: los
-`Player` vienen completos (rango, pool, radar, historial, líneas, récords), así que
-las pestañas Ranking, Estadísticas y Cara a cara **no piden nada más al servidor**.
+`Player` vienen completos (rango, pool, radar, historial, líneas, récords) y en la
+misma respuesta viaja `radiografia`, que es toda la pestaña Estadísticas ya
+calculada, así que las pestañas Ranking, Estadísticas y Cara a cara **no piden nada
+más al servidor**. El filtro de período de Estadísticas tampoco: las tres ventanas
+vienen en la misma respuesta y cambiar de una a otra es estado de React.
 Clash y Equipo cargan su ruta la primera vez que se las abre, no antes.
 
 ## Rutas
@@ -25,7 +28,7 @@ cerradura no está puesta, nadie escribe).
 
 | Ruta | Método | Qué hace | Escribe | Sesión | Cache-Control |
 |---|---|---|---|---|---|
-| `/api/ladder` | GET | El plato fuerte: arma los `Player` completos | no | no | `s-maxage=240, swr=600` |
+| `/api/ladder` | GET | El plato fuerte: arma los `Player` completos, la sinergia de dúos y la **radiografía** que dibuja Estadísticas | no | no | `s-maxage=240, swr=600` |
 | `/api/live` | GET | Solo quién está en partida ahora (poll de 60s) | no | no | — |
 | `/api/live-detail` | GET | Los diez de una partida en vivo, con líneas estimadas | no | no | `s-maxage=120` |
 | `/api/clash` | GET | Torneos de Clash agrupados | no | no | `s-maxage=300` |
@@ -178,6 +181,15 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   argentino). **Se calla antes que inventar**: si `lpHistory` —que son las últimas 20
   fotos, no las de las últimas N horas— no llega hasta el corte de la ventana, ese
   movimiento no se publica. Ver el header y DECISIONES.
+- `radiografia.ts` — lo que mira la pestaña Estadísticas, todo sobre una VENTANA
+  elegible (7 días, 30 días o toda la temporada guardada): los destacados del
+  período, el ranking de winrate, especialistas y campeones más jugados, "quién está
+  on fire" (las últimas 10 de cada uno contra su propio promedio) y el salón de la
+  fama. Los umbrales están arriba del archivo con la tabla de la que salieron
+  (`MINIMO_ESPECIALISTA`, `MINIMO_WINRATE`) — ver DECISIONES antes de tocarlos. Es
+  cálculo puro: entran partidas, fotos de LP y personas; sale todo armado. Se llama
+  UNA vez, desde `/api/ladder`, porque las dos consultas pesadas que necesita ya
+  están leídas ahí.
 - `chart.ts` — la geometría de las líneas y áreas de los gráficos: recta o curva
   suave (cúbica monótona: pasa por cada punto y no se pasa entre dos), con escala
   propia o compartida entre varias series. Y la paleta de series: `PALETA_SERIES`
@@ -318,7 +330,10 @@ pestañas.
   `TiltCard`, `ChampionPool`, `MasteryPool`, `ChampionInsights`, `Matchups`,
   `LineHistory`, `BuildStarts`, `PersonalRecords`, `AegisStats`, `CoachPanel`,
   `LiveGamePanel` y `MatchDetail` (que a su vez abre `MatchTimeline`).
-- **Estadísticas** → `TopWinrate`, `ChampionWinrateLeaderboard`, `DuoSynergy`.
+- **Estadísticas** → `Estadisticas` (el filtro de período y las secciones que
+  dependen de él: destacados, la forma, campeones y récords; adentro llama a
+  `TopWinrate`) y `DuoSynergy`. El filtro vive como estado de `Estadisticas`, no de
+  la página: no lo lee nadie más.
 - **Cara a cara** → `HeadToHead`. No pide nada al servidor.
 - **Clash** → `ClashHistory`.
 - **Equipo** → `TeamDigest`.

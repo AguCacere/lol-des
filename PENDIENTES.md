@@ -13,21 +13,25 @@ no está acá: vive en **`PROXIMO-TORNEO.md`**. Esto es lo que le falta a la de 
 
 Última revisión: 20 de septiembre de 2026.
 
-## El plan de evolución: fases 5 a 7
+## El plan de evolución: fases 6 y 7
 
-`GRIETA_CENTRAL_PLAN_EVOLUCION.md` tiene siete fases. **Van hechas la 1, la 2, la 3 y
-la 4** (sistema visual y navegación · Inicio · Ranking · Liga). Lo que falta, en el
-orden del plan:
+`GRIETA_CENTRAL_PLAN_EVOLUCION.md` tiene siete fases. **Van hechas de la 1 a la 5**
+(sistema visual y navegación · Inicio · Ranking · Liga · Estadísticas). Lo que falta,
+en el orden del plan:
 
-- **Fase 5 — Estadísticas** (P1). Filtro temporal 7/30/temporada, destacados, "quién
-  está on fire", especialistas por campeón con umbral razonable en vez del mínimo de
-  50 que deja la sección vacía, sinergia de dúo con "juntos vs separados", y un Hall
-  of Fame **solo con lo que se pueda calcular de verdad**.
 - **Fase 6 — "Mejora"** (P1, el diferenciador). Es la más grande: necesita motor de
   datos antes que interfaz, y el plan lo dice explícitamente (no meter IA antes del
   motor). Cuando se arranque, hay que revisar primero si los snapshots guardados
   alcanzan para las baselines que pide.
 - **Fase 7 — Cara a cara / Clash / Equipo**. Consolidación y estados vacíos.
+
+Lo único que quedó abierto de la fase 5, y es de una línea:
+
+- **Borrar `championLeaderboard` de `/api/ladder`.** Ya no lo dibuja nadie —lo
+  reemplazó el bloque de Especialistas, que respeta el filtro de período— pero se
+  sigue mandando por la ventana de caché del CDN, igual que `roleDistribution`. Se
+  puede sacar en cualquier deploy posterior al que lo dejó de usar, junto con
+  `computeChampionLeaderboard()` y el tipo `ChampionLeaderboardEntry`.
 
 Dos cosas de las fases hechas que quedaron **decididas y anotadas, no pendientes**:
 que no hay rutas por sección (son pestañas) y que Inicio no repite el estado de la

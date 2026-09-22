@@ -17,6 +17,13 @@ import { computeChampionInsights } from "@/lib/champion-insights";
 import { computeMatchFlag, STATS_WINDOW_SIZE, type StatSample } from "@/lib/matchflags";
 import type { AegisStats, ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, DuoSharedMatch, FlexRank, LpHistoryPoint, MasteryEntry, Match, PersonalRecords, Player, RoleAverages, RoleKey } from "@/lib/types";
 import { winrateExacto } from "@/lib/winrate";
+import {
+  radiografia,
+  type DuoRadiografia,
+  type FotoRadiografia,
+  type PartidaRadiografia,
+  type PersonaRadiografia,
+} from "@/lib/radiografia";
 
 export const dynamic = "force-dynamic";
 
@@ -1017,11 +1024,28 @@ export async function GET() {
         }
       }
     }
+    // El récord total de cada uno sobre las partidas guardadas, para poder
+    // restarle las compartidas y obtener el "sin el otro". Sale de
+    // champStatsByPuuid, que ya es la suma por campeón de esas mismas
+    // partidas: no se vuelve a recorrer nada.
+    const totalPorPuuid = new Map<string, { partidas: number; victorias: number }>();
+    for (const [puuid, champStats] of champStatsByPuuid) {
+      let partidas = 0;
+      let victorias = 0;
+      for (const st of champStats.values()) {
+        partidas += st.games;
+        victorias += st.wins;
+      }
+      totalPorPuuid.set(puuid, { partidas, victorias });
+    }
+
     const pairs: DuoPair[] = [];
     for (const p of pairStats.values()) {
       const a = nameByPuuid.get(p.aPuuid);
       const b = nameByPuuid.get(p.bPuuid);
       if (!a || !b) continue;
+      const totalA = totalPorPuuid.get(p.aPuuid) ?? { partidas: 0, victorias: 0 };
+      const totalB = totalPorPuuid.get(p.bPuuid) ?? { partidas: 0, victorias: 0 };
       let bestCombo = "";
       let bestCount = 0;
       for (const [combo, count] of p.roleCombos) {
@@ -1049,6 +1073,14 @@ export async function GET() {
         aRole: (aRole || null) as RoleKey | null,
         bRole: (bRole || null) as RoleKey | null,
         recentMatches: [...p.recentMatches].sort((x, y) => (x.playedAt < y.playedAt ? 1 : -1)).slice(0, 5),
+        // "Sin el otro" = todo lo suyo menos lo compartido con ESTE
+        // compañero. Una partida jugada con un tercero sigue contando acá,
+        // que es lo correcto: la pregunta es cómo le va cuando este de al
+        // lado no está.
+        aSinPartidas: totalA.partidas - p.games,
+        aSinVictorias: totalA.victorias - p.wins,
+        bSinPartidas: totalB.partidas - p.games,
+        bSinVictorias: totalB.victorias - p.wins,
       });
     }
     return pairs.sort((x, y) => y.games - x.games);
@@ -1239,11 +1271,58 @@ export async function GET() {
   // Next's own data cache). The embedded liveGame can be up to 60s stale on
   // first paint — /api/live (uncached, polled every 60s client-side) merges
   // the fresh status in right after, so nothing user-visible is lost.
+  // ── La radiografía de la pestaña Estadísticas ─────────────────────────
+  //
+  // Se arma acá y no en una ruta propia porque las dos cosas que necesita
+  // —TODAS las partidas guardadas y TODAS las fotos de LP— ya están leídas y
+  // en memoria en este handler. Una ruta aparte duplicaría los dos selects
+  // más pesados de la app contra una base Nano de 15 conexiones, que es
+  // exactamente lo que tiró Supabase en septiembre (ver DECISIONES).
+  //
+  // El cálculo en sí es puro y vive en lib/radiografia.ts.
+  const duos = computeDuoSynergy();
+  const partidasRadiografia: PartidaRadiografia[] = (matchRows ?? []).map((row) => ({
+    puuid: row.puuid,
+    champion: row.champion,
+    win: row.win,
+    kills: row.kills,
+    deaths: row.deaths,
+    assists: row.assists,
+    playedAt: row.played_at,
+  }));
+  // Desde lpHistoryByPuuid y no desde `snapshots` crudo: ese Map ya viene
+  // filtrado a soloQ y sin las fotos repetidas que metió el cron durante la
+  // caída (ver arriba). Una meseta de cinco fotos idénticas no cambia ningún
+  // récord, pero sí ensuciaría el "se movió / no se movió" de la ventana.
+  const fotosRadiografia: FotoRadiografia[] = [];
+  for (const [puuid, historia] of lpHistoryByPuuid) {
+    for (const h of historia) {
+      fotosRadiografia.push({ puuid, lp: h.lp, tier: h.tier, division: h.division, capturedAt: h.capturedAt });
+    }
+  }
+  const personasRadiografia: PersonaRadiografia[] = (ladderRows ?? []).map((r) => ({
+    puuid: r.puuid,
+    name: r.game_name,
+    tag: r.tag_line,
+    profileIconUrl: r.profile_icon_id != null ? profileIconUrl(ddragonVersion, r.profile_icon_id) : null,
+  }));
+  // computeDuoSynergy() ya devuelve los pares ordenados por partidas juntas.
+  const duoTop: DuoRadiografia | null = duos[0]
+    ? { aName: duos[0].aName, bName: duos[0].bName, games: duos[0].games, wins: duos[0].wins }
+    : null;
+
   return NextResponse.json(
     {
       players,
-      duoSynergy: computeDuoSynergy(),
+      duoSynergy: duos,
+      // Ya no lo dibuja nadie: lo reemplazó el bloque de Especialistas, que
+      // sale de la radiografía y respeta el filtro de período. Se sigue
+      // mandando por la ventana de caché del CDN —durante unos minutos
+      // después de cada deploy hay pestañas con el bundle VIEJO recibiendo
+      // este JSON, y ese bundle lo lee— igual que roleDistribution. Se puede
+      // borrar en el deploy siguiente; está anotado en PENDIENTES.
       championLeaderboard: computeChampionLeaderboard(),
+      radiografia: radiografia(partidasRadiografia, fotosRadiografia, personasRadiografia, duoTop),
       lastUpdated,
       desactualizados,
       ddragonVersion,

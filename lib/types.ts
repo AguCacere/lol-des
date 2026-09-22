@@ -343,6 +343,19 @@ export interface DuoPair {
   bMainChamp: string | null;
   /** Last 5 games this pair actually shared, most recent first. */
   recentMatches: DuoSharedMatch[];
+  /**
+   * El récord de cada uno en sus partidas SIN el otro, sobre el mismo
+   * universo (las partidas guardadas). Es lo que permite el "juntos vs
+   * separados": un 60% juntos no dice nada hasta saber si solo anda en 58 o
+   * en 42.
+   *
+   * Es una ASOCIACIÓN descriptiva, no una causa: juegan juntos los fines de
+   * semana, con otros campeones y a otra hora. La pantalla lo dice así.
+   */
+  aSinPartidas: number;
+  aSinVictorias: number;
+  bSinPartidas: number;
+  bSinVictorias: number;
 }
 
 /**
