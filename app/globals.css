@@ -6211,3 +6211,43 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 @media (prefers-reduced-motion:reduce){
   .volver span, .volver:hover span{transition:none; transform:none;}
 }
+
+/* ── "Cómo viene": la banda de forma del Resumen ──────────────────────────
+   Una banda de tres lecturas, no seis fichas. Sin rectángulo detrás: la
+   separan del gráfico una línea fina y el espacio, igual que en Estadísticas.
+   Cada bloque lleva SU MUESTRA escrita, que es lo que las fichas no hacían. */
+.forma-band{
+  display:flex; flex-wrap:wrap; gap:14px 34px; align-items:flex-start;
+  padding:2px 2px 16px; margin-bottom:14px;
+  border-bottom:1px solid var(--border-soft);
+}
+.fb-bloque{display:flex; flex-direction:column; gap:3px; min-width:0;}
+.fb-et{
+  font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em;
+  color:var(--text-muted); display:flex; align-items:center; gap:5px; white-space:nowrap;
+}
+/* Los mismos puntos de 6px que el estado de forma de Estadísticas: es el
+   mismo dato con la misma forma en las dos pantallas. */
+.fb-puntos{display:flex; gap:4px; align-items:center; height:22px;}
+.fb-punto{width:7px; height:7px; border-radius:50%; display:block; flex:none;}
+.fb-punto.good{background:var(--good);}
+/* Media opacidad además del rojo: en deuteranopía el verde y el rojo se
+   separan poco, y el contraste contra el fondo sí se ve. El V·D de al lado
+   dice lo mismo sin depender del color. */
+.fb-punto.bad{background:var(--critical); opacity:0.7;}
+.fb-cifra{
+  font-family:var(--font-stat); font-size:21px; font-weight:800; line-height:1.05;
+  font-variant-numeric:tabular-nums; letter-spacing:-0.02em;
+}
+.fb-cifra.good{color:var(--good);}
+.fb-cifra.bad{color:var(--critical);}
+.fb-cifra.neutral{color:var(--text-secondary);}
+.fb-dato{font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums; white-space:nowrap;}
+.fb-dato.good{color:var(--good);}
+.fb-dato.bad{color:var(--critical);}
+
+@media (max-width:720px){
+  .forma-band{gap:12px 22px; padding-bottom:13px;}
+  .fb-cifra{font-size:18px;}
+  .fb-dato{white-space:normal;}
+}

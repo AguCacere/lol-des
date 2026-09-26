@@ -346,6 +346,8 @@ pestañas.
   `PlayerProfile` es el más grande: `RadarChart`, `InsightsCard`, `RecentForm`,
   `TiltCard`, `ChampionPool`, `MasteryPool`, `ChampionInsights`, `Matchups`,
   `LineHistory`, `BuildStarts`, `PersonalRecords`, `AegisStats`, `CoachPanel`,
+  `ProfileForma` (la banda de "cómo viene" del Resumen: las últimas 5, las últimas
+  20 contra su propio historial y la season, cada una con su muestra),
   `LiveGamePanel` y `MatchDetail` (que a su vez abre `MatchTimeline`).
 - **Estadísticas** → `Estadisticas` (el armazón: elige la ventana y ordena las
   piezas) → `EstHistoria` (la portada del período: un protagonista y notas al

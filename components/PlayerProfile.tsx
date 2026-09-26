@@ -32,13 +32,13 @@ import { LineHistory } from "./LineHistory";
 import { PersonalRecords } from "./PersonalRecords";
 import { RadarChart } from "./RadarChart";
 import { RecentForm } from "./RecentForm";
+import { ProfileForma } from "./ProfileForma";
 import { AegisStats } from "./AegisStats";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
 import { buildMetricInsights, splitStrengthsWeaknesses } from "@/lib/insights";
-import { ClockIcon, EyeIcon, ReviewIcon, TargetIcon, TrendUpIcon, TrophyIcon, ZapIcon } from "./StatIcons";
+import { ReviewIcon } from "./StatIcons";
 import { championLabel } from "@/lib/champion-names";
-import { winrateTexto } from "@/lib/winrate";
 
 /**
  * Sub-navegación del perfil. Reemplaza al toggle Macro/Micro, que solo
@@ -169,16 +169,15 @@ export function PlayerProfile({
   const p = displayed;
   const t = tierFor(p.tierKey);
   const hasMatches = p.matches.length > 0;
-  const wins = p.matches.filter((m) => m.win).length;
   const avgKDA = hasMatches
     ? p.matches.reduce((s, m) => s + (m.k + m.a) / Math.max(1, m.d), 0) / p.matches.length
     : 0;
   const avgCS = hasMatches ? p.matches.reduce((s, m) => s + parseFloat(m.csmin), 0) / p.matches.length : 0;
   const avgDmg = hasMatches ? p.matches.reduce((s, m) => s + m.dmgShare, 0) / p.matches.length : 0;
-  const avgVision = hasMatches
-    ? Number((p.matches.reduce((s, m) => s + m.visionScore / Math.max(1, m.dur), 0) / p.matches.length).toFixed(1))
-    : 0;
-  const avgDur = hasMatches ? Math.round(p.matches.reduce((s, m) => s + m.dur, 0) / p.matches.length) : 0;
+  // Se fueron `wins`, `avgVision` y `avgDur`: los tres alimentaban fichas del
+  // Resumen que promediaban CINCO partidas y lo mostraban como un número
+  // general. La visión bien contada está en el radar y en la forma reciente,
+  // sobre todo el historial; la duración promedio no contesta "cómo viene".
   const killPart = hasMatches
     ? Math.round(p.matches.reduce((s, m) => s + m.killParticipation, 0) / p.matches.length)
     : 0;
@@ -466,6 +465,10 @@ export function PlayerProfile({
                 de nada. */}
             {p.tilt && <TiltCard tilt={p.tilt} />}
             <div>
+              {/* Primero "cómo viene" y después el gráfico: la banda contesta
+                  la pregunta de la pestaña en un renglón, y la curva es el
+                  detalle de cómo llegó hasta ahí. */}
+              <ProfileForma matches={p.matches} recentForm={p.recentForm} wins={p.wins} losses={p.losses} />
               <div className="lp-chart-card">
                 {/* Arriba va solo lo que resume TODA la ventana: cuánto se
                     movió y con qué récord. El de dónde a dónde bajó al pie,
@@ -500,7 +503,14 @@ export function PlayerProfile({
                     // que cuanto más lejos esté, más se estira todo a lo ancho
                     // (el trazo se aplasta y los puntos salen elípticos).
                     width={620}
-                    height={132}
+                    // 180 y no 132: sacadas las seis fichas, la columna
+                    // izquierda quedaba 120px más corta que la de partidas, y
+                    // la evolución del LP es una de las cosas que esta
+                    // pestaña tiene que contestar. Un gráfico más alto separa
+                    // mejor los escalones de una división; la relación con el
+                    // ancho del viewBox sigue cerca de la real, así que no se
+                    // estira (ver el comentario de arriba).
+                    height={180}
                     pad={10}
                     color={lpChartColor}
                     variant="detailed"
@@ -536,32 +546,6 @@ export function PlayerProfile({
                     actualizaciones de LP.
                   </p>
                 )}
-              </div>
-              <div className="stat-grid">
-                <div className="stat-tile"><TrophyIcon /><div className="v">{winrateTexto(p.wins, p.wins + p.losses)}</div><div className="k">Winrate season</div></div>
-                <div className="stat-tile">
-                  <TargetIcon />
-                  <div className="v">{objPart}%</div>
-                  <div className="k">
-                    Participación objetivos <InfoTip text={METRIC_INFO.objShare} />
-                  </div>
-                </div>
-                <div className="stat-tile">
-                  <ZapIcon />
-                  <div className="v">{killPart}%</div>
-                  <div className="k">
-                    Kill participation <InfoTip text={METRIC_INFO.killParticipation} />
-                  </div>
-                </div>
-                <div className="stat-tile">
-                  <EyeIcon />
-                  <div className="v">{avgVision}</div>
-                  <div className="k">
-                    Visión / min <InfoTip text={METRIC_INFO.visionScore} />
-                  </div>
-                </div>
-                <div className="stat-tile"><ClockIcon /><div className="v">{avgDur} min</div><div className="k">Duración prom.</div></div>
-                <div className="stat-tile"><TrendUpIcon /><div className="v">{wins}/{p.matches.length}</div><div className="k">Forma reciente</div></div>
               </div>
             </div>
 

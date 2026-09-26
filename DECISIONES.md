@@ -2828,3 +2828,45 @@ Y la unidad del delta (`LP` / `LP netos`) ahora se escribe **solo cuando es la
 rara**. La distinción importa —el delta es de rankScore, así que quien cruzó de
 división tiene LP netos y no LP— pero repetir "LP" en las catorce filas era una
 columna de ruido pegada al borde, al lado de una celda que ya dice "62 LP".
+
+## El Resumen tenía cuatro números sacados de cinco partidas
+
+La pestaña Resumen cerraba con seis fichas de estadística: winrate de season,
+participación en objetivos, kill participation, visión por minuto, duración promedio
+y "forma reciente". El problema no era que ocuparan lugar.
+
+**Cuatro de las seis se calculaban sobre `p.matches`, que son las últimas CINCO
+partidas**, y se mostraban sin decir la muestra en ningún lado. Un "Participación
+objetivos: 4%" sacado de cinco partidas, en una ficha idéntica a la de "Winrate
+season: 43,4%" sacado de seiscientas, son dos cosas incomparables con la misma
+pinta. Y la ficha de "Forma reciente" decía literalmente `3/5`.
+
+Las tres de rendimiento ya estaban bien contadas en la otra pestaña —el radar
+compara contra el promedio del rol y `RecentForm` contra su propio historial, las dos
+sobre TODAS las partidas guardadas—, así que sacarlas de acá no perdió nada: dejó de
+haber una versión peor del mismo dato. La cuarta, la duración promedio, no contesta
+"cómo viene" y se fue del todo.
+
+En su lugar hay una banda de tres lecturas, **cada una con su muestra escrita**:
+
+| | qué dice | de dónde sale |
+|---|---|---|
+| Las últimas 5 | ●●●●● y el V·D | `p.matches`, reales y en orden |
+| Las últimas 20 | winrate y los pp contra sus N anteriores | `recentForm`, calculado en el servidor |
+| La season | el winrate largo | el récord de Riot |
+
+La secuencia de puntos sale de las PARTIDAS y no de las fotos de LP. Reconstruirla
+de los snapshots daría una ventana más larga, pero cuando entre dos fotos hay dos
+partidas se sabe cuántas ganó y no en qué orden: dibujar los puntos igual sería
+inventar una secuencia. Cinco de verdad valen más que veinte a medias.
+
+Sobre el tamaño: en escritorio la sección mide lo mismo que antes (447px), porque la
+columna de últimas partidas es la que manda y no cambió. Lo que bajó fue el teléfono
+(926 → 801px, −13%) y, sobre todo, la cantidad de números que la pantalla afirmaba
+sin poder sostenerlos. El gráfico de LP se llevó parte del espacio que liberaron las
+fichas —de 132 a 180 de alto— que es donde mejor rinde: "evolución del LP" es una de
+las cuatro cosas que esta pestaña tiene que contestar.
+
+**Queda una arista**: sacadas las fichas, la columna izquierda termina unos 76px
+antes que la de partidas. Es la diferencia natural entre una lista de cinco filas y
+un gráfico, y se mira en la fase de pulido, no tapándola con una métrica de relleno.
