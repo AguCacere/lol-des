@@ -3258,3 +3258,87 @@ En el medio, dos cosas medidas:
 Decía `‹ 2 de 2 ›`, que es paginación de modal: para saber si la de al lado era la
 semana pasada o la siguiente había que apretarla. Ahora cada flecha dice la fecha a
 la que lleva.
+
+## Inicio: de "qué pasó hoy" a "qué vale la pena mirar"
+
+La portada contestaba una pregunta —cuántas partidas se jugaron hoy— y después
+mostraba el ladder y una lista de movimientos. Todo correcto, y todo **igual todos
+los días**: si ya sabés quién va primero, no hay ninguna razón para entrar. Además
+el contenido terminaba a media pantalla en un monitor de escritorio.
+
+La respuesta no fue llenar el hueco con módulos. Son tres preguntas en orden:
+
+    qué está pasando → quién se destaca → qué vale la pena mirar
+
+o sea la franja del día, el split de ladder y movimientos, y **la historia del
+día**. La liga bajó del primer lugar al último: es lo único con cuenta regresiva,
+así que cierra en vez de abrir.
+
+### La historia del día
+
+Una sola cosa, la más interesante que pasó en el grupo. Un día es una racha, otro
+un ascenso de tier, otro que dos se pasaron la tarde jugando juntos, otro que la
+liga está a 0,75 puntos. **La pantalla es la misma; lo que cambia es lo que
+cuenta.**
+
+Compite entre seis clases y el orden lo decide un `peso` en escalones separados
+—10000 para un ascenso de tier, 8000 para el pico, 7000 para la liga apretada, 5000
+para el dúo, 4000 para la racha— justamente para que ninguna le gane a la de arriba
+por acumulación: una racha de diez no es más noticia que subir de Platino a
+Esmeralda.
+
+Tres reglas la sostienen:
+
+1. **No inventa.** Cada clase sale de datos que ya están: las fotos de LP, las
+   partidas guardadas, la sinergia de dúo y la tabla de la liga. Sin material
+   devuelve null y el bloque no existe — una portada con un cartel de "hoy no pasó
+   nada" es peor que una portada más corta.
+2. **Una sola.** Dos ya son una lista, y la lista es lo que hay al lado.
+3. **No la repite el feed.** Cuando la historia sale de un movimiento, ese
+   movimiento se saca de "qué se movió" (`esElMismo`). Si no, la portada dice dos
+   veces lo mismo con dos tamaños distintos.
+
+Algunas condiciones son dobles a propósito. La liga es historia solo si hay **poca
+diferencia Y poco tiempo**: la misma diferencia un martes no es tensión. El pico de
+temporada pide que **hoy haya subido**: estar en el pico sin moverse es el estado
+normal del que va primero, no una noticia — y ese caso tiene su test.
+
+Y el bloque **no lleva superficie**. Es un botón, así que por la regla de la casa
+podría llevarla; pero con la card de la liga justo abajo serían dos rectángulos
+apilados discutiendo cuál importa. El acento lo ponen el ícono con su halo del tono
+y la tipografía.
+
+### El LP del grupo, y cuándo callarse
+
+La franja del día decía "3 partidas · 2V-1D · 2 de 14 jugaron", y eso no dice cómo
+fue el día: tres partidas pueden ser +38 o −5 según contra quién. Ahora la línea
+cierra con lo que movió TODO el grupo.
+
+Con la misma trampa de siempre: `lpHistory` son las últimas 20 fotos, no las del
+día. Si a alguno que jugó le falta una foto anterior a las 00:00 argentinas, su
+parte del total sería un pedazo del día; sumarlo igual daría un número incompleto
+escrito como si fuera completo. Así que `lpDelGrupoHoy` devuelve null y el dato no
+se escribe. Es la misma regla que ya aplicaba `movimientosRecientes`, ahora
+compartida: `lpDeHoy` vive en `lib/actividad.ts`, al lado de la máquina de fotos.
+
+### "Qué se movió": tres renglones y tres eventos
+
+Estaban el cambio y el contexto apretados en la misma línea de 11px —"3 ganadas al
+hilo Esmeralda 4"— con la columna entera para ellos. Ahora son tres renglones
+—nombre, qué pasó, contexto— y el contexto de una racha incluye lo que movió hoy:
+se pueden ganar cuatro al hilo y seguir abajo de donde arrancó el día. Y son tres
+eventos como máximo, no cinco: es un feed de portada, no un historial.
+
+### La regla del scroll
+
+El Inicio de escritorio tiene que entrar en **1080p sin scroll**. Medido a
+1920×1080: la página mide exactamente 1080 y no hay barra. Es lo que lo mantiene
+como portada — cualquier módulo nuevo tiene que sacar a otro.
+
+### Colocación explícita, no `grid-template-areas`
+
+Con áreas nombradas, la fila de la historia existe aunque no haya historia: el gap
+de arriba y el de abajo quedan pegados y son **52px de nada** entre el ladder y la
+liga (medido). Con auto-placement y `grid-column: 1 / -1`, el bloque que no está no
+ocupa fila. Mismo problema que ya habían tenido las secciones vacías del perfil, y
+la misma solución: que lo que no existe, no reserve lugar.

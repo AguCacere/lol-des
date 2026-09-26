@@ -427,6 +427,7 @@ export default function Home() {
         <div id="view-inicio">
           <Inicio
             players={players}
+            duos={duoSynergy}
             loading={loading}
             ddragonVersion={ddragonVersion}
             onPlayer={abrirPerfil}

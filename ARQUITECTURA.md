@@ -183,6 +183,14 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   argentino). **Se calla antes que inventar**: si `lpHistory` —que son las últimas 20
   fotos, no las de las últimas N horas— no llega hasta el corte de la ventana, ese
   movimiento no se publica. Ver el header y DECISIONES.
+- `historia.ts` — **la historia del día**: UN acontecimiento, el más interesante
+  que pasó en el grupo, para el centro de Inicio. Compite entre seis clases —ascenso
+  de tier o de división, pico de temporada, racha, derrumbe, el dúo que se pasó la
+  tarde jugando junto y la liga por definirse— y el orden lo decide un `peso` en
+  escalones separados, así que una racha de diez nunca le gana a un ascenso de tier.
+  Sin material devuelve null y el bloque no existe. También `lpDelGrupoHoy`, que se
+  calla si a alguno que jugó le falta la foto de referencia: una suma incompleta
+  escrita como completa es peor que no mostrarla.
 - `mejora.ts` — el motor determinístico de la pestaña Mejora: el catálogo de
   `METRICAS` (siete), la línea de base propia de cada una (`baselineDe`, por
   percentiles), el `diagnostico` de una partida en tres capas, los `patrones`
@@ -327,15 +335,19 @@ descarta.
 `stats` · `versus` · `clash` · `team`), `LiveTray` y `CommandPalette` viven fuera de las
 pestañas.
 
-- **Inicio** → `Inicio`. El hub. Tres zonas, no una pila de secciones: la franja del
-  día (`.pulso`: la fecha, los números de hoy y quién está jugando, en ~46px), la liga
-  (`.liga-spot`, la ÚNICA superficie de la pantalla) y una grilla de áreas
-  (`.inicio-cuerpo`) donde el ladder va abajo de la liga y "qué se movió" ocupa las dos
-  filas de la derecha. El interior de la card de la liga se parte en dos por
-  **consulta de contenedor**, no por ancho de ventana. Ver DECISIONES para el porqué de
-  cada una. No pide NADA al servidor: los `Player` ya vienen del ladder y la liga sale
-  de `useLiga`. Los chips de "en partida" y el bloque de "qué se movió" **no existen**
-  cuando no hay nada que mostrar — no hay tarjeta vacía.
+- **Inicio** → `Inicio`. La portada, y contesta tres preguntas en este orden: **qué
+  está pasando** (la franja del día: fecha, partidas, V/D, cuántos jugaron, lo que
+  movió el grupo en LP y quién está en partida), **quién se destaca** (el split de
+  ladder y "qué se movió", máximo tres) y **qué vale la pena mirar** (la historia del
+  día a todo el ancho, y abajo la liga). La liga cierra en vez de abrir: es lo único
+  con cuenta regresiva.
+  El cuerpo es una grilla de DOS columnas con colocación explícita y no
+  `grid-template-areas`: con áreas nombradas, la fila de la historia existe aunque no
+  haya historia y deja dos gaps pegados. El interior de la card de la liga se parte en
+  dos por **consulta de contenedor**, no por ancho de ventana. No pide NADA al
+  servidor: los `Player` y la sinergia de dúo ya vienen del ladder y la liga sale de
+  `useLiga`. Nada que no tenga contenido se dibuja — ni el chip de "en partida", ni
+  "qué se movió", ni la historia del día.
 
 - **Ranking** → `LadderTable` (que adentro tiene `LigaSemanal`, `TierEmblem`,
   `SparkChart`, `RoleIcon`, `PlayerAvatar`) + `PlayerProfile`.

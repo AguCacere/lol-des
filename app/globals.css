@@ -5186,6 +5186,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .pulso-vd .wc-d{color:var(--critical);}
 .pulso-vd i{font-style:normal; color:var(--text-muted); opacity:0.5;}
 .pulso-meta{font-size:12px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+/* Lo que movió el grupo hoy, en la misma línea. Con peso de dato y no de
+   metadata: es el que dice si el día fue bueno, cosa que "3 partidas · 2V-1D"
+   no puede decir —tres partidas pueden ser +38 o −5 según contra quién—. */
+.pulso-lp{
+  font-family:var(--font-stat); font-size:13px; font-weight:800;
+  font-variant-numeric:tabular-nums;
+}
+.pulso-lp.good{color:var(--good);}
+.pulso-lp.bad{color:var(--critical);}
 /* El estado vivo CIERRA la franja en vez de flotar arriba a la derecha. Es lo
    único verde de la zona, y acá el verde significa "está pasando ahora", no
    "es bueno" — por eso lo lleva el punto y no el texto. */
@@ -5302,14 +5311,12 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    Y baja a la liga de 1140px a ~660: con el ancho entero, la frase de la
    tensión y los dos punteros nadaban adentro de la card. La proporción de una
    superficie la decide cuánto contenido tiene, no cuánta pantalla hay. */
+/* En una columna, el orden del DOM: ladder, qué se movió, la historia del día
+   y la liga. Sin `grid-template-areas` a propósito — ver el corte de 768. */
 .inicio-cuerpo{
   display:grid; grid-template-columns:minmax(0,1fr);
-  grid-template-areas:"liga" "ladder" "movidas";
   gap:20px;
 }
-.liga-spot{grid-area:liga;}
-.zona-ladder{grid-area:ladder;}
-.zona-movidas{grid-area:movidas;}
 .inicio-bloque{min-width:0;}
 .inicio-bloque-head{
   display:flex; align-items:baseline; justify-content:space-between; gap:12px;
@@ -5431,23 +5438,95 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .inicio-movida.bueno .inicio-movida-signo{color:var(--good);}
 .inicio-movida.malo .inicio-movida-signo{color:var(--critical);}
 .inicio-movida.neutro .inicio-movida-signo{color:var(--text-muted);}
-.inicio-movida-txt{display:flex; flex-direction:column; gap:1px; min-width:0;}
+/* TRES renglones y no dos: nombre, qué pasó y el contexto. Estaban el cambio
+   y el contexto apretados en la misma línea de 11px —"3 ganadas al hilo
+   Esmeralda 4"— y con la columna entera para ellos eso es un renglón chiquito
+   nadando en el espacio de una sección. Partidos, cada uno tiene su tamaño y
+   la fila se lee de arriba abajo como una noticia corta. */
+.inicio-movida-txt{display:flex; flex-direction:column; gap:1px; min-width:0; flex:1 1 auto;}
+.inicio-movida-nombre{
+  font-size:13.5px; font-weight:700; color:var(--text-primary); letter-spacing:-0.01em;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
 .inicio-movida-cambio{
-  font-family:var(--font-mono); font-size:11px; font-weight:600;
+  font-family:var(--font-mono); font-size:12px; font-weight:600;
   color:var(--text-secondary); font-variant-numeric:tabular-nums;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .inicio-movida.bueno .inicio-movida-cambio{color:var(--good);}
 .inicio-movida.malo .inicio-movida-cambio{color:var(--critical);}
 .inicio-movida-ctx{
-  font-style:normal; margin-left:6px; color:var(--text-muted); font-weight:500;
+  font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+/* La flecha aparece con el mouse encima. Puesta siempre, tres flechas en
+   una columna de tres filas son tres adornos; en hover dice "esto se toca",
+   que es lo único que tiene que decir. */
+.inicio-movida-ir{
+  flex:none; align-self:center; color:var(--text-muted); font-size:13px;
+  opacity:0; transition:opacity .12s ease;
+}
+.inicio-movida:hover .inicio-movida-ir,
+.inicio-movida:focus-visible .inicio-movida-ir{opacity:1;}
+
+/* ── La historia del día ─────────────────────────────────────────────────
+   SIN superficie: dos líneas finas, un ícono grande y tipografía. Es un botón
+   —lleva al perfil o a la liga— pero un rectángulo acá, con la card de la
+   liga justo abajo, serían dos cajas apiladas discutiendo cuál importa. El
+   acento lo pone el ícono y el tono, no un borde. Ver components/Inicio.tsx. */
+.historia{
+  display:flex; align-items:center; gap:16px; width:100%; text-align:left;
+  appearance:none; -webkit-appearance:none; cursor:pointer;
+  background:none; border:none; border-top:1px solid var(--border-soft);
+  border-bottom:1px solid var(--border-soft);
+  padding:16px 8px 16px 2px; border-radius:2px;
+  transition:background .14s ease;
+}
+.historia:hover{background:var(--surface-hover);}
+.historia:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+.historia-icono{
+  flex:none; font-size:26px; line-height:1;
+  /* Un halo del tono detrás del glifo. Es lo que lo convierte en el acento de
+     la zona sin necesidad de pintar un borde alrededor de todo. */
+  width:46px; height:46px; border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center;
+}
+.historia.bueno .historia-icono{background:var(--good-wash);}
+.historia.malo .historia-icono{background:var(--critical-wash);}
+.historia.neutro .historia-icono{background:var(--accent-wash-soft);}
+/* `flex:1 1 0` y no `1 1 auto`: con base automática el texto mide lo que mide
+   el titular, y en el teléfono —donde la fila puede envolver— eso lo mandaba
+   a un renglón propio con el ícono solo arriba. Con base cero encoge y se
+   queda al lado. */
+.historia-txt{display:flex; flex-direction:column; gap:2px; min-width:0; flex:1 1 0;}
+.historia-rotulo{
+  font-size:9.5px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase;
+  color:var(--text-muted);
+}
+.historia-titulo{
+  font-family:var(--font-display); font-size:19px; font-weight:800; letter-spacing:-0.02em;
+  color:var(--text-primary); line-height:1.25;
+}
+.historia-detalle{font-size:12px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+.historia-ir{
+  flex:none; display:inline-flex; align-items:center; gap:5px;
+  font-size:12px; font-weight:600; color:var(--accent); white-space:nowrap;
+}
+@media (max-width:620px){
+  /* En el teléfono el "ver sus partidas" baja abajo del texto: al costado le
+     comía la mitad del ancho al titular, que es lo que hay que leer. */
+  .historia{flex-wrap:wrap; gap:12px 14px; padding:14px 4px;}
+  .historia-icono{width:38px; height:38px; font-size:21px;}
+  .historia-titulo{font-size:16.5px;}
+  .historia-ir{width:100%; justify-content:flex-end;}
 }
 
 /* ── Esqueletos ─────────────────────────────────────────────────────────── */
 /* Con el alto real de cada zona, no un "Cargando…": el cartel de texto mide
    otra cosa y cuando llegan los datos la página entera pega un salto. */
 .sk-inicio-intro{height:46px; border-radius:var(--radius-sm);}
-.sk-inicio-liga{height:132px; border-radius:var(--radius-lg);}
+.sk-inicio-liga{height:155px; border-radius:var(--radius-lg);}
+.sk-inicio-historia{height:91px; border-radius:2px;}
 .sk-inicio-lista{height:132px; border-radius:var(--radius-sm);}
 
 /* ── Los cortes ──────────────────────────────────────────────────────────── */
@@ -5455,17 +5534,27 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    se partió sola antes, por su consulta de contenedor. */
 @media (min-width:768px){
   .inicio{gap:22px;}
+  /* Tres franjas y no cuatro bloques apilados: arriba el split (el ladder y
+     lo que se movió), en el medio la historia del día a todo el ancho, abajo
+     la liga. El orden es el de las tres preguntas de una portada — qué está
+     pasando, quién se destaca, qué vale la pena mirar — y la del medio es la
+     única que cambia de un día para el otro.
+
+     La liga bajó del primer lugar al último a propósito: es lo único de la
+     pantalla con cuenta regresiva, así que cierra en vez de abrir. */
   .inicio-cuerpo{
     grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);
-    grid-template-areas:"liga movidas" "ladder movidas";
     gap:22px 34px;
     align-items:start;
   }
-  /* El título de los movimientos se alinea con el RÓTULO de la liga, no con
-     el borde de la card: los dos textos arrancan en la misma línea y las dos
-     columnas se leen como una composición y no como dos bloques puestos al
-     lado. El desplazamiento es el padding de la card (17px) más su borde. */
-  .zona-movidas{padding-top:18px;}
+  /* Colocación explícita y NO `grid-template-areas`. Con áreas nombradas, la
+     fila de la historia existe aunque no haya historia —el grupo puede no dar
+     para una— y deja el gap de arriba y el de abajo pegados: 52px de nada
+     entre el ladder y la liga (medido). Con auto-placement, el bloque que no
+     está no ocupa fila. */
+  .zona-ladder{grid-column:1; grid-row:1;}
+  .zona-movidas{grid-column:2; grid-row:1;}
+  .historia, .zona-historia, .liga-spot{grid-column:1 / -1;}
 }
 /* 1024px y arriba: más aire y el dato del día un escalón más grande. La
    estructura NO cambia: ya está resuelta desde los 768. */

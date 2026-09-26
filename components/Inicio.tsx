@@ -9,10 +9,13 @@ import { championLabel } from "@/lib/champion-names";
 import { liveGameTimeLabel, tierFor } from "@/lib/ladder";
 import { puntajeTexto } from "@/lib/liga";
 import { movimientosRecientes, resumenDeHoy, type Movimiento } from "@/lib/actividad";
-import type { Player } from "@/lib/types";
+import { esElMismo, historiaDelDia, lpDelGrupoHoy } from "@/lib/historia";
+import type { DuoPair, Player } from "@/lib/types";
 
 interface InicioProps {
   players: Player[];
+  /** La sinergia de dúo, para la historia del día ("X e Y jugaron 4 juntos"). */
+  duos: DuoPair[];
   loading: boolean;
   ddragonVersion: string | null;
   /** Abrir el perfil de alguien (cae en Ranking y baja hasta el perfil). */
@@ -96,11 +99,13 @@ function signoDe(m: Movimiento): string {
  * - No muestra secciones vacías. Sin nadie en partida y sin movimientos, esos
  *   dos bloques no existen.
  */
-export function Inicio({ players, loading, ddragonVersion, onPlayer, onRanking, onLiga }: InicioProps) {
+export function Inicio({ players, duos, loading, ddragonVersion, onPlayer, onRanking, onLiga }: InicioProps) {
   const { d: liga } = useLiga();
 
   const hoy = useMemo(() => resumenDeHoy(players), [players]);
   const movimientos = useMemo(() => movimientosRecientes(players), [players]);
+  /** Lo que movió TODO el grupo hoy. Null cuando no se puede afirmar (ver lpDelGrupoHoy). */
+  const lpGrupo = useMemo(() => lpDelGrupoHoy(players), [players]);
   const enVivo = players.filter((p) => p.liveGame);
   const top3 = players.slice(0, 3);
 
@@ -110,6 +115,19 @@ export function Inicio({ players, loading, ddragonVersion, onPlayer, onRanking, 
    * si alguna vez cambia el orden de allá, esta frase pasaría a ser falsa sin
    * que nadie se entere. Ordenar de nuevo cuesta nada y no puede mentir.
    */
+  /**
+   * La historia del día: UN acontecimiento, el más interesante que pasó (ver
+   * lib/historia.ts). Es lo que hace que entrar a Inicio tenga sentido aunque
+   * ya sepas quién va primero — el ladder y el feed son los mismos todos los
+   * días; esto cambia.
+   */
+  const historia = useMemo(() => historiaDelDia(players, duos, liga), [players, duos, liga]);
+  /** El feed, sin el que ya está contado arriba en grande y capado en tres. */
+  const movidas = useMemo(
+    () => movimientos.filter((m) => !esElMismo(m, historia)).slice(0, 3),
+    [movimientos, historia],
+  );
+
   const podio = useMemo(() => {
     if (!liga?.arrancoYa || !liga.tabla) return null;
     const jugaron = liga.tabla.filter((f) => !f.sinJugar);
@@ -123,10 +141,16 @@ export function Inicio({ players, loading, ddragonVersion, onPlayer, onRanking, 
     return (
       <div className="inicio" aria-busy="true" aria-label="Cargando">
         <div className="sk sk-inicio-intro" />
+        {/* En el MISMO orden que el contenido real, y con el alto de cada
+            zona: un esqueleto que no coincide hace saltar la página entera
+            cuando llegan los datos. Las clases de zona son las que ponen cada
+            uno en su lugar de la grilla; antes iban con `gridArea` inline y
+            eso dejó de funcionar al pasar la grilla a colocación explícita. */}
         <div className="inicio-cuerpo">
-          <div className="sk sk-inicio-liga" style={{ gridArea: "liga" }} />
-          <div className="sk sk-inicio-lista" style={{ gridArea: "ladder" }} />
-          <div className="sk sk-inicio-lista" style={{ gridArea: "movidas" }} />
+          <div className="sk sk-inicio-lista zona-ladder" />
+          <div className="sk sk-inicio-lista zona-movidas" />
+          <div className="sk sk-inicio-historia zona-historia" />
+          <div className="sk sk-inicio-liga liga-spot" />
         </div>
       </div>
     );
@@ -183,6 +207,21 @@ export function Inicio({ players, loading, ddragonVersion, onPlayer, onRanking, 
               <span className="pulso-meta">
                 {hoy.jugaron} de {players.length} jugaron
               </span>
+              {/* Lo que movió TODO el grupo hoy. Es el dato que faltaba para
+                  que la línea diga cómo VA el día y no solo cuánto se jugó:
+                  tres partidas 2V-1D puede ser +38 o −5 según contra quién.
+                  Se dibuja solo cuando se puede afirmar — si a alguno que
+                  jugó le falta la foto de referencia, la suma sería un pedazo
+                  del día escrito como si fuera el día entero. */}
+              {lpGrupo !== null && lpGrupo !== 0 && (
+                <>
+                  <span className="pulso-sep">·</span>
+                  <span className={`pulso-lp ${lpGrupo > 0 ? "good" : "bad"}`}>
+                    {lpGrupo > 0 ? "+" : "−"}
+                    {Math.abs(lpGrupo)} LP
+                  </span>
+                </>
+              )}
             </p>
           )}
           {/* El estado vivo cierra la franja en vez de flotar arriba a la
@@ -208,13 +247,111 @@ export function Inicio({ players, loading, ddragonVersion, onPlayer, onRanking, 
         </div>
       </header>
 
-      {/* ═══ 2. La liga ═══
-          La única superficie de la pantalla. Adentro son dos zonas: la carrera
-          (la frase de la tensión y los dos punteros) y el reloj (cuánto falta
-          y la salida). Se parten en dos columnas por CONSULTA DE CONTENEDOR y
-          no por ancho de ventana: la card es la que sabe cuánto mide, y así la
-          misma regla sirve en Inicio y en cualquier lado donde se reutilice. */}
       <div className="inicio-cuerpo">
+      {/* ═══ 3. Ladder ═══
+          Sin caja: lo separan el título y el aire. Va DEBAJO de la liga y en
+          la misma columna, así que las dos comparten el borde izquierdo y se
+          leen como la columna principal de la página. */}
+        <section className="inicio-bloque zona-ladder">
+          <div className="inicio-bloque-head">
+            <h3 className="inicio-bloque-titulo">Ladder del grupo</h3>
+            <button type="button" className="inicio-cta chico" onClick={onRanking}>
+              Ver ranking <span aria-hidden>→</span>
+            </button>
+          </div>
+          {/* Sin líneas entre filas: son tres, y tres renglones separados por
+              aire ya se distinguen. Las divisorias estaban haciendo el trabajo
+              que ya hacía el espacio, y de paso convertían el podio en una
+              planilla de tres renglones. */}
+          <ol className="inicio-podio">
+            {top3.map((p, i) => {
+              const t = tierFor(p.tierKey);
+              return (
+                <li key={clave(p)}>
+                  <button type="button" className={`inicio-fila${i === 0 ? " primero" : ""}`} onClick={() => onPlayer(clave(p))}>
+                    <span className="inicio-puesto">{i + 1}</span>
+                    <PlayerAvatar name={p.name} iconUrl={p.profileIconUrl} className="inicio-avatar" />
+                    <span className="inicio-quien">
+                      <span className="inicio-nombre">{p.name}</span>
+                      <span className="inicio-tag">#{p.tag}</span>
+                    </span>
+                    <TierEmblem tierKey={p.tierKey} division={p.division} />
+                    <span className="inicio-rango">
+                      <span className="inicio-rango-nombre" style={{ color: t.fg }}>
+                        {t.name} {p.division}
+                      </span>
+                      <span className="inicio-rango-lp">{p.lp} LP</span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+
+        {movidas.length > 0 && (
+          <section className="inicio-bloque zona-movidas">
+            <div className="inicio-bloque-head">
+              <h3 className="inicio-bloque-titulo">Qué se movió</h3>
+              <span className="inicio-bloque-meta">últimas 24 h</span>
+            </div>
+            <ul className="inicio-movidas">
+              {movidas.map((m) => (
+                <li key={m.key}>
+                  {/* El nombre y lo que le pasó, UNA unidad: uno arriba del
+                      otro y pegados. Antes el nombre estaba a la izquierda y
+                      el cambio contra el filo derecho, y había que cruzar la
+                      pantalla para armar una frase que es una sola cosa. La
+                      flecha del costado reemplaza al verbo: con "↑" adelante,
+                      "Esmeralda 2 → Esmeralda 1" ya no necesita el
+                      "Ascendió". */}
+                  <button type="button" className={`inicio-movida ${m.tono}`} onClick={() => onPlayer(m.key)}>
+                    <span className="inicio-movida-signo" aria-hidden>{signoDe(m)}</span>
+                    <span className="inicio-movida-txt">
+                      <span className="inicio-movida-nombre">{m.name}</span>
+                      <span className="inicio-movida-cambio">{m.cambio}</span>
+                      {m.contexto && <span className="inicio-movida-ctx">{m.contexto}</span>}
+                    </span>
+                    <span className="inicio-movida-ir" aria-hidden>→</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* ═══ La historia del día ═══
+            La pieza que cambia. Un día es una racha, otro un ascenso, otro
+            que dos se pasaron la tarde jugando juntos, otro que la liga está
+            a 0,75 puntos. El ladder y el feed son los mismos todos los días;
+            esto es lo que da una razón para volver a entrar.
+
+            SIN superficie: dos líneas finas, un ícono y tipografía grande. Es
+            un botón —se toca y lleva al perfil o a la liga— pero un
+            rectángulo acá, con la card de la liga justo abajo, serían dos
+            cajas apiladas discutiendo cuál es la importante. El acento lo
+            pone el ícono y el color del tono, no un borde.
+
+            Ver lib/historia.ts: si el grupo no dio para una historia, esto no
+            existe. */}
+        {historia && (
+          <button
+            type="button"
+            className={`historia ${historia.tono}`}
+            onClick={() => (historia.destino === "liga" ? onLiga() : historia.key && onPlayer(historia.key))}
+          >
+            <span className="historia-icono" aria-hidden>{historia.icono}</span>
+            <span className="historia-txt">
+              <span className="historia-rotulo">La historia del día</span>
+              <strong className="historia-titulo">{historia.titulo}</strong>
+              {historia.detalle && <span className="historia-detalle">{historia.detalle}</span>}
+            </span>
+            <span className="historia-ir">
+              {historia.destino === "liga" ? "Ver la carrera" : "Ver sus partidas"} <span aria-hidden>→</span>
+            </span>
+          </button>
+        )}
+
       {liga?.arrancoYa && podio && (
         <section className="liga-spot">
           {/* El cuerpo va en su propio div y no directo en la <section>: la
@@ -268,79 +405,6 @@ export function Inicio({ players, loading, ddragonVersion, onPlayer, onRanking, 
           </div>
         </section>
       )}
-
-      {/* ═══ 3. Ladder ═══
-          Sin caja: lo separan el título y el aire. Va DEBAJO de la liga y en
-          la misma columna, así que las dos comparten el borde izquierdo y se
-          leen como la columna principal de la página. */}
-        <section className="inicio-bloque zona-ladder">
-          <div className="inicio-bloque-head">
-            <h3 className="inicio-bloque-titulo">Ladder del grupo</h3>
-            <button type="button" className="inicio-cta chico" onClick={onRanking}>
-              Ver ranking <span aria-hidden>→</span>
-            </button>
-          </div>
-          {/* Sin líneas entre filas: son tres, y tres renglones separados por
-              aire ya se distinguen. Las divisorias estaban haciendo el trabajo
-              que ya hacía el espacio, y de paso convertían el podio en una
-              planilla de tres renglones. */}
-          <ol className="inicio-podio">
-            {top3.map((p, i) => {
-              const t = tierFor(p.tierKey);
-              return (
-                <li key={clave(p)}>
-                  <button type="button" className={`inicio-fila${i === 0 ? " primero" : ""}`} onClick={() => onPlayer(clave(p))}>
-                    <span className="inicio-puesto">{i + 1}</span>
-                    <PlayerAvatar name={p.name} iconUrl={p.profileIconUrl} className="inicio-avatar" />
-                    <span className="inicio-quien">
-                      <span className="inicio-nombre">{p.name}</span>
-                      <span className="inicio-tag">#{p.tag}</span>
-                    </span>
-                    <TierEmblem tierKey={p.tierKey} division={p.division} />
-                    <span className="inicio-rango">
-                      <span className="inicio-rango-nombre" style={{ color: t.fg }}>
-                        {t.name} {p.division}
-                      </span>
-                      <span className="inicio-rango-lp">{p.lp} LP</span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
-        </section>
-
-        {movimientos.length > 0 && (
-          <section className="inicio-bloque zona-movidas">
-            <div className="inicio-bloque-head">
-              <h3 className="inicio-bloque-titulo">Qué se movió</h3>
-              <span className="inicio-bloque-meta">últimas 24 h</span>
-            </div>
-            <ul className="inicio-movidas">
-              {movimientos.slice(0, 5).map((m) => (
-                <li key={m.key}>
-                  {/* El nombre y lo que le pasó, UNA unidad: uno arriba del
-                      otro y pegados. Antes el nombre estaba a la izquierda y
-                      el cambio contra el filo derecho, y había que cruzar la
-                      pantalla para armar una frase que es una sola cosa. La
-                      flecha del costado reemplaza al verbo: con "↑" adelante,
-                      "Esmeralda 2 → Esmeralda 1" ya no necesita el
-                      "Ascendió". */}
-                  <button type="button" className={`inicio-movida ${m.tono}`} onClick={() => onPlayer(m.key)}>
-                    <span className="inicio-movida-signo" aria-hidden>{signoDe(m)}</span>
-                    <span className="inicio-movida-txt">
-                      <span className="inicio-nombre">{m.name}</span>
-                      <span className="inicio-movida-cambio">
-                        {m.cambio}
-                        {m.contexto && <i className="inicio-movida-ctx">{m.contexto}</i>}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
       </div>
     </div>
   );

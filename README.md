@@ -8,6 +8,15 @@ En producción: **https://lol-des.vercel.app**
 
 ## Qué hace
 
+**Inicio** — la portada. Arriba, el día: cuántas partidas, cómo salieron, cuántos
+jugaron, lo que movió el grupo en LP y quién está jugando ahora mismo. Abajo, el
+podio del ladder y qué se movió en las últimas 24 horas. Y en el medio, **la
+historia del día**: una sola cosa, la más interesante que pasó — que alguien subió
+de tier, que está en su pico de la temporada, que lleva cuatro al hilo, que dos se
+pasaron la tarde jugando juntos o que la liga está a 0,75 puntos de definirse. Es lo
+que cambia todos los días; el resto de la portada no. Cierra la liga de la semana,
+con la diferencia entre el primero y el segundo y cuánto falta para el cierre.
+
 **Ranking** — el ladder ordenado por LP, con rango, racha, V/D y el gráfico de LP de
 cada uno. Tocando una fila se sale del ladder y se entra al perfil, que tiene tres
 pestañas:

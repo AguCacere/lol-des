@@ -87,6 +87,12 @@ function desde(historia: LpHistoryPoint[], corte: number): LpHistoryPoint | null
   return previa;
 }
 
+/** "+47 LP hoy", o null cuando no se puede afirmar (ver lpDeHoy). */
+function lpTexto(lp: number | null): string | null {
+  if (lp === null || lp === 0) return null;
+  return `${lp > 0 ? "+" : "−"}${Math.abs(lp)} LP hoy`;
+}
+
 /** "Esmeralda 4". El nombre que usa toda la app, no el de Riot. */
 function rangoTexto(tier: LpHistoryPoint["tier"], division: number): string {
   return `${tierFor(tier).name} ${division}`;
@@ -101,6 +107,7 @@ function rangoTexto(tier: LpHistoryPoint["tier"], division: number): string {
  */
 export function movimientosRecientes(players: Player[], ahora = Date.now()): Movimiento[] {
   const corte = ahora - VENTANA_HORAS * 3600000;
+  const hoy = diaArgentino(ahora);
   const out: Movimiento[] = [];
 
   for (const p of players) {
@@ -159,7 +166,10 @@ export function movimientosRecientes(players: Player[], ahora = Date.now()): Mov
           ...base,
           tipo: "racha",
           cambio: `${racha.count}${racha.capped ? "+" : ""} ${gana ? "ganadas" : "perdidas"} al hilo`,
-          contexto: rangoTexto(p.tierKey, p.division),
+          // El rango y, si se puede afirmar, lo que movió HOY. Una racha sin
+          // el LP al lado no dice si le alcanzó para subir: se puede ganar
+          // cuatro al hilo y seguir abajo de donde arrancó el día.
+          contexto: [rangoTexto(p.tierKey, p.division), lpTexto(lpDeHoy(p, hoy))].filter(Boolean).join(" · "),
           tono: gana ? "bueno" : "malo",
           // Escalado para que compita con el LP sin taparlo: cinco al hilo
           // pesan como 50 LP, que es más o menos lo que valen.
@@ -227,4 +237,52 @@ export function resumenDeHoy(players: Player[], ahora = Date.now()): Hoy {
     if (suyas > 0) jugaron++;
   }
   return { partidas, victorias, derrotas: partidas - victorias, jugaron };
+}
+
+/** Si jugó al menos una hoy. Las partidas vienen de la más nueva a la más vieja. */
+function jugoHoy(p: Player, hoy: number): boolean {
+  for (const m of p.matches ?? []) {
+    const t = Date.parse(m.playedAt);
+    if (Number.isNaN(t)) continue;
+    return diaArgentino(t) >= hoy;
+  }
+  return false;
+}
+
+/**
+ * Lo que se movió HOY, en LP netos, y si se puede afirmar.
+ *
+ * Misma trampa que en lib/actividad.ts: `lpHistory` son las últimas 20 fotos,
+ * no las del día. Si la más vieja es de esta tarde, la resta cuenta un pedazo
+ * del día y lo llama "hoy". Por eso hace falta una foto ANTERIOR al comienzo
+ * del día argentino; sin ella devuelve null y el número no se escribe.
+ */
+export function lpDeHoy(p: Player, hoy: number): number | null {
+  const h = p.lpHistory ?? [];
+  if (h.length < 2) return null;
+  const arranque = (hoy * 86400000) + ARG_OFFSET_MS;
+  let previa = null as (typeof h)[number] | null;
+  for (const f of h) {
+    const t = Date.parse(f.capturedAt);
+    if (Number.isNaN(t) || t >= arranque) break;
+    previa = f;
+  }
+  if (!previa) return null;
+  const ultima = h[h.length - 1];
+  return Math.round(rankScore(ultima.tier, ultima.division, ultima.lp) - rankScore(previa.tier, previa.division, previa.lp));
+}
+
+/** Lo que se movió TODO el grupo hoy. Null si a alguno que jugó le falta la foto de referencia. */
+export function lpDelGrupoHoy(players: Player[], ahora = Date.now()): number | null {
+  const hoy = diaArgentino(ahora);
+  let total = 0;
+  for (const p of players) {
+    if (!jugoHoy(p, hoy)) continue;
+    const lp = lpDeHoy(p, hoy);
+    // Con uno solo sin referencia, el total del grupo sería una suma
+    // incompleta escrita como si fuera completa. Mejor no decir nada.
+    if (lp === null) return null;
+    total += lp;
+  }
+  return total;
 }
