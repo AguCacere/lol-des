@@ -5,7 +5,8 @@ import { exigirSesion } from "@/lib/auth";
 import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
 import { tablaDeLaSemana, puntosDeSecuencia, puntosPorDia, PUNTOS_VICTORIA, PUNTOS_DERROTA, PUNTOS_EN_RACHA, RACHA_DESDE, lpPorPartida, type AjusteLiga, type Participante, type RecordSemanal, type Snapshot, lpAtribuido, derrotaMitigada } from "@/lib/liga";
 import { claveDeTorneo, diaCorriente, diaDeCierre, diasDelCierre, duracionEnDias, empezoElUltimoDia, esTorneoDeLiga, etiquetasDeDias, LIGA_INICIO, torneoDe } from "@/lib/torneo";
-import { dueloDeLaEdicion } from "@/lib/palmares";
+import { dueloDeLaEdicion, podioDeLaEdicion } from "@/lib/palmares";
+import { relatoDeLaEdicion } from "@/lib/momentos";
 import type { ResumenSemana } from "@/lib/liga-cierre";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { roleFromTeamPosition } from "@/lib/mapping";
@@ -381,6 +382,13 @@ export async function GET() {
       record: campeonDeEsaSemana
         ? { victorias: campeonDeEsaSemana.victorias, derrotas: campeonDeEsaSemana.derrotas }
         : null,
+      // Los tres de arriba y una línea de cómo se ganó. Los dos salen del
+      // MISMO `resumen` que ya está en memoria, así que no cuestan una
+      // consulta: la tarjeta del historial podía decir quién ganó y por
+      // cuánto, pero no si la semana estuvo cerrada ni si el que ganó venía
+      // ganando, que es lo único que el marcador no puede contar.
+      podio: resumen ? podioDeLaEdicion(resumen.tabla, resumen.ganadorPuuid) : null,
+      relato: resumen ? relatoDeLaEdicion(resumen.tabla, resumen.dias ?? [], resumen.ganadorPuuid) : null,
     };
   });
 

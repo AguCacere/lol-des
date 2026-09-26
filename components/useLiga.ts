@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { RoleKey, TierKey } from "@/lib/types";
+import type { Edicion } from "@/lib/palmares";
 
 /**
  * Los datos de la liga, UNA sola vez por pestaña del navegador.
@@ -165,26 +166,16 @@ export interface Datos {
   hasta: string;
   tabla: Fila[];
   plantel: DelPlantel[];
-  /** El historial de la liga, de la edición más nueva a la más vieja. */
-  historial: {
-    semana: string;
-    puuid: string | null;
-    nombre: string | null;
-    iconUrl: string | null;
-    /** El puntaje con el que ganó: lo que decide la liga. Null en las semanas anteriores a que se guardara. */
-    puntos: number | null;
-    jugadores: number;
-    /**
-     * Por cuánto ganó y contra quién. Opcionales por la ventana de caché del
-     * CDN y porque las semanas viejas no guardaron la foto final. Null también
-     * cuando el campeón NO terminó primero —pasa cuando el de arriba no llegó
-     * a los mínimos— porque ahí el margen daría negativo y una resta con el
-     * signo al revés no es un margen (ver lib/palmares.ts).
-     */
-    duelo?: { segundo: string; margen: number } | null;
-    /** El récord del campeón esa semana. Opcional por lo mismo. */
-    record?: { victorias: number; derrotas: number } | null;
-  }[];
+  /**
+   * El historial de la liga, de la edición más nueva a la más vieja.
+   *
+   * Es el mismo tipo que usa `lib/palmares.ts` y no una copia estructural:
+   * estuvo copiado acá con sus campos declarados a mano, y cuando la ruta
+   * empezó a mandar el podio y el relato de cada edición el tipo de este lado
+   * no los tenía. La pantalla los recibía igual —el JSON no sabe de tipos— y
+   * TypeScript no podía avisar de nada.
+   */
+  historial: Edicion[];
   /** Para el arte de campeón. Opcional por la misma razón. */
   ddragonVersion?: string | null;
   /**

@@ -3145,3 +3145,116 @@ Las tres pestañas tenían cajas centradas de media pantalla para decir que falt
 dato. Ahora son un renglón, alineado con el resto y **con el encabezado de la
 sección puesto**: el "hace falta más de un invocador" de Cara a cara ni siquiera
 decía que eso era Cara a cara — era un cartel flotando en una página en blanco.
+
+## El historial de la liga: de tarjeta de estadística a crónica
+
+La entrada al historial y el archivo que abría parecían dos features distintas. La
+tarjeta decía "campeón anterior · marlboro de diez · +15,25 · Ver semana" y el
+archivo, al tocarla, contaba una semana entera: por cuánto ganó, cómo se movió la
+carrera día por día y quién quedó cerca. Lo primero que se veía era lo que no
+decía nada.
+
+### La tarjeta
+
+Ahora anticipa exactamente lo que hay adentro: la fecha y que ya terminó, el
+campeón con su récord y su puntaje, **una línea de cómo se ganó**, y el 2º y el 3º.
+Esa línea es lo único de la tarjeta que no se puede deducir mirando la tabla final,
+y es lo que convierte "ganó fulano" en una crónica: *"Llegó al último día 2º, a 1
+punto del puntero, y lo dio vuelta."*
+
+Sale de `relatoDeLaEdicion` (lib/momentos.ts), que es una resta sobre la misma
+curva que dibuja el archivo. Tres casos y nada más: la dio vuelta el último día,
+aguantó la punta por poco, o tomó la punta y no la soltó. Si no cae en ninguno
+—o el campeón no terminó primero, que pasa cuando el de arriba no llegó a los
+mínimos— devuelve null y la tarjeta no escribe nada. Reemplazó a `comoSeDefinio`,
+que contaba la aritmética del último día ("llegó al dom con 11,75, sumó 3,5 el lun
+y cerró en 15,25"): tres números que ya estaban escritos treinta píxeles más
+arriba.
+
+**El dorado se usaba en cuatro lugares a la vez** —borde completo, copa, puntaje y
+enlace— y el resultado era que no resaltaba nada. Se fue el borde. Queda una franja
+de acento a la izquierda (el mismo recurso que usa una fila de partida para decir
+victoria o derrota), la copa y el puntaje del campeón.
+
+Y el rótulo "CAMPEÓN ANTERIOR" se fue: repetía lo que la copa ya dice, y empujaba
+la fecha —que es lo que identifica una edición— al lugar de la nota al pie. Ahora
+el título es `14 – 20 sept · finalizada`.
+
+### El archivo: un orden narrativo
+
+Era encabezado → resumen → "cómo se definió" → gráfico → tabla, con el desenlace
+contado **tres veces seguidas** antes del gráfico (el hero, la tira de datos y el
+relato) y una cuarta en el titular de la carrera. Ahora:
+
+    resultado → LA CARRERA → momentos de la semana → clasificación final
+
+El desenlace se cuenta una sola vez, en un renglón. El titular de la carrera se
+apaga adentro del archivo (`sinTitular`) y se queda en la liga en curso, que es
+donde no hay ningún otro lugar que lo diga.
+
+### Los momentos de la semana
+
+Lo que no contaba nadie. Medido sobre la semana real del 14 de septiembre:
+marlboro se escapó **+11 el martes**, Simiestro se hundió **−6 el miércoles**, el
+**viernes** 1º y 2º estuvieron a **0,25**, la punta **cambió cuatro veces**, y el
+domingo marlboro iba SEGUNDO y lo dio vuelta el último día. Todo eso estaba en la
+curva y no se leía en ningún lado.
+
+Es una franja de cuatro lecturas y no cuatro tarjetas, por lo mismo de siempre: son
+cuatro datos sobre la misma cosa. Cada pieza se dibuja solo si el dato existe, y un
+movimiento de un día se llama "momento" recién cuando vale al menos el **25% del
+recorrido de toda la semana** — con un número fijo, un +2 es la historia de una
+semana chica y el martes de cualquiera en una de +15.
+
+### El bug que encontró el test: un torneo tiene dos lunes
+
+Los momentos llevaban el NOMBRE del día ("mar") y la marca sobre el gráfico se
+ubicaba con `dias.indexOf(nombre)`. El torneo del 14 de septiembre duró ocho días y
+su lista es `lun mar mié jue vie sáb dom lun`: el `indexOf` del último día devolvía
+el PRIMERO, así que la marca de "la dio vuelta" se dibujaba sobre el lunes de
+arranque. Ahora cada momento carga su índice y el nombre queda solo para
+escribirlo. Lo encontró un test con los números reales de esa semana, no leyendo el
+código.
+
+### La carrera: jerarquía en vez de plato de fideos
+
+Siete líneas al 24% de opacidad y una al 100% cuentan una sola cosa —"hay uno
+arriba"— que es lo que ya decía la tabla. Ahora el gráfico recibe quiénes son los
+dos protagonistas: el campeón a fondo y **el segundo a media presencia** (0,55),
+que es el que se peleó el título con él. Desaparece en cuanto alguien elige otra
+línea: dos líneas fuertes y una elegida son tres jerarquías para dos niveles de
+atención.
+
+Los chips de abajo pasaron a ser **solo del teléfono**. De 700px para arriba el
+pasillo ya escribe el nombre y el puntaje de cada línea, así que los chips eran la
+misma identificación dos veces, arriba y abajo del mismo gráfico; y como control
+tampoco hacían falta, porque se elige una línea tocándola o tocando su nombre.
+
+Y el pasillo pasó de 152 a 176 unidades: con 152, "marlboro de diez" no entraba al
+lado de su puntaje y salía con ellipsis en **todos** los anchos de escritorio.
+
+### El panel del día, y por qué `!important` no alcanzaba
+
+En el teléfono el panel estaba directamente escondido —tapaba medio gráfico— así
+que el dibujo no contestaba nada al dedo. Ahora el gráfico escucha `pointer`
+en vez de `mouse`, o sea que arrastrar el dedo recorre los días igual que el mouse,
+y el panel cuelga del pie del gráfico con `top:100%`.
+
+En el medio, dos cosas medidas:
+
+- **`translate` no es `transform`.** El panel se centraba con la propiedad suelta
+  `translate:0 -50%`, que es otra cascada: un `transform:none !important` en la
+  media query del teléfono no la desarmaba y el panel seguía subiendo 82px, justo
+  la mitad de su alto. La solución no fue apilar otro `!important` sino declarar
+  lo que hace flotar al panel DENTRO de un `@media (min-width:641px)`: donde no
+  tiene que existir, no existe, y no hay nada que deshacer.
+- **En el flujo normal empujaba el eje X.** El panel entre el gráfico y la fila de
+  días corría los días 170px hacia abajo cada vez que el dedo tocaba: despegaba el
+  eje de su dibujo justo mientras se lo leía. Colgado con `top:100%` flota sobre la
+  leyenda, que es lo que menos importa en ese momento.
+
+### La navegación entre ediciones
+
+Decía `‹ 2 de 2 ›`, que es paginación de modal: para saber si la de al lado era la
+semana pasada o la siguiente había que apretarla. Ahora cada flecha dice la fecha a
+la que lleva.

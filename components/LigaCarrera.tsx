@@ -71,8 +71,12 @@ export interface CorredorCarrera {
  */
 const W = 1000;
 const H = 264;
-/** El pasillo de la derecha donde van los nombres, fuera del dibujo. */
-const PASILLO = 152;
+/** El pasillo de la derecha donde van los nombres, fuera del dibujo.
+ *
+ * 176 y no 152: con 152 el nombre más largo del grupo ("marlboro de diez")
+ * no entraba junto a su puntaje y salía con ellipsis en TODOS los anchos de
+ * escritorio. Las 24 unidades salen del dibujo, que tiene 848 para perderlas. */
+const PASILLO = 176;
 /** Y el de la izquierda, para los números del eje. */
 const EJE = 40;
 const PAD_Y = 24;
@@ -129,16 +133,51 @@ export function LigaCarrera({
   corredores,
   dias,
   cerrada = false,
+  sinTitular = false,
+  destacados,
+  hitos,
   onVerDiaADia,
 }: {
   corredores: CorredorCarrera[];
   dias: string[];
+  /**
+   * Quiénes entran en foco por defecto, en orden: el campeón primero y el
+   * segundo después.
+   *
+   * Sin esto el foco arrancaba en `utiles[0]` —el primero de la tabla— y las
+   * otras seis líneas quedaban todas al mismo 24% de opacidad. Con siete
+   * series eso es un plato de fideos: se ve que hay una arriba y un montón
+   * abajo, que es lo que ya decía la tabla. Con el campeón a fondo, el
+   * segundo a media presencia y el resto atenuado, la carrera se lee sin
+   * tocar nada — y el que se pelea el título con el campeón es justamente la
+   * otra línea que importa.
+   *
+   * Es solo el ESTADO INICIAL: al tocar a cualquiera, esa pasa a foco y el
+   * segundo vuelve al montón, porque si no habría dos líneas gritando.
+   */
+  destacados?: string[];
+  /**
+   * Las marcas de los momentos, ya ubicadas (ver lib/momentos.ts). Van encima
+   * de la curva de su dueño. Máximo tres: el gráfico es el dibujo, no el
+   * soporte de un texto.
+   */
+  hitos?: { i: number; puuid: string; texto: string; tono: "bueno" | "malo" | "neutro" }[];
   /**
    * Abre la grilla del día a día. Opcional: el cartel de "cómo terminó" también
    * dibuja esta carrera y ahí no va —ya estás adentro de un cartel, y abrir uno
    * arriba de otro es perderse—.
    */
   onVerDiaADia?: () => void;
+  /**
+   * Apagar el titular de la carrera.
+   *
+   * Adentro del archivo de una edición el encabezado de arriba ya dice "Ganó
+   * por 0,75 sobre compren bitcoin", así que el titular —"X terminó +0,75
+   * arriba del segundo"— era la MISMA frase otra vez, treinta píxeles más
+   * abajo. En la liga en curso sí va: ahí no hay ningún otro lugar que lo
+   * diga.
+   */
+  sinTitular?: boolean;
   /**
    * Si la semana ya terminó. Solo cambia el TIEMPO VERBAL del titular: el
    * mismo gráfico se usa para la semana en curso y para una vieja en el cartel
@@ -170,9 +209,15 @@ export function LigaCarrera({
   const utiles = corredores.filter((c) => c.porDia && c.porDia.length >= 2);
   if (utiles.length === 0 || dias.length < 2) return null;
 
-  // El foco por defecto es el puntero: el que va ganando es de quien se quiere
-  // ver la línea antes de tocar nada.
-  const foco = utiles.find((c) => c.puuid === enFoco) ?? utiles[0];
+  // El foco por defecto: el campeón si lo mandaron, y si no el puntero.
+  const porDefecto = destacados?.map((p) => utiles.find((c) => c.puuid === p)).find(Boolean) ?? utiles[0];
+  const foco = utiles.find((c) => c.puuid === enFoco) ?? porDefecto;
+  /**
+   * El segundo protagonista, y SOLO mientras no se haya tocado nada. Cuando
+   * alguien elige una línea, esta vuelve al montón: dos líneas fuertes y una
+   * elegida es tener tres jerarquías para dos niveles de atención.
+   */
+  const segundo = enFoco === null ? destacados?.[1] ?? null : null;
 
   /**
    * La escala la comparten los siete por definición —están en la misma caja—,
@@ -249,6 +294,31 @@ export function LigaCarrera({
 
   const marcas = marcasDelEje(min, max).map((v) => ({ v, y: yOf(v) }));
 
+  /**
+   * Los hitos, ubicados sobre la curva de SU dueño.
+   *
+   * La posición sale del trazo del jugador y no de la escala general: la marca
+   * tiene que caer exactamente sobre el punto que la generó, y cada línea
+   * tiene su propio `points`. Los que apuntan a alguien que no está dibujado
+   * —o a un día que la curva no tiene— se descartan en vez de caer en (0,0).
+   */
+  const hitosUbicados = (hitos ?? [])
+    .map((h) => {
+      const t = trazos.find((x) => x.puuid === h.puuid);
+      const p = t?.points[h.i];
+      if (!t || !p) return null;
+      // Arriba del punto, salvo cuando el punto está pegado al techo: ahí la
+      // etiqueta se saldría de la caja y va abajo.
+      const arriba = p[1] > PAD_Y + 26;
+      // Y cuando el hito cae en el último cierre, la etiqueta se corre a la
+      // IZQUIERDA del punto. Centrada se metía en el pasillo de los nombres y
+      // le tapaba el suyo al segundo — medido, "la dio vuelta" cayendo encima
+      // de "compren bitcoin".
+      const pegado = p[0] > PLOT - 80;
+      return { ...h, x: p[0], y: p[1], color: t.color, arriba, pegado };
+    })
+    .filter((h): h is NonNullable<typeof h> => h !== null);
+
   // La ventaja del primero sobre el segundo, para decir en una línea qué está
   // pasando. Sale de los datos, no de una interpretación: es una resta.
   const orden = [...utiles].sort((a, b) => b.puntos - a.puntos);
@@ -262,6 +332,7 @@ export function LigaCarrera({
           el bloque entero se leía como una nota al pie. */}
       <div className="carrera-head">
         <span className="carrera-rotulo">La carrera</span>
+        {!sinTitular && (
         <strong className="carrera-titular">
           {ventaja != null && ventaja > 0 ? (
             <>
@@ -274,6 +345,7 @@ export function LigaCarrera({
             "La semana está pareja arriba"
           )}
         </strong>
+        )}
         <span className="carrera-pie">Puntos acumulados al cierre de cada día · clic en un nombre para seguirlo</span>
         {/* Arriba a la derecha y como BOTÓN, no como enlace adentro del pie.
             Ahí abajo era una palabra gris en un renglón de 11px, del mismo
@@ -409,7 +481,7 @@ export function LigaCarrera({
                 <path d={t.line} className="carrera-agarre" />
                 <path
                   d={t.line}
-                  className={`carrera-linea${t.puuid === resaltado ? " resaltada" : ""}`}
+                  className={`carrera-linea${t.puuid === segundo ? " segunda" : ""}${t.puuid === resaltado ? " resaltada" : ""}`}
                   stroke={t.color}
                   vectorEffect="non-scaling-stroke"
                 />
@@ -420,7 +492,7 @@ export function LigaCarrera({
                   cx={t.last[0]}
                   cy={t.last[1]}
                   r={2.6}
-                  className={`carrera-punta${t.puuid === resaltado ? " resaltada" : ""}`}
+                  className={`carrera-punta${t.puuid === segundo ? " segunda" : ""}${t.puuid === resaltado ? " resaltada" : ""}`}
                   stroke={t.color}
                 />
               </g>
@@ -434,6 +506,21 @@ export function LigaCarrera({
           />
           {points.map(([x, y], i) => (
             <circle key={i} cx={x} cy={y} r={i === points.length - 1 ? 4 : 2.4} className="carrera-punto" stroke={colorFoco} />
+          ))}
+
+          {/* El anillo de cada hito, sobre el punto que lo generó. Va acá
+              arriba de todas las líneas y el texto va en HTML: un <text> de
+              SVG con preserveAspectRatio="none" se estira a lo ancho. */}
+          {hitosUbicados.map((h) => (
+            <circle
+              key={`h${h.puuid}${h.i}`}
+              cx={h.x}
+              cy={h.y}
+              r={5}
+              className={`carrera-hito-anillo ${h.tono}`}
+              stroke={h.color}
+              vectorEffect="non-scaling-stroke"
+            />
           ))}
 
           {/* La zona que escucha al mouse, arriba de todo y transparente.
@@ -451,8 +538,15 @@ export function LigaCarrera({
             width={PLOT - EJE}
             height={H}
             fill="transparent"
-            style={{ pointerEvents: "all" }}
-            onMouseMove={(e) => {
+            style={{ pointerEvents: "all", touchAction: "pan-y" }}
+            // onPointerMove y no onMouseMove: el mouse y el dedo entran por el
+            // mismo evento, así que en el teléfono ARRASTRAR el dedo a lo
+            // largo del gráfico recorre los días igual que el mouse. Antes
+            // esto era solo mouse y en un celular el gráfico no contestaba
+            // nada. `touchAction: pan-y` deja que el scroll vertical de la
+            // página siga funcionando mientras tanto.
+            onPointerDown={(e) => e.currentTarget.releasePointerCapture?.(e.pointerId)}
+            onPointerMove={(e) => {
               // De píxeles de pantalla a índice de día. El SVG va con
               // preserveAspectRatio="none", así que el ancho en CSS y el del
               // viewBox no coinciden y hay que pasar por la fracción.
@@ -467,7 +561,10 @@ export function LigaCarrera({
               });
               setDiaHover(mejor);
             }}
-            onMouseLeave={() => setDiaHover(null)}
+            onPointerLeave={() => setDiaHover(null)}
+            // En el teléfono no hay "salir": al levantar el dedo el panel se
+            // queda puesto, que es lo que uno quiere después de buscar un día.
+            onPointerCancel={() => setDiaHover(null)}
           />
         </svg>
 
@@ -509,13 +606,26 @@ export function LigaCarrera({
           </span>
         ))}
 
+        {/* El texto del hito: dos o tres caracteres. Lo largo —quién, qué día,
+            cuánto— se cuenta abajo en la franja de momentos; acá solo va lo
+            que se puede leer de reojo sin dejar de mirar la curva. */}
+        {hitosUbicados.map((h) => (
+          <span
+            key={`ht${h.puuid}${h.i}`}
+            className={`carrera-hito ${h.tono}${h.arriba ? " arriba" : " abajo"}${h.pegado ? " pegado" : ""}`}
+            style={{ left: `${(h.x / W) * 100}%`, top: `${(h.y / H) * 100}%` }}
+          >
+            {h.texto}
+          </span>
+        ))}
+
         {/* El nombre arranca exactamente donde termina su guía. Antes llevaba
             una marquita propia adelante, que era un sustituto: ahora la guía
             viene de la línea de verdad y hace ese trabajo mejor. */}
         {nombres.map((n) => (
           <span
             key={n.puuid}
-            className={`carrera-nombre${n.puuid === foco.puuid ? " en-foco" : ""}${n.puuid === resaltado ? " resaltada" : ""}`}
+            className={`carrera-nombre${n.puuid === foco.puuid ? " en-foco" : ""}${n.puuid === segundo ? " segunda" : ""}${n.puuid === resaltado ? " resaltada" : ""}`}
             style={{ top: `${(n.y / H) * 100}%`, left: `${((PLOT + GUIA) / W) * 100}%` }}
             onClick={() => setEnFoco(n.puuid)}
             onMouseEnter={() => setResaltado(n.puuid)}

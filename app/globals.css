@@ -3532,6 +3532,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   transition:stroke-opacity .16s ease, stroke-width .16s ease;
 }
 .carrera-linea.en-foco{stroke-width:2.6; stroke-opacity:1;}
+/* El segundo protagonista: a mitad de camino entre el campeón y el montón.
+   Existe porque con siete líneas al 24% y una al 100% el gráfico contaba una
+   sola cosa —"hay uno arriba"— que es lo que ya decía la tabla. El que se
+   pelea el título con el campeón es la otra línea que importa, y a 0,55 se la
+   puede seguir sin que compita con la del que ganó. Desaparece en cuanto
+   alguien elige otra línea: ver `segundo` en LigaCarrera.tsx. */
+.carrera-linea.segunda{stroke-width:2; stroke-opacity:0.55;}
+.carrera-punta.segunda{stroke-opacity:0.75;}
 /* El resaltado del mouse. Va por clase y no por `:hover +` porque ahora entra
    por tres lados —la línea, el nombre y el chip— y desde cualquiera tiene que
    aclarar la misma línea. */
@@ -3547,13 +3555,24 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* El panel del día: la clasificación a esa altura de la semana.
    Va pegado al travesaño y centrado en vertical, así el ojo no salta. */
 .carrera-panel{
-  position:absolute; top:50%; transform-origin:left center;
-  margin-top:-1px; translate:0 -50%;
   z-index:5; pointer-events:none;
   display:flex; flex-direction:column; gap:1px;
   padding:8px 10px; min-width:172px;
   background:var(--surface-hover); border:1px solid var(--border-soft);
   border-radius:var(--radius-md); box-shadow:0 8px 24px rgba(0,0,0,0.55);
+}
+/* FLOTA solo de 641 para arriba. Lo que lo hace flotar vive acá adentro y no
+   en la regla de arriba con una contra-regla en el teléfono: apagarlo desde
+   abajo no funcionaba. `translate:0 -50%` es la propiedad SUELTA `translate`,
+   otra cascada que la de `transform`, y un `translate:none !important` en la
+   media query de 640 no la desarmaba —medido, el panel seguía subiendo 82px,
+   justo la mitad de su alto—. Con la posición declarada solo donde tiene que
+   existir no hay nada que deshacer. */
+@media (min-width:641px){
+  .carrera-panel{
+    position:absolute; top:50%; transform-origin:left center;
+    margin-top:-1px; translate:0 -50%;
+  }
 }
 .carrera-panel-dia{
   font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.09em;
@@ -3581,10 +3600,59 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   color:var(--text-muted); min-width:32px; text-align:right;
 }
 @media (max-width:640px){
-  /* En el celular el panel taparía medio gráfico: el travesaño queda, que ya
-     dice dónde estás mirando, y los números están en "Ver los números". */
-  .carrera-panel{display:none;}
+  /* En el celular el panel flotante tapaba medio gráfico, así que estuvo
+     escondido y el gráfico no contestaba NADA al dedo. Ahora no flota: baja a
+     ser un bloque debajo del dibujo, con el travesaño arriba diciendo de qué
+     día está hablando.
+
+     Los `!important` no son pereza: el `left` y el `transform` los pone el
+     componente en el estilo inline —calculados en porcentaje del punto del
+     día— y una regla de CSS solo puede ganarle a un estilo inline así. La
+     alternativa era leer el ancho de la ventana en JS para decidir el estilo,
+     o sea meter el layout responsive adentro de React. */
+  /* Debajo del dibujo pero SIN empujar nada: `top:100%` lo cuelga del pie de
+     la caja del gráfico y flota sobre la leyenda. En el flujo normal empujaba
+     la fila de días —el eje X— 170px hacia abajo cada vez que el dedo tocaba
+     el gráfico, o sea despegaba el eje de su dibujo justo mientras se lo
+     estaba leyendo. La leyenda, que es lo que queda tapado, es lo que menos
+     importa en ese momento.
+
+     El `transform` va con !important porque ese lo pone el componente en el
+     estilo inline (el corrimiento lateral contra el borde derecho), y a un
+     inline solo le gana un !important. */
+  .carrera-panel{
+    position:absolute; top:100%; right:0; width:auto;
+    /* `left` y `transform` con !important porque los dos los pone el
+       componente en el estilo inline —la posición del día en porcentaje— y a
+       un inline solo le gana un !important. Sin esto el panel se quedaba
+       colgado a la altura del día tocado y se salía de la tarjeta por la
+       derecha (medido: 417px de borde en una caja que termina en 380). */
+    left:0 !important; transform:none !important; margin-top:6px;
+  }
 }
+/* ── Los hitos ──
+   Un anillo sobre el punto que lo generó y dos o tres caracteres al lado. No
+   llevan color propio: toman el de la línea de su dueño, porque lo primero
+   que hay que poder contestar mirando una marca es DE QUIÉN es. El tono
+   (bueno/malo) lo pone el texto, que es donde no compite con las series. */
+.carrera-hito-anillo{fill:none; stroke-width:1.4; stroke-opacity:0.9;}
+.carrera-hito{
+  position:absolute; transform:translate(-50%, -50%);
+  font-family:var(--font-stat); font-size:10.5px; font-weight:800;
+  font-variant-numeric:tabular-nums; white-space:nowrap; pointer-events:none;
+  padding:1px 5px; border-radius:999px;
+  /* Fondo casi opaco: la etiqueta cae sobre el cruce de varias líneas y con
+     82% se leía a través de ellas. */
+  background:color-mix(in srgb, var(--bg) 94%, transparent);
+}
+.carrera-hito.arriba{margin-top:-15px;}
+.carrera-hito.abajo{margin-top:15px;}
+/* El hito del último cierre se corre a la izquierda del punto: centrado se
+   metía en el pasillo y le tapaba el nombre al segundo. */
+.carrera-hito.pegado{transform:translate(-100%, -50%); margin-left:-8px;}
+.carrera-hito.bueno{color:var(--good);}
+.carrera-hito.malo{color:var(--critical);}
+.carrera-hito.neutro{color:var(--accent);}
 .carrera-punto{fill:var(--bg); stroke-width:1.8;}
 /* El punto donde termina cada línea de contexto. Es el ancla que le faltaba a
    una gris para poder seguirla: primero se encuentra dónde termina, y de ahí
@@ -3608,12 +3676,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .carrera-nombre{
   position:absolute; display:flex; align-items:center; gap:6px;
   transform:translateY(-50%); margin-left:5px;
-  /* El pasillo son 152 de un viewBox de 1000, o sea 15,2% del ancho REAL de la
-     caja — no 152px. Con un max-width fijo el nombre se salía de la tarjeta en
+  /* El pasillo son 176 de un viewBox de 1000, o sea 17,6% del ancho REAL de la
+     caja — no 176px. Con un max-width fijo el nombre se salía de la tarjeta en
      cuanto la pantalla bajaba de ~1100px: medido, "marlboro de diez" se
-     escapaba a 900. Ahora arranca 12 unidades más a la derecha (donde termina
-     la guía), así que del pasillo le quedan 15,2% − 1,2%. */
-  max-width:calc(14% - 8px);
+     escapaba a 900. Arranca 12 unidades más a la derecha (donde termina la
+     guía), así que del pasillo le quedan 17,6% − 1,2%.
+
+     El pasillo pasó de 152 a 176 justamente por ese nombre: con 152 no entraba
+     junto a su puntaje y salía recortado en todos los anchos. */
+  max-width:calc(16.4% - 8px);
   font-size:11.5px; color:var(--text-muted); cursor:pointer;
   transition:color .16s ease;
 }
@@ -3672,6 +3743,19 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .carrera-chip-nombre{font-weight:600; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .carrera-chip-pts{font-size:11px; font-variant-numeric:tabular-nums; color:var(--text-muted);}
 .carrera-chip.en-foco .carrera-chip-pts{color:var(--text-secondary);}
+/* ── Los chips, solo en el teléfono ──
+   Son la LEYENDA de abajo de 700px, que es donde los nombres del pasillo no
+   entran (ver esa media query). En pantalla ancha el pasillo ya dice el
+   nombre y el puntaje de cada línea, así que los chips repetían la misma
+   identificación dos veces, arriba y abajo del mismo gráfico. Y como control
+   tampoco hacían falta: se elige una línea tocándola, o tocando su nombre.
+
+   La regla va DESPUÉS del bloque de chips y no antes: con la misma
+   especificidad gana la última, y puesta arriba el `display:flex` de acá
+   abajo la pisaba. Medido — los chips seguían a la vista a 1440. */
+@media (min-width:701px){
+  .carrera-chips{display:none;}
+}
 /* Entre 700 y 1024 el pasillo no da para las dos cosas, y ahí gana el nombre:
    el puntaje también está en el chip de abajo y en la tabla, mientras que el
    nombre es lo único que ata la línea a una persona.
@@ -4221,26 +4305,40 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .hist-ver:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:3px;}
 @media (prefers-reduced-motion:reduce){ .hist-ver{transition:none;} .hist-ver:hover{gap:5px;} }
 
-/* ── La última edición ─────────────────────────────────────────────────── */
+/* ── La última edición, como crónica ───────────────────────────────────── */
+/* SIN borde dorado alrededor. Tenía borde completo + copa + puntaje + enlace,
+   los cuatro en dorado peleando entre sí, y el resultado era que nada
+   resaltaba. Ahora el acento es una franja a la izquierda —el mismo recurso
+   que usa una fila de partida para decir victoria o derrota— y el dorado
+   queda solo en la copa, el puntaje del campeón y el enlace. */
 .hist-ultima{
-  display:flex; flex-direction:column; gap:9px; width:100%; text-align:left;
+  position:relative; display:flex; flex-direction:column; gap:10px; width:100%; text-align:left;
   appearance:none; -webkit-appearance:none; cursor:pointer;
-  background:var(--surface); border:1px solid var(--accent-dim-border);
-  border-radius:var(--radius-lg); padding:13px 15px;
+  background:var(--surface); border:1px solid var(--border-soft);
+  border-radius:var(--radius-lg); padding:14px 16px 13px 18px; overflow:hidden;
   transition:background .14s ease, border-color .14s ease;
 }
-.hist-ultima:hover{background:var(--surface-raised); border-color:var(--accent-dim);}
-.hist-ultima:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
-.hist-ultima-rotulo{
-  display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;
-  font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
-  color:var(--text-muted);
+.hist-ultima::before{
+  content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background:var(--accent); border-radius:3px 0 0 3px;
 }
-.hist-ultima-rotulo i{font-style:normal; letter-spacing:0.04em; opacity:0.75;}
+.hist-ultima:hover{background:var(--surface-raised); border-color:var(--border-firm);}
+.hist-ultima:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+/* La fecha es el título de la edición; "finalizada" es el estado y va como
+   tal. El rótulo "CAMPEÓN ANTERIOR" se fue: repetía lo que la copa de abajo
+   ya dice y empujaba la fecha —que es lo que identifica una edición— al lugar
+   de la nota al pie. */
+.hist-ultima-rotulo{
+  display:flex; align-items:center; gap:7px; flex-wrap:wrap;
+  font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--text-secondary);
+}
+.hist-ultima-rotulo i{font-style:normal; opacity:0.4;}
+.hist-ultima-rotulo em{font-style:normal; color:var(--text-muted); letter-spacing:0.06em;}
 .hist-campeon{display:flex; align-items:center; gap:10px; min-width:0;}
-.hist-copa{font-size:16px; line-height:1; flex:none;}
+.hist-copa{font-size:17px; line-height:1; flex:none;}
 .hist-avatar{
-  width:34px; height:34px; border-radius:50%; flex:none; overflow:hidden;
+  width:36px; height:36px; border-radius:50%; flex:none; overflow:hidden;
   display:flex; align-items:center; justify-content:center;
   background:var(--surface-hover); color:var(--text-secondary);
   font-family:var(--font-display); font-weight:700; font-size:12px;
@@ -4249,30 +4347,43 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .hist-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
 .hist-campeon-quien{display:flex; flex-direction:column; gap:2px; flex:1 1 auto; min-width:0;}
 .hist-campeon-quien strong{
-  font-family:var(--font-display); font-size:15px; font-weight:700; color:var(--text-primary);
+  font-family:var(--font-display); font-size:17px; font-weight:800; color:var(--text-primary);
+  letter-spacing:-0.015em;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-/* El contexto de la edición en una línea: por cuánto ganó, con qué récord y
-   entre cuántos. Es lo que convierte "este ganó" en "así estuvo la semana". */
 .hist-campeon-meta{
   display:flex; align-items:baseline; gap:5px; flex-wrap:wrap;
   font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;
+}
+.hist-campeon-meta b{
+  font-size:9.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--accent);
 }
 .hist-campeon-meta i{font-style:normal; opacity:0.45;}
 .hist-campeon-meta .wc-v{color:var(--good); font-weight:600;}
 .hist-campeon-meta .wc-d{color:var(--critical); font-weight:600;}
 .hist-campeon-pts{
-  flex:none; font-family:var(--font-stat); font-size:20px; font-weight:800;
-  color:var(--accent); font-variant-numeric:tabular-nums;
+  flex:none; font-family:var(--font-stat); font-size:22px; font-weight:800;
+  color:var(--accent); font-variant-numeric:tabular-nums; letter-spacing:-0.02em;
 }
-/* El segundo. Sangrado hasta donde arranca el nombre del campeón, para que se
-   lea como el puesto de abajo y no como otra fila de la sección. */
-.hist-segundo{
-  display:flex; align-items:baseline; gap:7px; margin-left:26px;
-  font-size:12px; color:var(--text-muted);
+/* Cómo se ganó. Va en el color del texto normal y no en gris de nota: es la
+   frase por la que la tarjeta existe. */
+.hist-relato{
+  font-size:12.5px; line-height:1.5; color:var(--text-secondary);
+  padding-top:10px; border-top:1px solid var(--border-soft);
 }
-.hist-medalla{font-size:11px; line-height:1;}
-.hist-segundo b{
+/* El podio chico, sangrado hasta donde arranca el nombre del campeón para que
+   se lea como los puestos de abajo y no como otra sección. */
+.hist-podio{display:flex; flex-direction:column; gap:3px;}
+.hist-podio-fila{
+  display:grid; grid-template-columns:14px minmax(0,1fr) auto; align-items:baseline; gap:9px;
+  padding-left:49px; font-size:12.5px; color:var(--text-secondary);
+}
+.hist-podio-puesto{
+  font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted); text-align:right;
+}
+.hist-podio-nombre{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.hist-podio-pts{
   font-family:var(--font-stat); font-weight:700; color:var(--text-secondary);
   font-variant-numeric:tabular-nums;
 }
@@ -4290,11 +4401,18 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .hist-cuerpo{display:flex; flex-direction:column; gap:0;}
 .hist-principal{min-width:0;}
 @media (min-width:900px){
-  .hist-cuerpo{
+  /* Dos columnas SOLO cuando hay palmarés. Ver `hayPalmares` en
+     LigaHistorial.tsx: sin él, la grilla dejaba la crónica en el 58% y el 42%
+     de la derecha vacío. */
+  .hist-cuerpo.con-palmares{
     display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);
     gap:32px; align-items:start;
   }
-  .hist-palmares{margin-top:0;}
+  .hist-cuerpo.con-palmares .hist-palmares{margin-top:0;}
+  /* Y sin palmarés, un ancho de lectura en vez del ancho entero de la liga:
+     la crónica es nombre a la izquierda y puntaje a la derecha, y estirada a
+     1140px queda un renglón con un pozo en el medio. */
+  .hist-cuerpo:not(.con-palmares){max-width:680px;}
 }
 .hist-viejas,.hist-palmares{margin-top:14px;}
 .hist-viejas-rotulo{
@@ -4302,21 +4420,46 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
   color:var(--text-muted);
 }
-.hist-fila,.hist-palmares-fila{
+.hist-palmares-fila{
   display:flex; align-items:center; gap:10px; width:100%; text-align:left;
   padding:7px 8px 7px 0; border-radius:var(--radius-sm);
   font-size:12.5px; color:var(--text-secondary);
 }
-.hist-fila{
-  appearance:none; -webkit-appearance:none; border:none; background:none; cursor:pointer;
-  transition:background .12s ease;
+/* ── La tira de campeones ──
+   Era una lista vertical de fecha + nombre + puntos, o sea una tabla con otro
+   nombre. En tira se lee como la línea de tiempo de una competencia: cada
+   edición es una parada, y la siguiente se ve empezar contra el borde. En el
+   teléfono hace scroll horizontal, con el chip cortado diciendo "esto sigue"
+   —mismo recurso que la tira de campeones del perfil—. */
+.hist-tira{
+  display:flex; gap:10px; overflow-x:auto;
+  margin:0 -4px; padding:2px 4px 8px;
+  scrollbar-width:none; -ms-overflow-style:none;
 }
-.hist-fila:hover{background:var(--surface-hover);}
-.hist-fila:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
-.hist-fila-semana{
-  flex:none; min-width:100px; font-size:10.5px; color:var(--text-muted);
-  font-variant-numeric:tabular-nums;
+.hist-tira::-webkit-scrollbar{display:none;}
+.hist-hito{
+  flex:0 0 auto; min-width:132px; display:flex; flex-direction:column; gap:6px;
+  appearance:none; -webkit-appearance:none; cursor:pointer; text-align:left;
+  background:var(--surface); border:1px solid var(--border-soft);
+  border-radius:var(--radius-md); padding:9px 11px;
+  transition:background .12s ease, border-color .12s ease;
 }
+.hist-hito:hover{background:var(--surface-raised); border-color:var(--border-firm);}
+.hist-hito:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+.hist-hito-semana{
+  font-size:9.5px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase;
+  color:var(--text-muted); white-space:nowrap;
+}
+.hist-hito-quien{display:flex; align-items:center; gap:7px; min-width:0;}
+.hist-hito-nombre{
+  font-size:12.5px; font-weight:700; color:var(--text-primary);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.hist-hito-pts{
+  font-family:var(--font-stat); font-size:13px; font-weight:800; font-variant-numeric:tabular-nums;
+}
+.hist-hito-pts.pos{color:var(--good);}
+.hist-hito-pts.neg{color:var(--critical);}
 .hist-fila-quien{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-primary);}
 /* La cuenta de títulos. Sale recién con dos: contar hasta uno no es una
    estadística, es un adorno en cada fila. */
@@ -4324,12 +4467,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   flex:none; display:inline-flex; align-items:center; gap:3px;
   font-size:10.5px; font-weight:700; color:var(--gold); font-variant-numeric:tabular-nums;
 }
-.hist-fila-pts{
-  flex:none; min-width:48px; text-align:right;
-  font-family:var(--font-stat); font-weight:700; font-size:12.5px; font-variant-numeric:tabular-nums;
-}
-.hist-fila-pts.pos{color:var(--good);}
-.hist-fila-pts.neg{color:var(--critical);}
 .hist-copas{flex:none; font-size:12px; letter-spacing:-1px;}
 
 @media (max-width:560px){
@@ -4364,18 +4501,22 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-muted);
 }
 .torneo-titulo strong{font-size:16px; font-weight:700; color:var(--text-primary); letter-spacing:-0.01em;}
+/* Las flechas con la FECHA a la que llevan. Antes eran dos flechas y un
+   "2 de 2" en el medio: paginación de modal, no navegación de un archivo. Con
+   la fecha puesta se sabe a qué semana se va antes de apretar. */
 .torneo-nav{display:flex; align-items:center; gap:6px; flex:none;}
-.torneo-nav button{
-  width:28px; height:28px; border-radius:var(--radius-sm); cursor:pointer;
+.torneo-nav-ir{
+  display:inline-flex; align-items:center; gap:5px;
+  height:30px; padding:0 9px; border-radius:var(--radius-sm); cursor:pointer;
   background:var(--surface); border:1px solid var(--border-soft);
-  color:var(--text-secondary); font-family:inherit; font-size:15px; line-height:1;
-  transition:color .14s ease, background .14s ease;
+  color:var(--text-secondary); font-family:var(--font-body); font-size:11px; line-height:1;
+  transition:color .14s ease, background .14s ease, border-color .14s ease;
 }
-.torneo-nav button:hover:not(:disabled){color:var(--text-primary); background:var(--surface-hover);}
-.torneo-nav button:disabled{opacity:0.32; cursor:default;}
-.torneo-nav-cuenta{
-  font-size:10.5px; color:var(--text-muted); font-variant-numeric:tabular-nums; padding:0 2px;
-}
+.torneo-nav-ir b{font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap;}
+.torneo-nav-ir span{font-size:14px; line-height:1; opacity:0.7;}
+.torneo-nav-ir:hover:not(:disabled){color:var(--text-primary); background:var(--surface-hover); border-color:var(--border-firm);}
+.torneo-nav-ir:disabled{opacity:0.3; cursor:default;}
+.torneo-nav-ir:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
 /* El cerrar se dimensiona SOLO y no heredando de `.torneo-nav button`: el
    cartel del día por día no tiene esa fila de flechas, así que ahí el botón
    quedaba en 17px de alto — una ✕ suelta, imposible de tocar con el dedo y el
@@ -4413,9 +4554,25 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .torneo-campeon-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
 .torneo-campeon-quien{display:flex; flex-direction:column; gap:1px; flex:1 1 auto; min-width:0;}
-.torneo-campeon-rotulo{
+/* "Campeón", el récord y cuántos eran, en UN renglón debajo del nombre. Antes
+   el rótulo estaba arriba del nombre y los otros dos datos en una tira aparte
+   más abajo: tres renglones para lo que entra en uno, y el gráfico —que es lo
+   que se viene a ver— empezaba cien píxeles más abajo. */
+.torneo-campeon-meta{
+  display:flex; align-items:baseline; gap:5px; flex-wrap:wrap;
+  font-size:11.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;
+}
+.torneo-campeon-meta b{
   font-size:9.5px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
   color:var(--accent);
+}
+.torneo-campeon-meta i{font-style:normal; opacity:0.45;}
+.torneo-campeon-meta .wc-v{color:var(--good); font-weight:600;}
+.torneo-campeon-meta .wc-d{color:var(--critical); font-weight:600;}
+/* El desenlace, una sola vez y en tamaño de lectura. */
+.torneo-remate{
+  margin:0; padding:0 18px 13px;
+  font-size:13px; line-height:1.5; color:var(--text-secondary);
 }
 .torneo-campeon-nombre{
   font-family:var(--font-display); font-size:19px; font-weight:800; letter-spacing:-0.02em;
@@ -4424,31 +4581,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .torneo-campeon-pts{
   flex:none; font-family:var(--font-stat); font-size:24px; font-weight:800;
   color:var(--accent); font-variant-numeric:tabular-nums; letter-spacing:-0.02em;
-}
-/* Los tres datos de la edición, en una tira debajo del campeón. Separados por
-   puntos medios y no por columnas: son una frase sobre la misma cosa. */
-.torneo-datos{
-  display:flex; align-items:baseline; gap:6px; flex-wrap:wrap;
-  padding:0 18px 12px; font-size:11.5px; color:var(--text-muted);
-  font-variant-numeric:tabular-nums;
-}
-.torneo-datos > span + span::before{content:"·"; margin-right:6px; opacity:0.5;}
-.torneo-datos .wc-v{color:var(--good); font-weight:600;}
-.torneo-datos .wc-d{color:var(--critical); font-weight:600;}
-.torneo-nota{
-  margin:0; padding:0 18px 12px; color:var(--text-muted); font-size:11.5px;
-}
-/* ── Cómo se definió ──
-   Armado con restas sobre la curva, no con un modelo. Va con comillas y en
-   bastardilla para que se lea como el relato de la edición y no como otro dato
-   más de la tira de arriba. */
-.torneo-relato{
-  margin:0 18px 14px; padding:11px 13px;
-  background:var(--surface-raised); border-radius:var(--radius-md);
-  border-left:2px solid var(--accent-dim);
-}
-.torneo-relato p{
-  margin:4px 0 0; font-size:12.5px; line-height:1.55; color:var(--text-secondary);
 }
 /* El rótulo de cada zona del archivo. */
 .torneo-seccion{
@@ -4464,6 +4596,84 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    contiene ya la separa. */
 .torneo-cuerpo .carrera{border:none; background:none; padding-left:0; padding-right:0;}
 
+/* ── Los momentos de la semana ──
+   Una franja de tres o cuatro lecturas, no cuatro tarjetas. Lo separan el
+   espacio y una línea fina, igual que la banda de "cómo viene" del perfil:
+   son cuatro datos sobre LA MISMA cosa —cómo se dio esta semana— y meter cada
+   uno en su rectángulo los convierte en cuatro objetos sueltos. */
+.torneo-momentos{padding:16px 18px 0; border-top:1px solid var(--border-soft); margin-top:14px;}
+.torneo-momentos-tira{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
+  gap:14px 24px; padding:10px 0 4px;
+}
+.torneo-momento{display:flex; flex-direction:column; gap:2px; min-width:0;}
+.torneo-momento-et{
+  display:flex; align-items:center; gap:5px;
+  font-size:9.5px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase;
+  color:var(--text-muted);
+}
+.torneo-momento-et i{font-style:normal; font-size:11px; opacity:0.9;}
+.torneo-momento-et i.bueno{color:var(--good);}
+.torneo-momento-et i.malo{color:var(--critical);}
+.torneo-momento-quien{
+  font-size:13.5px; font-weight:700; color:var(--text-primary);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.torneo-momento-dato{font-size:11.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+.torneo-momento-dato b{font-family:var(--font-stat); font-weight:800; color:var(--text-secondary);}
+.torneo-momento-dato b.gd-pos{color:var(--good);}
+.torneo-momento-dato b.gd-neg{color:var(--critical);}
+
+/* ── El podio ──
+   Los tres de arriba con jerarquía real: el campeón más grande y con su
+   franja dorada, el 2º y el 3º a media escala y con la distancia al primero
+   escrita, que es el número que dice si la semana estuvo cerrada. Del cuarto
+   para abajo vuelve la lista compacta — ahí el puesto sí es una fila más. */
+.torneo-podio{
+  /* auto-fit y no `repeat(3,...)`: una edición de dos participantes tiene
+     podio de dos, y con tres columnas fijas la tercera quedaba como un hueco
+     del ancho de una tarjeta. */
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));
+  gap:10px; padding:12px 0 4px; align-items:stretch;
+}
+.torneo-podio-puesto{
+  position:relative; display:flex; flex-direction:column; gap:2px; min-width:0;
+  padding:11px 12px 10px 14px; border-radius:var(--radius-md);
+  background:var(--surface-raised); overflow:hidden;
+}
+.torneo-podio-puesto::before{
+  content:""; position:absolute; left:0; top:0; bottom:0; width:2px;
+  background:var(--border-firm);
+}
+.torneo-podio-puesto.campeon{background:var(--accent-wash-soft);}
+.torneo-podio-puesto.campeon::before{background:var(--accent); width:3px;}
+.torneo-podio-medalla{font-size:13px; line-height:1;}
+.torneo-podio-nombre{
+  font-family:var(--font-display); font-size:13.5px; font-weight:700; color:var(--text-primary);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.torneo-podio-puesto.p1 .torneo-podio-nombre{font-size:15.5px; font-weight:800; letter-spacing:-0.015em;}
+.torneo-podio-pts{
+  font-family:var(--font-stat); font-size:17px; font-weight:800;
+  font-variant-numeric:tabular-nums; letter-spacing:-0.02em; color:var(--text-secondary);
+}
+.torneo-podio-puesto.p1 .torneo-podio-pts{font-size:21px; color:var(--accent);}
+.torneo-podio-meta{
+  display:flex; align-items:baseline; gap:6px; flex-wrap:wrap;
+  font-size:10.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;
+}
+.torneo-sin-minimos{
+  font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase;
+  color:var(--critical); background:var(--critical-wash); border-radius:999px; padding:1px 6px;
+}
+.torneo-podio-brecha{font-size:10.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+@media (max-width:620px){
+  /* Tres columnas de 100px no son un podio, son tres cajitas. Apilado, el
+     campeón arriba y los otros dos abajo sigue leyéndose como podio. */
+  .torneo-podio{grid-template-columns:1fr; gap:8px;}
+  .torneo-podio-puesto.p1 .torneo-podio-nombre{font-size:16px;}
+  .torneo-momentos-tira{grid-template-columns:repeat(auto-fit, minmax(135px, 1fr)); gap:12px 16px;}
+}
 .torneo-tabla{padding:8px 0 14px;}
 .torneo-fila{
   display:flex; align-items:center; gap:12px; padding:7px 8px;
@@ -4477,7 +4687,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   width:20px; flex:none; text-align:center;
   font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;
 }
-.torneo-fila.podio .torneo-puesto{font-size:13px;}
 .torneo-nombre{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-primary);}
 .torneo-vd{flex:none; font-size:11.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
 /* Si cobraba o no: es la mitad del drama de la liga y sin esto la tabla es un

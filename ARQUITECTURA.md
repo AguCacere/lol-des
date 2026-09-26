@@ -196,6 +196,13 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   dos direcciones. Resuelve contra la lista de jugadores y no parseando el texto:
   un nombre de Riot puede tener espacios y guiones, así que desde el slug solo no
   se sabe dónde termina el nombre.
+- `momentos.ts` — qué pasó ADENTRO de una edición cerrada: la mayor subida y la
+  mayor caída de un día, el día en que la punta estuvo más peleada, si el que ganó
+  la dio vuelta el último día y cuántas veces cambió de manos la punta. Todo sale
+  de restas sobre `porDia`, la misma curva que dibuja la carrera. También arma
+  `relatoDeLaEdicion`, la línea de "cómo se ganó" de la tarjeta del historial.
+  Cada momento lleva su ÍNDICE además del nombre del día: un torneo de ocho días
+  tiene dos "lun" y buscar por nombre ubicaba la marca en el día equivocado.
 - `juntos.ts` — lo que mira la pestaña Equipo: qué proporción de lo que juega cada
   uno es con alguien del grupo, y si así le va mejor o peor. Sale del mismo mapa
   por partida que la sinergia de dúo, pero no dibuja ningún par: la sinergia es par
@@ -345,9 +352,13 @@ pestañas.
   mismo `porDia` que dibuja la carrera, así que no pide nada al servidor.
   El detalle que se abre agrupa las partidas por día y **cada día se despliega**, con
   el más nuevo abierto por defecto (ver DECISIONES).
-  Al pie, `LigaHistorial` —la última edición con su margen real, las anteriores
-  y el palmarés— y desde ahí se abre `LigaTorneo`, el archivo de una edición: va encima y no en una pantalla propia porque es una foto de diez segundos
-  y mandar a otra página obliga a irse de la liga y volver.
+  Al pie, `LigaHistorial`: la última edición como CRÓNICA —cuándo fue, quién ganó,
+  con qué récord, una línea de cómo se ganó y el 2º y el 3º—, las anteriores en una
+  tira horizontal y el palmarés. Desde ahí se abre `LigaTorneo`, el archivo de una
+  edición, que cuenta la misma historia en grande y en este orden: resultado →
+  la carrera → los momentos de la semana → la clasificación con podio. Va encima
+  y no en una pantalla propia porque es una foto de diez segundos y mandar a otra
+  página obliga a irse de la liga y volver.
   `PlayerProfile` es el más grande, y tiene TRES pestañas propias —Resumen,
   Mejorar, Campeones— que son el eje por el que se reparten sus piezas:
   - **Resumen** (cómo viene): `ProfileForma` (la banda: las últimas 5, las últimas

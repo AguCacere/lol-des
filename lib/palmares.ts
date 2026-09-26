@@ -34,6 +34,10 @@ export interface Edicion {
   duelo?: { segundo: string; margen: number } | null;
   /** El récord del campeón esa semana. Opcional: las semanas viejas no lo tienen. */
   record?: { victorias: number; derrotas: number } | null;
+  /** Los tres de arriba. Null cuando la semana cerró sin guardar su foto. */
+  podio?: EnPodio[] | null;
+  /** Una línea sobre CÓMO se ganó (ver lib/momentos.ts). Null cuando no hay nada que contar. */
+  relato?: string | null;
 }
 
 /**
@@ -53,6 +57,35 @@ export function dueloDeLaEdicion(tabla: FilaFinal[], ganadorPuuid: string | null
   if (orden[0].puuid !== ganadorPuuid) return null;
   const margen = Math.round((orden[0].puntos - orden[1].puntos) * 100) / 100;
   return { segundo: orden[1].name, margen };
+}
+
+/** Un puesto del podio de una edición, para la tarjeta del historial. */
+export interface EnPodio {
+  puuid: string;
+  nombre: string;
+  puntos: number;
+  /** Si además es el que COBRÓ. Puede no ser el primero: ver dueloDeLaEdicion. */
+  campeon: boolean;
+}
+
+/**
+ * Los tres de arriba de una edición.
+ *
+ * La tarjeta del historial mostraba al campeón y al segundo, y con eso no se
+ * puede saber si la semana estuvo cerrada o si el tercero quedó a diez puntos.
+ * El tercero es barato —ya está en el mismo `resumen`— y es lo que convierte
+ * "ganó fulano" en "así quedó la semana".
+ *
+ * Ordenado por puntos, como la clasificación final. El campeón va marcado y no
+ * movido a la primera posición: cuando el de arriba no llegó a los mínimos, el
+ * podio real y quién cobró son dos cosas distintas y la tarjeta las cuenta por
+ * separado.
+ */
+export function podioDeLaEdicion(tabla: FilaFinal[], ganadorPuuid: string | null, cuantos = 3): EnPodio[] {
+  return [...tabla]
+    .sort((a, b) => b.puntos - a.puntos)
+    .slice(0, cuantos)
+    .map((f) => ({ puuid: f.puuid, nombre: f.name, puntos: f.puntos, campeon: f.puuid === ganadorPuuid }));
 }
 
 /** Cuántos títulos tiene cada uno, de más a menos. La segunda competencia de la liga. */

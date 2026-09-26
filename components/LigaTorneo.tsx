@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { LigaCarrera } from "./LigaCarrera";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { puntajeTexto, rangoDeSemana } from "@/lib/liga";
-import { comoSeDefinio, dueloDeLaEdicion } from "@/lib/palmares";
+import { dueloDeLaEdicion } from "@/lib/palmares";
+import { hitosDeMomentos, momentosDeLaSemana } from "@/lib/momentos";
 
 /**
  * Cómo terminó un torneo pasado, encima de lo que estabas mirando.
@@ -115,7 +116,14 @@ export function LigaTorneo({
   const campeon = datos?.tabla.find((f) => f.puuid === datos.ganadorPuuid) ?? null;
   const puntero = datos?.tabla[0] ?? null;
   const duelo = datos ? dueloDeLaEdicion(datos.tabla, datos.ganadorPuuid) : null;
-  const relato = datos ? comoSeDefinio(datos.tabla, datos.dias, datos.ganadorPuuid) : null;
+  // Lo que pasó ADENTRO de la semana. El marcador final ya lo cuenta la
+  // clasificación; esto es lo otro. Ver lib/momentos.ts.
+  const momentos = datos ? momentosDeLaSemana(datos.tabla, datos.dias) : null;
+  const hitos = hitosDeMomentos(momentos);
+  // El podio y el resto. Es la misma tabla ordenada, partida en dos: los tres
+  // de arriba con jerarquía y los demás como lista compacta.
+  const podio = datos ? datos.tabla.slice(0, 3) : [];
+  const resto = datos ? datos.tabla.slice(3) : [];
 
   return (
     <div className="torneo-fondo" onClick={onCerrar} role="presentation">
@@ -135,15 +143,30 @@ export function LigaTorneo({
             <span className="torneo-rotulo">Historial de la liga</span>
             <strong>{rangoDeSemana(semana)}</strong>
           </div>
+          {/* Las flechas dicen A DÓNDE llevan. Antes decían "2 de 2", que es
+              paginación de modal: para saber si la de al lado era la semana
+              pasada o la siguiente había que apretarla. Con la fecha puesta,
+              la navegación del archivo se lee como un calendario. */}
           <div className="torneo-nav">
-            <button type="button" onClick={() => irA(1)} disabled={i + 1 >= semanas.length} aria-label="Edición anterior">
-              ‹
+            <button
+              type="button"
+              className="torneo-nav-ir"
+              onClick={() => irA(1)}
+              disabled={i + 1 >= semanas.length}
+              aria-label={semanas[i + 1] ? `Ir a la semana del ${rangoDeSemana(semanas[i + 1])}` : "No hay edición anterior"}
+            >
+              <span aria-hidden>‹</span>
+              <b>{semanas[i + 1] ? rangoDeSemana(semanas[i + 1]) : "—"}</b>
             </button>
-            <span className="torneo-nav-cuenta">
-              {semanas.length - i} de {semanas.length}
-            </span>
-            <button type="button" onClick={() => irA(-1)} disabled={i <= 0} aria-label="Edición siguiente">
-              ›
+            <button
+              type="button"
+              className="torneo-nav-ir"
+              onClick={() => irA(-1)}
+              disabled={i <= 0}
+              aria-label={semanas[i - 1] ? `Ir a la semana del ${rangoDeSemana(semanas[i - 1])}` : "No hay edición siguiente"}
+            >
+              <b>{semanas[i - 1] ? rangoDeSemana(semanas[i - 1]) : "—"}</b>
+              <span aria-hidden>›</span>
             </button>
             <button type="button" className="torneo-cerrar" onClick={onCerrar} aria-label="Cerrar">
               ✕
@@ -169,19 +192,30 @@ export function LigaTorneo({
           </p>
         ) : (
           <div className={cargando ? "torneo-cuerpo cambiando" : "torneo-cuerpo"}>
-            {/* ── El campeón ──
-                Un hero compacto, no una línea de texto y no un banner. Antes
-                era una frase corrida —"X se llevó la semana con +10,75, entre
-                6"— y el que ganó una edición entera se leía igual que una nota
-                al pie. */}
+            {/* ── El resultado ──
+                Una sola vez. Antes el desenlace se contaba TRES veces
+                seguidas: el hero decía "marlboro +15,25", la tira de abajo
+                decía "0,75 sobre compren bitcoin", y el bloque "Cómo se
+                definió" lo volvía a contar en prosa con los mismos números —y
+                todavía faltaba el titular de la carrera, que decía lo mismo
+                una cuarta vez—. Ahora es el hero y UN renglón, y lo que se
+                ganó de lugar se lo lleva el gráfico, que es lo que la gente
+                viene a ver. */}
             <div className="torneo-campeon">
               {campeon ? (
                 <>
                   <span className="torneo-copa" aria-hidden>🏆</span>
                   <PlayerAvatar name={campeon.name} iconUrl={null} className="torneo-campeon-avatar" />
                   <span className="torneo-campeon-quien">
-                    <span className="torneo-campeon-rotulo">Campeón</span>
                     <strong className="torneo-campeon-nombre">{campeon.name}</strong>
+                    <span className="torneo-campeon-meta">
+                      <b>Campeón</b>
+                      <i>·</i>
+                      <span className="wc-v">{campeon.victorias}V</span>
+                      <span className="wc-d">{campeon.derrotas}D</span>
+                      <i>·</i>
+                      entre {datos.jugadores}
+                    </span>
                   </span>
                   <span className="torneo-campeon-pts">{puntajeTexto(campeon.puntos)}</span>
                 </>
@@ -189,95 +223,181 @@ export function LigaTorneo({
                 <>
                   <span className="torneo-copa" aria-hidden>🫥</span>
                   <span className="torneo-campeon-quien">
-                    <span className="torneo-campeon-rotulo">Sin campeón</span>
                     <strong className="torneo-campeon-nombre">No cobró nadie</strong>
+                    <span className="torneo-campeon-meta">
+                      <b>Sin campeón</b>
+                      <i>·</i>
+                      entre {datos.jugadores}
+                    </span>
                   </span>
                 </>
               )}
             </div>
 
-            {/* Los tres datos de la edición, en una tira. Cada uno se dibuja
-                solo si existe: el margen no está cuando el campeón no terminó
-                primero, y ahí lo cuenta la nota de abajo. */}
-            <div className="torneo-datos">
-              {campeon && (
-                <span>
-                  <b className="wc-v">{campeon.victorias}V</b> · <b className="wc-d">{campeon.derrotas}D</b>
-                </span>
-              )}
-              <span>
-                {datos.jugadores} {datos.jugadores === 1 ? "participante" : "participantes"}
-              </span>
-              {duelo && (
-                <span>
-                  {duelo.margen === 0
-                    ? `empatado con ${duelo.segundo}`
-                    : `${puntajeTexto(Math.abs(duelo.margen)).replace("+", "")} sobre ${duelo.segundo}`}
-                </span>
-              )}
-            </div>
-
-            {/* Quedar primero y cobrar son dos cosas distintas, y cuando no
-                coinciden es LA historia de esa edición. */}
+            {/* El margen, en un renglón. Y cuando el que terminó arriba no es
+                el que cobró, esa es LA historia de la edición y va acá mismo
+                en vez de abajo como nota. */}
+            {duelo && (
+              <p className="torneo-remate">
+                {duelo.margen === 0
+                  ? `Terminó empatado con ${duelo.segundo}.`
+                  : `Ganó por ${puntajeTexto(Math.abs(duelo.margen)).replace("+", "")} ${Math.abs(duelo.margen) === 1 ? "punto" : "puntos"} sobre ${duelo.segundo}.`}
+              </p>
+            )}
             {puntero && campeon && puntero.puuid !== campeon.puuid && (
-              <p className="torneo-nota">Arriba terminó {puntero.name}, pero no llegó a los mínimos.</p>
+              <p className="torneo-remate">Arriba terminó {puntero.name}, pero no llegó a los mínimos.</p>
             )}
-            {!campeon && puntero && <p className="torneo-nota">Arriba terminó {puntero.name}.</p>}
-
-            {/* ── Cómo se definió ──
-                Armado con restas sobre la curva, no con un modelo: dice
-                exactamente lo que muestra el gráfico de abajo. Si no alcanza
-                para contar algo que el marcador no diga ya, no se dibuja. */}
-            {relato && (
-              <div className="torneo-relato">
-                <span className="torneo-seccion">Cómo se definió</span>
-                <p>{relato}</p>
-              </div>
-            )}
+            {!campeon && puntero && <p className="torneo-remate">Arriba terminó {puntero.name}.</p>}
 
             {/* ── La carrera ──
                 Con los mismos colores que la de hoy: el color sale del PUUID,
                 así que el que es azul esta semana es azul en todas. */}
-            {/* Sin rótulo propio: LigaCarrera ya trae el suyo —"LA CARRERA" y
-                la frase de quién terminó arriba de quién— y puesto uno encima
-                el título salía dos veces seguidas. El bloque queda solo por su
-                borde y su aire. */}
+            {/* Sin rótulo propio: LigaCarrera ya trae el suyo. Y acá va SIN
+                titular, porque el encabezado de arriba ya dijo por cuánto
+                ganó y el titular lo repetía palabra por palabra. */}
             <div className="torneo-bloque">
               <LigaCarrera
                 corredores={datos.tabla.map((f) => ({ puuid: f.puuid, name: f.name, porDia: f.porDia, puntos: f.puntos }))}
                 dias={datos.dias}
                 cerrada
+                // Sin titular: el encabezado de arriba ya dijo por cuánto ganó.
+                sinTitular
+                // El campeón a fondo y el segundo a media presencia, sin que
+                // haya que tocar nada: son los dos que se pelearon la edición.
+                destacados={[campeon?.puuid ?? datos.tabla[0]?.puuid, datos.tabla.find((f) => f.puuid !== (campeon?.puuid ?? datos.tabla[0]?.puuid))?.puuid].filter((x): x is string => !!x)}
+                hitos={hitos}
               />
             </div>
 
+            {/* ── Los momentos ──
+                Una franja, no cuatro tarjetas. Lo que pasó adentro de la
+                semana: quién se escapó, quién se hundió, qué día estuvo más
+                peleada la punta y si el que ganó venía ganando. Cada pieza se
+                dibuja solo si el dato existe (ver lib/momentos.ts) — y nada de
+                esto se infiere, son restas sobre la misma curva de arriba. */}
+            {momentos && (momentos.mayorSubida || momentos.mayorCaida || momentos.masCerrado || momentos.vuelta) && (
+              <div className="torneo-momentos">
+                <span className="torneo-seccion">Momentos de la semana</span>
+                <div className="torneo-momentos-tira">
+                  {momentos.mayorSubida && (
+                    <div className="torneo-momento">
+                      <span className="torneo-momento-et">
+                        <i className="bueno" aria-hidden>↑</i> Mayor subida
+                      </span>
+                      <span className="torneo-momento-quien">{momentos.mayorSubida.nombre}</span>
+                      <span className="torneo-momento-dato">
+                        <b className="gd-pos">{puntajeTexto(momentos.mayorSubida.delta)}</b> el {momentos.mayorSubida.dia}
+                      </span>
+                    </div>
+                  )}
+                  {momentos.mayorCaida && (
+                    <div className="torneo-momento">
+                      <span className="torneo-momento-et">
+                        <i className="malo" aria-hidden>↓</i> Mayor caída
+                      </span>
+                      <span className="torneo-momento-quien">{momentos.mayorCaida.nombre}</span>
+                      <span className="torneo-momento-dato">
+                        <b className="gd-neg">{puntajeTexto(momentos.mayorCaida.delta)}</b> el {momentos.mayorCaida.dia}
+                      </span>
+                    </div>
+                  )}
+                  {momentos.masCerrado && (
+                    <div className="torneo-momento">
+                      <span className="torneo-momento-et">
+                        <i aria-hidden>⚔</i> Más peleado
+                      </span>
+                      <span className="torneo-momento-quien">el {momentos.masCerrado.dia}</span>
+                      <span className="torneo-momento-dato">
+                        <b>{puntajeTexto(momentos.masCerrado.diferencia).replace("+", "")}</b> entre 1º y 2º
+                      </span>
+                    </div>
+                  )}
+                  {momentos.vuelta ? (
+                    <div className="torneo-momento">
+                      <span className="torneo-momento-et">
+                        <i aria-hidden>⟲</i> La dio vuelta
+                      </span>
+                      <span className="torneo-momento-quien">{momentos.vuelta.nombre}</span>
+                      <span className="torneo-momento-dato">
+                        <b>{momentos.vuelta.desde}º → 1º</b> el {momentos.vuelta.dia}
+                      </span>
+                    </div>
+                  ) : (
+                    momentos.cambiosDeLider > 0 && (
+                      <div className="torneo-momento">
+                        <span className="torneo-momento-et">
+                          <i aria-hidden>⇄</i> La punta
+                        </span>
+                        <span className="torneo-momento-quien">
+                          cambió {momentos.cambiosDeLider} {momentos.cambiosDeLider === 1 ? "vez" : "veces"}
+                        </span>
+                        <span className="torneo-momento-dato">en toda la semana</span>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* ── La clasificación final ──
-                El podio se distingue con medalla en vez de número. El resto
-                sigue numerado: tres medallas y un 4 dicen dónde termina el
-                podio sin escribirlo. */}
+                Los tres de arriba con jerarquía y el resto como lista
+                compacta. Era una tabla de cinco columnas parejas donde el
+                campeón se leía igual que el séptimo: en una competencia el
+                podio no es "las primeras tres filas", es otra cosa. Ninguna
+                columna se perdió —récord, mínimos y puntaje siguen estando—,
+                cambió dónde caen. */}
             <div className="torneo-bloque">
               <span className="torneo-seccion">Clasificación final</span>
-              <div className="torneo-tabla">
-                {datos.tabla.map((f, idx) => (
+              <div className="torneo-podio">
+                {podio.map((f, idx) => (
                   <div
                     key={f.puuid}
-                    className={`torneo-fila${f.puuid === datos.ganadorPuuid ? " campeon" : ""}${idx < 3 ? " podio" : ""}`}
+                    className={`torneo-podio-puesto p${idx + 1}${f.puuid === datos.ganadorPuuid ? " campeon" : ""}`}
                   >
-                    <span className="torneo-puesto">{MEDALLAS[idx] ?? idx + 1}</span>
-                    <span className="torneo-nombre">{f.name}</span>
-                    <span className="torneo-vd">
-                      {f.victorias}V-{f.derrotas}D
-                    </span>
-                    {/* Si cobraba o no. Es la mitad del drama de la liga y sin
-                        esto la tabla es un ranking cualquiera. */}
-                    <span className={`torneo-minimos${f.habilitado ? " cumple" : ""}`}>
-                      {f.habilitado ? "cumplió" : "sin mínimos"}
-                    </span>
-                    <span className={`torneo-pts ${f.puntos > 0 ? "gd-pos" : f.puntos < 0 ? "gd-neg" : ""}`}>
+                    <span className="torneo-podio-medalla" aria-hidden>{MEDALLAS[idx]}</span>
+                    <span className="torneo-podio-nombre">{f.name}</span>
+                    <span className={`torneo-podio-pts ${f.puntos > 0 ? "gd-pos" : f.puntos < 0 ? "gd-neg" : ""}`}>
                       {puntajeTexto(f.puntos)}
                     </span>
+                    <span className="torneo-podio-meta">
+                      {f.victorias}V-{f.derrotas}D
+                      {!f.habilitado && <b className="torneo-sin-minimos">sin mínimos</b>}
+                    </span>
+                    {/* La distancia al campeón, en el 2º y el 3º: es el número
+                        que dice si la semana estuvo cerrada, y restarlo de
+                        memoria entre dos tarjetas no lo hace nadie. */}
+                    {idx > 0 && podio[0] && (
+                      <span className="torneo-podio-brecha">
+                        a {puntajeTexto(Math.round((podio[0].puntos - f.puntos) * 100) / 100).replace("+", "")} del 1º
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
+              {resto.length > 0 && (
+                <div className="torneo-tabla">
+                  {resto.map((f, idx) => (
+                    <div
+                      key={f.puuid}
+                      className={`torneo-fila${f.puuid === datos.ganadorPuuid ? " campeon" : ""}`}
+                    >
+                      <span className="torneo-puesto">{idx + 4}</span>
+                      <span className="torneo-nombre">{f.name}</span>
+                      <span className="torneo-vd">
+                        {f.victorias}V-{f.derrotas}D
+                      </span>
+                      {/* Si cobraba o no. Es la mitad del drama de la liga y sin
+                          esto la tabla es un ranking cualquiera. */}
+                      <span className={`torneo-minimos${f.habilitado ? " cumple" : ""}`}>
+                        {f.habilitado ? "cumplió" : "sin mínimos"}
+                      </span>
+                      <span className={`torneo-pts ${f.puntos > 0 ? "gd-pos" : f.puntos < 0 ? "gd-neg" : ""}`}>
+                        {puntajeTexto(f.puntos)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

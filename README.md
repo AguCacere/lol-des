@@ -170,8 +170,17 @@ que va primero cobra o qué le falta), **la carrera** —los puntos de todos dí
 en un solo gráfico, un color por persona, clic en un nombre para seguirlo; desde su
 pie se abre **el día por día**, la grilla con los números que el gráfico no puede
 mostrar y en qué puesto cerró cada uno cada día—, **la
-tabla** y, al pie, **la vitrina de campeones**: el vigente con su foto y con cuánta
-gente compitió, y las semanas anteriores abajo.
+tabla** y, al pie, **el historial**.
+
+El historial no es una lista de resultados viejos. Arranca con la última edición
+contada como crónica —cuándo fue, quién ganó, con qué récord, **cómo se ganó** ("llegó
+al último día 2º, a 1 punto del puntero, y lo dio vuelta") y quiénes quedaron 2º y
+3º—, sigue con la tira de campeones anteriores y, desde que alguien gana dos veces,
+el palmarés. Tocando cualquiera se **revive la semana**: el resultado, la carrera día
+por día con el campeón y su escolta destacados, **los momentos** (la mayor subida, la
+mayor caída, el día en que la punta estuvo más peleada, si se dio vuelta al final) y
+la clasificación con podio. Todo sale de restas sobre la misma curva: no hay ninguna
+frase que no se pueda comprobar en el gráfico de arriba.
 
 **La cerradura** — todo lo que escribe (agregar invocadores, refrescar, generar
 informes con Claude, anotar gente en la liga) pide una contraseña compartida. Lo que
