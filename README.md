@@ -43,12 +43,20 @@ esa métrica contra sí mismo; lo que se repite en sus últimas diez; y cómo le
 contra cada rival de línea. Todo se compara contra su propio historial, nunca
 contra una tabla general, y ninguna lectura afirma una causa.
 
-**Cara a cara** — dos jugadores del grupo comparados de frente, sin pedirle nada más al
-servidor.
+**Cara a cara** — dos del grupo comparados de frente: rango, winrate de la season,
+forma reciente, los ejes uno por uno y los dos pools con los campeones que juegan los
+dos marcados. Cuando los dos tienen muestra suficiente, la comparación es **contra el
+promedio del propio rol** y no contra el número crudo — el CS/min de un support al
+lado del de un ADC no dice nada. No hay un "ganador": están las diferencias eje por
+eje y nada que las sume.
 
-**Clash** — las partidas de Clash agrupadas por torneo, con su conclusión por día.
+**Clash** — el archivo: las partidas agrupadas por día de torneo, el winrate de cada
+uno y cuánto se despega de su SoloQ. El encabezado dice cuánto hace del último, que
+hoy es bastante.
 
-**Equipo** — el resumen semanal del grupo.
+**Equipo** — **cómo jugamos juntos**: qué parte de lo que juega cada uno es con
+alguien del grupo, y si así le va mejor o peor que solo. Debajo, el resumen de la
+semana con su botón para copiarlo al Discord.
 
 **Los torneos se planifican**, no se deducen del calendario. Atrás de la contraseña, en
 el panel de la liga, se carga cuándo arranca cada torneo, cuándo cierra, sus mínimos y

@@ -196,6 +196,11 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   dos direcciones. Resuelve contra la lista de jugadores y no parseando el texto:
   un nombre de Riot puede tener espacios y guiones, así que desde el slug solo no
   se sabe dónde termina el nombre.
+- `juntos.ts` — lo que mira la pestaña Equipo: qué proporción de lo que juega cada
+  uno es con alguien del grupo, y si así le va mejor o peor. Sale del mismo mapa
+  por partida que la sinergia de dúo, pero no dibuja ningún par: la sinergia es par
+  por par y no puede dar el denominador (las partidas que jugó solo). Dos lados de
+  10 partidas como mínimo para escribir la brecha.
 - `radiografia.ts` — lo que mira la pestaña Estadísticas, todo sobre una VENTANA
   elegible (7 días, 30 días o toda la temporada guardada): la `historia` del período
   (un protagonista y lo demás), el estado de forma —una sola lista por persona con
@@ -271,7 +276,7 @@ app/page.tsx  ──fetch──→  /api/ladder GET
                     puros de lib/ (radar, insights, form, tilt, builds…)
                               │
                               ↓
-                    { players, duoSynergy, championLeaderboard }
+                    { players, duoSynergy, juntos, radiografia }
 ```
 
 Ese `.map` final es la clave: el handler es largo pero **no tiene lógica de negocio
@@ -375,9 +380,17 @@ pestañas.
 - **Mejora** → `Mejora`. La única pestaña que pide por UNA persona: carga
   `/api/mejora?puuid=…` al elegir a alguien del roster, con un guardia contra
   respuestas que vuelven fuera de orden.
-- **Cara a cara** → `HeadToHead`. No pide nada al servidor.
-- **Clash** → `ClashHistory`.
-- **Equipo** → `TeamDigest`.
+- **Cara a cara** → `HeadToHead`. No pide nada al servidor. Dos fichas con rango,
+  winrate de la season y forma reciente, la comparación eje por eje —contra el
+  propio rol cuando hay radar de los dos, contra el número crudo cuando no— y los
+  dos pools con los campeones compartidos marcados. **No hay un ganador general**:
+  ver DECISIONES.
+- **Clash** → `ClashHistory`. Es un ARCHIVO y lo dice: el encabezado escribe cuánto
+  hace del último Clash, porque los datos son de enero y la pestaña se leía como si
+  fueran de esta semana.
+- **Equipo** → `ComoJugamosJuntos` (la pregunta propia de la pestaña, sobre todas
+  las partidas guardadas) y debajo `TeamDigest` (la semana del grupo, que es lo que
+  se copia al Discord).
 
 `useLiga` (`components/useLiga.ts`) es el caché de módulo de `/api/liga`: lo comparten
 Inicio y `LigaSemanal` para no pedir dos veces la misma respuesta pesada. Ahí viven

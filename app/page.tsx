@@ -12,6 +12,7 @@ import { conTransicion } from "@/lib/view-transition";
 import { LadderTable, playerKey, type SortKey } from "@/components/LadderTable";
 import { PlayerProfile } from "@/components/PlayerProfile";
 import type { Radiografia } from "@/lib/radiografia";
+import type { Juntos } from "@/lib/juntos";
 import { DuoSynergy } from "@/components/DuoSynergy";
 import { Estadisticas } from "@/components/Estadisticas";
 import { Mejora } from "@/components/Mejora";
@@ -19,6 +20,7 @@ import { claveDesdeHash, hashDeClave } from "@/lib/ruta-perfil";
 import { ClashHistory } from "@/components/ClashHistory";
 import { LiveTray } from "@/components/LiveTray";
 import { TeamDigest } from "@/components/TeamDigest";
+import { ComoJugamosJuntos } from "@/components/ComoJugamosJuntos";
 import { fetchConClave } from "@/components/Cerradura";
 
 function parseRiotId(raw: string): { gameName: string; tagLine: string } | null {
@@ -57,6 +59,7 @@ function Cargando() {
 export default function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [duoSynergy, setDuoSynergy] = useState<DuoPair[]>([]);
+  const [juntos, setJuntos] = useState<Juntos | null>(null);
   const [radiografia, setRadiografia] = useState<Radiografia | null>(null);
   const [clashTournaments, setClashTournaments] = useState<ClashTournament[]>([]);
   const [clashPlayerStats, setClashPlayerStats] = useState<ClashPlayerStats[]>([]);
@@ -100,6 +103,9 @@ export default function Home() {
       if (!res.ok) throw new Error(data.error ?? "No se pudo cargar el ladder.");
       setPlayers(data.players as Player[]);
       setDuoSynergy((data.duoSynergy as DuoPair[]) ?? []);
+      // Con guarda, igual que la radiografía: durante la ventana de caché del
+      // CDN llega el JSON de antes del deploy, que no trae el campo.
+      setJuntos((data.juntos as Juntos | undefined) ?? null);
       // Puede venir null durante la ventana de caché del CDN: hay pestañas
       // con el bundle nuevo recibiendo el JSON viejo, que todavía no lo trae.
       // La pestaña sabe mostrar el estado vacío en vez de romperse.
@@ -488,7 +494,7 @@ export default function Home() {
           {loading ? <Cargando /> : <HeadToHead players={players} duos={duoSynergy} ddragonVersion={ddragonVersion} />}
         </div>
       ) : tab === "clash" ? (
-        <div id="view-clash">
+        <div id="view-clash" className="clash-cuerpo">
           <ClashHistory
             tournaments={clashTournaments}
             players={players}
@@ -498,7 +504,11 @@ export default function Home() {
           />
         </div>
       ) : (
-        <div id="view-team">
+        <div id="view-team" className="equipo-cuerpo">
+          {/* Primero la pregunta propia de la pestaña —cuánto juegan juntos y
+              cómo les va— y después el resumen de la semana, que es el que se
+              copia al Discord. Ver components/ComoJugamosJuntos.tsx. */}
+          <ComoJugamosJuntos juntos={juntos} />
           <TeamDigest
             digest={teamDigest}
             loading={teamDigestLoading}

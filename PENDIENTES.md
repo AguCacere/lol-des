@@ -23,15 +23,20 @@ pantalla en vez de tirar 500.
 
 ## El plan de evolución: fase 7
 
-`GRIETA_CENTRAL_PLAN_EVOLUCION.md` tiene siete fases. **Van hechas de la 1 a la 6**
-(sistema visual y navegación · Inicio · Ranking · Liga · Estadísticas · Mejora). Lo
-que falta:
+`GRIETA_CENTRAL_PLAN_EVOLUCION.md` tiene siete fases. **Están las siete** (sistema
+visual y navegación · Inicio · Ranking · Liga · Estadísticas · Mejora · Cara a cara,
+Clash y Equipo). Lo único que falta del plan:
 
 - **De la fase 6 quedó afuera, a propósito, la capa de IA (8.9).** El plan la pone
   explícitamente después del motor determinístico y dice que la pestaña tiene que
   ser útil sin ella. El motor ya calcula todo lo que un modelo necesitaría recibir
   (`lib/mejora.ts`); cuando se haga, recibe ESOS números y no los reemplaza.
-- **Fase 7 — Cara a cara / Clash / Equipo**. Consolidación y estados vacíos.
+
+De la fase 7 quedó una cosa **medida y sin resolver, que no es de código**: el grupo
+no juega Clash desde el 26 de enero de 2026. La pestaña ahora dice hace cuánto fue,
+así que ya no miente, pero son 38 partidas de hace ocho meses. Si no se vuelve a
+jugar, en algún momento la pregunta va a ser si la pestaña sigue valiendo una de las
+siete — no hay nada que arreglar ahí, hay que jugar un Clash.
 
 Lo único que quedó abierto de la fase 5, y es de una línea:
 

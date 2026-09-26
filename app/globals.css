@@ -1571,7 +1571,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* The match itself, read the way the history reads it: real champion art,
    then the champion, then the box score — instead of "Malphite · 9/2/16"
    flattened into one grey string where the numbers carried no structure. */
-.digest-card-match{display:flex; align-items:center; gap:7px; min-width:0; font-size:11.5px;}
+/* flex-wrap para el nombre largo: "Nunu y Willump" pide 86px y en una tarjeta
+   de 317 le quedaban 77. Con wrap el KDA se baja un renglón en vez de comerle
+   la cola al nombre, y como solo pasa cuando no entra, las tarjetas cortas
+   siguen midiendo lo mismo. */
+.digest-card-match{display:flex; align-items:center; flex-wrap:wrap; gap:3px 7px; min-width:0; font-size:11.5px;}
 .digest-match-champ{
   width:18px; height:18px; border-radius:5px; flex:none; overflow:hidden;
   display:flex; align-items:center; justify-content:center;
@@ -2369,6 +2373,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* ── Cara a cara (components/HeadToHead.tsx) ──────────────────────────────
    Dos jugadores enfrentados: A siempre en dorado a la izquierda, B en acero
    a la derecha. Las barras salen del centro hacia el que gana el eje. */
+/* Ancho de lectura, igual que Mejorar y Equipo. A 1540 los dos números de un
+   eje quedaban a 1300px de distancia con la barra invisible en el medio: el
+   track es casi del color del fondo y una diferencia del 3% sobre 1350px son
+   veinte píxeles que no se ven. Comparar dos cosas pide tenerlas cerca. */
+.h2h{max-width:900px;}
+/* Los estados vacíos de la pestaña, en un renglón y alineados con el resto.
+   Eran tres cajas centradas de media pantalla para decir que falta un dato. */
+.h2h-nada{margin:4px 0 16px; font-size:13px; color:var(--text-muted); line-height:1.55;}
 .h2h-selects{display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;}
 .h2h-select{flex:1 1 200px; min-width:0;}
 .h2h-select .sel-btn{font-size:14px; padding:9px 11px;}
@@ -2389,6 +2401,18 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .h2h-ficha-stats{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:10px; font-size:13px; font-weight:600; color:var(--text-secondary);}
 .h2h-sep{color:var(--text-muted);}
 .h2h-mini{font-size:11px; font-weight:500; color:var(--text-muted);}
+/* La forma reciente de cada uno, debajo del rango: puntitos de las últimas
+   cinco y el winrate de las últimas veinte contra su propio histórico. Los
+   puntos son los MISMOS .fb-punto del Resumen del perfil — es el mismo dato,
+   así que no merece otro dibujo. */
+.h2h-forma{
+  display:flex; align-items:center; gap:7px 16px; flex-wrap:wrap;
+  margin-top:9px; padding-top:9px; border-top:1px solid var(--border-soft);
+  font-size:12px; color:var(--text-secondary);
+}
+.h2h-forma-bloque{display:flex; align-items:center; gap:6px; min-width:0;}
+.h2h-puntos{display:flex; align-items:center; gap:4px;}
+.h2h-forma strong{font-family:var(--font-stat); font-size:14px; font-weight:800; font-variant-numeric:tabular-nums;}
 .h2h-ejes{background:var(--surface-raised); border-radius:var(--radius-md); padding:14px 16px; margin-bottom:20px;}
 .h2h-ejes-head{
   display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
@@ -2399,7 +2423,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .h2h-marcador .a{color:var(--accent);}
 .h2h-marcador .b{color:var(--versus-b);}
 .h2h-nota{margin:0 0 12px; font-size:12px; color:var(--text-muted); line-height:1.45;}
-.h2h-eje{display:grid; grid-template-columns:62px 1fr 62px; align-items:center; gap:10px; padding:5px 0;}
+/* Cuatro columnas: nombre del eje, su número, la barra, el número del otro.
+   El nombre salió de adentro de la barra (ver HeadToHead.tsx) y por eso la
+   fila cambió de tres columnas a cuatro. */
+.h2h-eje{display:grid; grid-template-columns:152px 62px minmax(0,1fr) 62px; align-items:center; gap:10px; padding:5px 0;}
 .h2h-val{font-size:13px; font-weight:600; color:var(--text-muted); font-variant-numeric:tabular-nums;}
 .h2h-val.a{text-align:right;}
 .h2h-val.b{text-align:left;}
@@ -2408,20 +2435,38 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* La barra es una sola pista con el cero en el medio: el relleno arranca ahí
    y crece hacia el que gana, así la longitud es la brecha y no dos valores
    sueltos que hay que restar con la vista. */
-.h2h-barra{position:relative; height:24px; background:var(--track); border-radius:var(--radius-sm); overflow:hidden;}
-.h2h-fill{position:absolute; top:0; bottom:0;}
+/* --surface-hover y no --track: los dos tokens son #171610 y #161510, o sea
+   la pista era EXACTAMENTE del color de la tarjeta sobre la que se dibuja y
+   no se veía ninguna (comparados los valores, no mirados). Sin pista visible
+   no hay escala, y sin escala un relleno de 28px no dice nada. */
+.h2h-barra{position:relative; height:24px; background:var(--surface-hover); border-radius:var(--radius-sm); overflow:hidden;}
+/* La marca del medio: es el cero de la escala. Sin ella no se sabe desde
+   dónde crece el relleno ni para qué lado va cuando la brecha es chica. */
+.h2h-barra::before{
+  content:""; position:absolute; left:50%; top:4px; bottom:4px; width:1px;
+  background:var(--border-firm); transform:translateX(-0.5px);
+}
+/* min-width para que una diferencia chiquita igual se vea DE QUÉ LADO está:
+   46% contra 49% da 28px, pero 6,0 contra 6,3 daba 2 y quedaba en nada. */
+.h2h-fill{position:absolute; top:0; bottom:0; min-width:3px;}
 .h2h-fill.a{background:rgba(212,175,55,0.20); border-right:2px solid var(--accent);}
 .h2h-fill.b{background:var(--versus-b-wash); border-left:2px solid var(--versus-b);}
-/* La etiqueta va centrada sobre la barra, y con fondo propio: sin él, el
-   relleno le pasa por debajo y el texto queda ilegible justo en las filas
-   más peleadas, que son las que más se miran. */
 .h2h-eje-label{
-  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-  font-size:11px; font-weight:600; color:var(--text-secondary); pointer-events:none;
+  font-size:12px; font-weight:600; color:var(--text-secondary);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.h2h-eje-label span{background:var(--surface-raised); padding:2px 8px; border-radius:999px; white-space:nowrap;}
-/* La franja de "cuando juegan juntos": es el dato que una vista versus pide
-   sola, así que va con su propio fondo y no como una línea más de texto. */
+.h2h-eje-corta{display:none;}
+@media (max-width:620px){
+  /* En el teléfono no entran cuatro columnas: la etiqueta se va a su propio
+     renglón —en versión corta— y abajo quedan los dos números con la barra
+     en el medio, que es la comparación. */
+  .h2h-eje{grid-template-columns:52px minmax(0,1fr) 52px; gap:4px 8px; padding:7px 0;}
+  .h2h-eje-label{grid-column:1 / -1; font-size:11px; color:var(--text-muted);}
+  .h2h-eje-larga{display:none;}
+  .h2h-eje-corta{display:inline;}
+  .h2h-barra{height:20px;}
+}
+
 .h2h-juntos{
   display:flex; align-items:center; justify-content:space-between; gap:10px 16px; flex-wrap:wrap;
   background:var(--surface-raised); border-radius:var(--radius-md);
@@ -2550,7 +2595,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .tw-row:last-child{border-radius:0 0 var(--radius-lg) var(--radius-lg);}
 .tw-head, .tw-row{
   display:grid;
-  grid-template-columns:30px minmax(0,1.5fr) 74px minmax(120px,1.6fr) 56px 74px;
+  /* Cinco columnas: se fue la de la barra de "distancia al 50%" (ver
+     ClashHistory.tsx). */
+  grid-template-columns:30px minmax(0,1fr) 74px 66px 74px;
   align-items:center; gap:14px;
   padding:11px 18px;
 }
@@ -2579,23 +2626,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .tw-dot{color:var(--text-muted); opacity:0.5;}
 .tw-c-games{font-family:var(--font-stat); font-size:13px; color:var(--text-secondary); font-variant-numeric:tabular-nums; text-align:right;}
 .tw-head .tw-c-games{text-align:right;}
-.tw-c-bar{display:flex; align-items:center; min-width:0;}
-.tw-head .tw-c-bar{display:flex; align-items:center; gap:4px;}
-.tw-track{position:relative; width:100%; height:8px; background:var(--track); border-radius:999px; display:block;}
-/* La punta que crece va redondeada y la que apoya en el 50% queda recta: es
-   lo que hace leer la línea del centro como el origen y no como un corte. */
-.tw-fill{position:absolute; top:0; bottom:0; border-radius:0 4px 4px 0;}
-.tw-fill.good{left:50%; background:var(--good);}
-.tw-fill.bad{right:50%; background:var(--critical); border-radius:4px 0 0 4px;}
-/* El punto neutro de la escala: ni un polo ni el otro. Se pinta igual (con
-   largo casi cero) para que la fila no quede sin marca sobre la línea. */
-.tw-fill.neutral{left:50%; background:var(--text-muted);}
-/* La línea del 50% es el origen de todo el gráfico, así que se dibuja como
-   un eje (sobresale de la pista) y no como una marca más adentro de ella. */
-.tw-zero{
-  position:absolute; left:50%; top:-4px; bottom:-4px; width:1px;
-  background:var(--text-secondary); opacity:0.7; transform:translateX(-0.5px);
-}
 .tw-c-wr{font-family:var(--font-stat); font-size:15px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums;}
 .tw-c-net{font-family:var(--font-stat); font-size:13px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums;}
 .tw-c-wr.good, .tw-c-net.good{color:var(--good);}
@@ -2610,23 +2640,20 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .podium-meta{display:flex; align-items:center; gap:5px; flex-wrap:wrap; justify-content:center;}
 .podium-meta .seg{white-space:nowrap;}
 @media (max-width:760px){
-  /* La barra pasa a una segunda línea a todo el ancho: apretada en una sola
-     fila quedaba de 40px y dejaba de mostrar la diferencia, que es todo lo
-     que la barra aporta.
-
-     El PUESTO ocupa los dos renglones. Antes ocupaba solo el primero y abajo
-     le caía el total de partidas, así que la columna de la izquierda
-     terminaba con dos números pelados uno arriba del otro —"4" y "334"— y se
-     leía como si el segundo fuera otro puesto. El total de partidas se fue al
-     lado de su barra, que es lo que cuenta, y con la palabra al lado: sin el
-     encabezado (que en el teléfono no está) un número solo no dice qué es. */
+  /* Sin la barra la fila entra en DOS renglones y no en tres: arriba el
+     nombre con el winrate y el delta, abajo el total de partidas con la
+     palabra al lado —sin el encabezado, que en el teléfono no está, un
+     número pelado no dice qué es—. El puesto ocupa los dos renglones: antes
+     ocupaba solo el primero y abajo le caía el total, así que la columna
+     izquierda terminaba con "4" y "334" uno arriba del otro y el segundo se
+     leía como otro puesto. */
   .tw-head{display:none;}
   .tw-row{
-    grid-template-columns:24px 62px minmax(0,1fr) 50px 36px;
+    grid-template-columns:24px minmax(0,1fr) 50px 36px;
     grid-template-areas:
-      "rank name  name wr  net"
-      "rank games bar  bar bar";
-    gap:7px 9px; padding:12px 14px;
+      "rank name  wr  net"
+      "rank games games games";
+    gap:5px 9px; padding:12px 14px;
   }
   .tw-c-rank{grid-area:rank; align-self:center;}
   .tw-c-name{grid-area:name;}
@@ -2635,8 +2662,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
     font-family:var(--font-body); font-size:9.5px; font-weight:600;
     color:var(--text-muted); text-align:left; white-space:nowrap;
   }
-  .tw-c-games::after{content:" partidas";}
-  .tw-c-bar{grid-area:bar;}
+  .tw-c-games::after{content:" partidas de Clash";}
   .tw-c-wr{grid-area:wr;}
   .tw-c-net{grid-area:net; font-size:12px;}
   .tw-avatar{width:30px; height:30px;}
@@ -6305,4 +6331,140 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   }
   .pc-tira::-webkit-scrollbar{display:none;}
   .pc-chip{min-width:76px;}
+}
+
+/* ── Equipo · "Cómo jugamos juntos" (ver components/ComoJugamosJuntos.tsx) ──
+   Mismo lenguaje que la banda de "cómo viene" del Resumen y que la portada de
+   Estadísticas: rótulo chico, cifra grande, muestra debajo, y una línea fina
+   abajo en vez de una caja. No son tarjetas a propósito — son tres lecturas
+   de lo mismo, no tres objetos. */
+/* Un ancho de lectura para toda la pestaña, igual que en Mejorar. La tabla
+   es nombre a la izquierda y cuatro números a la derecha: a 1540 quedaban
+   940px de nada en el medio y el ojo perdía el renglón. 980 y no menos
+   porque abajo va la grilla del resumen semanal, que son tres tarjetas en
+   fila y con menos se caen a dos. */
+.equipo-cuerpo{max-width:980px;}
+.eq-banda{
+  display:flex; flex-wrap:wrap; gap:14px 40px; align-items:flex-start;
+  padding:2px 2px 16px; border-bottom:1px solid var(--border-soft);
+}
+.eq-bloque{display:flex; flex-direction:column; gap:3px; min-width:0;}
+.eq-et{
+  font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em;
+  color:var(--text-muted); white-space:nowrap;
+}
+.eq-cifra{
+  font-family:var(--font-stat); font-size:21px; font-weight:800; line-height:1.05;
+  font-variant-numeric:tabular-nums; letter-spacing:-0.02em;
+}
+.eq-cifra.good{color:var(--good);}
+.eq-cifra.bad{color:var(--critical);}
+.eq-cifra.neutral{color:var(--text-secondary);}
+.eq-dato{font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+/* La conclusión en prosa, arriba de la tabla: es lo que alguien se lleva de
+   la pestaña si no lee ninguna fila. */
+.eq-lectura{
+  margin:14px 0 18px; font-size:13.5px; line-height:1.55; color:var(--text-secondary);
+}
+.eq-lectura strong.good{color:var(--good);}
+.eq-lectura strong.bad{color:var(--critical);}
+.eq-vacio{font-size:13px; color:var(--text-muted); margin:6px 0 0;}
+
+/* La tabla: cinco columnas fijas para que los números caigan en la misma x en
+   todas las filas, que es lo único que hace comparable una lista. El ancho de
+   las tres de winrate sale de medir su contenido real ("100.0%" es el peor
+   caso), no de un número redondo. */
+.eq-tabla{display:flex; flex-direction:column;}
+.eq-cab, .eq-fila{
+  display:grid; grid-template-columns:minmax(0,1fr) 168px 62px 62px 60px;
+  align-items:center; gap:14px; padding:9px 4px;
+}
+.eq-cab{
+  font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;
+  color:var(--text-muted); padding-bottom:7px; border-bottom:1px solid var(--border-soft);
+}
+.eq-cab .eq-num{text-align:right;}
+.eq-cab .eq-num:last-child{display:inline-flex; align-items:center; justify-content:flex-end; gap:4px;}
+.eq-fila{border-bottom:1px solid var(--border-soft);}
+.eq-fila:last-child{border-bottom:none;}
+.eq-quien{display:flex; align-items:center; gap:9px; min-width:0;}
+.eq-avatar{width:28px; height:28px; border-radius:8px; flex:none;}
+.eq-quien-txt{display:flex; flex-direction:column; gap:1px; min-width:0;}
+.eq-nombre{
+  font-size:13px; font-weight:700; color:var(--text-primary);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.eq-con{font-size:10.5px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.eq-cuanto{display:flex; align-items:center; gap:9px; min-width:0;}
+/* Escala fija 0-100% y no relativa al que más juega acompañado: la pregunta es
+   qué PARTE de lo suyo es con el grupo, así que media barra tiene que querer
+   decir la mitad y no "la mitad del que más". */
+.eq-barra{
+  flex:1 1 auto; min-width:0; height:6px; border-radius:3px;
+  background:var(--surface-hover); overflow:hidden;
+}
+.eq-barra-fill{display:block; height:100%; border-radius:3px; background:var(--accent-dim);}
+.eq-cuanto-txt{font-size:11px; color:var(--text-secondary); font-variant-numeric:tabular-nums; white-space:nowrap;}
+.eq-mini{color:var(--text-muted);}
+.eq-wr{
+  font-family:var(--font-stat); font-size:13.5px; font-weight:800;
+  font-variant-numeric:tabular-nums; text-align:right;
+}
+.eq-wr.good{color:var(--good);}
+.eq-wr.bad{color:var(--critical);}
+.eq-wr.neutral{color:var(--text-secondary);}
+.eq-brecha{
+  font-size:12px; font-weight:700; font-variant-numeric:tabular-nums;
+  text-align:right; color:var(--text-muted);
+}
+.eq-brecha.good{color:var(--good);}
+.eq-brecha.bad{color:var(--critical);}
+/* Los que jugaron una o dos veces con el grupo, en un renglón y no en una
+   fila: con esa muestra el winrate no se puede escribir grande (ver el
+   comentario en ComoJugamosJuntos.tsx). */
+.eq-pie{margin:14px 0 0; font-size:11.5px; color:var(--text-muted); line-height:1.6;}
+
+@media (max-width:760px){
+  /* En el teléfono no entran cinco columnas. La fila se parte en tres
+     renglones: quién, su barra, y los tres números JUNTOS y a la izquierda,
+     cada uno con su rótulo puesto — sin encabezado de tabla arriba, que a dos
+     renglones de distancia ya no dice a qué columna pertenece cada número. */
+  .eq-cab{display:none;}
+  .eq-fila{grid-template-columns:repeat(3, auto); justify-content:start; gap:8px 26px; padding:12px 2px;}
+  .eq-quien{grid-column:1 / -1;}
+  .eq-cuanto{grid-column:1 / -1; margin-top:1px;}
+  .eq-wr, .eq-brecha{text-align:left;}
+  .eq-wr::before, .eq-brecha::before{
+    display:block; font-family:var(--font-body); font-size:9px; font-weight:700;
+    text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted);
+  }
+  .eq-wr-juntos::before{content:"Juntos";}
+  .eq-wr-solos::before{content:"Solos";}
+  .eq-brecha::before{content:"Dif.";}
+}
+@media (max-width:520px){
+  /* Y la banda de arriba, igual que la del Resumen: a 390 entraban dos y una,
+     con la tercera sola y medio renglón vacío al lado. */
+  .eq-banda{flex-direction:column; flex-wrap:nowrap; gap:0; padding:0 2px 10px;}
+  .eq-bloque{
+    display:grid; grid-template-columns:minmax(0,1fr) auto;
+    align-items:baseline; gap:1px 12px; width:100%; padding:8px 0;
+  }
+  .eq-bloque + .eq-bloque{border-top:1px solid var(--border-soft);}
+  .eq-et{grid-column:1; grid-row:1; white-space:normal;}
+  .eq-cifra{grid-column:2; grid-row:1; justify-self:end; font-size:19px;}
+  .eq-dato{grid-column:2; grid-row:2; justify-self:end; text-align:right;}
+}
+
+/* Mismo ancho de lectura que Equipo. Sin el tope, la tabla de winrate tiene
+   el nombre a la izquierda y "9 · 44.4% · −6" contra el borde derecho, con
+   900px de nada en el medio, y el podio son tres tarjetas de 500px para
+   decir un porcentaje cada una. */
+.clash-cuerpo{max-width:980px;}
+/* El "de cuándo es esto" del archivo de Clash y sus dos estados de una línea
+   (ver components/ClashHistory.tsx). */
+.clash-ultima{margin-left:6px; color:var(--text-muted);}
+.clash-nada{
+  display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+  margin:4px 0 0; font-size:13px; color:var(--text-muted);
 }

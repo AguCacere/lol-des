@@ -10,9 +10,6 @@ import { wilsonLower } from "@/lib/wilson";
 
 const MEDALS = ["gold", "silver", "bronze"];
 
-/** Piso de la escala de la barra, igual que en los otros rankings. */
-const ESCALA_MINIMA = 10;
-
 /**
  * "Winrate por invocador" en Clash.
  *
@@ -32,7 +29,6 @@ function ClashPlayerStatsList({ stats, players }: { stats: ClashPlayerStats[]; p
   const ordenadas = [...stats].sort((a, b) => wilsonLower(b.wins, b.games) - wilsonLower(a.wins, a.games));
   const podium = ordenadas.slice(0, 3);
   const rest = ordenadas.slice(3);
-  const escala = Math.max(ESCALA_MINIMA, ...ordenadas.map((s) => Math.abs(s.winrate - 50)));
 
   function soloQDe(s: ClashPlayerStats): number | undefined {
     return soloQPorJugador.get(`${s.playerName}#${s.playerTag}`);
@@ -71,10 +67,11 @@ function ClashPlayerStatsList({ stats, players }: { stats: ClashPlayerStats[]; p
             <span className="tw-c-rank" />
             <span className="tw-c-name">Invocador</span>
             <span className="tw-c-games">Partidas</span>
-            <span className="tw-c-bar">
-              Distancia al 50%
-              <InfoTip text="La barra sale del 50%. El ORDEN de la tabla, en cambio, no es por porcentaje: se tiene en cuenta cuántas partidas jugó cada uno, porque si no un 3-de-3 queda arriba de un 7-de-10 y eso premia al que menos jugó." />
-            </span>
+            {/* Acá iba una barra de "distancia al 50%". Se fue: decía
+                exactamente lo mismo que la columna WR de al lado, y es la
+                misma visualización que ya se había sacado del estado de forma
+                de Estadísticas por el mismo motivo. Era la última que
+                quedaba. */}
             <span className="tw-c-wr">WR</span>
             <span className="tw-c-net">
               vs. SoloQ
@@ -86,7 +83,6 @@ function ClashPlayerStatsList({ stats, players }: { stats: ClashPlayerStats[]; p
           </div>
           {rest.map((s, i) => {
             const tono = s.wins === s.losses ? "neutral" : s.wins > s.losses ? "good" : "bad";
-            const largo = Math.min(50, (Math.abs(s.winrate - 50) / escala) * 50);
             return (
               <div className="tw-row" key={`${s.playerName}#${s.playerTag}`}>
                 <span className="tw-c-rank">{i + 4}</span>
@@ -102,12 +98,6 @@ function ClashPlayerStatsList({ stats, players }: { stats: ClashPlayerStats[]; p
                   </span>
                 </div>
                 <span className="tw-c-games">{s.games}</span>
-                <div className="tw-c-bar" title={`${winrateTexto(s.wins, s.games)} en ${s.games} partidas de Clash`}>
-                  <span className="tw-track">
-                    <span className={`tw-fill ${tono}`} style={{ width: `${largo}%` }} />
-                    <span className="tw-zero" />
-                  </span>
-                </div>
                 <span className={`tw-c-wr ${tono}`}>{winrateTexto(s.wins, s.games)}</span>
                 <span className="tw-c-net">
                   <DeltaSoloQ clash={s.winrate} solo={soloQDe(s)} />
@@ -280,6 +270,28 @@ function ClashTournamentRow({ t, ddragonVersion }: { t: ClashTournament; ddragon
  * de Riot — cada "torneo" es un día calendario con Clash jugado, con las
  * partidas y stats reales de cada partida, más una conclusión automática.
  */
+/**
+ * Cuánto hace del último Clash, en la escala que hace falta acá: meses.
+ *
+ * Existe porque `formatRelativeDate` corta en "hace N semanas" y arriba de
+ * eso escribe "26 ene" a secas. Medido contra la base, el último Clash del
+ * grupo fue el 26 de enero de 2026 y hoy es septiembre: la pestaña mostraba
+ * "3 torneos · 38 partidas · 52% winrate" sin decir en ningún lado que eso
+ * pasó hace ocho meses, y se leía como si fuera de esta semana. Un archivo
+ * tiene que decir que es un archivo.
+ */
+function haceCuanto(iso: string): string {
+  const dias = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  if (dias < 1) return "hoy";
+  if (dias === 1) return "ayer";
+  if (dias < 7) return `hace ${dias} días`;
+  if (dias < 60) return `hace ${Math.floor(dias / 7)} semanas`;
+  const meses = Math.floor(dias / 30);
+  if (meses < 12) return `hace ${meses} meses`;
+  const anios = Math.floor(dias / 365);
+  return anios === 1 ? "hace más de un año" : `hace más de ${anios} años`;
+}
+
 export function ClashHistory({
   tournaments,
   players,
@@ -296,6 +308,13 @@ export function ClashHistory({
   const totalGames = tournaments.reduce((s, t) => s + t.gamesPlayed, 0);
   const totalWins = tournaments.reduce((s, t) => s + t.wins, 0);
   const tonoTotal = tonoDeWinrate(totalWins, totalGames);
+  // La partida más nueva de todas, para decir de cuándo es lo que se está
+  // mirando. Los días vienen del más nuevo al más viejo, pero se busca el
+  // máximo igual: el orden no es una garantía de la que depende esto.
+  let ultima: string | null = null;
+  for (const t of tournaments) {
+    for (const m of t.matches) if (ultima === null || m.playedAt > ultima) ultima = m.playedAt;
+  }
 
   return (
     <section>
@@ -311,6 +330,7 @@ export function ClashHistory({
           {tournaments.length} {tournaments.length === 1 ? "torneo" : "torneos"} de Clash registrados · {totalGames}{" "}
           partidas ·{" "}
           <span className={`clash-lifetime-wr ${tonoTotal}`}>{winrateTexto(totalWins, totalGames)} winrate</span>
+          {ultima && <span className="clash-ultima">· el último, {haceCuanto(ultima)}</span>}
         </p>
       )}
 
@@ -334,17 +354,17 @@ export function ClashHistory({
       )}
 
       <div className={tournaments.length === 0 ? "duo-list" : "panel-list"}>
+        {/* Los dos estados, en un renglón. Ocupaban una caja de tres líneas
+            cada uno para decir que falta un dato — el plan pide justo lo
+            contrario. El detalle de cómo se reconstruye un día de Clash vive
+            en el InfoTip, no en el hueco. */}
         {loading ? (
-          <div className="empty-state">
-            <strong>Cargando…</strong>
-            Buscando partidas de Clash guardadas.
-          </div>
+          <p className="clash-nada">Buscando partidas de Clash guardadas…</p>
         ) : tournaments.length === 0 ? (
-          <div className="empty-state">
-            <strong>Todavía no hay Clash para mostrar</strong>
-            Se arma solo la próxima vez que alguien del grupo juegue un Clash — Riot no expone historial de torneos
-            pasados, así que esto reconstruye cada día de Clash a partir de las partidas que ya tenemos guardadas.
-          </div>
+          <p className="clash-nada">
+            Todavía no hay ningún Clash guardado.
+            <InfoTip text="Riot no expone el historial de torneos pasados, así que esta pestaña reconstruye cada día de Clash a partir de las partidas que ya están guardadas. Aparece solo la próxima vez que alguien del grupo juegue uno." />
+          </p>
         ) : (
           tournaments.map((t) => <ClashTournamentRow t={t} ddragonVersion={ddragonVersion} key={t.key} />)
         )}

@@ -266,7 +266,14 @@ function DigestBody({
                 <span className="digest-card-value gd-neg">
                   {digest.worstLoss.goldDiffAtEnd.toLocaleString("es-AR")}
                   <span className="digest-card-unidad">
-                    de oro al minuto {digest.worstLoss.goldDiffMinute}
+                    {/* "al minuto 20" pasó a "@20'". El "de oro" —que es lo
+                        que hacía falta para que el número no pudiera leerse
+                        como daño o LP— se queda; lo que se va es la parte
+                        larga, que medía 123px de una tarjeta de 317 y le
+                        dejaba 19 al nombre del campeón de al lado ("A…").
+                        Y "@20'" es como se escribe el minuto en los cruces
+                        de línea del perfil. */}
+                    de oro @{digest.worstLoss.goldDiffMinute}&apos;
                     <InfoTip
                       align="end"
                       text="Cuánto oro tenía de menos que el rival de SU MISMA línea en ese minuto — no contra el equipo entero. Es el criterio con el que se elige la peor derrota de la semana: no la del peor KDA, sino la partida donde la línea se rompió más."

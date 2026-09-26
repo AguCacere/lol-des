@@ -50,6 +50,16 @@ function formatear(metric: RadarMetric, valor: number): string {
 
 function Ficha({ p, lado }: { p: Player; lado: "a" | "b" }) {
   const t = tierFor(p.tierKey);
+  // La forma reciente la pedía el plan y no estaba: dos fichas con el rango y
+  // el winrate de la season no dicen cuál de los dos está jugando bien AHORA,
+  // que es la mitad de por qué alguien abre un cara a cara. Mismo material y
+  // mismo lenguaje que la banda del Resumen del perfil: los puntitos de las
+  // últimas cinco y el winrate de las últimas veinte contra su propio
+  // histórico (ver components/ProfileForma.tsx).
+  const ultimas = p.matches.slice(0, 5);
+  const v = ultimas.filter((m) => m.win).length;
+  const wr = p.recentForm?.winrate ?? null;
+  const pp = wr ? Math.round(wr.recent - wr.baseline) : null;
   return (
     <div className={`h2h-ficha ${lado}`}>
       <div className="h2h-ficha-top">
@@ -80,6 +90,34 @@ function Ficha({ p, lado }: { p: Player; lado: "a" | "b" }) {
           {winrateTexto(p.wins, p.wins + p.losses)} <span className="h2h-mini">en {p.wins + p.losses}</span>
         </span>
       </div>
+      {(ultimas.length > 0 || wr) && (
+        <div className="h2h-forma">
+          {ultimas.length > 0 && (
+            <span className="h2h-forma-bloque">
+              <span className="h2h-puntos" aria-hidden>
+                {ultimas.map((m, i) => (
+                  <span key={i} className={`fb-punto ${m.win ? "good" : "bad"}`} />
+                ))}
+              </span>
+              <span className="h2h-mini">
+                {v}V·{ultimas.length - v}D
+              </span>
+            </span>
+          )}
+          {wr && (
+            <span className="h2h-forma-bloque">
+              <span className="h2h-mini">últimas {p.recentForm!.recentGames}</span>
+              <strong className={wr.recent >= 50 ? "gd-pos" : "gd-neg"}>{Math.round(wr.recent)}%</strong>
+              {pp !== null && pp !== 0 && (
+                <span className={`h2h-mini ${pp > 0 ? "gd-pos" : "gd-neg"}`}>
+                  {pp > 0 ? "+" : "−"}
+                  {Math.abs(pp)} pp
+                </span>
+              )}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -102,11 +140,16 @@ export function HeadToHead({
   const [claveB, setClaveB] = useState<string>(rival ? claveDe(rival) : "");
 
   if (players.length < 2) {
+    // Con el encabezado puesto, y en un renglón. Antes era una caja centrada
+    // suelta: la pestaña quedaba como una página en blanco con un cartel en
+    // el medio, sin decir siquiera que eso era "Cara a cara".
     return (
-      <div className="empty-state">
-        <strong>Hace falta más de un invocador</strong>
-        Agregá a alguien más al ladder para poder comparar.
-      </div>
+      <section className="section h2h">
+        <div className="section-head">
+          <h2 className="section-title">Cara a cara</h2>
+        </div>
+        <p className="h2h-nada">Hace falta más de un invocador en el ladder para poder comparar.</p>
+      </section>
     );
   }
 
@@ -162,9 +205,6 @@ export function HeadToHead({
     return Math.max(-1, Math.min(1, ((e.valorA - e.valorB) / mayor) * 2));
   }
 
-  const ganaA = ejes.filter((e) => ventaja(e) > 0).length;
-  const ganaB = ejes.length - ganaA;
-
   // Los dos pools completos, con los campeones compartidos marcados: la
   // intersección sola suele venir vacía (el pool está capado en 5) y una
   // sección vacía es peor que una que igual muestra algo útil.
@@ -189,10 +229,7 @@ export function HeadToHead({
       </div>
 
       {claveDe(a) === claveDe(b) ? (
-        <div className="empty-state">
-          <strong>Elegí dos distintos</strong>
-          Compararlo con sí mismo siempre termina empatado.
-        </div>
+        <p className="h2h-nada">Elegí dos distintos: compararlo con sí mismo siempre termina empatado.</p>
       ) : (
         <>
           <div className="h2h-fichas">
@@ -221,10 +258,10 @@ export function HeadToHead({
           )}
 
           {ejes.length === 0 ? (
-            <div className="empty-state">
-              <strong>Todavía no hay con qué compararlos</strong>
-              Hace falta que los dos tengan al menos diez partidas guardadas para que los promedios signifiquen algo.
-            </div>
+            <p className="h2h-nada">
+              Todavía no hay con qué compararlos: hacen falta al menos diez partidas guardadas de cada uno para que
+              los promedios signifiquen algo.
+            </p>
           ) : (
             <div className="h2h-ejes">
               <div className="h2h-ejes-head">
@@ -238,9 +275,12 @@ export function HeadToHead({
                     }
                   />
                 </span>
-                <span className="h2h-marcador">
-                  <strong className="a">{ganaA}</strong> — <strong className="b">{ganaB}</strong>
-                </span>
+                {/* Acá había un marcador "4 — 3": cuántos ejes gana cada uno.
+                    Se fue. Contar ejes equivale a decir que el KDA y la visión
+                    por minuto pesan lo mismo, y no pesan; el número salía
+                    grande arriba a la derecha y se leía como el resultado del
+                    cara a cara. Las diferencias siguen estando eje por eje,
+                    que es donde significan algo. */}
               </div>
 
               {!mismoRol && (
@@ -265,6 +305,20 @@ export function HeadToHead({
                 const haciaA = diff > 0;
                 return (
                   <div className="h2h-eje" key={e.key}>
+                    {/* La etiqueta AL COSTADO y no encima de la barra. Estaba
+                        centrada sobre la pista, con fondo propio para que el
+                        relleno no le pasara por debajo, y el resultado era que
+                        tapaba el relleno: la brecha típica mide 29px y arranca
+                        justo en el medio, o sea abajo de la etiqueta. Se veía
+                        la barra vacía en seis de siete ejes. */}
+                    <span className="h2h-eje-label">
+                      {/* Las dos versiones y el CSS elige, igual que en
+                          Mejorar: en el teléfono la etiqueta se pone en su
+                          propio renglón y ahí "Participación en objetivos"
+                          salía recortada. */}
+                      <span className="h2h-eje-larga">{RADAR_AXIS[e.key].long}</span>
+                      <span className="h2h-eje-corta">{RADAR_AXIS[e.key].short}</span>
+                    </span>
                     <span className={`h2h-val a${haciaA ? " gana" : ""}`}>{formatear(e.key, e.valorA)}</span>
                     <div className="h2h-barra">
                       <div
@@ -274,9 +328,6 @@ export function HeadToHead({
                           [haciaA ? "right" : "left"]: "50%",
                         }}
                       />
-                      <span className="h2h-eje-label">
-                        <span>{RADAR_AXIS[e.key].long}</span>
-                      </span>
                     </div>
                     <span className={`h2h-val b${!haciaA ? " gana" : ""}`}>{formatear(e.key, e.valorB)}</span>
                   </div>

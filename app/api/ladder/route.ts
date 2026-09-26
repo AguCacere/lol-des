@@ -13,6 +13,7 @@ import { computeAegisStats } from "@/lib/aegis";
 import { computeRecentForm, type FormSample } from "@/lib/form";
 import { computeRadar, metricasPropias, RADAR_METRICS, type MetricStats, type RadarMetric } from "@/lib/radar";
 import { computeMatchups, type MatchupSample } from "@/lib/matchups";
+import { comoJugamosJuntos, type Juntos } from "@/lib/juntos";
 import { computeChampionInsights } from "@/lib/champion-insights";
 import { computeMatchFlag, STATS_WINDOW_SIZE, type StatSample } from "@/lib/matchflags";
 import type { AegisStats, ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, DuoSharedMatch, FlexRank, LpHistoryPoint, MasteryEntry, Match, PersonalRecords, Player, RoleAverages, RoleKey } from "@/lib/types";
@@ -1311,6 +1312,10 @@ export async function GET() {
     profileIconUrl: r.profile_icon_id != null ? profileIconUrl(ddragonVersion, r.profile_icon_id) : null,
   }));
   // computeDuoSynergy() ya devuelve los pares ordenados por partidas juntas.
+  // "Cómo jugamos juntos" (pestaña Equipo). Sale del MISMO mapa por partida
+  // que la sinergia de dúo y contesta otra pregunta: qué proporción de lo que
+  // juega cada uno es acompañada, y si así le va mejor o peor. Ver lib/juntos.ts.
+  const juntos: Juntos = comoJugamosJuntos(trackedByMatchId.values(), nameByPuuid);
   const duoTop: DuoRadiografia | null = duos[0]
     ? { aName: duos[0].aName, bName: duos[0].bName, games: duos[0].games, wins: duos[0].wins }
     : null;
@@ -1319,6 +1324,7 @@ export async function GET() {
     {
       players,
       duoSynergy: duos,
+      juntos,
       // Ya no lo dibuja nadie: lo reemplazó el bloque de Especialistas, que
       // sale de la radiografía y respeta el filtro de período. Se sigue
       // mandando por la ventana de caché del CDN —durante unos minutos

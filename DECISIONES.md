@@ -3038,3 +3038,110 @@ vez de 132 a 180 por una razón propia (separar los escalones de una división);
 seguir inflándolo para tapar un hueco de margen es mover un número de datos por un
 motivo de layout. Dos columnas independientes terminan a distinta altura, y eso es
 lo que son.
+
+## Fase 7: primero medir qué datos hay, después decidir qué mostrar
+
+El plan arranca la fase con "no expandir por expandir: primero auditar qué datos
+reales existen". La auditoría contra la base cambió las tres pestañas, y una de las
+tres cosas que parecía obvia resultó imposible.
+
+**Lo que se midió (26/09/2026):**
+
+| | |
+|---|---|
+| Partidas guardadas con UNO del grupo | 1006 de 1224 |
+| Con DOS (dúo) | 205 |
+| Con TRES o más | **13 — y las trece son Clash** |
+| Último Clash jugado | 26 de enero de 2026, ocho meses atrás |
+| Partidas de Clash en total | 38, en 16 días, entre once personas |
+
+O sea: **"cómo jugamos juntos" no puede ser una vista de stacks.** Fuera del Clash,
+este grupo juega de a dos o solo. Una sección de tríos y five-stacks habría tenido
+trece filas históricas y ninguna de este año.
+
+### Equipo: la pestaña tenía las cuatro tarjetas de otro
+
+Era el resumen de la semana: los KPI del grupo y cuatro destacados —el que más
+subió, el mejor KDA, la peor derrota, el campeón más jugado—. Los cuatro son datos
+**individuales**, y los cuatro ya estaban contados en otro lado: el que más subió
+es "qué se movió" de Inicio, y los otros tres son la misma materia que los récords
+y la portada del período de Estadísticas. Una pestaña que se llama Equipo no tenía
+ni un número del equipo.
+
+Lo que ahora encabeza la pestaña es lo que nadie contestaba, y los números son
+buenos: **el 29% de lo que juega el grupo es con alguien del grupo, y juntos ganan
+48,5% contra 51,4% solos.** Persona por persona la brecha se abre fuerte —marlboro
+de diez gana 21 puntos más acompañado, Sagitaryus 12 menos, swampii 13 menos—, que
+es exactamente el tipo de cosa que este tracker existe para tirarle por la cabeza a
+alguien.
+
+El resumen semanal se quedó abajo. No es un duplicado que sobreviva por cariño: es
+lo que tiene el botón de copiar para el Discord.
+
+**Por qué no lo podía contestar la sinergia de dúo que ya existía.** Son la misma
+materia prima y dos preguntas distintas. La sinergia es par por par —"vos con este,
+72 partidas, 47%"— y le falta el denominador: cuántas jugó cada uno SIN nadie del
+grupo. Ese número no vive en un par. Por eso `lib/juntos.ts` recorre el mismo mapa
+por partida y agrega por persona, y por eso la pestaña no dibuja ningún par (el
+explorador de dúos ya existe en Estadísticas). Lo único prestado es un nombre por
+fila: con quién juega más.
+
+**El mínimo de 10 partidas de cada lado** para escribir la brecha sale de contar:
+con 10 pasan nueve de catorce, y los que quedan afuera tienen 0, 0, 0, 1 y 2
+partidas acompañadas. El corte no separa buenos de malos, separa a los que juegan
+con el grupo de los que no. A los de una o dos no se les dibuja fila: con esa
+muestra el winrate salía "0.0%" en rojo del mismo tamaño que un 63,5% de 74
+partidas, que es justo lo que el plan prohíbe. Van en un renglón al pie.
+
+### Cara a cara: se fue el marcador general
+
+Había un "4 — 3" arriba a la derecha: en cuántos ejes va adelante cada uno. El plan
+pide "diferencias claras sin declarar un ganador general", y ese número era un
+ganador general con otro nombre. No es solo estilo: **contar ejes equivale a decir
+que el KDA y la visión por minuto pesan lo mismo**, y no pesan. Las diferencias
+siguen estando eje por eje, que es donde significan algo.
+
+Lo que sí faltaba de la lista del plan era **la forma reciente**, y ahora está en
+cada ficha: los puntitos de las últimas cinco y el winrate de las últimas veinte
+contra su propio histórico. Dos fichas con el rango y el winrate de la season no
+dicen cuál de los dos está jugando bien AHORA.
+
+### La barra del cara a cara era invisible, y no por poco
+
+`--track` es `#171610` y `--surface-raised` —el fondo de la tarjeta sobre la que se
+dibuja— es `#161510`. **La pista de la barra era exactamente del color de su
+fondo.** Comparados los dos valores, no mirados. Y encima la etiqueta del eje iba
+centrada ENCIMA de la barra, con fondo propio para que el relleno no le pasara por
+debajo: como el relleno típico mide 29px y arranca justo en el medio, quedaba
+tapado por la etiqueta en seis de los siete ejes. Se veían siete barras vacías.
+
+Ahora la pista se ve (`--surface-hover`), hay una marca en el 50% que es el origen
+de la escala, el relleno tiene un mínimo de 3px para que una diferencia chica igual
+muestre de qué lado está, y la etiqueta salió a su propia columna.
+
+### Clash: es un archivo y ahora lo dice
+
+38 partidas, 16 días, la última hace ocho meses. La pestaña abría con "3 torneos ·
+38 partidas · 52% winrate" sin decir en ningún lado de cuándo era eso. Se agregó
+"el último, hace 8 meses" a esa misma línea, con una escala de meses propia porque
+`formatRelativeDate` corta en semanas y arriba de eso escribe "26 ene" a secas.
+
+También se fue la barra de **"distancia al 50%"**: decía lo mismo que la columna de
+winrate de al lado y era la última que quedaba de esa visualización, que ya se había
+sacado del estado de forma de Estadísticas por el mismo motivo. Sin ella la fila
+entra en dos renglones en el teléfono en vez de tres.
+
+### Un ancho de lectura, ahora en las cinco pestañas
+
+Mismo defecto que en Mejorar y Campeones, encontrado midiendo: a 1540 la tabla de
+Equipo dejaba 940px de nada entre el nombre y los números, y el podio de Clash eran
+tres tarjetas de 500px para decir un porcentaje cada una. Equipo y Clash quedaron
+topados en 980 (que es donde la grilla de tres tarjetas del resumen semanal todavía
+entra en fila) y Cara a cara en 900.
+
+### Estados vacíos de un renglón
+
+Las tres pestañas tenían cajas centradas de media pantalla para decir que falta un
+dato. Ahora son un renglón, alineado con el resto y **con el encabezado de la
+sección puesto**: el "hace falta más de un invocador" de Cara a cara ni siquiera
+decía que eso era Cara a cara — era un cartel flotando en una página en blanco.
