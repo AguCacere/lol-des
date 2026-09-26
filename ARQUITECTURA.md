@@ -121,7 +121,7 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   lo dice; se estima probando las 120 permutaciones).
 - `matchups.ts` — enfrentamientos de línea, desde `matches.opponent_champion`.
 - `radar.ts` — las siete dimensiones, contra el resto del grupo en ese mismo rol.
-- `insights.ts` — fortalezas y debilidades contra el promedio real del rol.
+  Ya no se dibuja como radar: `ProfileMejorar` usa sus ejes como una lista ordenada.
 - `form.ts` — forma reciente: sus últimas N contra todo lo anterior de él mismo.
 - `tilt.ts` — "estás jugando peor Y no estás parando".
 - `matchflags.ts` — marca partidas atípicas contra la forma propia.
@@ -346,6 +346,9 @@ pestañas.
   `PlayerProfile` es el más grande: `RadarChart`, `InsightsCard`, `RecentForm`,
   `TiltCard`, `ChampionPool`, `MasteryPool`, `ChampionInsights`, `Matchups`,
   `LineHistory`, `BuildStarts`, `PersonalRecords`, `AegisStats`, `CoachPanel`,
+  `ProfileMejorar` (una fila por métrica contra el promedio de su línea, partida en
+  fortalezas y debilidades; reemplazó al radar, a su tabla y a la tarjeta de
+  insights, que decían lo mismo tres veces y la última encima mal calculada),
   `ProfileForma` (la banda de "cómo viene" del Resumen: las últimas 5, las últimas
   20 contra su propio historial y la season, cada una con su muestra),
   `LiveGamePanel` y `MatchDetail` (que a su vez abre `MatchTimeline`).

@@ -27,16 +27,14 @@ import { MasteryPool } from "./MasteryPool";
 import { ChampionInsights } from "./ChampionInsights";
 import { CoachPanel } from "./CoachPanel";
 import { Matchups } from "./Matchups";
-import { InsightsCard } from "./InsightsCard";
 import { LineHistory } from "./LineHistory";
 import { PersonalRecords } from "./PersonalRecords";
-import { RadarChart } from "./RadarChart";
 import { RecentForm } from "./RecentForm";
 import { ProfileForma } from "./ProfileForma";
+import { ProfileMejorar } from "./ProfileMejorar";
 import { AegisStats } from "./AegisStats";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
-import { buildMetricInsights, splitStrengthsWeaknesses } from "@/lib/insights";
 import { ReviewIcon } from "./StatIcons";
 import { championLabel } from "@/lib/champion-names";
 
@@ -47,10 +45,13 @@ import { championLabel } from "@/lib/champion-names";
  * de ser usable en cualquier tamaño. Cada bloque nuevo entra en su pestaña
  * en vez de estirar la página.
  */
-type ProfileTabKey = "resumen" | "rendimiento" | "campeones";
+type ProfileTabKey = "resumen" | "mejorar" | "campeones";
 const PROFILE_TABS: { key: ProfileTabKey; label: string }[] = [
   { key: "resumen", label: "Resumen" },
-  { key: "rendimiento", label: "Rendimiento" },
+  // "Rendimiento" invitaba a mirar números; "Mejorar" invita a hacer algo con
+  // ellos, que es lo que la pestaña ahora contesta: en qué está mejor, en qué
+  // peor y en qué partidas se nota.
+  { key: "mejorar", label: "Mejorar" },
   { key: "campeones", label: "Campeones" },
 ];
 
@@ -169,19 +170,13 @@ export function PlayerProfile({
   const p = displayed;
   const t = tierFor(p.tierKey);
   const hasMatches = p.matches.length > 0;
-  const avgKDA = hasMatches
-    ? p.matches.reduce((s, m) => s + (m.k + m.a) / Math.max(1, m.d), 0) / p.matches.length
-    : 0;
-  const avgCS = hasMatches ? p.matches.reduce((s, m) => s + parseFloat(m.csmin), 0) / p.matches.length : 0;
-  const avgDmg = hasMatches ? p.matches.reduce((s, m) => s + m.dmgShare, 0) / p.matches.length : 0;
-  // Se fueron `wins`, `avgVision` y `avgDur`: los tres alimentaban fichas del
-  // Resumen que promediaban CINCO partidas y lo mostraban como un número
-  // general. La visión bien contada está en el radar y en la forma reciente,
-  // sobre todo el historial; la duración promedio no contesta "cómo viene".
-  const killPart = hasMatches
-    ? Math.round(p.matches.reduce((s, m) => s + m.killParticipation, 0) / p.matches.length)
-    : 0;
-  const objPart = hasMatches ? Math.round(p.matches.reduce((s, m) => s + m.objShare, 0) / p.matches.length) : 0;
+  // Se fueron TODOS los promedios sobre `p.matches` que vivían acá: wins,
+  // avgKDA, avgCS, avgDmg, avgVision, avgDur, killPart y objPart. Los ocho
+  // promediaban las últimas CINCO partidas y se mostraban —en las fichas del
+  // Resumen o en la tarjeta de fortalezas— como si fueran los números
+  // generales del jugador, sin decir la muestra. Las mismas métricas, bien
+  // contadas sobre todo el historial y con su muestra escrita, están en el
+  // radar (que ahora dibuja ProfileMejorar) y en la forma reciente.
   // Charted on rankScore (tier+división+LP combinado), no en el LP crudo: al
   // subir de división el número de LP se resetea (ej. Platino 3 a 80 LP →
   // Platino 2 a 0 LP), y graficar solo "lp" hacía ver esa subida como una
@@ -281,15 +276,14 @@ export function PlayerProfile({
     );
   });
   const streak = currentStreak(p.matches);
-  const roleAvg = p.roleAverages;
-  const metricInsights = buildMetricInsights([
-    { key: "kda", label: "KDA", value: Number(avgKDA.toFixed(2)), avg: roleAvg.kda, unit: "" },
-    { key: "csPerMin", label: "CS / min", value: Number(avgCS.toFixed(1)), avg: roleAvg.csPerMin, unit: "", tooltip: METRIC_INFO.csPerMin },
-    { key: "dmgShare", label: "% daño del equipo", value: Math.round(avgDmg), avg: roleAvg.dmgShare, unit: "%", tooltip: METRIC_INFO.dmgShare },
-    { key: "killParticipation", label: "Kill participation", value: killPart, avg: roleAvg.killParticipation, unit: "%", tooltip: METRIC_INFO.killParticipation },
-    { key: "objShare", label: "Participación objetivos", value: objPart, avg: roleAvg.objShare, unit: "%", tooltip: METRIC_INFO.objShare },
-  ]);
-  const { strengths, weaknesses } = splitStrengthsWeaknesses(metricInsights);
+  // Se fueron `metricInsights` y su split en fortalezas/debilidades. No es
+  // que sobraran: estaban MAL. Sus valores salían de `avgKDA`, `avgCS`,
+  // `avgDmg`, `killPart` y `objPart`, que promedian las últimas CINCO
+  // partidas, y los comparaban contra `roleAverages`, que sale de cientos de
+  // partidas del grupo. Una sola partida buena te movía de "debilidad" a
+  // "fortaleza". La comparación bien hecha —todas tus partidas en esa línea
+  // contra todas las del grupo en esa línea, con las dos muestras a la
+  // vista— ya la hacía el radar, y es la que quedó en ProfileMejorar.
   const peakTier = tierFor(p.peakLp.tier);
   const isAtPeak = p.peakLp.tier === p.tierKey && p.peakLp.division === p.division && p.peakLp.lp === p.lp;
   const next = nextDivisionInfo(p.tierKey, p.division, p.lp);
@@ -625,12 +619,29 @@ export function PlayerProfile({
           </div>
         )}
 
-        {tab === "rendimiento" && (
+        {tab === "mejorar" && (
           <>
-            {/* Ancho completo y arriba de todo: es la lectura de cabecera de
-                esta pestaña ("¿voy mejorando?"), y las dos columnas de abajo
-                son el detalle de por qué. */}
+            {/* UNA representación, no tres. Antes acá había el radar, la
+                tabla de ejes que venía abajo del radar y una tarjeta de
+                "Fortalezas y debilidades": los mismos dos números (el tuyo y
+                el del rol) dibujados de tres formas.
+
+                Y la tarjeta encima estaba mal calculada — promediaba las
+                últimas CINCO partidas y las comparaba contra el promedio del
+                rol, que sale de cientos. Ver components/ProfileMejorar.tsx. */}
+            <ProfileMejorar
+              radar={p.radar}
+              role={p.role}
+              matches={p.matches}
+              ddragonVersion={ddragonVersion}
+            />
+
+            {/* Otra PREGUNTA, no otra vista de la misma: acá la referencia es
+                él mismo hace veinte partidas, no el grupo. Se puede estar
+                debajo del rol y subiendo, o arriba y cayendo, y eso la
+                comparación de arriba no lo puede decir. */}
             <RecentForm form={p.recentForm} />
+
             {p.lineas && (
               <div>
                 <h4 className="subsection-label">
@@ -640,20 +651,20 @@ export function PlayerProfile({
                 <LineHistory h={p.lineas} />
               </div>
             )}
+
+            {/* Estos dos no compiten con lo de arriba: no comparan contra el
+                rol, cuentan otra cosa. Los récords son sus propios extremos y
+                el Aegis es una inferencia sobre el LP. */}
             <div className="stack-cols">
               <div>
-                <RadarChart radar={p.radar} role={p.role} />
-              </div>
-
-              <div>
-                <h4 className="subsection-label">Fortalezas y debilidades</h4>
-                <InsightsCard strengths={strengths} weaknesses={weaknesses} sampleSize={roleAvg.sampleSize} />
                 {p.personalRecords && (
                   <>
                     <h4 className="subsection-label">Récords personales</h4>
                     <PersonalRecords records={p.personalRecords} />
                   </>
                 )}
+              </div>
+              <div>
                 <AegisStats stats={p.aegisStats} />
               </div>
             </div>

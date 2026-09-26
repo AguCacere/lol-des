@@ -2870,3 +2870,66 @@ las cuatro cosas que esta pestaña tiene que contestar.
 **Queda una arista**: sacadas las fichas, la columna izquierda termina unos 76px
 antes que la de partidas. Es la diferencia natural entre una lista de cinco filas y
 un gráfico, y se mira en la fase de pulido, no tapándola con una métrica de relleno.
+
+## "Fortalezas y debilidades" comparaba cinco partidas contra cientos
+
+La pestaña de Rendimiento tenía TRES cosas diciendo lo mismo: el radar, la tabla de
+ejes que venía justo abajo del radar, y una tarjeta de "Fortalezas y debilidades".
+Tres dibujos del mismo par de números — tu valor y el de tu rol — uno abajo del otro.
+
+Pero el problema de fondo no era la repetición. **De las tres, la tarjeta estaba mal
+calculada.** Sus valores salían de `avgKDA`, `avgCS`, `avgDmg`, `killPart` y
+`objPart`, que promedian `p.matches`, o sea **las últimas CINCO partidas**, y los
+comparaba contra `roleAverages`, que el servidor arma con cientos de partidas del
+grupo. Una sola partida buena te movía de "área de mejora" a "fortaleza".
+
+El radar, en cambio, se calcula en el servidor sobre TODAS las partidas del jugador
+en esa línea contra TODAS las del grupo en esa línea, en desvíos estándar, y reporta
+las dos muestras.
+
+Así que se quedó **el cálculo del radar y se fue su forma**. Un radar obliga a
+interpretar geometría para contestar "¿en qué estoy peor?", que es una pregunta de
+lista ordenada. Lo que hay ahora es una fila por métrica:
+
+    métrica | vos | su rol | dif.
+
+partida en dos grupos por el signo del z, ordenada por cuánto se despega, y con el
+porcentaje sin color cuando la diferencia no llega al 8% — el mismo umbral que ya
+usaba `lib/insights.ts` para decidir qué era notable. El umbral no cambió de valor,
+cambió de lugar.
+
+Quedaron borrados `components/RadarChart.tsx`, `components/InsightsCard.tsx` y
+`lib/insights.ts` enteros: nadie los importaba más. El radar era un componente lindo
+y está a un `git show` de distancia, pero dejar código muerto que dibuja bien un dato
+mal comparado es una invitación a volver a usarlo.
+
+### Una representación por PREGUNTA, no una sola para todo
+
+`RecentForm` se quedó, y no es una excepción a lo de arriba: contesta **otra
+pregunta**. La comparación de arriba mide contra el grupo; `RecentForm` mide contra
+vos mismo hace veinte partidas. Se puede estar debajo del rol y subiendo, o arriba y
+cayendo, y la primera no puede decir eso.
+
+Estuvo un rato como una columna de flechas adentro de la misma fila. Se sacó: metía
+cinco de sus ocho métricas, convertía un porcentaje en una flecha, y la propuesta
+original era de cuatro columnas —`métrica | jugador | referencia | diferencia`— sin
+tendencia. Dos bloques que contestan dos preguntas son más claros que una tabla que
+contesta media de cada una.
+
+### "¿En qué partidas se nota?"
+
+Cada fila se abre y muestra el valor de esa métrica en las últimas partidas
+guardadas, con el promedio del rol al lado. Son CINCO —es lo que `Player.matches`
+trae al cliente— y el renglón lo dice: "Sus últimas 5 partidas en esta métrica · el
+rol promedia 7,4". No hay conclusión escrita encima, porque con cinco no se puede
+sacar ninguna; están los números y listo.
+
+### Lo que NO se hizo: la pestaña Historial
+
+El plan pedía `Resumen | Mejorar | Campeones | Historial`. Las tres primeras están.
+La cuarta no, y no es por trabajo: **`Player.matches` trae solo las últimas cinco
+partidas**, que son exactamente las que ya muestra el Resumen. Un "Historial" con el
+mismo contenido que la pestaña de al lado no es una sección, es un duplicado con
+otro nombre. Para que exista de verdad hace falta una ruta que traiga el historial
+completo con las columnas del detalle — que es un camino de datos nuevo, no un
+reacomodo.

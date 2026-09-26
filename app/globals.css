@@ -1294,53 +1294,21 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* Radar de rendimiento (ver lib/radar.ts y components/RadarChart.tsx).
    Card propia y no .stat-grid: es una figura, no una tabla, y necesita su
    propio fondo para que el polígono no flote sobre el fondo de la página. */
-.radar-wrap{
-  background:var(--surface-raised); border-radius:var(--radius-md); box-shadow:var(--shadow-sm);
-  padding:14px 14px 12px;
-}
-.radar-svg{display:block; width:100%; max-width:320px; height:auto; margin:0 auto;}
-.radar-ring{fill:none; stroke:var(--border-soft); stroke-width:1;}
 /* El anillo del promedio del grupo es la única referencia que hay que
    entender para leer la figura, así que se separa del resto de la grilla:
    punteado y en dorado apagado en vez de una línea más igual a las otras. */
 .radar-ring.is-peer{stroke:var(--accent-dim); stroke-dasharray:3 3; opacity:0.55;}
-.radar-spoke{stroke:var(--border-soft); stroke-width:1;}
-.radar-shape{fill:var(--accent-wash); stroke:var(--accent); stroke-width:1.75; stroke-linejoin:round;}
-.radar-dot{fill:var(--accent);}
-.radar-label{
-  font-family:var(--font-body); font-size:9px; font-weight:600;
-  fill:var(--text-muted); letter-spacing:0.02em;
-}
-.radar-legend{
-  display:flex; justify-content:center; gap:14px; flex-wrap:wrap;
-  margin:6px 0 12px; font-size:10.5px; color:var(--text-muted);
-}
-.radar-legend-item{display:inline-flex; align-items:center; gap:5px;}
-.radar-swatch{width:10px; height:10px; border-radius:2px; flex:none;}
 .radar-swatch.you{background:var(--accent-wash); border:1.5px solid var(--accent);}
 .radar-swatch.peer{border-top:2px dashed var(--accent-dim); height:0; border-radius:0; opacity:0.8;}
 /* La tabla debajo del dibujo: el radar da la forma de un vistazo, pero el
    número exacto de cada eje hay que poder leerlo igual — un polígono no se
    mide a ojo. */
-.radar-table{display:flex; flex-direction:column; gap:1px;}
-.radar-row{
-  display:grid; grid-template-columns:1fr auto auto; align-items:baseline; gap:10px;
-  padding:5px 2px; border-top:1px solid var(--border-soft);
-}
-.radar-row-k{display:flex; align-items:center; gap:3px; font-size:11px; color:var(--text-secondary);}
-.radar-row-v{font-family:var(--font-stat); font-size:13px; font-weight:800; font-variant-numeric:tabular-nums;}
-.radar-row-peer{font-size:10.5px; font-variant-numeric:tabular-nums; min-width:7ch; text-align:right;}
 .radar-row-peer.up{color:var(--good);}
 .radar-row-peer.down{color:var(--critical);}
 .radar-row-peer.flat{color:var(--text-muted);}
 /* Mismo tratamiento que .form-window: order:1 lo manda después del ::after
    de .subsection-label (la línea que rellena el ancho), así queda pegado al
    margen derecho en vez de competir con el título. */
-.radar-sample{
-  order:1; padding-left:8px;
-  font-family:var(--font-body); font-size:10px; font-weight:600;
-  letter-spacing:0.02em; text-transform:none; color:var(--text-muted);
-}
 
 /* "Forma reciente" — mismo material que .stat-grid (panel único, divisiones
    finas) pero 4 columnas y sin iconos: son 8 métricas, y un icono por tile
@@ -1775,40 +1743,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .mastery-badge.mid{color:var(--accent); background:var(--accent-wash);}
 .mastery-badge.high{color:var(--gold); background:var(--gold-wash);}
 
-.insights-card{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:16px; align-items:start;}
-.insights-empty{
-  font-size:11.5px; color:var(--text-muted); line-height:1.5;
-  background:var(--surface-raised); border-radius:var(--radius-sm); padding:12px 14px;
-}
 /* Same "one panel, thin dividers" treatment as .champ-pool — each metric
    in its own separately-shadowed, hover-lifting card read as loose form
    fields floating in a column, not a scannable comparison list. */
-.insights-col{
-  background:var(--surface-raised); border-radius:var(--radius-sm); box-shadow:var(--shadow-sm);
-  overflow:hidden;
-}
-.insights-col-label{
-  font-family:var(--font-display); font-weight:700; font-size:10px; letter-spacing:0.09em;
-  text-transform:uppercase; padding:9px 12px 7px; border-bottom:1px solid var(--border-soft);
-}
 .insights-col-label.good{color:var(--good);}
 .insights-col-label.bad{color:var(--critical);}
-.insight-row{
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
-  padding:8px 12px; border-bottom:1px solid var(--border-soft);
-  transition:background .15s ease;
-}
-.insight-row:last-child{border-bottom:none;}
-.insight-row:hover{background:var(--surface-hover);}
-.insight-label{display:flex; align-items:center; gap:3px; font-size:11.5px; color:var(--text-secondary);}
-.insight-value{
-  display:flex; align-items:center; gap:6px; white-space:nowrap;
-  font-family:var(--font-stat); font-weight:700; font-size:13px; color:var(--text-primary);
-  font-variant-numeric:tabular-nums;
-}
-.insight-delta{font-family:var(--font-mono); font-size:10.5px; font-weight:600;}
-.insight-delta.good{color:var(--good);}
-.insight-delta.bad{color:var(--critical);}
 
 .matches{display:flex; flex-direction:column; gap:10px;}
 .match-item{display:flex; flex-direction:column; gap:8px;}
@@ -6250,4 +6189,104 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .forma-band{gap:12px 22px; padding-bottom:13px;}
   .fb-cifra{font-size:18px;}
   .fb-dato{white-space:normal;}
+}
+
+/* ── "Mejorar": una fila por métrica, contra el promedio de su línea ──────
+   Reemplaza al radar + su tabla + la tarjeta de fortalezas/debilidades: tres
+   dibujos del mismo par de números, y el tercero además mal calculado (ver
+   DECISIONES). Acá hay una lista ordenada, que es la forma de contestar
+   "¿en qué estoy peor?" sin tener que interpretar geometría. */
+.mej{display:flex; flex-direction:column; gap:20px; max-width:780px;}
+.mej-cab{display:flex; flex-direction:column; gap:3px;}
+.mej-h3{font-family:var(--font-display); font-size:15px; font-weight:700; margin:0;}
+.mej-muestra{font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:5px;}
+.mej-vacio{font-size:13.5px; color:var(--text-muted); line-height:1.6; max-width:62ch; margin:0;}
+
+/* La grilla la comparten los rótulos y las filas: una sola definición. */
+.mej-rotulos, .mej-fila{
+  display:grid; grid-template-columns:minmax(0,1fr) 74px 74px 62px;
+  align-items:center; gap:12px;
+}
+.mej-rotulos{
+  padding:0 8px 6px; font-size:9.5px; font-weight:700; text-transform:uppercase;
+  letter-spacing:0.06em; color:var(--text-muted); border-bottom:1px solid var(--border-soft);
+  margin-bottom:2px;
+}
+.mej-rot-n{text-align:right;}
+
+.mej-grupo{display:flex; flex-direction:column;}
+.mej-grupo + .mej-grupo{margin-top:16px;}
+.mej-titulo{
+  font-size:12px; font-weight:700; margin:0 0 4px; display:flex; align-items:center; gap:7px;
+  color:var(--text-secondary);
+}
+/* Un punto de color y el título en tinta normal. El grupo entero teñido de
+   verde o rojo convertía la sección en dos bloques de color y hacía que las
+   cifras —que son el dato— compitieran contra el fondo. */
+.mej-punto{width:7px; height:7px; border-radius:50%; flex:none;}
+.mej-punto.good{background:var(--good);}
+.mej-punto.bad{background:var(--critical);}
+.mej-lista{list-style:none; margin:0; padding:0;}
+.mej-fila{
+  width:100%; text-align:left; cursor:pointer; padding:8px; border-radius:var(--radius-sm);
+  transition:background .12s ease;
+}
+.mej-fila:hover{background:var(--surface);}
+.mej-fila:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
+.mej-fila.abierta{background:var(--surface);}
+.mej-metrica{font-size:13.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.mej-valor{
+  font-family:var(--font-stat); font-size:14px; font-weight:700; text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+/* El promedio del rol en tinta apagada: es la REFERENCIA, no un segundo
+   protagonista. Si los dos números pesan igual, la fila no dice cuál es el
+   tuyo. */
+.mej-rol{
+  font-family:var(--font-mono); font-size:12px; text-align:right; color:var(--text-muted);
+  font-variant-numeric:tabular-nums;
+}
+.mej-dif{
+  font-family:var(--font-stat); font-size:13.5px; font-weight:800; text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+.mej-dif.good{color:var(--good);}
+.mej-dif.bad{color:var(--critical);}
+.mej-dif.flojo{color:var(--text-muted);}
+
+/* "¿En qué partidas se nota?" — se abre adentro de la fila. */
+.mej-donde{
+  background:var(--surface-raised); border-radius:var(--radius-sm);
+  margin:2px 0 8px; padding:11px 14px 12px;
+  display:flex; flex-direction:column; gap:9px;
+}
+.mej-donde-et{font-size:11px; color:var(--text-muted); line-height:1.5;}
+.mej-partidas{list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:8px 16px;}
+.mej-partida{display:flex; align-items:center; gap:7px;}
+.mej-partida-champ{
+  width:26px; height:26px; border-radius:8px; overflow:hidden; flex:none;
+  display:flex; align-items:center; justify-content:center;
+  font-size:8px; font-weight:700; background:var(--surface-hover); color:var(--text-secondary);
+}
+.mej-partida-champ img{width:100%; height:100%; object-fit:cover; display:block;}
+.mej-partida-valor{
+  font-family:var(--font-stat); font-size:13px; font-weight:700; font-variant-numeric:tabular-nums;
+}
+.mej-partida-valor.good{color:var(--good);}
+.mej-partida-valor.bad{color:var(--critical);}
+.mej-partida-res{font-size:10px; font-weight:700; color:var(--text-muted);}
+.mej-partida-res.w{color:var(--good);}
+.mej-partida-res.l{color:var(--critical);}
+
+@media (max-width:720px){
+  .mej-rotulos, .mej-fila{grid-template-columns:minmax(0,1fr) 58px 54px 48px; gap:8px;}
+  .mej-metrica{font-size:12.5px;}
+  .mej-valor{font-size:13px;}
+  .mej-rol{font-size:11px;}
+  .mej-dif{font-size:12.5px;}
+}
+.mej-corta{display:none;}
+@media (max-width:720px){
+  .mej-larga{display:none;}
+  .mej-corta{display:inline;}
 }
