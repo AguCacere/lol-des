@@ -1820,9 +1820,13 @@ sección, cambiar de sección vuelve a montar todo y cada una tendría que traer
 ladder por su cuenta — cinco veces el mismo JSON pesado, que es exactamente lo que
 tiró la base en septiembre.
 
-Lo que sí se pierde y hay que saberlo: **no se puede compartir un enlace a una
-sección**. Si alguna vez hace falta, la forma barata es el hash (`#liga`) leído al
-montar, no el App Router.
+Lo que sí se perdía era poder compartir un enlace, y ahí mismo quedó anotado que la
+forma barata era el hash. **Se hizo, para los perfiles**: `#inv/VORE-CHESS` abre el
+perfil de esa persona (ver `lib/ruta-perfil.ts`). El hash no viaja al servidor, no
+fuerza una navegación de Next y `pushState` lo mueve sin recargar, así que se ganó
+el enlace compartible y el botón Atrás del navegador sin pagar ninguna de las dos
+cosas que esta decisión evitaba. Las SECCIONES siguen sin enlace propio; si hiciera
+falta, es el mismo camino.
 
 ## Inicio no repite el estado que ya dice la barra de arriba
 
@@ -2756,3 +2760,71 @@ dice qué falta en el lugar donde iría el foco. Todo lo demás se dibuja igual.
 
 Es la misma decisión que `liga_torneos`, que también se pensó para poder desplegarse
 antes de correrse.
+
+## El perfil dejó de estar debajo del ladder
+
+Eran dos productos apilados en la misma página: el ladder para ELEGIR a alguien y el
+perfil para ANALIZARLO. Y el flujo era
+
+    ladder enorme → click → scroll automático de 2.000px → perfil enorme → pestañas
+
+Con eso el perfil se leía como un anexo del ranking, cuando ya tiene contenido de
+sobra para ser una vista. Y la pantalla se comportaba como un documento HTML largo,
+no como una aplicación.
+
+Ahora **son dos estados de la misma pestaña**: al tocar una fila, el perfil
+REEMPLAZA al ladder, con un "← Volver al ladder" arriba. No hay routing de Next
+—eso sigue descartado, por lo de más arriba— pero sí hash, y con eso tres cosas
+funcionan solas:
+
+- el enlace es compartible (`#inv/compren-bitcoin-GOD`);
+- el botón **Atrás del navegador** hace lo mismo que el botón de volver, en vez de
+  sacarte de la app;
+- volver **devuelve la vista exactamente donde estaba el ladder** (`scrollY`
+  guardado en un ref antes de entrar).
+
+Dos cosas que hubo que pensar y no son obvias:
+
+**Al entrar por un enlace directo no hay historial al que volver.** Si "← Volver"
+hiciera siempre `history.back()`, quien abre el enlace desde Discord se iría de la
+app. Se distingue con un ref que se marca al montar si la dirección ya traía un
+perfil: en ese caso se limpia el hash con `replaceState` en vez de retroceder.
+
+**El slug no se puede parsear de vuelta.** Un nombre de Riot lleva espacios y
+guiones ("marlboro de diez", "compren bitcoin"), así que `marlboro-de-diez-LAS` no
+dice dónde termina el nombre y empieza el tag. Se resuelve comparando CONTRA LA
+LISTA de invocadores que ya está cargada; si ninguno coincide, no se abre nada.
+Por eso el efecto espera a tener los jugadores antes de mirar el hash.
+
+## El ladder contesta una sola pregunta
+
+Cada fila contaba trece cosas: posición, avatar, campeón, nombre, tag, rango, LP,
+winrate, V/D, barra V/D, racha, curva de LP, LP netos y la flecha. Era un perfil
+comprimido adentro de cada renglón — y nueve curvas simultáneas que
+individualmente quedan bien y juntas son ruido.
+
+El objetivo del ladder es **quién está arriba y cómo viene**. Todo lo que contesta
+otra pregunta se fue al perfil, que ahora es el lugar donde ir a mirarla:
+
+- **la barra V/D** decía exactamente lo mismo que el `55,9%` y el `185V · 146D` que
+  tenía encima. Tres formas del mismo dato en la misma celda;
+- **la curva de LP** contesta "cómo evolucionó", que es una pregunta del perfil. El
+  número que llevaba debajo (`↗ +34`) sobrevive y alcanza;
+- **la racha** ya está en el encabezado del perfil.
+
+Medido, con el mismo contenido:
+
+| | antes | después |
+|---|---|---|
+| fila, escritorio | 79px | **58px** (−27%) |
+| fila, teléfono | 143px | **103px** (−28%) |
+| ladder de 14, escritorio | 1.106px | **813px** |
+
+La barra `.wr-bar` NO se borró del CSS aunque se fue del ladder: "Enfrentamientos de
+línea" (`components/Matchups.tsx`) la reutiliza a propósito, y ahí sí es la única
+forma del dato en su fila. Está anotado al lado de la regla.
+
+Y la unidad del delta (`LP` / `LP netos`) ahora se escribe **solo cuando es la
+rara**. La distinción importa —el delta es de rankScore, así que quien cruzó de
+división tiene LP netos y no LP— pero repetir "LP" en las catorce filas era una
+columna de ruido pegada al borde, al lado de una celda que ya dice "62 LP".

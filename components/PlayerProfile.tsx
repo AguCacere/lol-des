@@ -151,12 +151,6 @@ export function PlayerProfile({
   if (!displayed) {
     return (
       <section id="profileSection">
-        <div className="section-head">
-          <h2>
-            Perfil de invocador
-          </h2>
-          <span className="meta">Click en una fila del ladder para inspeccionar</span>
-        </div>
         <div className={`profile${fading ? " is-fading" : ""}`}>
           <div className="profile-empty">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
@@ -306,14 +300,13 @@ export function PlayerProfile({
   const emblemUrl = rankEmblemUrl(p.tierKey);
 
   return (
+    // Sin encabezado de sección. Tenía uno —"Perfil de invocador" con un
+    // "Click en una fila del ladder para inspeccionar" al costado— y los dos
+    // se quedaron sin sentido el día que el perfil dejó de vivir DEBAJO del
+    // ladder: el rótulo repite lo que ya dicen el botón de volver y el nombre
+    // enorme que viene justo abajo, y la ayuda señalaba una tabla que en esta
+    // vista no está en pantalla.
     <section id="profileSection">
-      <div className="section-head">
-        <h2>
-          Perfil de invocador
-        </h2>
-        <span className="meta">Click en una fila del ladder para inspeccionar</span>
-      </div>
-
       <div className={`profile${fading ? " is-fading" : ""}`} style={{ borderTopColor: t.fg }}>
         {/* El splash del campeón principal, apagado y desvanecido hacia la
             izquierda: le da identidad al perfil sin pelearle legibilidad al

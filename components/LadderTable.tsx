@@ -1,10 +1,8 @@
 import type { Player, RoleKey } from "@/lib/types";
-import { champTag, currentStreak, liveGameTimeLabel, rankScore, ROLES, tierFor, trendColor } from "@/lib/ladder";
+import { champTag, currentStreak, liveGameTimeLabel, rankScore, ROLES, tierFor } from "@/lib/ladder";
 import { RoleIcon } from "./RoleIcon";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { Select, type OpcionSelect } from "./Select";
-import { StreakIcon } from "./StreakIcon";
-import { SparkChart } from "./SparkChart";
 import { ChampIcon } from "./ChampIcon";
 import { TierEmblem } from "./TierEmblem";
 import { championLabel } from "@/lib/champion-names";
@@ -239,8 +237,8 @@ export function LadderTable({
                   <span className="col-winrate">
                     <span className="sk sk-wr" />
                   </span>
-                  <span className="col-spark">
-                    <span className="sk sk-spark" />
+                  <span className="col-forma">
+                    <span className="sk sk-forma" />
                   </span>
                   <span className="col-chevron" />
                 </div>
@@ -282,11 +280,6 @@ export function LadderTable({
               const t = tierFor(p.tierKey);
               const key = playerKey(p);
               const isActive = key === activeKey;
-              const streak = currentStreak(p.matches);
-              const spark = trendSeries(p);
-              // Contra su propio punto de partida, para que el 0 signifique
-              // algo. Restar una constante no cambia la forma del dibujo.
-              const sparkRelativa = spark.length > 0 ? spark.map((v) => v - spark[0]) : spark;
               return (
                 <button
                   key={key}
@@ -401,64 +394,47 @@ export function LadderTable({
                     </span>
                   </span>
                   <span className="col-winrate">
-                    <span className="wr-top">
-                      {/* Desde los contadores y no desde p.winrate: el
-                          porcentaje redondeado decía "50%" con 302V-307D, que
-                          es 49,6%. El número tiene que coincidir con el récord
-                          que está justo al lado. */}
-                      <span className={`wr-pct ${tonoDeWinrate(p.wins, p.wins + p.losses)}`}>
-                        {winrateTexto(p.wins, p.wins + p.losses)}
-                      </span>
-                      <span className="wr-count">
-                        <span className="wc-v">{p.wins}V</span>
-                        <span className="wc-sep">·</span>
-                        <span className="wc-d">{p.losses}D</span>
-                      </span>
+                    {/* Desde los contadores y no desde p.winrate: el
+                        porcentaje redondeado decía "50%" con 302V-307D, que
+                        es 49,6%. El número tiene que coincidir con el récord
+                        que está justo al lado.
+
+                        Se fue la barra V/D que estaba abajo: decía
+                        exactamente lo mismo que el "54,5%" y el "146V · 122D"
+                        que tiene encima, con una tercera forma. */}
+                    <span className={`wr-pct ${tonoDeWinrate(p.wins, p.wins + p.losses)}`}>
+                      {winrateTexto(p.wins, p.wins + p.losses)}
                     </span>
-                    <span className="wr-bottom">
-                      <span className="wr-bar">
-                        <span className="wr-seg win" style={{ flex: p.wins }} />
-                        <span className="wr-seg loss" style={{ flex: p.losses }} />
-                      </span>
-                      {streak && (
-                        <span className={`wr-streak ${streak.result === "W" ? "w" : "l"}`}>
-                          <StreakIcon result={streak.result} /> {streak.count}
-                          {streak.capped ? "+" : ""} {streak.result === "W" ? "V" : "D"}
-                        </span>
-                      )}
+                    <span className="wr-count">
+                      {p.wins}V · {p.losses}D
                     </span>
                   </span>
-                  <span className="col-spark">
-                    {/* Exactamente las mismas medidas que el de la liga
-                        (230x34, pad 5): son los dos el mismo gráfico y no hay
-                        motivo para que uno sea más grande. Antes era un
-                        viewBox de 150 en una columna de 305px y, como el SVG
-                        usa preserveAspectRatio="none", salía estirado al DOBLE
-                        de ancho (medido: 2,03x) — eso ensancha el trazo solo
-                        en horizontal, aplana la curva y convierte el punto
-                        final en un óvalo.
-
-                        Y la serie va RELATIVA a su arranque, como en la liga:
-                        la forma de la curva es idéntica (la geometría
-                        normaliza min-max igual), pero así el 0 existe y la
-                        línea punteada marca de dónde salió — que es
-                        exactamente lo que dice el "▲ N LP" de abajo. */}
-                    <SparkChart
-                      values={sparkRelativa}
-                      width={230}
-                      height={34}
-                      pad={5}
-                      color={trendColor(spark)}
-                      lineaCero
-                    />
-                    {/* La curva sola dice la forma pero no la magnitud: dos
-                        jugadores con la misma silueta pueden haber movido 5
-                        puntos o 90. recentDelta ya se calculaba para ordenar
-                        por "progreso reciente", solo que nunca se mostraba. */}
-                    {spark.length >= 2 && (
-                      <span className={`spark-delta ${recentDelta(p) >= 0 ? "up" : "down"}`}>
-                        {recentDelta(p) >= 0 ? "▲" : "▼"} {Math.abs(recentDelta(p))} {unidadDelta(p)}
-                      </span>
+                  {/* El cambio reciente de LP, en texto. Antes esto era una
+                      curva de 230px por fila: nueve sparklines simultáneos
+                      que individualmente quedan bien y juntos son ruido. La
+                      curva contesta "cómo EVOLUCIONÓ", que es una pregunta
+                      del perfil; el ladder solo tiene que contestar quién
+                      está arriba y cómo viene, y para eso alcanza el número
+                      que la curva ya llevaba debajo. */}
+                  <span className="col-forma">
+                    {trendSeries(p).length >= 2 ? (
+                      <>
+                        <span className={`forma-delta ${recentDelta(p) >= 0 ? "up" : "down"}`}>
+                          {recentDelta(p) >= 0 ? "↗" : "↘"} {recentDelta(p) >= 0 ? "+" : "−"}
+                          {Math.abs(recentDelta(p))}
+                        </span>
+                        {/* La unidad SOLO cuando es la rara. El delta es de
+                            rankScore, y cuando alguien cruzó de división son
+                            LP NETOS y no LP a secas: sin esa palabra,
+                            "Platino 3 · 64 LP → Platino 2 · 36 LP" con un
+                            "+72" al lado se lee como un error. Cuando no
+                            cruzó, "LP" es obvio —la celda de al lado dice
+                            "62 LP"— y repetirlo en las catorce filas era una
+                            columna de ruido pegada al borde. */}
+                        {unidadDelta(p) !== "LP" && <span className="forma-unidad">{unidadDelta(p)}</span>}
+                      </>
+                    ) : (
+                      <span className="forma-delta vacio">—</span>
                     )}
                   </span>
                   <span className="col-chevron">

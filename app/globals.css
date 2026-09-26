@@ -601,11 +601,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .ladder-row:first-child{border-top-left-radius:var(--radius-lg); border-top-right-radius:var(--radius-lg);}
 .ladder-row:last-child{border-bottom-left-radius:var(--radius-lg); border-bottom-right-radius:var(--radius-lg);}
+/* Sin la columna de la curva (230px) y con la fila en 10px de padding, no 14:
+   la fila pasó de ~80px a ~54. El objetivo del ladder es "quién está arriba y
+   cómo viene" — todo lo que contestaba otra pregunta se fue al perfil, que
+   ahora es una vista de verdad y no un anexo debajo de la tabla. */
 .ladder-row{
   display:grid;
-  grid-template-columns:34px 1.85fr 0.85fr 1.1fr minmax(0,230px) 28px;
+  grid-template-columns:30px minmax(0,1.9fr) minmax(0,1fr) 108px 84px 24px;
   align-items:center; gap:14px;
-  padding:14px 18px;
+  padding:10px 16px;
   appearance:none; -webkit-appearance:none;
   border:none; border-bottom:1px solid var(--border-soft);
   cursor:pointer;
@@ -657,8 +661,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    planilla: cada fila pasa a tener cara. El badge va sobre la esquina para no
    pedir una casilla propia — la misma información en un elemento menos. */
 .ladder-avatar-wrap{position:relative; flex:none; line-height:0;}
+/* 34 y no 38: con la fila en 60px el avatar era lo que fijaba el alto, y el
+   objetivo era 54. El nombre y el campeón entran igual en dos renglones. */
 .ladder-avatar{
-  width:38px; height:38px; border-radius:10px; overflow:hidden; flex:none;
+  width:34px; height:34px; border-radius:10px; overflow:hidden; flex:none;
   display:flex; align-items:center; justify-content:center;
   background:var(--surface-hover); color:var(--text-secondary);
   font-family:var(--font-display); font-weight:700; font-size:13px;
@@ -682,7 +688,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .ladder-role-badge img{width:100%; height:100%; object-fit:contain; display:block;}
 .player-id{min-width:0; position:relative; display:block;}
 .player-name{
-  font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  font-weight:700; font-size:14.5px; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   display:flex; align-items:center; gap:7px;
 }
 .player-tag{color:var(--text-muted); font-weight:400; font-size:12px;}
@@ -691,8 +697,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   background:var(--gold); padding:2px 6px; border-radius:4px; flex:none;
 }
 .player-champ{
-  display:flex; align-items:center; gap:6px;
-  font-size:11.5px; color:var(--text-secondary); margin-top:2px;
+  display:flex; align-items:center; gap:6px; line-height:1.25;
+  font-size:11.5px; color:var(--text-secondary); margin-top:1px;
 }
 .player-champ-art{
   width:18px; height:18px; border-radius:5px; overflow:hidden; flex:none;
@@ -742,61 +748,52 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    del mismo tamaño hace que la celda se lea como texto y no como una cifra. */
 .tier-lp i{font-style:normal; font-size:10px; font-weight:700; color:var(--text-muted); margin-left:1px;}
 .tier-name{display:block; font-size:11.5px; font-weight:600; white-space:nowrap;}
-.col-winrate{min-width:0;}
-.wr-top{display:flex; align-items:baseline; gap:7px; margin-bottom:5px; white-space:nowrap;}
-/* wr-pct is the hero number (font-stat, heavy weight); wr-count is supporting
-   detail — dropped to font-mono/600 so the two don't compete at nearly the
-   same visual weight the way they did before (800 vs 700, same typeface). */
+.col-winrate{min-width:0; display:flex; flex-direction:column; gap:1px; align-items:flex-end;}
 /* 17px hacía del winrate el número más grande de la fila, por encima del
    nombre y del rango — que son los que dicen QUIÉN es y DÓNDE está. Es un
    stat, no la identidad de la fila. */
-.wr-pct{font-family:var(--font-stat); font-weight:800; font-size:15px; letter-spacing:-0.01em; font-variant-numeric:tabular-nums;}
+.wr-pct{font-family:var(--font-stat); font-weight:800; font-size:14.5px; letter-spacing:-0.01em; font-variant-numeric:tabular-nums; line-height:1.2;}
 /* El número también dice de qué lado del 50 está. Antes iba siempre en blanco
    y con "50%" redondeado desde 49,6% no había NADA en la celda que dijera que
-   ese récord es negativo. El color no va solo: el récord está al lado. */
+   ese récord es negativo. El color no va solo: el récord está justo abajo. */
 .wr-pct.good{color:var(--good);}
 .wr-pct.bad{color:var(--critical);}
 .wr-pct.neutral{color:var(--text-secondary);}
-.wr-count{font-family:var(--font-mono); font-weight:600; font-size:11px; font-variant-numeric:tabular-nums;}
-.wr-count .wc-v{color:var(--good);}
-.wr-count .wc-sep{color:var(--text-muted); font-weight:500;}
-.wr-count .wc-d{color:var(--critical);}
-.wr-bottom{display:flex; align-items:center; gap:8px;}
+/* Un solo tono para el récord entero. Antes las victorias iban en verde y las
+   derrotas en rojo, y con la barra V/D al lado eran TRES formas de decir lo
+   mismo en la misma celda. Sin la barra, el color del porcentaje ya lo dice. */
+.wr-count{
+  font-family:var(--font-mono); font-weight:600; font-size:10.5px;
+  font-variant-numeric:tabular-nums; color:var(--text-muted); white-space:nowrap;
+}
+
+/* La barra V/D. Se fue del ladder —decía lo mismo que el porcentaje y el
+   récord que tenía encima— pero NO se puede borrar: "Enfrentamientos de
+   línea" (components/Matchups.tsx) la reutiliza a propósito, y ahí sí es la
+   única forma del dato en su fila. Vive acá con su nombre viejo para no
+   tocar ese componente. */
 .wr-bar{
   flex:1; display:flex; gap:1.5px; height:6px; border-radius:99px; overflow:hidden;
   background:var(--surface); min-width:0; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04);
 }
 .wr-seg{height:100%;}
-/* Translucent, not the flat solid --good/--critical used for text/badges —
-   a softer fill reads as more refined for a bar this size, and it still has
-   plenty of contrast against .wr-bar's own dark track underneath it. */
+/* Traslúcidos y no el --good/--critical plano del texto: un relleno más
+   suave se lee mejor a este tamaño y sigue teniendo contraste de sobra
+   contra la pista oscura. */
 .wr-seg.win{background:rgba(52,201,124,0.82);}
 .wr-seg.loss{background:rgba(240,85,95,0.82);}
-.wr-streak{flex:none; font-size:10.5px; font-weight:700; white-space:nowrap; display:inline-flex; align-items:center; gap:2px;}
-.wr-streak.w{color:var(--good);}
-.wr-streak.l{color:var(--critical);}
-.wr-streak svg{width:9px; height:9px; flex:none;}
-.col-spark{display:flex; flex-direction:column; gap:2px;}
-/* La curva da la forma, este número da la magnitud: sin él, dos siluetas
-   idénticas pueden ser 5 puntos o 90 y no hay forma de saberlo. */
-.spark-delta{
-  align-self:flex-end; font-family:var(--font-mono); font-size:10.5px; font-weight:700;
-  font-variant-numeric:tabular-nums; white-space:nowrap;
-}
-.spark-delta.up{color:var(--good);}
-.spark-delta.down{color:var(--critical);}
-/* max-width igual al viewBox del SparkChart (300). El SVG usa
-   preserveAspectRatio="none": si la columna es MÁS ancha que el viewBox el
-   dibujo se estira, y estirar es la dirección fea — engorda el trazo solo en
-   horizontal y convierte el punto final en un óvalo. Medido, antes se estiraba
-   2,03x. Comprimir (columna más angosta que el viewBox) apenas afina la línea,
-   así que el tope va solo de un lado.
 
-   230x34 son las mismas medidas que el gráfico de la liga: es el mismo dibujo
-   en las dos tablas y no hay motivo para que uno sea más grande. */
-.col-spark svg{display:block; width:100%; max-width:230px; height:34px; transition:filter .18s ease;}
-/* Row hover gives the sparkline itself a very slight lift — line, endpoint dot and its halo all brighten together, nothing redraws or resizes. */
-.ladder-row:hover .col-spark svg{filter:brightness(1.12);}
+/* La forma: el delta de LP en texto, donde estaba la curva. */
+.col-forma{display:flex; flex-direction:column; gap:1px; align-items:flex-end; min-width:0;}
+.forma-delta{
+  font-family:var(--font-stat); font-size:14px; font-weight:800;
+  font-variant-numeric:tabular-nums; white-space:nowrap; line-height:1.2;
+}
+.forma-delta.up{color:var(--good);}
+.forma-delta.down{color:var(--critical);}
+.forma-delta.vacio{color:var(--text-muted); font-weight:600;}
+.forma-unidad{font-size:10px; color:var(--text-muted); white-space:nowrap;}
+
 .col-chevron{color:var(--text-muted); display:flex; justify-content:flex-end;}
 .col-chevron svg{width:16px;height:16px; transition:transform .15s ease;}
 .ladder-row.is-active .col-chevron svg{transform:rotate(90deg); color:var(--accent);}
@@ -2390,19 +2387,23 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .ladder{background:transparent; box-shadow:none; overflow:visible;}
   .ladder-row{
     grid-template-columns:22px 1fr auto;
-    grid-template-areas:"rank player chev" ". tier tier" ". winrate winrate" ". spark spark";
-    row-gap:9px;
+    /* DOS renglones, no tres. Con la curva afuera, el rango, el winrate y la
+       forma entran los tres en el segundo: antes el winrate se llevaba un
+       renglón entero para sí solo y cada tarjeta medía 141px. */
+    grid-template-areas:"rank player player chev" ". tier winrate forma";
+    grid-template-columns:22px auto minmax(0,1fr) auto;
+    row-gap:8px; column-gap:10px;
     align-items:start;
     background:var(--surface); border-radius:var(--radius-md); box-shadow:var(--shadow-sm);
-    padding:15px 16px; margin-bottom:10px;
+    padding:12px 14px; margin-bottom:8px;
   }
   .ladder-row:last-child{margin-bottom:0;}
   .ladder-row.is-you{box-shadow:var(--shadow-sm), inset 3px 0 0 var(--gold);}
   .col-rank{grid-area:rank; align-self:start; padding-top:2px;}
   .col-player{grid-area:player;}
   .col-tier{grid-area:tier;}
-  .col-winrate{grid-area:winrate;}
-  .col-spark{grid-area:spark;}
+  .col-winrate{grid-area:winrate; align-items:flex-end;}
+  .col-forma{grid-area:forma; align-items:flex-end;}
   .col-chevron{grid-area:chev; align-self:start;}
   /* 3-col divider math (nth-child(3n)/nth-last-child(-n+3)) doesn't apply at
      2 columns — without this override the mobile grid grew a stray right
@@ -2886,7 +2887,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .sk-nombre{width:130px; max-width:60%; height:13px; margin-left:10px;}
 .sk-tier{width:96px; height:13px;}
 .sk-wr{width:56px; height:13px;}
-.sk-spark{width:100%; max-width:120px; height:22px;}
+.sk-forma{width:100%; max-width:56px; height:16px; margin-left:auto;}
 
 /* El ranking por campeón reusa la tabla de "Mayor winrate" (clases tw-*): son
    dos rankings hermanos en la misma pestaña y darles dos formas distintas los
@@ -6191,4 +6192,22 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .mj-mu-id{grid-area:id;}
   .mj-mu-oro{grid-area:oro;}
   .mj-mu-dif{grid-area:dif;}
+}
+
+/* ── Volver al ladder ─────────────────────────────────────────────────────
+   El ladder y el perfil son dos ESTADOS de la misma pestaña, no dos bloques
+   apilados, así que hace falta una salida visible. Va arriba de todo y
+   alineado con el contenido, no flotando: es navegación, no una acción. */
+.volver{
+  display:inline-flex; align-items:center; gap:7px;
+  margin:22px 0 4px; padding:8px 12px 8px 0;
+  font-size:13px; font-weight:600; color:var(--text-muted);
+  cursor:pointer; min-height:40px; transition:color .14s ease;
+}
+.volver:hover{color:var(--accent);}
+.volver:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:var(--radius-sm);}
+.volver span{transition:transform .16s ease;}
+.volver:hover span{transform:translateX(-3px);}
+@media (prefers-reduced-motion:reduce){
+  .volver span, .volver:hover span{transition:none; transform:none;}
 }

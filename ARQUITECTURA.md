@@ -192,6 +192,10 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   va de 1,4 (support) a 7,7 (ADC), así que un umbral fijo mide roles, no
   personas. Cálculo puro, probado con fixture. No hay IA acá y el plan es
   explícito en que no tiene que hacer falta.
+- `ruta-perfil.ts` — el enlace compartible de un perfil (`#inv/VORE-CHESS`) en las
+  dos direcciones. Resuelve contra la lista de jugadores y no parseando el texto:
+  un nombre de Riot puede tener espacios y guiones, así que desde el slug solo no
+  se sabe dónde termina el nombre.
 - `radiografia.ts` — lo que mira la pestaña Estadísticas, todo sobre una VENTANA
   elegible (7 días, 30 días o toda la temporada guardada): la `historia` del período
   (un protagonista y lo demás), el estado de forma —una sola lista por persona con
@@ -350,6 +354,11 @@ pestañas.
   campeón como protagonista) y `EstRecords` (la pared: los dos grandes arriba, los otros cinco en una fila pareja). Al lado,
   `DuoSynergy`, que es un explorador en tres pasos: roster → vínculos → comparación.
   El período vive como estado de `Estadisticas`, no de la página: no lo lee nadie más.
+- **Ranking** tiene DOS estados, no dos bloques apilados: el ladder (`LadderTable`,
+  o `LigaSemanal` con el interruptor de vista) **o** el perfil (`PlayerProfile`),
+  nunca los dos. Tocar una fila entra al perfil y escribe `#inv/nombre-tag`; se sale
+  con "← Volver al ladder" o con el botón Atrás del navegador, que hacen lo mismo.
+  El hash lo resuelve `lib/ruta-perfil.ts` contra la lista de jugadores cargada.
 - **Mejora** → `Mejora`. La única pestaña que pide por UNA persona: carga
   `/api/mejora?puuid=…` al elegir a alguien del roster, con un guardia contra
   respuestas que vuelven fuera de orden.

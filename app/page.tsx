@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClashPlayerStats, ClashTournament, DuoPair, LiveGame, Player, RoleKey, TeamDigest as TeamDigestData } from "@/lib/types";
 import { TopBar, type AddStatus } from "@/components/TopBar";
 import { TabNav, type TabKey } from "@/components/TabNav";
@@ -15,6 +15,7 @@ import type { Radiografia } from "@/lib/radiografia";
 import { DuoSynergy } from "@/components/DuoSynergy";
 import { Estadisticas } from "@/components/Estadisticas";
 import { Mejora } from "@/components/Mejora";
+import { claveDesdeHash, hashDeClave } from "@/lib/ruta-perfil";
 import { ClashHistory } from "@/components/ClashHistory";
 import { LiveTray } from "@/components/LiveTray";
 import { TeamDigest } from "@/components/TeamDigest";
@@ -240,6 +241,14 @@ export default function Home() {
     }
   }, [tab, teamDigestLoaded, teamDigestLoading, loadTeamDigest]);
 
+  // Dónde estaba el ladder cuando se abrió un perfil, para devolver la vista
+  // ahí al volver. Un ref y no estado: no lo dibuja nadie.
+  const scrollDelLadder = useRef(0);
+  // Si se entró DIRECTO por un enlace con hash, no hay historial al que
+  // volver y "← Volver al ladder" tiene que limpiar la dirección en vez de
+  // sacarte de la app.
+  const entroPorEnlace = useRef(false);
+
   /**
    * Abrir el perfil de alguien desde cualquier parte (la paleta ⌘K, la
    * bandeja de "en vivo"). Scrollea hasta el perfil porque se dibuja debajo
@@ -247,16 +256,83 @@ export default function Home() {
    * ninguna señal de que pasó algo.
    */
   const abrirPerfil = useCallback((key: string) => {
+    // Antes esto scrolleaba: el perfil vivía DEBAJO del ladder y elegir a
+    // alguien te bajaba dos mil píxeles. El perfil ya tiene contenido de
+    // sobra para ser una vista y no un anexo del ranking, así que ahora
+    // REEMPLAZA al ladder en vez de aparecer abajo. Se guarda el scroll para
+    // devolverte exactamente donde estabas al volver.
+    scrollDelLadder.current = window.scrollY;
     conTransicion(() => {
       setTab("ranking");
+      setVista("ladder");
       setActiveKey(key);
     });
-    requestAnimationFrame(() => {
-      document.querySelector(".profile")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+    // El hash hace el enlace compartible y le da trabajo al botón Atrás del
+    // navegador, sin recargar nada. Ver lib/ruta-perfil.ts.
+    history.pushState(null, "", `#${hashDeClave(key)}`);
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
+  }, []);
+
+  /**
+   * Volver al ladder: cierra el perfil y devuelve la vista a donde estaba.
+   *
+   * `history.back()` cuando el perfil se abrió desde acá —así el botón Atrás
+   * del navegador y este botón hacen lo mismo y no se pisan—, y un
+   * `replaceState` cuando se entró directo por un enlace, donde no hay
+   * adónde volver.
+   */
+  const volverAlLadder = useCallback(() => {
+    if (entroPorEnlace.current) {
+      entroPorEnlace.current = false;
+      history.replaceState(null, "", window.location.pathname + window.location.search);
+      conTransicion(() => setActiveKey(null));
+      return;
+    }
+    history.back();
   }, []);
 
   const activePlayer = players.find((p) => playerKey(p) === activeKey) ?? null;
+  // El perfil solo reemplaza al ladder, nunca a la liga: las filas de la liga
+  // no se pueden tocar, así que ahí no hay a quién abrir.
+  const enPerfil = vista === "ladder" && activePlayer !== null;
+
+  /**
+   * El hash manda sobre `activeKey`, en los dos sentidos.
+   *
+   * Corre cuando llegan los jugadores (un enlace compartido abre la app sin
+   * datos todavía, así que el hash no se puede resolver hasta tenerlos) y en
+   * cada `popstate`, que es el botón Atrás. Así "← Volver al ladder", Atrás y
+   * Adelante hacen todos lo mismo en vez de tres cosas parecidas.
+   */
+  useEffect(() => {
+    if (players.length === 0) return;
+    const claves = players.map(playerKey);
+    const aplicar = () => {
+      const delHash = claveDesdeHash(window.location.hash, claves);
+      setActiveKey(delHash);
+      if (delHash) {
+        setTab("ranking");
+        setVista("ladder");
+      }
+    };
+    // Al montar con un hash puesto, se entró por un enlace: no hay historial
+    // propio atrás.
+    if (claveDesdeHash(window.location.hash, claves) !== null) {
+      entroPorEnlace.current = true;
+      aplicar();
+    }
+    window.addEventListener("popstate", aplicar);
+    return () => window.removeEventListener("popstate", aplicar);
+  }, [players]);
+
+  // Al cerrar el perfil, la vista vuelve a donde estaba el ladder. En el
+  // mismo frame en que se dibuja, no después: con un timeout se ve el salto.
+  useEffect(() => {
+    if (activeKey !== null) return;
+    const y = scrollDelLadder.current;
+    if (y <= 0) return;
+    requestAnimationFrame(() => window.scrollTo({ top: y, behavior: "auto" }));
+  }, [activeKey]);
 
   const q = filterText.trim().toLowerCase();
   const hasMatch = q === "" || players.some((p) => playerKey(p).toLowerCase().includes(q));
@@ -354,17 +430,27 @@ export default function Home() {
         </div>
       ) : tab === "ranking" ? (
         <div id="view-ranking">
+          {/* Ladder Y perfil son dos ESTADOS, no dos bloques apilados. Antes
+              el perfil se dibujaba debajo del ladder y elegir a alguien
+              scrolleaba hasta él: la pantalla se comportaba como un documento
+              largo y no como una aplicación, y el perfil —que tiene contenido
+              de sobra para ser una vista— se leía como un anexo del ranking. */}
+          {enPerfil ? (
+            <>
+              <button type="button" className="volver" onClick={volverAlLadder}>
+                <span aria-hidden>←</span> Volver al ladder
+              </button>
+              <PlayerProfile player={activePlayer} ddragonVersion={ddragonVersion} />
+            </>
+          ) : (
           <LadderTable
             players={players}
             filterText={filterText}
             activeKey={activeKey}
-            onSelect={(key) => {
-              // Tocar la fila activa la cierra (y ahí NO se scrollea: el perfil
-              // se está yendo, llevar la vista hasta donde estaba es marear).
-              // Tocar cualquier otra abre ese perfil y baja hasta él.
-              if (activeKey === key) setActiveKey(null);
-              else abrirPerfil(key);
-            }}
+            // Tocar una fila ENTRA al perfil. Ya no hay "tocar de nuevo para
+            // cerrar": el perfil no está abajo esperando, es otra vista, y se
+            // sale con "← Volver al ladder" o con el botón Atrás.
+            onSelect={abrirPerfil}
             loading={loading}
             error={loadError}
             roleFilter={roleFilter}
@@ -375,15 +461,7 @@ export default function Home() {
             onSortKeyChange={setSortKey}
             ddragonVersion={ddragonVersion}
           />
-          {/* Solo con el ladder a la vista. Las filas de la liga no se pueden
-              tocar (LigaSemanal no tiene onSelect), así que ahí el perfil no
-              solo sobra: es imposible de llenar, y lo único que se veía era el
-              cartel de "Elegí un invocador del ranking" abajo de una tabla que
-              no deja elegir a nadie.
-
-              activeKey se conserva a propósito: si volvés al ladder, el perfil
-              que tenías abierto sigue abierto. Cambiar de tabla no es cerrarlo. */}
-          {vista === "ladder" ? <PlayerProfile player={activePlayer} ddragonVersion={ddragonVersion} /> : null}
+          )}
         </div>
       ) : tab === "stats" ? (
         <div id="view-stats">
