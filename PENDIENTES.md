@@ -11,7 +11,7 @@ de leerse a la segunda vez.
 Lo que es de la liga **que viene** —dos semanas, bot nuevo, los "te cojo", el rebranding—
 no está acá: vive en **`PROXIMO-TORNEO.md`**. Esto es lo que le falta a la de hoy.
 
-Última revisión: 20 de septiembre de 2026.
+Última revisión: 26 de septiembre de 2026.
 
 ## MIGRACIÓN SIN CORRER: la tabla `objetivos`
 
@@ -40,6 +40,19 @@ Lo único que quedó abierto de la fase 5, y es de una línea:
   sigue mandando por la ventana de caché del CDN, igual que `roleDistribution`. Se
   puede sacar en cualquier deploy posterior al que lo dejó de usar, junto con
   `computeChampionLeaderboard()` y el tipo `ChampionLeaderboardEntry`.
+
+## El rearmado de Ranking y Perfil: terminado
+
+Las cinco fases del pedido (ladder compacto + navegación · Resumen · Mejorar ·
+Campeones · responsive) **están hechas**. El porqué de cada una está en
+`DECISIONES.md`; el mapa de qué componente quedó en qué pestaña, en `ARQUITECTURA.md`.
+Lo único que quedó afuera a propósito es la pestaña **Historial**, y está explicado
+allá: `Player.matches` trae cinco partidas, que son las que ya muestra el Resumen. Para
+que exista de verdad hace falta una ruta nueva que traiga el historial completo.
+
+Un detalle que quedó **decidido y no pendiente**: el pie desparejo del Resumen (la
+columna del gráfico termina antes que la de partidas). Está en `DECISIONES.md` con la
+medición y con por qué emparejarlo cuesta más de lo que arregla.
 
 Dos cosas de las fases hechas que quedaron **decididas y anotadas, no pendientes**:
 que no hay rutas por sección (son pestañas) y que Inicio no repite el estado de la

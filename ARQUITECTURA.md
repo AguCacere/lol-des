@@ -343,15 +343,23 @@ pestañas.
   Al pie, `LigaHistorial` —la última edición con su margen real, las anteriores
   y el palmarés— y desde ahí se abre `LigaTorneo`, el archivo de una edición: va encima y no en una pantalla propia porque es una foto de diez segundos
   y mandar a otra página obliga a irse de la liga y volver.
-  `PlayerProfile` es el más grande: `RadarChart`, `InsightsCard`, `RecentForm`,
-  `TiltCard`, `ChampionPool`, `MasteryPool`, `ChampionInsights`, `Matchups`,
-  `LineHistory`, `BuildStarts`, `PersonalRecords`, `AegisStats`, `CoachPanel`,
-  `ProfileMejorar` (una fila por métrica contra el promedio de su línea, partida en
-  fortalezas y debilidades; reemplazó al radar, a su tabla y a la tarjeta de
-  insights, que decían lo mismo tres veces y la última encima mal calculada),
-  `ProfileForma` (la banda de "cómo viene" del Resumen: las últimas 5, las últimas
-  20 contra su propio historial y la season, cada una con su muestra),
-  `LiveGamePanel` y `MatchDetail` (que a su vez abre `MatchTimeline`).
+  `PlayerProfile` es el más grande, y tiene TRES pestañas propias —Resumen,
+  Mejorar, Campeones— que son el eje por el que se reparten sus piezas:
+  - **Resumen** (cómo viene): `ProfileForma` (la banda: las últimas 5, las últimas
+    20 contra su propio historial y la season, cada una con su muestra), el gráfico
+    de LP, la lista de partidas con `MatchDetail` (que a su vez abre
+    `MatchTimeline`) y, si está jugando, `LiveGamePanel` y `TiltCard` arriba de todo.
+  - **Mejorar** (contra qué se compara): `ProfileMejorar` (una fila por métrica
+    contra el promedio de su línea, partida en fortalezas y debilidades; reemplazó
+    al radar, a su tabla y a la tarjeta de insights, que decían lo mismo tres veces
+    y la última encima mal calculada), `RecentForm`, `LineHistory`,
+    `PersonalRecords` y `AegisStats`.
+  - **Campeones** (qué juega): `ProfileCampeones` —una tira de campeones y el
+    detalle DEL elegido: récord, maestría, lectura, contra quién y cómo arranca—
+    más `CoachPanel` al final. Reemplazó a `ChampionPool`, `MasteryPool`,
+    `ChampionInsights`, `Matchups` y `BuildStarts`: eran cinco secciones con todos
+    los campeones adentro cada una, y para entender cómo le iba con uno había que
+    recorrer las cinco y juntar los pedazos de cabeza. Ninguna cuenta cambió.
 - **Estadísticas** → `Estadisticas` (el armazón: elige la ventana y ordena las
   piezas) → `EstHistoria` (la portada del período: un protagonista y notas al
   costado), `EstForma` (UNA clasificación compacta: las últimas 10 en puntos, el récord

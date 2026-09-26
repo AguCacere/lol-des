@@ -17,21 +17,17 @@ import {
 import { championSplashUrl } from "@/lib/ddragon";
 import { TiltCard } from "./TiltCard";
 import { LiveGamePanel } from "./LiveGamePanel";
-import { BuildStarts } from "./BuildStarts";
 import { SparkChart } from "./SparkChart";
 import { StreakIcon } from "./StreakIcon";
 import { ChampIcon } from "./ChampIcon";
 import { MatchDetail } from "./MatchDetail";
-import { ChampionPool } from "./ChampionPool";
-import { MasteryPool } from "./MasteryPool";
-import { ChampionInsights } from "./ChampionInsights";
 import { CoachPanel } from "./CoachPanel";
-import { Matchups } from "./Matchups";
 import { LineHistory } from "./LineHistory";
 import { PersonalRecords } from "./PersonalRecords";
 import { RecentForm } from "./RecentForm";
 import { ProfileForma } from "./ProfileForma";
 import { ProfileMejorar } from "./ProfileMejorar";
+import { ProfileCampeones } from "./ProfileCampeones";
 import { AegisStats } from "./AegisStats";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
@@ -492,18 +488,25 @@ export function PlayerProfile({
                 <div className="lp-svg">
                   <SparkChart
                     values={lpScores}
-                    // El viewBox tiene que quedar cerca del ancho real en el
-                    // que se dibuja: el SVG usa preserveAspectRatio="none", así
-                    // que cuanto más lejos esté, más se estira todo a lo ancho
-                    // (el trazo se aplasta y los puntos salen elípticos).
+                    // Estos dos números NO deforman el gráfico. Acá decía que
+                    // alejarse del ancho real aplastaba el trazo por el
+                    // preserveAspectRatio="none" del SparkChart, y es falso:
+                    // el SVG va con `height:auto` y un viewBox, así que su
+                    // caja siempre toma la proporción del viewBox y el "none"
+                    // nunca llega a actuar. Medido a 390, 768, 1024 y 1440: la
+                    // proporción dibujada da 3,44 en los cuatro, igual que
+                    // 620/180.
+                    //
+                    // Lo que sí deciden es DE QUÉ TAMAÑO sale. El ancho lo
+                    // pone la columna y el alto sale de la proporción: a 1440
+                    // el gráfico mide 570x165 y en un teléfono 268x78. Por eso
+                    // el alto pasó de 132 a 180 —con 132 el de la columna
+                    // izquierda quedaba 120px más corto que el de partidas y
+                    // los escalones de una división no se separaban— y por eso
+                    // la columna tiene tope de 680 abajo de 900 (globals.css):
+                    // a 905 de ancho el mismo gráfico se vuelve una banda de
+                    // 263px de alto.
                     width={620}
-                    // 180 y no 132: sacadas las seis fichas, la columna
-                    // izquierda quedaba 120px más corta que la de partidas, y
-                    // la evolución del LP es una de las cosas que esta
-                    // pestaña tiene que contestar. Un gráfico más alto separa
-                    // mejor los escalones de una división; la relación con el
-                    // ancho del viewBox sigue cerca de la real, así que no se
-                    // estira (ver el comentario de arriba).
                     height={180}
                     pad={10}
                     color={lpChartColor}
@@ -576,12 +579,27 @@ export function PlayerProfile({
                                 <span className="review-badge-txt">Para repasar</span>
                               </span>
                             )}
+                            {/* Mismo truco que la chapa de repasar: en 390 la
+                                palabra entera se comía 55 de los ~98px de la
+                                línea y el nombre salía "Serap…". La inicial
+                                dice lo mismo —es como se escriben los récords
+                                en toda la app— y el color no queda solo. */}
                             <span className={`match-result ${m.win ? "w" : "l"}`}>
-                              {m.win ? "VICTORIA" : "DERROTA"}
+                              <span className="match-result-larga">{m.win ? "VICTORIA" : "DERROTA"}</span>
+                              <span className="match-result-corta">{m.win ? "V" : "D"}</span>
                             </span>
                           </div>
+                          {/* En el teléfono esta línea entra en 131px y con
+                              todo puesto lo último que se leía era "186 CS…".
+                              Se caen las dos piezas de menor jerarquía —el CS
+                              por minuto entre paréntesis y el % de daño— y los
+                              dos que quedan entran enteros, sin ellipsis
+                              colgando. Los dos escondidos siguen estando en el
+                              detalle desplegado (MatchDetail). */}
                           <div className="match-sub">
-                            {m.dur} min · {m.cs} CS ({m.csmin}/min) · daño {m.dmgShare}%
+                            {m.dur} min · {m.cs} CS
+                            <span className="match-sub-extra"> ({m.csmin}/min)</span>
+                            <span className="match-sub-extra"> · daño {m.dmgShare}%</span>
                           </div>
                         </div>
                         <div className="match-stats">
@@ -620,7 +638,13 @@ export function PlayerProfile({
         )}
 
         {tab === "mejorar" && (
-          <>
+          /* Todo lo de la pestaña comparte el mismo ancho de lectura. La
+             tabla de métricas ya venía topada a 780px (es texto con números
+             al final del renglón: más ancho y el ojo pierde el renglón), pero
+             la forma reciente y las dos de abajo iban a ancho completo, así
+             que el borde derecho de la pestaña saltaba de 780 a 1540 y de
+             vuelta. Ahora el tope es del contenedor y adentro nadie lo pisa. */
+          <div className="mejorar-cuerpo">
             {/* UNA representación, no tres. Antes acá había el radar, la
                 tabla de ejes que venía abajo del radar y una tarjeta de
                 "Fortalezas y debilidades": los mismos dos números (el tuyo y
@@ -668,56 +692,29 @@ export function PlayerProfile({
                 <AegisStats stats={p.aegisStats} />
               </div>
             </div>
-          </>
-        )}
-
-        {tab === "campeones" && (
-          <div className="stack-cols even">
-            <div>
-              <h4 className="subsection-label">
-                Maestría de campeón
-                <InfoTip text="Champion Mastery de Riot: puntos acumulados en toda tu carrera y en TODAS las colas (ranked, normales, ARAM). No sale de las partidas que guarda la app, por eso el orden puede no coincidir con el de al lado. Riot solo expone puntos y nivel acá — no hay victorias ni KDA en este dato." />
-              </h4>
-              <MasteryPool pool={p.masteryPool} ddragonVersion={ddragonVersion} />
-            </div>
-            <div>
-              <h4 className="subsection-label">
-                Campeones más jugados
-                <InfoTip text="Sale de tus partidas de ranked solo/dúo guardadas por la app, no de tu carrera completa: el winrate y el KDA son reales, calculados de esas partidas. Por eso el orden puede no coincidir con el de maestría, que cuenta todas las colas de siempre. El winrate va en gris cuando hay menos de 5 partidas: con tan pocas, el porcentaje todavía no dice nada." />
-              </h4>
-              <ChampionPool pool={p.championPool} ddragonVersion={ddragonVersion} />
-            </div>
           </div>
         )}
 
         {tab === "campeones" && (
           <>
-            {/* Antes que los enfrentamientos porque conecta con las dos listas
-                de arriba: es la conclusión de mirarlas juntas, no un bloque
-                nuevo de datos. */}
-            {p.championInsights.length > 0 && (
-              <h4 className="subsection-label">
-                Lectura del pool
-                <InfoTip text="Sale de cruzar las dos listas de arriba: la maestría dice cuánto invertiste en cada campeón de toda tu carrera, el pool dice cómo te está yendo en ranked. Ninguna de las dos por separado puede señalar un campeón muy trabajado que no está rindiendo, o uno que te rinde sin ser de los tuyos." />
-              </h4>
-            )}
-            <ChampionInsights insights={p.championInsights} ddragonVersion={ddragonVersion} />
+            {/* Organizado alrededor DEL CAMPEÓN. Antes eran cinco secciones
+                —maestría, más jugados, lectura del pool, enfrentamientos y
+                cómo arrancás— cada una con todos los campeones adentro: para
+                entender cómo le iba con Seraphine había que recorrer las
+                cinco y juntar los pedazos de cabeza. Ninguna cuenta cambió,
+                solo el eje por el que se cruzan. */}
+            <ProfileCampeones
+              pool={p.championPool}
+              mastery={p.masteryPool}
+              matchups={p.matchups}
+              builds={p.buildStats}
+              insights={p.championInsights}
+              ddragonVersion={ddragonVersion}
+            />
 
-            {/* A lo ancho y debajo de las dos columnas: cada fila lleva dos
-                íconos, dos nombres, el oro a los 15 y el récord, y a media
-                columna eso se amontona. Además es otra unidad de análisis que
-                las listas de arriba — un par, no un campeón suelto. */}
-            <h4 className="subsection-label">Enfrentamientos de línea</h4>
-            <Matchups matchups={p.matchups} ddragonVersion={ddragonVersion} />
-
-            {/* Después de los enfrentamientos: los dos son "cómo jugás a este
-                campeón", pero el arranque es una decisión que se toma antes de
-                la partida y el matchup es contra quién te tocó. */}
-            <BuildStarts stats={p.buildStats} ddragonVersion={ddragonVersion} />
-
-            {/* Al final de la pestaña a propósito: lee todo lo de arriba (pool,
-                maestría, enfrentamientos) y lo interpreta, así que llega
-                después de que el jugador ya vio los datos crudos. */}
+            {/* Al final y aparte: no es un dato más del pool, es una lectura
+                del conjunto hecha por un modelo, y llega después de que la
+                persona ya vio los números. */}
             <h4 className="subsection-label">Análisis del pool</h4>
             <CoachPanel gameName={p.name} tagLine={p.tag} ddragonVersion={ddragonVersion} />
           </>

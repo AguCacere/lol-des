@@ -9,12 +9,23 @@ En producción: **https://lol-des.vercel.app**
 ## Qué hace
 
 **Ranking** — el ladder ordenado por LP, con rango, racha, V/D y el gráfico de LP de
-cada uno. Tocando una fila se abre el perfil completo: radar de rendimiento contra el
-resto del grupo en su mismo rol, fortalezas y debilidades, forma reciente, detección de
-tilt, pool de campeones, maestría de Riot, enfrentamientos de línea, historial por
-línea (con detección de autofill), órdenes de compra, récords personales y las últimas
-partidas con su timeline. Adentro de esta misma pestaña vive la **liga semanal**: se
-cambia con el enlace que está al lado del título.
+cada uno. Tocando una fila se sale del ladder y se entra al perfil, que tiene tres
+pestañas:
+
+- **Resumen** — cómo viene: las últimas 5, las últimas 20 contra su propio historial y
+  la season, la curva de LP y las últimas partidas con su timeline. Si está jugando en
+  ese momento, la partida en vivo va arriba de todo.
+- **Mejorar** — contra qué se compara: una fila por métrica contra el promedio de su
+  línea en el grupo, partida en lo que hace mejor y dónde está por debajo; más la forma
+  reciente contra él mismo hace veinte partidas, sus líneas (con detección de autofill),
+  sus récords personales y la detección de tilt.
+- **Campeones** — qué juega: se elige un campeón de la tira y abajo está todo lo de ESE
+  campeón —récord, maestría de Riot, contra quién le va bien o mal y con qué ítem
+  arranca—, más el análisis del pool.
+
+El perfil tiene enlace propio (`#inv/nombre-tag`) y se sale con "← Volver al ladder" o
+con el botón Atrás del navegador. Adentro de esta misma pestaña vive la **liga
+semanal**: se cambia con el enlace que está al lado del título.
 
 **Estadísticas** — la radiografía del grupo, filtrable por 7 días, 30 días o toda la
 temporada. Arranca con la historia del período (quién lo dominó, y lo demás que

@@ -936,6 +936,16 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    contra historial, donde la izquierda sí manda. */
 .stack-cols.even{grid-template-columns:1fr 1fr;}
 @media (max-width:760px){.stack-cols, .stack-cols.even{grid-template-columns:1fr;}}
+/* El perfil se parte en dos más tarde que el resto. A 768 las dos columnas le
+   dejaban 285px a la lista de partidas —MENOS que los 302 de un teléfono— y
+   los nombres largos ("Nunu y Willump") no entraban ni compactando la fila.
+   Una columna de 724 los muestra enteros. */
+/* Y con tope de 680. El gráfico de LP saca su alto de su ancho (viewBox
+   620x180 y `height:auto`), así que a 905 de columna se vuelve una banda de
+   263px de alto que empuja todo lo demás abajo del pliegue. Con 680 sale a
+   646x188, que es su tamaño de diseño, y a las partidas les sobra ancho para
+   la fila larga. */
+@media (max-width:900px){.profile .stack-cols{grid-template-columns:1fr; max-width:680px;}}
 
 /* Sub-navegación del perfil (Resumen / Rendimiento / Campeones). Misma
    familia visual que .tabnav de arriba pero un escalón más abajo en
@@ -1155,86 +1165,28 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .coach-foot > span{display:inline-flex; align-items:center; gap:5px;}
 
-/* El cruce maestría x historial. Tres tarjetas cortas, no una lista más:
-   cada una es una CONCLUSIÓN, no un dato, y por eso lleva título y explicación
-   en vez de un número alineado a la derecha como las listas de arriba. */
-.champ-insights{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:6px;}
-.champ-insight{
-  display:flex; align-items:flex-start; gap:10px;
-  background:var(--surface-raised); border-radius:var(--radius-md); box-shadow:var(--shadow-sm);
-  padding:12px 13px;
-  /* La franja de color a la izquierda es todo el peso cromático que se
-     permite: pintar la card entera de verde o rojo por una observación
-     derivada le daría un énfasis que un dato calculado no merece. */
-  border-left:2px solid var(--border-soft);
-}
-.champ-insight.good{border-left-color:var(--good);}
-.champ-insight.bad{border-left-color:var(--critical);}
-.champ-insight.neutral{border-left-color:var(--text-muted);}
-.champ-insight-icon{
-  width:30px; height:30px; border-radius:8px; flex:none; overflow:hidden;
-  display:flex; align-items:center; justify-content:center;
-  background:var(--surface-hover); color:var(--text-secondary);
-  font-family:var(--font-display); font-weight:700; font-size:10.5px;
-}
-.champ-insight-icon img{width:100%; height:100%; object-fit:cover; display:block;}
-.champ-insight-text{display:flex; flex-direction:column; gap:3px; min-width:0;}
-.champ-insight-title{font-size:12.5px; font-weight:700; color:var(--text-primary);}
-.champ-insight-detail{font-size:11px; line-height:1.45; color:var(--text-muted);}
-@media (max-width:760px){
-  .champ-insights{grid-template-columns:1fr;}
-}
-
 /* Enfrentamientos de línea. Mismo material que .champ-pool (un panel, líneas
    finas) — es otra lista rankeada de campeones, no merece un lenguaje visual
    propio. */
-.matchup-list{
-  background:var(--surface-raised); border-radius:var(--radius-sm); box-shadow:var(--shadow-sm);
-  overflow:hidden;
-}
-/* Padre e hija comparten la MISMA grilla. Antes eran dos flex distintos —la
-   hija tenía una celda de oro que la del campeón no, y la del campeón un
-   chevron que la hija no— así que la barra y el récord de cada una caían en
-   una x distinta y desplegado quedaba todo corrido. Con columnas fijas, cada
-   cosa cae debajo de su equivalente aunque la celda esté vacía. */
-.matchup-group-head,
+/* La geometría es de MEDIA columna, no de ancho completo. Estas filas vivían
+   debajo de las dos columnas del perfil y tenían 200px para la barra y 30px
+   de sangría (eran rivales colgando de un campeón, con su chevron). Ahora
+   viven adentro de la columna izquierda de "Campeones", que mide ~533px: con
+   el reparto viejo las partes fijas sumaban 497 + 44 de padding y la celda
+   del nombre colapsaba a CERO — medido, los tres nombres de rival con ancho 0.
+   El reparto de abajo está medido contra el contenido real: el récord entero
+   ("75.0%" + "12-4") pide 84px, así que su columna no puede ser menos. Con 76
+   el oro se le montaba encima al porcentaje. */
 .matchup-row{
   display:grid;
-  grid-template-columns:34px minmax(0,1fr) 200px 96px 96px 16px;
-  align-items:center; gap:11px; width:100%;
+  grid-template-columns:28px minmax(0,1fr) 72px 84px 92px;
+  align-items:center; gap:10px; width:100%;
+  padding:8px 4px;
   border-bottom:1px solid var(--border-soft);
   transition:background .15s ease;
 }
-.matchup-row{padding:8px 14px 8px 30px;}
 .matchup-row:last-child{border-bottom:none;}
 .matchup-row:hover{background:var(--surface-hover);}
-
-/* Un campeón propio y sus rivales. El grupo entero es la unidad visual, así
-   que la línea divisoria va entre grupos y no entre filas de rival — si no,
-   desplegado no se distingue dónde termina un campeón y empieza el otro. */
-.matchup-group{border-bottom:1px solid var(--border-soft);}
-.matchup-group:last-child{border-bottom:none;}
-.matchup-group-head{
-  padding:11px 14px; border-width:0 0 1px; background:transparent; color:inherit;
-  font-family:inherit; text-align:left; cursor:pointer;
-}
-/* La sangría de los rivales sale del ícono, no de un padding extra: así el
-   nombre y todo lo que sigue quedan alineados con los del campeón de arriba. */
-.matchup-row .matchup-champ{margin-left:8px;}
-/* Celdas que solo tiene una de las dos filas. Ocupan su columna igual para
-   que no se corra nada. */
-.matchup-row .matchup-hueco-chevron,
-.matchup-group-head .matchup-hueco-oro{visibility:hidden;}
-.matchup-group-head:hover{background:var(--surface-hover);}
-.matchup-group-head:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
-/* Los rivales sobre un fondo apenas más hundido: dice "esto está adentro de
-   la fila de arriba" sin necesidad de una caja con borde propio. */
-.matchup-opponents{background:var(--surface);}
-.matchup-chevron{
-  width:16px; height:16px; flex:none; color:var(--text-muted);
-  transition:transform .18s ease;
-}
-.matchup-group.is-open .matchup-chevron{transform:rotate(180deg);}
 /* Mismo patrón que .match-champ y .digest-match-champ, y no por prolijidad:
    ChampIcon renderiza un <span> con un <img> adentro, y el <img> no hereda
    el tamaño del span. Sin la regla de abajo el arte del campeón sale a su
@@ -1248,47 +1200,33 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   background:var(--surface-hover); color:var(--text-secondary);
 }
 .matchup-champ img{width:100%; height:100%; object-fit:cover; display:block;}
-/* El campeón propio manda sobre sus rivales: mismo tratamiento, un escalón
-   más grande, como el ícono de una fila de partida contra el de su detalle. */
-.matchup-champ.lg{width:34px; height:34px; border-radius:9px; font-size:11px;}
-.matchup-vs{font-size:9px; font-weight:700; color:var(--text-muted); letter-spacing:0.04em;}
 /* min-width:0 para que el nombre largo trunque en vez de empujar al récord
    fuera de la fila — un flex item arranca en min-width:auto y no achica. */
 .matchup-names{display:flex; flex-direction:column; gap:1px; min-width:0;}
-/* Tope de 200px: a lo ancho, una barra de 600px deja de leerse como una
-   proporción y pasa a parecer una barra de progreso a medio cargar. El resto
-   del sobrante se lo queda el nombre. */
 .matchup-bar{min-width:0;}
 .matchup-name{
   font-size:12.5px; font-weight:700; color:var(--text-primary);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.matchup-opp{
-  font-size:10.5px; color:var(--text-muted);
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-}
 .matchup-gd{font-size:10.5px; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; text-align:right;}
-.matchup-record{display:flex; align-items:baseline; justify-content:flex-end; gap:7px;}
+.matchup-record{display:flex; align-items:baseline; justify-content:flex-end; gap:7px; min-width:0;}
 .matchup-wr{font-family:var(--font-stat); font-size:14px; font-weight:800; font-variant-numeric:tabular-nums;}
 .matchup-wr.good{color:var(--good);}
 .matchup-wr.bad{color:var(--critical);}
 .matchup-wr.neutral{color:var(--text-secondary);}
 /* El récord crudo al lado del porcentaje y en gris: es el que dice cuánto
-   confiar en ese porcentaje, así que tiene que estar, pero no compite. */
-.matchup-games{font-size:10.5px; color:var(--text-muted); font-variant-numeric:tabular-nums; min-width:6ch; text-align:right;}
+   confiar en ese porcentaje, así que tiene que estar, pero no compite.
+   5ch y no 6: el récord más largo que existe acá es "12-10" (5 caracteres) y
+   cada ch de más se lo saca al porcentaje de al lado. */
+.matchup-games{font-size:10.5px; color:var(--text-muted); font-variant-numeric:tabular-nums; min-width:5ch; text-align:right; white-space:nowrap;}
 @media (max-width:520px){
   /* En un teléfono la fila no da para todo, y los nombres de campeón se
      comían la ellipsis ("contra Drav…") por dejarle lugar a una barra que
      dice exactamente lo mismo que el "73%" de al lado. Se van los dos
      adornos: el oro a los 15 (dato de detalle) y la barra (redundante con
      el porcentaje), y el nombre entra entero. */
-  .matchup-group-head,
-  .matchup-row{grid-template-columns:34px minmax(0,1fr) 88px 16px;}
+  .matchup-row{grid-template-columns:26px minmax(0,1fr) 92px;}
   .matchup-gd, .matchup-bar{display:none;}
-  /* Y la sangría de los rivales se achica: a 390px cada píxel de más a la
-     izquierda sale del nombre. */
-  .matchup-row{padding-left:20px;}
-  .matchup-row .matchup-champ{margin-left:0;}
 }
 
 /* Radar de rendimiento (ver lib/radar.ts y components/RadarChart.tsx).
@@ -1379,63 +1317,24 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* Same "one panel, thin dividers" treatment as .stat-grid — five identical
    rows each in their own separately-shadowed card read as a stack of form
    fields, not a ranked list. */
-.champ-pool{
-  background:var(--surface-raised); border-radius:var(--radius-sm); box-shadow:var(--shadow-sm);
-  overflow:hidden;
-}
 /* The other half of the scale correction: the podium above came down, these
    rows come up. Same padding as .panel-row now (they were 8/12 vs 9/14 for
    no reason a reader could see, and both lists sit on the same page). Also
    shared by "Compañeros de X" in Sinergia de dúo, which is where the
    cramped feel was most acute. */
-.champ-pool-row{
-  display:flex; align-items:center; gap:11px;
-  padding:10px 14px; border-bottom:1px solid var(--border-soft);
-  transition:background .15s ease;
-}
-.champ-pool-row:last-child{border-bottom:none;}
-.champ-pool-row:hover{background:var(--surface-hover);}
-.champ-pool-avatar{
-  width:32px; height:32px; border-radius:9px; flex:none; overflow:hidden;
-  display:flex; align-items:center; justify-content:center;
-  font-family:var(--font-display); font-weight:700; font-size:11px;
-  background:var(--surface-hover); color:var(--text-secondary);
-}
-.champ-pool-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
-.champ-pool-mid{display:flex; flex-direction:column; min-width:0; flex:1; gap:2px;}
 /* Mismo lenguaje que .lineas-barra y .build-start-bar: largo = volumen,
    verde/rojo = récord. Con tope, porque estirada a media pantalla una barra
    de proporción deja de leerse como proporción. */
-.champ-pool-barra{flex:0 1 190px; min-width:0; height:8px;}
-.champ-pool-total{display:flex; height:100%; min-width:3px; border-radius:999px; overflow:hidden;}
-.champ-pool-v{background:var(--good); opacity:0.8; flex:none;}
-.champ-pool-d{background:var(--critical); opacity:0.55; flex:1 1 auto;}
-.champ-pool-name{
-  font-weight:600; font-size:13px; color:var(--text-primary);
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
 /* Truncates instead of wrapping — without this a long player name here
    ("compren bitcoin · 50 partidas") could wrap onto a second line while
    every shorter row around it stayed single-line, making rows in the same
    list different heights for no reason a reader could see. */
-.champ-pool-games{
-  font-size:10.5px; color:var(--text-muted); font-family:var(--font-mono);
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
 /* The winrate is the point of the row; the record beside it is context. They
    were 14px/11px with a 10px gap, close enough to read as a single compound
    figure — a size step plus more air separates the two roles. */
-.champ-pool-stats{display:flex; align-items:baseline; gap:12px; flex:none;}
 /* Ancho fijo, como el KDA y el CS de al lado: sin esto un "100%" es más
    ancho que un "50%" y, como el grupo se alinea a la derecha en bloque,
    corre toda la fila unos píxeles. Cinco filas, cinco posiciones distintas. */
-.champ-pool-wr{
-  font-family:var(--font-stat); font-weight:800; font-size:15px; font-variant-numeric:tabular-nums;
-  min-width:4ch; text-align:right;
-}
-.champ-pool-wr.good{color:var(--good);}
-.champ-pool-wr.bad{color:var(--critical);}
-.champ-pool-wr.neutral{color:var(--text-secondary);}
 /* Pocas partidas: el número queda, el color se va. Ver CONFIDENT_GAMES. */
 .champ-pool-wr.thin{color:var(--text-muted);}
 /* Fixed character width so every winrate in the list lands on the SAME
@@ -1443,20 +1342,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    shorter record ("60V 80D") pushed its percentage 13px right of the one
    above it ("213V 207D") — six rows, six slightly different positions. 9ch
    is the widest record these lists produce. */
-.champ-pool-kda{
-  font-family:var(--font-mono); font-size:11px; color:var(--text-muted); white-space:nowrap;
-  min-width:9ch; text-align:right;
-}
-.champ-pool-cs{
-  font-family:var(--font-mono); font-size:11px; color:var(--text-muted); white-space:nowrap;
-  min-width:7ch; text-align:right;
-}
 @media (max-width:520px){
   /* Tres números no entran en la fila de un teléfono, y el CS es el más
      prescindible de los tres — para un support directamente no dice nada.
      La barra tampoco: dice lo mismo que el porcentaje y las partidas que ya
      están escritos al lado, y ese ancho lo necesita el nombre. */
-  .champ-pool-cs, .champ-pool-barra{display:none;}
 }
 /* Leaderboard-style champ-pool-row usages (Mayor winrate, Mayor winrate por
    campeón) prepend a rank number before the avatar(s) — same treatment as
@@ -1465,10 +1355,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    avatar — at 14px wide with the row's 10px gap the number was practically
    touching the portrait. */
 .leaderboard-rank{font-family:var(--font-mono); color:var(--text-muted); font-size:11.5px; width:18px; flex:none; text-align:center;}
-.champ-pool-empty{
-  font-size:11.5px; color:var(--text-muted); line-height:1.5;
-  background:var(--surface-raised); border-radius:var(--radius-sm); padding:12px 14px;
-}
 
 /* Leaderboard podium — top 3 get a spotlight card (medal, bigger avatar,
    gold glow on #1) instead of reading exactly like every other row below
@@ -1736,20 +1622,20 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .digest-copy-btn:hover{background:var(--accent-wash-soft);}
 .digest-copy-btn svg{width:14px; height:14px; flex:none;}
 
-.mastery-badge{
-  font-family:var(--font-stat); font-weight:800; font-size:12px; padding:3px 9px;
-  border-radius:999px; flex:none; color:var(--text-muted); background:var(--surface-hover);
-}
 .mastery-badge.mid{color:var(--accent); background:var(--accent-wash);}
 .mastery-badge.high{color:var(--gold); background:var(--gold-wash);}
 
 /* Same "one panel, thin dividers" treatment as .champ-pool — each metric
    in its own separately-shadowed, hover-lifting card read as loose form
    fields floating in a column, not a scannable comparison list. */
-.insights-col-label.good{color:var(--good);}
-.insights-col-label.bad{color:var(--critical);}
 
-.matches{display:flex; flex-direction:column; gap:10px;}
+/* Contenedor de consulta y no media query: el ancho que le toca a una fila
+   de partida no lo decide la pantalla, lo decide ESTA columna. A 768 el perfil
+   se parte en dos y la columna de partidas queda en 285px —más angosta que
+   los 302 de un teléfono— y a 1024 en 397; con la versión larga los dos
+   recortaban el nombre y la línea de abajo. Preguntándole al contenedor, la
+   fila se compacta cuando le falta lugar y no cuando la ventana es chica. */
+.matches{display:flex; flex-direction:column; gap:10px; container:matches / inline-size;}
 .match-item{display:flex; flex-direction:column; gap:8px;}
 .match-row{
   display:grid; grid-template-columns:4px 42px 1fr auto 16px; align-items:center; gap:12px;
@@ -1792,14 +1678,31 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   border-radius:999px; padding:2px 8px; white-space:nowrap;
 }
 .review-badge svg{width:10px; height:10px; flex:none;}
-@media (max-width:600px){
-  /* En el teléfono la chapa se queda solo con la lupa. El texto son 70px de
-     los ~150 que tiene la línea entera, y entre saber CON QUÉ jugó y leer
-     "Para repasar" al lado de la lupa, gana el nombre del campeón. El motivo
-     sigue estando en el title y adentro del detalle. */
+.match-result-corta{display:none;}
+/* 440 y no un número redondo: medido, la fila entera entra sin recortar nada
+   a partir de ~460px de columna (el perfil a 1440 le da 464) y no entra con
+   397 (a 1024). El corte va en el medio. */
+@container matches (max-width:440px){
+  /* La chapa se queda solo con la lupa. El texto son 70px de los ~150 que
+     tiene la línea entera, y entre saber CON QUÉ jugó y leer "Para repasar"
+     al lado de la lupa, gana el nombre del campeón. El motivo sigue estando
+     en el title y adentro del detalle. */
   .review-badge-txt{display:none;}
   .review-badge{padding:3px 5px;}
   .review-badge svg{width:11px; height:11px;}
+  /* Y la misma idea con el resultado: "DERROTA" pasa a "D". Es como se
+     escriben los récords en toda la app, así que el color no queda solo. */
+  .match-result-larga{display:none;}
+  .match-result-corta{display:inline;}
+  /* El resto de los píxeles salen de la geometría: ícono, huecos y padding.
+     Entre los tres son ~20px más para el nombre y la línea de abajo. */
+  .match-row{grid-template-columns:4px 38px minmax(0,1fr) auto 14px; gap:8px; padding-right:9px;}
+  .match-champ{width:38px; height:38px; border-radius:9px;}
+  .match-sub-extra{display:none;}
+  /* Y los últimos píxeles del renglón de arriba, que son los que deciden si
+     "Nunu y Willump" entra al lado de la chapa de repasar. */
+  .match-top-line{gap:6px;}
+  .review-badge{padding:3px 3px;}
 }
 /* No wrap: this line packs 5 stats (duración/CS/daño/KP) and a real
    champion name easily runs it past the available width in the profile's
@@ -1996,9 +1899,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* Real rune/summoner-spell art in the Build section, instead of plain
    names — same Data Dragon CDN as champion/profile icons, just resolved by
    name instead of id (see lib/ddragon.ts). */
-.build-line{display:flex; align-items:center; gap:7px; flex-wrap:wrap;}
-.build-item{display:inline-flex; align-items:center; gap:6px;}
-.build-sep{color:var(--text-muted); font-weight:400;}
 .build-icon{width:20px; height:20px; border-radius:5px; flex:none; display:block; box-shadow:var(--shadow-sm);}
 /* Tried a fixed-column grid (repeat(4, auto)) to fix raggedness, then two
    auto-fit/minmax variants to fix the overflow that caused — all three
@@ -2589,17 +2489,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   background:var(--track); display:block;
 }
 .build-path-item img{width:100%; height:100%; object-fit:cover; display:block;}
-.build-starts{margin-top:22px;}
-.build-champ{background:var(--surface-raised); border-radius:var(--radius-md); padding:12px 14px; margin-bottom:10px;}
-.build-champ-head{display:flex; align-items:center; gap:9px; margin-bottom:9px;}
-.build-champ-icon{
-  width:28px; height:28px; border-radius:var(--radius-sm); overflow:hidden; flex:none;
-  display:flex; align-items:center; justify-content:center;
-  background:var(--track); font-size:10px; font-weight:700; color:var(--text-muted);
-}
-.build-champ-icon img{width:100%; height:100%; object-fit:cover; display:block;}
-.build-champ-name{font-size:14px; font-weight:700; color:var(--text-primary); flex:1 1 auto; min-width:0;}
-.build-champ-games{font-size:11px; color:var(--text-muted);}
 .build-champ-rows{display:flex; flex-direction:column; gap:6px;}
 .build-start{display:grid; grid-template-columns:26px minmax(0,1fr) 84px 40px 52px; align-items:center; gap:9px;}
 .build-start-item{width:26px; height:26px; border-radius:var(--radius-sm); overflow:hidden; background:var(--track); display:block;}
@@ -6190,13 +6079,33 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .fb-cifra{font-size:18px;}
   .fb-dato{white-space:normal;}
 }
+@media (max-width:520px){
+  /* A 390 los tres bloques entraban dos y uno: "la season" quedaba sola en
+     el segundo renglón con medio ancho vacío al lado. Pasan a ser tres
+     renglones, cada uno con el rótulo a la izquierda y el número —con su
+     muestra debajo— contra el margen derecho. */
+  .forma-band{flex-direction:column; flex-wrap:nowrap; gap:0; padding:0 2px 10px;}
+  .fb-bloque{
+    display:grid; grid-template-columns:minmax(0,1fr) auto;
+    align-items:baseline; gap:1px 12px; width:100%; padding:8px 0;
+  }
+  .fb-bloque + .fb-bloque{border-top:1px solid var(--border-soft);}
+  .fb-et{grid-column:1; grid-row:1; white-space:normal;}
+  .fb-puntos, .fb-cifra{grid-column:2; grid-row:1; justify-self:end;}
+  .fb-puntos{height:auto;}
+  .fb-dato{grid-column:2; grid-row:2; justify-self:end; text-align:right;}
+}
 
 /* ── "Mejorar": una fila por métrica, contra el promedio de su línea ──────
    Reemplaza al radar + su tabla + la tarjeta de fortalezas/debilidades: tres
    dibujos del mismo par de números, y el tercero además mal calculado (ver
    DECISIONES). Acá hay una lista ordenada, que es la forma de contestar
    "¿en qué estoy peor?" sin tener que interpretar geometría. */
-.mej{display:flex; flex-direction:column; gap:20px; max-width:780px;}
+/* El tope de ancho vive en el contenedor de la pestaña, no acá: la tabla
+   de métricas no es lo único que necesita quedarse en 780 (ver el comentario
+   en PlayerProfile.tsx). */
+.mejorar-cuerpo{max-width:780px;}
+.mej{display:flex; flex-direction:column; gap:20px;}
 .mej-cab{display:flex; flex-direction:column; gap:3px;}
 .mej-h3{font-family:var(--font-display); font-size:15px; font-weight:700; margin:0;}
 .mej-muestra{font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:5px;}
@@ -6289,4 +6198,111 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 @media (max-width:720px){
   .mej-larga{display:none;}
   .mej-corta{display:inline;}
+}
+
+/* ── "Campeones", pivoteado por campeón ──────────────────────────────────
+   Un selector arriba y todo lo del elegido abajo. Apilar los cinco con sus
+   cruces y sus arranques son ~1.500px para leer, casi siempre, el primero. */
+.pc{display:flex; flex-direction:column; gap:22px;}
+.pc-tira{display:flex; flex-wrap:wrap; gap:8px;}
+.pc-chip{
+  display:flex; flex-direction:column; align-items:center; gap:5px;
+  padding:9px 10px 8px; border-radius:var(--radius-md); cursor:pointer; min-width:84px;
+  transition:background .14s ease;
+}
+.pc-chip:hover{background:var(--surface);}
+.pc-chip:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
+.pc-chip-art{
+  width:46px; height:46px; border-radius:13px; overflow:hidden; flex:none;
+  display:flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:700; background:var(--surface-hover); color:var(--text-secondary);
+  border:2px solid transparent; transition:border-color .14s ease;
+}
+.pc-chip-art img{width:100%; height:100%; object-fit:cover; display:block;}
+.pc-chip.activo .pc-chip-art{border-color:var(--accent);}
+.pc-chip-nombre{
+  /* 100 y no 80: 80 le comía la cola al nombre más largo que hay
+     ("Nunu y Willump") en TODOS los anchos, y en un selector el nombre es
+     justo lo que hay que poder leer. El chip crece con él. */
+  font-size:11px; color:var(--text-muted); max-width:100px; text-align:center;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.pc-chip.activo .pc-chip-nombre{color:var(--text-primary); font-weight:600;}
+.pc-chip-partidas{font-family:var(--font-mono); font-size:10px; color:var(--text-muted);}
+
+.pc-detalle{display:flex; flex-direction:column; gap:20px;}
+.pc-cab{display:flex; align-items:flex-start; gap:16px;}
+/* El arte grande: el campeón es el sujeto de la sección, no una etiqueta
+   con un iconito de 28px al lado. */
+.pc-arte{
+  width:76px; height:76px; border-radius:18px; overflow:hidden; flex:none;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:700; font-size:18px;
+  background:var(--surface-hover); color:var(--text-secondary);
+}
+.pc-arte img{width:100%; height:100%; object-fit:cover; display:block;}
+.pc-id{display:flex; flex-direction:column; gap:2px; min-width:0;}
+.pc-nombre{font-family:var(--font-display); font-size:22px; font-weight:800; margin:0; letter-spacing:-0.015em;}
+.pc-cifras{
+  margin:0; font-size:13px; color:var(--text-secondary); font-variant-numeric:tabular-nums;
+  display:flex; align-items:baseline; gap:5px; flex-wrap:wrap;
+}
+.pc-cifras .good{color:var(--good); font-weight:700;}
+.pc-cifras .bad{color:var(--critical); font-weight:700;}
+.pc-cifras .neutral{color:var(--text-secondary); font-weight:700;}
+.pc-sep{color:var(--text-muted); opacity:0.5;}
+.pc-maestria{
+  margin:3px 0 0; font-size:11.5px; color:var(--text-muted);
+  display:flex; align-items:center; gap:5px;
+}
+/* La lectura del pool, pegada al campeón del que habla. Antes era una lista
+   aparte y había que cruzarla de memoria con las otras dos. */
+.pc-lectura{
+  margin:5px 0 0; font-size:12px; line-height:1.45; padding-left:10px;
+  border-left:2px solid var(--border-firm); max-width:52ch;
+}
+.pc-lectura.destacado{border-left-color:var(--good); color:var(--text-secondary);}
+.pc-lectura.sin_rendir{border-left-color:var(--critical); color:var(--text-secondary);}
+.pc-lectura.abandonado{border-left-color:var(--warn); color:var(--text-secondary);}
+
+.pc-cols{display:grid; grid-template-columns:1fr 1fr; gap:26px; align-items:start;}
+.pc-col{min-width:0;}
+.pc-cruces{display:flex; flex-direction:column;}
+.pc-vacio{font-size:12.5px; color:var(--text-muted); line-height:1.55; margin:0; max-width:46ch;}
+
+.pc-sinjugar{padding-top:16px; border-top:1px solid var(--border-soft);}
+.pc-sinjugar-lista{list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:8px 18px;}
+.pc-sinjugar-item{display:flex; align-items:center; gap:8px;}
+.pc-sinjugar-art{
+  width:28px; height:28px; border-radius:9px; overflow:hidden; flex:none;
+  display:flex; align-items:center; justify-content:center;
+  font-size:8px; font-weight:700; background:var(--surface-hover); color:var(--text-secondary);
+}
+.pc-sinjugar-art img{width:100%; height:100%; object-fit:cover; display:block;}
+.pc-sinjugar-nombre{font-size:12.5px; font-weight:600;}
+.pc-sinjugar-pts{font-family:var(--font-mono); font-size:11px; color:var(--text-muted);}
+
+@media (max-width:860px){
+  /* Una columna sola, pero no de 724px: las filas de cruce y de arranque son
+     nombre a la izquierda y tres datos a la derecha, y estiradas a todo el
+     ancho quedaba medio renglón vacío en el medio. El tope es el ancho que
+     tienen cuando el perfil va en dos columnas (533 medidos a 1440), que es
+     donde se ven bien. */
+  .pc-cols{grid-template-columns:1fr; gap:20px;}
+  /* El tope va en el detalle entero y no en cada columna: así la línea fina
+     de "Contra quién", la de "Cómo arranca" y la de "Maestría sin partidas"
+     terminan todas en el mismo x. */
+  .pc-detalle{max-width:540px;}
+}
+@media (max-width:720px){
+  .pc-arte{width:60px; height:60px; border-radius:15px;}
+  .pc-nombre{font-size:19px;}
+  .pc-cifras{font-size:12.5px;}
+  /* La tira se sale hasta el borde: el chip cortado dice "esto sigue". */
+  .pc-tira{
+    flex-wrap:nowrap; overflow-x:auto; margin:0 -20px; padding:0 20px 6px;
+    scrollbar-width:none; -ms-overflow-style:none;
+  }
+  .pc-tira::-webkit-scrollbar{display:none;}
+  .pc-chip{min-width:76px;}
 }

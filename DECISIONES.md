@@ -2933,3 +2933,108 @@ mismo contenido que la pestaña de al lado no es una sección, es un duplicado c
 otro nombre. Para que exista de verdad hace falta una ruta que traiga el historial
 completo con las columnas del detalle — que es un camino de datos nuevo, no un
 reacomodo.
+
+## La pestaña Campeones: el eje es EL CAMPEÓN
+
+Eran cinco secciones —maestría, más jugados, lectura del pool, enfrentamientos y
+cómo arranca— y cada una tenía a todos los campeones adentro. Para contestar "¿cómo
+me va con Seraphine?" había que recorrer las cinco y juntar los pedazos de cabeza.
+
+Ahora hay una tira de campeones arriba y, debajo, el detalle DEL que se eligió:
+récord, maestría, la lectura si la tiene, contra quién y cómo arranca. Ninguna
+cuenta cambió: son los mismos `championPool`, `masteryPool`, `matchups`,
+`buildStats` y `championInsights` que ya venían de `/api/ladder`, cruzados por
+nombre de campeón en el cliente. Lo único que cambió es el eje por el que se leen.
+
+Se fueron `ChampionPool`, `MasteryPool`, `ChampionInsights`, `Matchups` y
+`BuildStarts`, y con ellos 57 reglas de CSS que no usaba nadie más. Las que
+`Matchups` compartía con otros (`.wr-bar`, `.wr-seg`) se quedaron, con un comentario
+diciendo quién las usa ahora.
+
+### La geometría de una fila se mide contra SU columna, no contra la pantalla
+
+`.matchup-row` venía de cuando los enfrentamientos ocupaban el ancho completo del
+perfil: 200px para la barra y 30px de sangría. Metida en la columna izquierda de
+Campeones (533px medidos), las partes fijas sumaban 497 + 44 de padding y la celda
+del nombre colapsaba a **cero** — los tres nombres de rival con `width: 0`. Y con el
+primer reparto nuevo, la celda del récord quedó en 76px para un contenido que pide
+84 ("75.0%" + "12-4"), así que el oro a los 15 se dibujaba encima del porcentaje.
+
+Las dos veces lo encontró `getBoundingClientRect`, no leer el CSS. El reparto que
+quedó —`28px 1fr 72px 84px 92px`— sale de medir cada celda contra su texto real.
+
+## Consulta al CONTENEDOR y no a la ventana: las filas de partida
+
+La lista de partidas del Resumen recortaba el nombre del campeón ("Serap…") y la
+línea de abajo ("186 CS…"). Lo obvio era una media query por teléfono, y era lo
+equivocado: **el ancho que le toca a una fila no lo decide la pantalla, lo decide su
+columna.** Medido, la columna de partidas mide 302px a 390 de ventana, **285 a 768**
+(ahí el perfil se parte en dos y queda más angosta que en un teléfono), 397 a 1024 y
+464 a 1440. Una media query por ventana dejaba rotos justo 768 y 1024.
+
+`.matches` es ahora un contenedor de consulta y la fila se compacta abajo de 440px de
+columna: "DERROTA" pasa a "D" (que es como se escriben los récords en toda la app,
+así que el color no queda solo), el ícono baja a 38px, se achican huecos y padding, y
+la línea de abajo suelta el CS por minuto y el % de daño. Los dos datos que se caen
+siguen estando en el detalle desplegado.
+
+Y **el perfil se parte en dos recién a 900** y no a 760 como el resto de la app,
+topado en 680 mientras va en una sola columna. Con el corte en 760, a 768 quedaba esa
+columna de 285px que ni compactando alcanzaba.
+
+### Probado con los nombres largos de verdad, no con los cómodos
+
+Todo lo de arriba daba "cero recortes" con un fixture de Seraphine, Milio y Lulu.
+Rehecho con **los peores casos reales** —"Nunu y Willump" y "Aurelion Sol" de
+campeón, "marlboro de diez" de jugador, y la chapa de "Para repasar" puesta— saltaron
+tres cosas que el fixture cómodo escondía: el nombre en la fila de partida, el nombre
+en el chip del selector de campeones (topado en 80px cuando el más largo pide 97) y
+el del arranque de build. Los dos primeros se arreglaron; el del ítem se deja
+recortar, porque los nombres de ítem no tienen largo máximo y al lado está el ícono.
+
+Resultado medido con esos nombres: cero texto recortado en 390, 430, 768, 1024 y
+1440, salvo el del ítem a 390.
+
+## Un ancho de lectura por pestaña
+
+Dos veces apareció el mismo defecto: una lista angosta arriba y una grilla a ancho
+completo abajo, con el borde derecho de la pestaña saltando de 780 a 1540 y de
+vuelta.
+
+- **Mejorar**: el tope de 780px pasó de `.mej` a `.mejorar-cuerpo`, que envuelve toda
+  la pestaña. Adentro entran la tabla de métricas, la forma reciente, las líneas, los
+  récords y el Aegis, y los cinco terminan en el mismo x.
+- **Campeones**: abajo de 860 el detalle se apila en una columna, pero topado en
+  540px —el ancho que tiene cuando el perfil va en dos columnas, que es donde se ve
+  bien—. Sin el tope, a 768 las filas medían 724px y quedaba medio renglón vacío
+  entre el nombre y los números.
+
+## La banda de "cómo viene" en el teléfono
+
+Los tres bloques entraban dos y uno: "la season" quedaba sola en el segundo renglón
+con medio ancho vacío al lado. Abajo de 520 pasan a ser tres renglones, con el
+rótulo a la izquierda y el número —con su muestra debajo— contra el margen derecho.
+
+## El gráfico de LP no se deforma (el comentario decía que sí)
+
+En `PlayerProfile.tsx` había escrito que el ancho del viewBox tenía que quedar cerca
+del ancho real "porque el SparkChart usa `preserveAspectRatio="none"` y si no se
+aplasta el trazo". **Es falso, y se midió.** El SVG va con `height:auto` y un
+viewBox, así que su caja toma siempre la proporción del viewBox y el `"none"` nunca
+llega a actuar: la proporción dibujada da 3,44 a 390, a 768, a 1024 y a 1440, que es
+exactamente 620/180.
+
+Lo que el ancho de la columna sí decide es **de qué tamaño** sale el gráfico, porque
+el alto sale del ancho: 570x165 a 1440, 268x78 en un teléfono, y 905x263 si se lo
+deja ocupar una columna entera de tablet. Por eso la columna tiene tope de 680 abajo
+de 900 — no para que no se deforme, sino para que no se vuelva una banda que empuja
+las partidas abajo del pliegue.
+
+Esto importa más allá del comentario: **el gráfico no se puede estirar para emparejar
+columnas.** A 1440 la izquierda del Resumen termina 86px antes que la de partidas
+(111 a 1024). Emparejarlas pide subir el alto del viewBox, que cambia la proporción
+en TODOS los anchos, y hace falta distinta cantidad en cada uno. El alto ya subió una
+vez de 132 a 180 por una razón propia (separar los escalones de una división);
+seguir inflándolo para tapar un hueco de margen es mover un número de datos por un
+motivo de layout. Dos columnas independientes terminan a distinta altura, y eso es
+lo que son.
