@@ -121,7 +121,14 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   lo dice; se estima probando las 120 permutaciones).
 - `matchups.ts` — enfrentamientos de línea, desde `matches.opponent_champion`.
 - `radar.ts` — las siete dimensiones, contra el resto del grupo en ese mismo rol.
-  Ya no se dibuja como radar: `ProfileMejorar` usa sus ejes como una lista ordenada.
+  Ya no se dibuja como radar: `lectura.ts` lee sus ejes y decide cuáles mostrar.
+- `lectura.ts` — **la interpretación del perfil**: de las siete del radar, las que
+  se despegan de verdad (8% o más, tres como mucho) y UN foco. Un "+6% de CS por
+  minuto" no es una fortaleza y acá es donde se decide que no entre.
+- `progresion.ts` — la progresión de LP **partida por partida**: a cada una se le
+  atribuye su LP con el mismo método por tramos que usa la liga (el par de fotos
+  que contiene el FINAL de la partida). Lo que no se puede atribuir no se dibuja
+  ni se interpola: se cuenta aparte.
 - `form.ts` — forma reciente: sus últimas N contra todo lo anterior de él mismo.
 - `tilt.ts` — "estás jugando peor Y no estás parando".
 - `matchflags.ts` — marca partidas atípicas contra la forma propia.
@@ -371,17 +378,24 @@ pestañas.
   la carrera → los momentos de la semana → la clasificación con podio. Va encima
   y no en una pantalla propia porque es una foto de diez segundos y mandar a otra
   página obliga a irse de la liga y volver.
-  `PlayerProfile` es el más grande, y tiene TRES pestañas propias —Resumen,
-  Mejorar, Campeones— que son el eje por el que se reparten sus piezas:
-  - **Resumen** (cómo viene): `ProfileForma` (la banda: las últimas 5, las últimas
-    20 contra su propio historial y la season, cada una con su muestra), el gráfico
-    de LP, la lista de partidas con `MatchDetail` (que a su vez abre
-    `MatchTimeline`) y, si está jugando, `LiveGamePanel` y `TiltCard` arriba de todo.
-  - **Mejorar** (contra qué se compara): `ProfileMejorar` (una fila por métrica
-    contra el promedio de su línea, partida en fortalezas y debilidades; reemplazó
-    al radar, a su tabla y a la tarjeta de insights, que decían lo mismo tres veces
-    y la última encima mal calculada), `RecentForm`, `LineHistory`,
-    `PersonalRecords` y `AegisStats`.
+  `PlayerProfile` es el más grande, y tiene DOS pestañas propias —Resumen y
+  Campeones— que son el eje por el que se reparten sus piezas. Eran tres: la del
+  medio, "Mejorar", no era otra dimensión del perfil sino la INTERPRETACIÓN de los
+  datos del perfil, y tenerla aparte costaba un click para llegar a la conclusión
+  y repetía adentro las líneas y la forma reciente. La regla que ordena el Resumen
+  es una sola: **una información aparece una sola vez**.
+  - **Resumen** (qué le está pasando y qué le conviene corregir), en este orden:
+    - *Su momento*, a todo el ancho: `ProgresionLP`, una partida por punto, con
+      el detalle de cada una al pasar por encima y los cambios de división como
+      hitos verticales.
+    - A la izquierda, la lectura: `ProfileLectura` (dónde está destacando y su
+      foco, salido de `lectura.ts`), `LineHistory` (cómo está jugando cada línea,
+      sin barras y con las muestras chicas marcadas), `PersonalRecords` (una sola
+      tira) y `AegisStats`.
+    - A la derecha, lo reciente: `RecentForm` (solo las métricas que se movieron,
+      cuatro como mucho) y la lista de partidas con `MatchDetail` (que a su vez
+      abre `MatchTimeline`).
+    - Y si está jugando, `LiveGamePanel` y `TiltCard` arriba de todo.
   - **Campeones** (qué juega): `ProfileCampeones` —una tira de campeones y el
     detalle DEL elegido: récord, maestría, lectura, contra quién y cómo arranca—
     más `CoachPanel` al final. Reemplazó a `ChampionPool`, `MasteryPool`,

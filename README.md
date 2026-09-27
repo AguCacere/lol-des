@@ -18,16 +18,18 @@ que cambia todos los días; el resto de la portada no. Cierra la liga de la sema
 con la diferencia entre el primero y el segundo y cuánto falta para el cierre.
 
 **Ranking** — el ladder ordenado por LP, con rango, racha, V/D y el gráfico de LP de
-cada uno. Tocando una fila se sale del ladder y se entra al perfil, que tiene tres
+cada uno. Tocando una fila se sale del ladder y se entra al perfil, que tiene dos
 pestañas:
 
-- **Resumen** — cómo viene: las últimas 5, las últimas 20 contra su propio historial y
-  la season, la curva de LP y las últimas partidas con su timeline. Si está jugando en
-  ese momento, la partida en vivo va arriba de todo.
-- **Mejorar** — contra qué se compara: una fila por métrica contra el promedio de su
-  línea en el grupo, partida en lo que hace mejor y dónde está por debajo; más la forma
-  reciente contra él mismo hace veinte partidas, sus líneas (con detección de autofill),
-  sus récords personales y la detección de tilt.
+- **Resumen** — qué le está pasando y qué le conviene corregir. Arriba, la progresión
+  de LP **partida por partida**: cada punto es una, pasando por encima aparece con qué
+  campeón, con qué KDA y cuánto LP movió, y los ascensos y descensos quedan marcados.
+  Abajo a la izquierda, la lectura contra los demás de su línea —dónde está destacando
+  y UN foco, no las siete métricas—, cómo le va en cada línea (con detección de
+  autofill y las muestras chicas marcadas) y sus récords. A la derecha, en qué se movió
+  contra sí mismo hace veinte partidas y las últimas partidas con su timeline. Si está
+  jugando en ese momento, la partida en vivo va arriba de todo, y lo mismo el aviso de
+  tilt.
 - **Campeones** — qué juega: se elige un campeón de la tira y abajo está todo lo de ESE
   campeón —récord, maestría de Riot, contra quién le va bien o mal y con qué ítem
   arranca—, más el análisis del pool.

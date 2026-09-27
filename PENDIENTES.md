@@ -11,7 +11,7 @@ de leerse a la segunda vez.
 Lo que es de la liga **que viene** —dos semanas, bot nuevo, los "te cojo", el rebranding—
 no está acá: vive en **`PROXIMO-TORNEO.md`**. Esto es lo que le falta a la de hoy.
 
-Última revisión: 26 de septiembre de 2026.
+Última revisión: 27 de septiembre de 2026.
 
 ## MIGRACIÓN SIN CORRER: la tabla `objetivos`
 
@@ -55,9 +55,13 @@ Lo único que quedó afuera a propósito es la pestaña **Historial**, y está e
 allá: `Player.matches` trae cinco partidas, que son las que ya muestra el Resumen. Para
 que exista de verdad hace falta una ruta nueva que traiga el historial completo.
 
-Un detalle que quedó **decidido y no pendiente**: el pie desparejo del Resumen (la
-columna del gráfico termina antes que la de partidas). Está en `DECISIONES.md` con la
-medición y con por qué emparejarlo cuesta más de lo que arregla.
+El Resumen se rehizo después, y con él se fue la pestaña **Mejorar**: no era otra
+dimensión del perfil sino la interpretación de sus datos, y repetía adentro las
+líneas y la forma reciente. El perfil son dos pestañas, Resumen y Campeones. Está
+todo en `DECISIONES.md` → "El perfil tenía tres pestañas y una era la conclusión de
+otra", con la medición del gráfico nuevo y de la atribución de LP partida por
+partida. El pie desparejo que antes figuraba acá dejó de existir: las dos columnas
+quedaron parejas.
 
 Dos cosas de las fases hechas que quedaron **decididas y anotadas, no pendientes**:
 que no hay rutas por sección (son pestañas) y que Inicio no repite el estado de la

@@ -4,85 +4,73 @@ import { RoleIcon } from "./RoleIcon";
 import { InfoTip } from "./InfoTip";
 import { tonoDeWinrate, winrateTexto } from "@/lib/winrate";
 
-
-
 /**
- * "Sus líneas" — cuánto jugó cada una, cómo le fue, y si lo están sacando de
- * la suya. Sale de team_position, la posición REAL que Riot asigna partida a
- * partida.
+ * "Cómo estás jugando" — cuánto jugó cada línea y cómo le fue. Sale de
+ * `team_position`, la posición REAL que Riot asigna partida a partida.
  *
- * La barra dice el winrate y el número también: el verde y el rojo de la app
- * están a ΔE 7.1 en visión deuteranope, así que el color solo no puede ser el
- * único que lo diga.
+ * Tenía una barra por línea, apilando victorias y derrotas y con el largo
+ * total proporcional a las partidas. Dos problemas:
+ *
+ * 1. Las barras eran lo más grande de la sección y no decían nada que el
+ *    winrate de al lado no dijera mejor.
+ * 2. Y **mentían por tamaño**: "Support 100% · 2V-0D" con una barra verde
+ *    entera se lee como un resultado extraordinario, cuando la muestra son
+ *    dos partidas.
+ *
+ * Ahora es una tabla: línea, partidas, winrate y KDA. Sin barras, mucho más
+ * baja, y las muestras chicas van marcadas — que es lo que la barra hacía al
+ * revés.
  */
+
+/** Abajo de esto, el winrate no significa nada y la fila lo dice. */
+const MUESTRA_MINIMA = 5;
+
 export function LineHistory({ h }: { h: HistorialLineas }) {
   const jugadas = h.lineas.filter((l) => l.games > 0);
   if (jugadas.length === 0) return null;
 
-  const maxPartidas = jugadas[0].games;
-  // ROLES[].label viene capitalizado para usarse como título ("Jungla",
-  // "ADC"), pero en el medio de una frase "De Jungla gana el 56%" queda raro.
-  // Se pasa a minúscula salvo ADC, que es una sigla: "De adc gana el 51%" es
-  // directamente un error de ortografía.
-  const principal = h.principal === "adc" ? "ADC" : ROLES[h.principal].label.toLowerCase();
-
   return (
     <div className="lineas">
-      <div className="lineas-filas">
-        {jugadas.map((l) => {
-          return (
-            <div className="lineas-fila" key={l.role}>
+      <div className="lineas-cab">
+        <span>Línea</span>
+        <span className="lineas-num">PJ</span>
+        <span className="lineas-num">WR</span>
+        <span className="lineas-num">KDA</span>
+        <span />
+      </div>
+      {jugadas.map((l) => {
+        const poca = l.games < MUESTRA_MINIMA;
+        return (
+          <div className="lineas-fila" key={l.role}>
+            <span className="lineas-quien">
               <span className="lineas-rol" title={ROLES[l.role].label}>
                 <RoleIcon role={l.role} />
               </span>
               <span className="lineas-nombre">{ROLES[l.role].label}</span>
-              {/* Victorias y derrotas apiladas, y el LARGO total proporcional
-                  a cuánto jugó esa línea. Las dos cosas de una: una línea de
-                  5 partidas es una rayita corta aunque tenga 60%, que es
-                  justo lo que hay que ver. Superponer dos barras no servía —
-                  la del winrate tapaba a la del volumen y una línea de 5
-                  partidas dibujaba más largo que una de 105. */}
-              <span className="lineas-barra" aria-hidden>
-                <span className="lineas-barra-total" style={{ width: `${(100 * l.games) / maxPartidas}%` }}>
-                  <span className="lineas-barra-v" style={{ width: `${(100 * l.wins) / l.games}%` }} />
-                  <span className="lineas-barra-d" />
-                </span>
-              </span>
-              <span className={`lineas-wr ${tonoDeWinrate(l.wins, l.games)}`}>{winrateTexto(l.wins, l.games)}</span>
-              <span className="lineas-detalle">
-                {l.wins}V-{l.games - l.wins}D
-                {l.kda !== null && <span className="lineas-kda">KDA {l.kda.toFixed(2)}</span>}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+              {l.role === h.principal && <i className="lineas-principal">principal</i>}
+            </span>
+            <span className="lineas-num lineas-pj">{l.games}</span>
+            {/* El winrate se apaga cuando la muestra no lo sostiene: un 100%
+                de dos partidas en verde fuerte es la barra vieja otra vez, con
+                otra forma. */}
+            <span className={`lineas-num lineas-wr ${poca ? "poca" : tonoDeWinrate(l.wins, l.games)}`}>
+              {winrateTexto(l.wins, l.games)}
+            </span>
+            <span className="lineas-num lineas-kda">{l.kda === null ? "—" : l.kda.toFixed(2)}</span>
+            <span className="lineas-nota">{poca ? "muestra baja" : `${l.wins}V-${l.games - l.wins}D`}</span>
+          </div>
+        );
+      })}
 
-      {/* La conclusión, que es lo que la tabla sola no dice. */}
-      <p className="lineas-conclusion">
-        {h.fuera.games === 0 ? (
-          <>
-            Solo jugó de <strong>{principal}</strong>: las {h.enPrincipal.games} partidas guardadas son en esa línea.
-          </>
-        ) : (
-          <>
-            De <strong>{principal}</strong> gana el{" "}
-            <strong className={tonoDeWinrate(h.enPrincipal.wins, h.enPrincipal.games) === "bad" ? "gd-neg" : "gd-pos"}>
-              {winrateTexto(h.enPrincipal.wins, h.enPrincipal.games)}
-            </strong>; fuera de ahí, el{" "}
-            <strong className={tonoDeWinrate(h.fuera.wins, h.fuera.games) === "bad" ? "gd-neg" : "gd-pos"}>
-              {winrateTexto(h.fuera.wins, h.fuera.games)}
-            </strong>.
-            {h.loSacanDeSuLinea && (
-              <>
-                {" "}
-                Y lo están sacando seguido: {h.recientesFuera} de las últimas {h.recientes} fueron en otra línea.
-                <InfoTip text="Riot no dice qué línea pediste en la cola, así que esto no es el autofill de verdad: es que la mayoría de su historial es una línea y últimamente está jugando bastante en otras. Puede ser autofill o puede ser que haya cambiado de main." />
-              </>
-            )}
-          </>
-        )}
-      </p>
+      {/* Lo único que la tabla NO dice: que lo están sacando de su línea. El
+          "de mid gana el 62,5%; fuera de ahí el 57,1%" se fue — eso ya se lee
+          en las dos primeras filas. */}
+      {h.loSacanDeSuLinea && (
+        <p className="lineas-aviso">
+          Lo están sacando seguido de su línea: {h.recientesFuera} de las últimas {h.recientes} fueron en otra.
+          <InfoTip text="Riot no dice qué línea pediste en la cola, así que esto no es el autofill de verdad: es que la mayoría de su historial es una línea y últimamente está jugando bastante en otras. Puede ser autofill o puede ser que haya cambiado de main." />
+        </p>
+      )}
     </div>
   );
 }

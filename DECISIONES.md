@@ -3002,20 +3002,22 @@ completo abajo, con el borde derecho de la pestaña saltando de 780 a 1540 y de
 vuelta.
 
 - **Mejorar**: el tope de 780px pasó de `.mej` a `.mejorar-cuerpo`, que envuelve toda
-  la pestaña. Adentro entran la tabla de métricas, la forma reciente, las líneas, los
-  récords y el Aegis, y los cinco terminan en el mismo x.
+  la pestaña. *(La pestaña se fue después; ver "El perfil tenía tres pestañas y una
+  era la conclusión de otra". El Resumen que la absorbió resuelve lo mismo con dos
+  columnas de ancho fijo, así que el problema no volvió.)*
 - **Campeones**: abajo de 860 el detalle se apila en una columna, pero topado en
   540px —el ancho que tiene cuando el perfil va en dos columnas, que es donde se ve
   bien—. Sin el tope, a 768 las filas medían 724px y quedaba medio renglón vacío
   entre el nombre y los números.
 
-## La banda de "cómo viene" en el teléfono
-
-Los tres bloques entraban dos y uno: "la season" quedaba sola en el segundo renglón
-con medio ancho vacío al lado. Abajo de 520 pasan a ser tres renglones, con el
-rótulo a la izquierda y el número —con su muestra debajo— contra el margen derecho.
-
 ## El gráfico de LP no se deforma (el comentario decía que sí)
+
+> Esto valía para el gráfico viejo del perfil, que era un `SparkChart` de fotos de
+> LP. Ese gráfico se fue (ver más abajo), pero el `SparkChart` sigue vivo en Mejora
+> y en el digest del equipo, así que la medición se queda — y la última parte, la de
+> por qué no se estira para emparejar columnas, dejó de aplicar: el Resumen ya no
+> tiene esa forma.
+
 
 En `PlayerProfile.tsx` había escrito que el ancho del viewBox tenía que quedar cerca
 del ancho real "porque el SparkChart usa `preserveAspectRatio="none"` y si no se
@@ -3342,3 +3344,129 @@ de arriba y el de abajo quedan pegados y son **52px de nada** entre el ladder y 
 liga (medido). Con auto-placement y `grid-column: 1 / -1`, el bloque que no está no
 ocupa fila. Mismo problema que ya habían tenido las secciones vacías del perfil, y
 la misma solución: que lo que no existe, no reserve lugar.
+
+## El perfil tenía tres pestañas y una era la conclusión de otra
+
+Resumen / Mejorar / Campeones. El problema no era de diseño sino de arquitectura: el
+perfil intentaba ser perfil, analytics y coach al mismo tiempo, y **Mejorar no era
+otra dimensión del perfil — era la interpretación de los datos del perfil**. Tenerla
+aparte costaba dos cosas: un click para llegar a la conclusión, y repetir adentro lo
+que ya estaba en Resumen. Las líneas y la forma reciente salían dos veces, con dos
+diseños distintos.
+
+Quedaron dos pestañas, **Resumen** y **Campeones**, y una regla que ordena el resto:
+
+> **Una información aparece una sola vez.**
+
+Y la otra, que es la que explica casi todos los cambios de abajo:
+
+> No hay que mostrar **menos información**: hay que mostrar **menos interfaz**.
+
+### La app hace el trabajo de leer, no lo delega
+
+`ProfileMejorar` listaba las SIETE métricas del rol en una tabla. Una tabla donde
+tres filas dicen "+6%", "+5%" y "+3%" no es una lectura: es la materia prima de una
+lectura, y el trabajo de encontrar las importantes quedaba del lado de la persona.
+Peor: "+6% de CS por minuto" apareciendo en "lo que hacés mejor" es ruido con
+formato de conclusión — dos poblaciones distintas nunca dan el mismo número.
+
+`lib/lectura.ts` decide qué vale la pena mostrar:
+
+- **Umbral de materialidad: 8%.** Es el mismo que ya usaban `lib/insights.ts` y
+  `ProfileMejorar` para decidir si TEÑÍAN la diferencia. Lo que cambia es la
+  consecuencia: antes un 3% se dibujaba igual, apagado; ahora no entra. Un renglón
+  gris que dice "esto no significa nada" ocupa lo mismo que uno que significa algo.
+- **Tres como mucho de un lado y UN foco del otro.** Dos focos no son un foco, y la
+  segunda cosa a corregir no sirve hasta que la primera esté corregida.
+- **Ordena por z, no por porcentaje.** El z tiene en cuenta cuánto varía el grupo en
+  ese eje: un +40% donde todos andan disparejos dice menos que un +15% en algo parejo.
+- Las que quedaron adentro del ruido se cuentan en una línea al pie. El dato no se
+  esconde, deja de ocupar lugar.
+
+El foco lleva además **una frase de qué mide esa métrica**, de un diccionario y no de
+un modelo: un texto generado podría decir "te falta visión porque jugás muy agresivo",
+que es una causa que nadie midió. Las frases dicen QUÉ mide y nada más.
+
+Ningún cálculo cambió: son los mismos ejes del radar, sobre las mismas partidas.
+
+### El gráfico de LP: una partida por punto
+
+El gráfico viejo dibujaba las últimas veinte **fotos** de LP en 260px de alto para
+contestar una sola cosa: "subió 92 LP". Y las fotos las saca el cron cada quince
+minutos, así que un valle podía ser dos derrotas o podía ser que nadie jugara en toda
+la tarde. Ocupaba mucho y contaba poco.
+
+Ahora cada punto es **una partida** (`lib/progresion.ts`), y por eso el gráfico puede
+contestar la pregunta que un gráfico de LP tiene que contestar: cómo llegó de acá
+hasta acá. Verde o rojo según el resultado, los cambios de división como cortes
+verticales con el rango nuevo escrito, y al pasar por encima aparece la partida
+entera: campeón, KDA, duración y el tramo de LP. Mide 96px, la mitad que el anterior.
+
+**El LP de cada partida no se estima.** Sale de la misma atribución por tramos que usa
+la liga: el par de fotos consecutivas que contiene el FINAL de la partida (por el
+final y no por el inicio: el LP se mueve al terminar, y con fotos cada 15 minutos y
+partidas de 25-40, casi todas cruzan una). Y lo que no se puede atribuir **no se
+dibuja ni se interpola**: se cuenta al pie.
+
+Eso se midió contra la base ANTES de escribir el gráfico, porque la idea entera
+depende de que la atribución funcione: de las últimas 20 partidas de cada uno, once
+de los catorce tienen las veinte con LP propio, uno tiene diecinueve, y los dos que
+quedan son los inactivos (sus últimas veinte son anteriores a que los siguiéramos).
+Partidas compartiendo un tramo en la ventana reciente: **cero**.
+
+### Los puntos son líneas de largo cero, no círculos
+
+El SVG va con `preserveAspectRatio="none"` y alto fijo de 96px — eso es lo que
+mantiene el gráfico bajo en un monitor grande en vez de crecer con el ancho. Pero
+entonces el estirado horizontal sí actúa: en un teléfono el viewBox de 620 entra en
+302px, o sea la mitad, y un `<circle r=3>` sale como una elipse de 1,5 × 3.
+
+La solución no es medir el contenedor en JS: es dibujar cada punto como una **línea
+de largo cero con `stroke-linecap:round` y `vector-effect="non-scaling-stroke"`**. El
+grosor de un trazo que no escala se mide en píxeles de pantalla, así que la punta
+redonda es un círculo perfecto a cualquier ancho. Verificado en captura a 390 y a
+1440.
+
+### Menos interfaz, mismo contenido
+
+Tres bloques eran el mismo error tres veces — un dato, una caja:
+
+- **Récords personales**: seis cuadrados en una grilla de 2×3, 200px de alto para
+  seis números de una línea. Ahora es una tira: ícono, número, rótulo. **19px de alto
+  a 1440**, y en pantallas angostas envuelve sola.
+- **Forma reciente**: ocho fichas, y la mitad decía "no se movió" con el mismo peso
+  visual que la que se movió 92%. Ahora son renglones y **solo las que se movieron**,
+  cuatro como mucho, ordenadas por cuánto; las quietas se cuentan al pie.
+- **Sus líneas**: la barra apilada de victorias y derrotas era lo más grande de la
+  sección, no decía nada que el winrate de al lado no dijera mejor, y encima **mentía
+  por tamaño** — "Support 100% · 2V-0D" con una barra verde entera se lee como un
+  resultado extraordinario. Ahora es una tabla, y la muestra chica va marcada, que es
+  justo lo que la barra hacía al revés. También se fue la frase "de mid gana el 62,5%;
+  fuera de ahí, el 57,1%": eso ya se lee en las dos primeras filas.
+
+### El gráfico va a todo el ancho porque al lado quedaba un pozo
+
+Primera versión: la progresión y la forma reciente en dos columnas adentro de "Su
+momento". Medido, el gráfico con su pie mide 150px y la forma reciente 410, así que
+abajo del dibujo quedaban **260px de nada**. La forma reciente se mudó arriba de
+"Últimas partidas" —es la misma pregunta, qué viene pasando— y el gráfico se quedó
+con el ancho entero, que además le da 60px entre partida y partida en vez de 25: la
+diferencia entre poder apuntarle a una y no.
+
+El Resumen entero pasó de 982px de alto a 906 con las dos columnas parejas.
+
+### El panel del gráfico en el teléfono
+
+Mismo problema que el panel del día de la liga, misma forma de encontrarlo: medido,
+a 390 el panel son 198px contra 302 de gráfico y al lado del anteúltimo punto llegaba
+a x=395 en una pantalla de 390. Abajo de 640 pasa a ocupar el ancho entero, debajo
+del dibujo, tapando el pie —que es texto que se puede tapar mientras el dedo
+recorre—. Con `!important` porque `left` y `transform` los escribe el componente en
+el `style` del nodo.
+
+### Y dos frases que eran una fila
+
+`.lec-muestra` y `.lineas-aviso` estaban con `display:flex` para poder poner el ⓘ al
+final. Con flex cada nodo de texto es un ítem: a 390 la primera se partía en "Contra
+los demás Mid" / "del grupo · sus 180 partidas…" y en la segunda el ⓘ se iba solo a
+un renglón propio. Son frases, van como bloque.

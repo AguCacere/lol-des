@@ -8,7 +8,6 @@ import {
   ROLES,
   currentStreak,
   formatRelativeDate,
-  trendColor,
   nextDivisionInfo,
   rankScore,
   rankEmblemUrl,
@@ -17,16 +16,16 @@ import {
 import { championSplashUrl } from "@/lib/ddragon";
 import { TiltCard } from "./TiltCard";
 import { LiveGamePanel } from "./LiveGamePanel";
-import { SparkChart } from "./SparkChart";
 import { StreakIcon } from "./StreakIcon";
 import { ChampIcon } from "./ChampIcon";
 import { MatchDetail } from "./MatchDetail";
 import { CoachPanel } from "./CoachPanel";
 import { LineHistory } from "./LineHistory";
+import { leerElPerfil } from "@/lib/lectura";
 import { PersonalRecords } from "./PersonalRecords";
 import { RecentForm } from "./RecentForm";
-import { ProfileForma } from "./ProfileForma";
-import { ProfileMejorar } from "./ProfileMejorar";
+import { ProgresionLP } from "./ProgresionLP";
+import { ProfileLectura } from "./ProfileLectura";
 import { ProfileCampeones } from "./ProfileCampeones";
 import { AegisStats } from "./AegisStats";
 import { InfoTip } from "./InfoTip";
@@ -41,13 +40,16 @@ import { championLabel } from "@/lib/champion-names";
  * de ser usable en cualquier tamaño. Cada bloque nuevo entra en su pestaña
  * en vez de estirar la página.
  */
-type ProfileTabKey = "resumen" | "mejorar" | "campeones";
+/**
+ * DOS y no tres. "Mejorar" se fue: no era otra dimensión del perfil, era la
+ * INTERPRETACIÓN de los datos del perfil, y tenerla aparte costaba un click
+ * para llegar a la conclusión y repetía adentro las líneas y la forma
+ * reciente, que ya estaban en Resumen. Ahora la lectura vive donde tiene
+ * contexto y el perfil se lee de corrido. Ver DECISIONES.
+ */
+type ProfileTabKey = "resumen" | "campeones";
 const PROFILE_TABS: { key: ProfileTabKey; label: string }[] = [
   { key: "resumen", label: "Resumen" },
-  // "Rendimiento" invitaba a mirar números; "Mejorar" invita a hacer algo con
-  // ellos, que es lo que la pestaña ahora contesta: en qué está mejor, en qué
-  // peor y en qué partidas se nota.
-  { key: "mejorar", label: "Mejorar" },
   { key: "campeones", label: "Campeones" },
 ];
 
@@ -76,17 +78,6 @@ function horaDe(iso: string): string {
   });
 }
 
-/**
- * "22 ago" — la fecha de una punta del gráfico, sin año: la ventana nunca cruza
- * uno. En hora argentina, como todo lo que escribe una fecha en esta app.
- */
-function fechaCorta(iso: string): string {
-  return new Date(iso).toLocaleDateString("es-AR", {
-    day: "numeric",
-    month: "short",
-    timeZone: "America/Argentina/Buenos_Aires",
-  });
-}
 
 export function PlayerProfile({
   player,
@@ -166,13 +157,18 @@ export function PlayerProfile({
   const p = displayed;
   const t = tierFor(p.tierKey);
   const hasMatches = p.matches.length > 0;
+  /**
+   * Qué hace mejor y qué peor que su línea, ya filtrado a lo que se despega
+   * de verdad. Es lo que era la pestaña Mejorar. Ver lib/lectura.ts.
+   */
+  const lectura = leerElPerfil(p.radar);
   // Se fueron TODOS los promedios sobre `p.matches` que vivían acá: wins,
   // avgKDA, avgCS, avgDmg, avgVision, avgDur, killPart y objPart. Los ocho
   // promediaban las últimas CINCO partidas y se mostraban —en las fichas del
   // Resumen o en la tarjeta de fortalezas— como si fueran los números
   // generales del jugador, sin decir la muestra. Las mismas métricas, bien
-  // contadas sobre todo el historial y con su muestra escrita, están en el
-  // radar (que ahora dibuja ProfileMejorar) y en la forma reciente.
+  // contadas sobre todo el historial y con su muestra escrita, están en la
+  // lectura contra su línea (lib/lectura.ts) y en la forma reciente.
   // Charted on rankScore (tier+división+LP combinado), no en el LP crudo: al
   // subir de división el número de LP se resetea (ej. Platino 3 a 80 LP →
   // Platino 2 a 0 LP), y graficar solo "lp" hacía ver esa subida como una
@@ -184,93 +180,10 @@ export function PlayerProfile({
   const lpCrossedBoundary = lpStartPoint.tier !== lpCurrentPoint.tier || lpStartPoint.division !== lpCurrentPoint.division;
   const lpDelta = lpScores[lpScores.length - 1] - lpScores[0];
 
-  /**
-   * Los límites de división que la curva efectivamente cruzó, para dibujarlos
-   * como guías. Sin ellos el gráfico muestra que bajaste pero no CONTRA QUÉ:
-   * una caída de 102 puntos puede ser media división o dos, y no hay forma de
-   * saberlo mirando la línea.
-   *
-   * Solo los cruzados: si en toda la ventana no cambiaste de división, no hay
-   * ninguna línea que dibujar — cuánto falta para la siguiente ya está en la
-   * barra de progreso del encabezado.
-   */
-  const lpMin = Math.min(...lpScores);
-  const lpMax = Math.max(...lpScores);
-  const lpGuides = [...new Map(p.lpHistory.map((h) => [`${h.tier}|${h.division}`, h])).values()]
-    .map((h) => ({ value: rankScore(h.tier, h.division, 0), label: `${tierFor(h.tier).name} ${h.division}` }))
-    .filter((g) => g.value > lpMin && g.value < lpMax);
-
-  /**
-   * El récord de la ventana. Los snapshots guardan las victorias y derrotas
-   * acumuladas de la season, así que la resta entre el primero y el último da
-   * las partidas que efectivamente entraron en esta curva — el dato que
-   * explica la caída y que hasta ahora no se mostraba en ningún lado.
-   *
-   * Con piso en 0 por si el acumulado se reinicia (season nueva, o alguien
-   * que se agregó de nuevo): ahí la resta daría negativo y no significaría
-   * nada.
-   */
-  const lpVentana = (() => {
-    const primero = p.lpHistory[0];
-    const ultimo = p.lpHistory[p.lpHistory.length - 1];
-    const v = Math.max(0, ultimo.wins - primero.wins);
-    const d = Math.max(0, ultimo.losses - primero.losses);
-    const dias = Math.round((Date.parse(ultimo.capturedAt) - Date.parse(primero.capturedAt)) / 86400000);
-    return { v, d, dias, desde: primero.capturedAt, hasta: ultimo.capturedAt };
-  })();
-  // lpDelta is a rankScore delta, not a raw LP delta — the two only match when
-  // no division changed hands. Labeling it "LP" unconditionally used to show
-  // e.g. "Platino 3 · 64 LP → Platino 2 · 36 LP  ▲72 LP", which reads as a
-  // fabricated 72-LP gain when the real LP number visibly dropped 64→36.
-  //
-  // "pts" evitaba eso pero inventaba una unidad: rankScore sube de a 100 por
-  // división y 400 por tier, o sea la MISMA escala que el LP. La diferencia
-  // son LP netos y punto — decirlo así se entiende sin dejar de distinguirlo
-  // del número crudo que se ve al lado.
+  // El delta de la ventana de fotos, que sigue vivo en el encabezado (el
+  // chip de "▲92 LP netos" al lado del rango). El GRÁFICO ya no sale de acá:
+  // dibuja una partida por punto desde `p.progresion`, ver ProgresionLP.tsx.
   const lpDeltaUnit = lpCrossedBoundary ? "LP netos" : "LP";
-  const lpChartColor = trendColor(lpScores);
-  const lpEndpointLabel = (point: { tier: Player["tierKey"]; division: number; lp: number }) =>
-    lpCrossedBoundary ? `${tierFor(point.tier).name} ${point.division} · ${point.lp} LP` : `${point.lp} LP`;
-  const lpPointLabels = p.lpHistory.map((h, i) => {
-    const ht = tierFor(h.tier);
-    const hWinrate = h.wins + h.losses > 0 ? Math.round((100 * h.wins) / (h.wins + h.losses)) : 0;
-    // Step delta vs. the PREVIOUS snapshot specifically (not vs. the chart's
-    // overall start) — this is the number the hover is actually for: "what
-    // happened right here." Same rankScore-vs-raw-LP unit logic as the
-    // headline delta, but evaluated per adjacent pair so a promotion between
-    // two snapshots still reads as a real gain instead of a fabricated drop.
-    const prev = i > 0 ? p.lpHistory[i - 1] : null;
-    const stepDelta = prev ? lpScores[i] - lpScores[i - 1] : null;
-    // "LP netos" y no "pts", por lo mismo que el titular de arriba: desde que
-    // existe la liga, "puntos" es SU unidad y dos escalas con el mismo nombre
-    // en la misma app se confunden solas.
-    const stepUnit = prev && (prev.tier !== h.tier || prev.division !== h.division) ? "LP netos" : "LP";
-    return (
-      <>
-        <div className="spark-tooltip-head">
-          <span className="date">
-            {new Date(h.capturedAt).toLocaleDateString("es-AR", {
-              day: "2-digit",
-              month: "short",
-              timeZone: "America/Argentina/Buenos_Aires",
-            })}
-          </span>
-          {stepDelta !== null && stepDelta !== 0 && (
-            <span className={`spark-tooltip-delta ${stepDelta > 0 ? "up" : "down"}`}>
-              {stepDelta > 0 ? "▲" : "▼"} {Math.abs(stepDelta)} {stepUnit}
-            </span>
-          )}
-        </div>
-        <div className="rank" style={{ color: ht.fg }}>
-          {ht.name} {h.division} · {h.lp} LP
-        </div>
-        <div className="spark-tooltip-divider" />
-        <div className="record">
-          {h.wins}V {h.losses}D · <span className={hWinrate >= 50 ? "good" : "bad"}>{hWinrate}%</span>
-        </div>
-      </>
-    );
-  });
   const streak = currentStreak(p.matches);
   // Se fueron `metricInsights` y su split en fortalezas/debilidades. No es
   // que sobraran: estaban MAL. Sus valores salían de `avgKDA`, `avgCS`,
@@ -279,7 +192,8 @@ export function PlayerProfile({
   // partidas del grupo. Una sola partida buena te movía de "debilidad" a
   // "fortaleza". La comparación bien hecha —todas tus partidas en esa línea
   // contra todas las del grupo en esa línea, con las dos muestras a la
-  // vista— ya la hacía el radar, y es la que quedó en ProfileMejorar.
+  // vista— ya la hacía el radar, y es la que quedó en la lectura contra su
+  // línea (lib/lectura.ts).
   const peakTier = tierFor(p.peakLp.tier);
   const isAtPeak = p.peakLp.tier === p.tierKey && p.peakLp.division === p.division && p.peakLp.lp === p.lp;
   const next = nextDivisionInfo(p.tierKey, p.division, p.lp);
@@ -440,114 +354,94 @@ export function PlayerProfile({
         </div>
 
         {tab === "resumen" && (
-          <div className="stack-cols">
+          /* ── El Resumen, reconstruido alrededor de tres preguntas ──
+             qué me está pasando · qué hago bien · qué debería corregir.
+
+             Antes había TRES pestañas y la del medio, "Mejorar", no era otra
+             dimensión del perfil: era la interpretación de los datos del
+             perfil. Tenerla aparte costaba un click para llegar a la
+             conclusión y, peor, repetía adentro cosas que ya estaban acá —las
+             líneas y la forma reciente salían dos veces, con dos diseños—.
+             Ahora el perfil son dos pestañas y la regla es una sola:
+
+                 UNA INFORMACIÓN APARECE UNA SOLA VEZ.
+
+             Forma reciente, líneas, comparación con el rol, progresión de LP:
+             cada una en un lugar y nada más. */
+          <div className="resumen">
             {/* Si está jugando AHORA, eso primero: es lo único del perfil que
                 sirve mientras la partida está pasando, y en diez minutos deja
                 de existir. */}
             {p.liveGame && (
-              <div className="live-panel-wrap">
+              <div className="resumen-ancho">
                 <LiveGamePanel gameName={p.name} tagLine={p.tag} ddragonVersion={ddragonVersion} />
               </div>
             )}
 
-            {/* Después el tilt: si está en pozo, es lo más accionable que tiene
-                el perfil — mirar el gráfico de LP mientras tanto no le sirve
-                de nada. */}
-            {p.tilt && <TiltCard tilt={p.tilt} />}
-            <div>
-              {/* Primero "cómo viene" y después el gráfico: la banda contesta
-                  la pregunta de la pestaña en un renglón, y la curva es el
-                  detalle de cómo llegó hasta ahí. */}
-              <ProfileForma matches={p.matches} recentForm={p.recentForm} wins={p.wins} losses={p.losses} />
-              <div className="lp-chart-card">
-                {/* Arriba va solo lo que resume TODA la ventana: cuánto se
-                    movió y con qué récord. El de dónde a dónde bajó al pie,
-                    pegado a los extremos de la curva que describe — antes
-                    estaba acá arriba y las fechas de esos mismos dos puntos
-                    abajo, o sea el mismo par de extremos contado dos veces con
-                    el gráfico en el medio. */}
-                <div className="lp-chart-top">
-                  <span className="label">
-                    LP · progresión reciente <InfoTip text={METRIC_INFO.lpProgression} />
-                  </span>
-                  <div className="lp-chart-resumen">
-                    <span className={`lp-chart-delta ${lpDelta >= 0 ? "up" : "down"}`}>
-                      {lpDelta >= 0 ? "▲" : "▼"} {Math.abs(lpDelta)}
-                      <span className="lp-chart-delta-unit">{lpDeltaUnit}</span>
-                    </span>
-                    {lpVentana.v + lpVentana.d > 0 && (
-                      <span className="lp-chart-record">
-                        <strong className={lpVentana.v >= lpVentana.d ? "gd-pos" : "gd-neg"}>
-                          {lpVentana.v}V-{lpVentana.d}D
-                        </strong>
-                        {lpVentana.dias > 0 && ` en ${lpVentana.dias} ${lpVentana.dias === 1 ? "día" : "días"}`}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="lp-svg">
-                  <SparkChart
-                    values={lpScores}
-                    // Estos dos números NO deforman el gráfico. Acá decía que
-                    // alejarse del ancho real aplastaba el trazo por el
-                    // preserveAspectRatio="none" del SparkChart, y es falso:
-                    // el SVG va con `height:auto` y un viewBox, así que su
-                    // caja siempre toma la proporción del viewBox y el "none"
-                    // nunca llega a actuar. Medido a 390, 768, 1024 y 1440: la
-                    // proporción dibujada da 3,44 en los cuatro, igual que
-                    // 620/180.
-                    //
-                    // Lo que sí deciden es DE QUÉ TAMAÑO sale. El ancho lo
-                    // pone la columna y el alto sale de la proporción: a 1440
-                    // el gráfico mide 570x165 y en un teléfono 268x78. Por eso
-                    // el alto pasó de 132 a 180 —con 132 el de la columna
-                    // izquierda quedaba 120px más corto que el de partidas y
-                    // los escalones de una división no se separaban— y por eso
-                    // la columna tiene tope de 680 abajo de 900 (globals.css):
-                    // a 905 de ancho el mismo gráfico se vuelve una banda de
-                    // 263px de alto.
-                    width={620}
-                    height={180}
-                    pad={10}
-                    color={lpChartColor}
-                    variant="detailed"
-                    pointLabels={lpPointLabels}
-                    guides={lpGuides}
-                    // El techo y el piso escritos sobre el punto. Mismo
-                    // formato que las puntas del pie del gráfico, así los
-                    // cuatro números de la tarjeta se leen igual entre sí.
-                    valorDePunto={(i) => lpEndpointLabel(p.lpHistory[i])}
-                  />
-                </div>
-                {/* Cada extremo con su fecha y su elo en la misma columna, y
-                    metidos hacia adentro lo mismo que la curva (padX/width del
-                    SparkChart, ver --lp-inset) para que caigan justo debajo
-                    del primer y del último punto en vez de contra el borde de
-                    la tarjeta. */}
-                <div className="lp-chart-pie">
-                  <span className="lp-chart-extremo">
-                    <span className="fecha">{fechaCorta(lpVentana.desde)}</span>
-                    <span className="elo">{lpEndpointLabel(lpStartPoint)}</span>
-                  </span>
-                  {lpVentana.v + lpVentana.d === 0 && (
-                    <span className="lp-chart-pie-nota">sin partidas nuevas todavía</span>
-                  )}
-                  <span className="lp-chart-extremo a-la-derecha">
-                    <span className="fecha">{fechaCorta(lpVentana.hasta)}</span>
-                    <span className="elo">{lpEndpointLabel(lpCurrentPoint)}</span>
-                  </span>
-                </div>
-                {p.lpHistory.length < 3 && (
-                  <p className="chart-note">
-                    Todavía hay poco historial guardado — la curva real va a aparecer a medida que se acumulen más
-                    actualizaciones de LP.
-                  </p>
-                )}
+            {/* Y el tilt: si está en pozo, es lo más accionable que tiene el
+                perfil — mirar el gráfico de LP mientras tanto no le sirve. */}
+            {p.tilt && (
+              <div className="resumen-ancho">
+                <TiltCard tilt={p.tilt} />
               </div>
-            </div>
+            )}
 
-            <div>
-              <h4 className="subsection-label">Últimas partidas</h4>
+            {/* ═══ 1. Qué le está pasando ═══
+                La progresión partida por partida, a todo el ancho. Arrancó
+                compartiendo renglón con la forma reciente y quedaba MAL: el
+                gráfico mide 150px con su pie y la forma reciente 410, así
+                que abajo del dibujo quedaban 260px de nada. Y a todo el
+                ancho el gráfico gana lo que le faltaba — 60px entre partida
+                y partida en vez de 25, que es la diferencia entre poder
+                apuntarle a una y no. */}
+            <section className="resumen-ancho resumen-momento">
+              <h4 className="resumen-titulo">Su momento</h4>
+              <ProgresionLP p={p.progresion} ddragonVersion={ddragonVersion} />
+            </section>
+
+            {/* ═══ 2 y 3. Qué hace bien y qué corregir ═══
+                Lo que era la pestaña Mejorar, ya interpretado: máximo tres
+                fortalezas y UN foco. Ver lib/lectura.ts. */}
+            <section className="resumen-izq">
+              {/* Sin un título propio arriba: "Dónde está destacando" y "Su
+                  foco ahora" SON los títulos, y meterlos abajo de un "Contra
+                  su línea" agregaba un escalón de jerarquía que no separa
+                  nada — la línea contra la que se compara ya la dice la
+                  primera frase del bloque. */}
+              <ProfileLectura l={lectura} role={p.role} />
+
+              {p.lineas && (
+                <>
+                  <h4 className="resumen-titulo con-aire">
+                    Cómo está jugando
+                    <InfoTip text="Sale de la posición REAL que Riot le asignó en cada partida guardada, no del rol que figura arriba." />
+                  </h4>
+                  <LineHistory h={p.lineas} />
+                </>
+              )}
+
+              {p.personalRecords && (
+                <>
+                  <h4 className="resumen-titulo con-aire">Récords</h4>
+                  <PersonalRecords records={p.personalRecords} />
+                </>
+              )}
+
+              <AegisStats stats={p.aegisStats} />
+            </section>
+
+            {/* La lista de partidas, en la columna de la derecha y a lo alto:
+                son cinco items y la columna de la izquierda es una pila de
+                lecturas cortas. */}
+            <section className="resumen-der">
+              {/* La forma reciente vive acá y no al lado del gráfico: es la
+                  misma pregunta que las últimas partidas —qué viene pasando—
+                  y juntas equilibran la columna. Su propio encabezado hace
+                  de título; no lleva uno arriba porque sería el mismo texto
+                  dos veces. */}
+              <RecentForm form={p.recentForm} />
+
+              <h4 className="subsection-label forma-despues">Últimas partidas</h4>
               <div className="matches">
                 {!hasMatches && (
                   <div className="empty-state">
@@ -633,67 +527,10 @@ export function PlayerProfile({
                   );
                 })}
               </div>
-            </div>
+            </section>
           </div>
         )}
 
-        {tab === "mejorar" && (
-          /* Todo lo de la pestaña comparte el mismo ancho de lectura. La
-             tabla de métricas ya venía topada a 780px (es texto con números
-             al final del renglón: más ancho y el ojo pierde el renglón), pero
-             la forma reciente y las dos de abajo iban a ancho completo, así
-             que el borde derecho de la pestaña saltaba de 780 a 1540 y de
-             vuelta. Ahora el tope es del contenedor y adentro nadie lo pisa. */
-          <div className="mejorar-cuerpo">
-            {/* UNA representación, no tres. Antes acá había el radar, la
-                tabla de ejes que venía abajo del radar y una tarjeta de
-                "Fortalezas y debilidades": los mismos dos números (el tuyo y
-                el del rol) dibujados de tres formas.
-
-                Y la tarjeta encima estaba mal calculada — promediaba las
-                últimas CINCO partidas y las comparaba contra el promedio del
-                rol, que sale de cientos. Ver components/ProfileMejorar.tsx. */}
-            <ProfileMejorar
-              radar={p.radar}
-              role={p.role}
-              matches={p.matches}
-              ddragonVersion={ddragonVersion}
-            />
-
-            {/* Otra PREGUNTA, no otra vista de la misma: acá la referencia es
-                él mismo hace veinte partidas, no el grupo. Se puede estar
-                debajo del rol y subiendo, o arriba y cayendo, y eso la
-                comparación de arriba no lo puede decir. */}
-            <RecentForm form={p.recentForm} />
-
-            {p.lineas && (
-              <div>
-                <h4 className="subsection-label">
-                  Sus líneas
-                  <InfoTip text="Sale de la posición REAL que Riot le asignó en cada partida guardada, no del rol que figura arriba. La barra clara de atrás es cuánto jugó esa línea comparada con la que más juega; la de color, el winrate." />
-                </h4>
-                <LineHistory h={p.lineas} />
-              </div>
-            )}
-
-            {/* Estos dos no compiten con lo de arriba: no comparan contra el
-                rol, cuentan otra cosa. Los récords son sus propios extremos y
-                el Aegis es una inferencia sobre el LP. */}
-            <div className="stack-cols">
-              <div>
-                {p.personalRecords && (
-                  <>
-                    <h4 className="subsection-label">Récords personales</h4>
-                    <PersonalRecords records={p.personalRecords} />
-                  </>
-                )}
-              </div>
-              <div>
-                <AegisStats stats={p.aegisStats} />
-              </div>
-            </div>
-          </div>
-        )}
 
         {tab === "campeones" && (
           <>

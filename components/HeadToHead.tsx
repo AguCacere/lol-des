@@ -55,7 +55,9 @@ function Ficha({ p, lado }: { p: Player; lado: "a" | "b" }) {
   // que es la mitad de por qué alguien abre un cara a cara. Mismo material y
   // mismo lenguaje que la banda del Resumen del perfil: los puntitos de las
   // últimas cinco y el winrate de las últimas veinte contra su propio
-  // histórico (ver components/ProfileForma.tsx).
+  // histórico. Los puntitos venían de la banda del Resumen del perfil; esa
+  // banda se fue al rehacer el perfil y el dibujo se quedó acá, que es el
+  // único lugar que todavía lo usa.
   const ultimas = p.matches.slice(0, 5);
   const v = ultimas.filter((m) => m.win).length;
   const wr = p.recentForm?.winrate ?? null;
@@ -96,7 +98,7 @@ function Ficha({ p, lado }: { p: Player; lado: "a" | "b" }) {
             <span className="h2h-forma-bloque">
               <span className="h2h-puntos" aria-hidden>
                 {ultimas.map((m, i) => (
-                  <span key={i} className={`fb-punto ${m.win ? "good" : "bad"}`} />
+                  <span key={i} className={`h2h-punto ${m.win ? "good" : "bad"}`} />
                 ))}
               </span>
               <span className="h2h-mini">

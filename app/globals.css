@@ -922,30 +922,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-family:var(--font-display); font-weight:700; font-size:8.5px;
 }
 
-/* "Reparto de roles" — full-width strip between the profile header and the
-   Macro/Micro columns, not squeezed into either side of the header (which is
-   already busy with name/rank/streak/peak-LP chips). */
-/* The role currently shown as this player's "main" elsewhere in the profile
-   (p.role — still the single most-played overall) gets a highlight ring, as
-   a reference point among the 5 — not because it's the only one that counts,
-   which is the exact assumption this whole widget exists to push back on. */
-
-.stack-cols{display:grid; grid-template-columns:1.3fr 1fr; gap:24px;}
-/* Dos listas del mismo peso (maestría / campeones más jugados) no tienen por
-   qué repartirse 1.3 a 1 — esa proporción existe para el par gráfico+grilla
-   contra historial, donde la izquierda sí manda. */
-.stack-cols.even{grid-template-columns:1fr 1fr;}
-@media (max-width:760px){.stack-cols, .stack-cols.even{grid-template-columns:1fr;}}
-/* El perfil se parte en dos más tarde que el resto. A 768 las dos columnas le
-   dejaban 285px a la lista de partidas —MENOS que los 302 de un teléfono— y
-   los nombres largos ("Nunu y Willump") no entraban ni compactando la fila.
-   Una columna de 724 los muestra enteros. */
-/* Y con tope de 680. El gráfico de LP saca su alto de su ancho (viewBox
-   620x180 y `height:auto`), así que a 905 de columna se vuelve una banda de
-   263px de alto que empuja todo lo demás abajo del pliegue. Con 680 sale a
-   646x188, que es su tamaño de diseño, y a las partidas les sobra ancho para
-   la fila larga. */
-@media (max-width:900px){.profile .stack-cols{grid-template-columns:1fr; max-width:680px;}}
 
 /* Sub-navegación del perfil (Resumen / Rendimiento / Campeones). Misma
    familia visual que .tabnav de arriba pero un escalón más abajo en
@@ -970,49 +946,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .profile-tab{flex:1; padding:8px 6px; font-size:12px; text-align:center;}
 }
 
-.subhead{
-  display:flex; align-items:center; gap:8px; margin:0 0 14px;
-  font-family:var(--font-display); font-weight:700; font-size:14.5px; letter-spacing:0.03em;
-}
-.subhead .tag{
-  font-family:var(--font-body); font-size:10px; font-weight:600; letter-spacing:0.07em;
-  text-transform:uppercase; padding:2px 8px; border-radius:999px;
-}
-.tag.macro{background:var(--accent-wash); color:var(--accent);}
-.tag.micro{background:var(--surface-hover); color:var(--text-secondary);}
-
-.lp-chart-card{
-  background:rgba(255,255,255,0.018);
-  border:1px solid var(--accent-dim-border); border-radius:var(--radius-md);
-  padding:16px 16px 12px; margin-bottom:16px;
-  /* El mismo margen lateral que la curva deja adentro del SVG: padX (pad+14 =
-     24) sobre un viewBox de 620. Lo que cuelga del gráfico se mete hasta acá
-     y cae debajo del primer y del último punto, no contra el borde. */
-  --lp-inset:3.87%;
-}
-.lp-chart-top{display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:6px;}
-.lp-chart-top .label{font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em;}
-/* Delta y récord son la misma frase partida en dos renglones ("se movió esto,
-   jugando esto"), así que van apilados y alineados a la derecha en vez de
-   sueltos en dos esquinas distintas de la tarjeta. */
-.lp-chart-resumen{
-  display:flex; flex-direction:column; align-items:flex-end; gap:1px; flex:none; text-align:right;
-}
-.lp-chart-record{font-size:11px; color:var(--text-muted); white-space:nowrap;}
-.lp-chart-record strong{font-family:var(--font-stat); font-size:12px; font-variant-numeric:tabular-nums;}
-.lp-chart-delta{
-  font-family:var(--font-stat); font-size:16px; font-weight:700; font-variant-numeric:tabular-nums;
-  flex:none; white-space:nowrap; display:flex; align-items:baseline; gap:3px;
-}
-.lp-chart-delta.up{color:var(--good);}
-.lp-chart-delta.down{color:var(--critical);}
-.lp-chart-delta-unit{font-family:var(--font-mono); font-size:9.5px; font-weight:500; opacity:0.75;}
-/* Sin alto fijo: el SVG se dimensiona solo por la proporción de su viewBox y
-   antes la caja medía menos que él (118px contra los ~136px reales), así que
-   el pie del gráfico se le subía encima. Ahora la caja es exactamente el
-   gráfico. */
-.lp-svg{display:block; width:100%;}
-.lp-svg svg{display:block; width:100%; height:auto;}
 .chart-note{margin:8px 2px 0; font-size:11px; color:var(--text-muted); line-height:1.5;}
 
 .spark-tooltip{
@@ -1046,40 +979,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .spark-tooltip .record .good{color:var(--good); font-weight:700;}
 .spark-tooltip .record .bad{color:var(--critical); font-weight:700;}
 
-/*
-  One merged panel with thin internal dividers, not six separately-boxed
-  cards each with their own background/radius/shadow/hover-lift — that
-  "grid of identical bordered form fields" look was the single biggest
-  offender in "queda muy IA, cajitas tipo formulario". Same six stats, same
-  data, just read as one coherent strip instead of six little widgets.
-*/
-.stat-grid{
-  display:grid; grid-template-columns:repeat(3,1fr);
-  background:var(--surface-raised); border-radius:var(--radius-md); box-shadow:var(--shadow-sm);
-  overflow:hidden; margin-bottom:6px;
-}
-.stat-tile{
-  padding:11px 14px 12px;
-  border-right:1px solid var(--border-soft);
-  border-bottom:1px solid var(--border-soft);
-  transition:background .15s ease;
-}
-.stat-tile:nth-child(3n){border-right:none;}
-.stat-tile:nth-last-child(-n+3){border-bottom:none;}
-.stat-tile:hover{background:var(--surface-hover);}
-.stat-tile:hover svg{color:var(--accent); opacity:1;}
-.stat-tile svg{
-  /* Closer to the number it belongs to: at 7px it floated alone in the tile's
-     top-left, reading as decoration parked above unrelated text rather than
-     as part of one stat. */
-  display:block; width:15px; height:15px; color:var(--text-muted); margin-bottom:5px; opacity:0.9;
-  transition:color .15s ease, opacity .15s ease;
-}
-.stat-tile .v{font-family:var(--font-stat); font-size:19px; font-weight:800; font-variant-numeric:tabular-nums;}
-.stat-tile .k{
-  display:flex; align-items:center; gap:3px;
-  font-size:10.5px; color:var(--text-muted); margin-top:2px; letter-spacing:0.01em;
-}
 /* ONE treatment for every block label in the profile. These three classes
    all name the block under them, but had drifted into three different looks
    — gold/10px/700/0.09em, muted/11px/600/0.06em and muted/10px/600/0.07em —
@@ -1230,8 +1129,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 
 /* Radar de rendimiento (ver lib/radar.ts y components/RadarChart.tsx).
-   Card propia y no .stat-grid: es una figura, no una tabla, y necesita su
-   propio fondo para que el polígono no flote sobre el fondo de la página. */
+   Card propia: es una figura, no una tabla, y necesita su propio fondo para
+   que el polígono no flote sobre el fondo de la página. */
 /* El anillo del promedio del grupo es la única referencia que hay que
    entender para leer la figura, así que se separa del resto de la grilla:
    punteado y en dorado apagado en vez de una línea más igual a las otras. */
@@ -1244,63 +1143,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .radar-row-peer.up{color:var(--good);}
 .radar-row-peer.down{color:var(--critical);}
 .radar-row-peer.flat{color:var(--text-muted);}
-/* Mismo tratamiento que .form-window: order:1 lo manda después del ::after
-   de .subsection-label (la línea que rellena el ancho), así queda pegado al
-   margen derecho en vez de competir con el título. */
 
-/* "Forma reciente" — mismo material que .stat-grid (panel único, divisiones
-   finas) pero 4 columnas y sin iconos: son 8 métricas, y un icono por tile
-   convertía una tabla de números en una pared de decoración. La jerarquía
-   dentro del tile va al revés que en .stat-tile a propósito — primero QUÉ se
-   mide, después el número de ahora, y el histórico al final en gris: se lee
-   como "esto es, así está, así estaba". */
-.form-wrap{margin-bottom:16px;}
-/* El contexto de la muestra al lado del título, no en una línea propia:
-   "vs. 143 anteriores" es lo que hace creíble al bloque entero, pero no
-   merece su propio renglón. */
-.form-window{
-  /* order:1 lo manda DESPUÉS del ::after de .subsection-label (la línea que
-     rellena el ancho sobrante), así queda pegado al margen derecho como el
-     .meta de un .section-head. Con el orden natural caía entre el título y
-     la línea, y ahí compite con el título en vez de acompañarlo. */
-  order:1; padding-left:8px;
-  font-family:var(--font-body); font-size:10px; font-weight:600;
-  letter-spacing:0.02em; text-transform:none; color:var(--text-muted);
-}
-.form-grid{
-  display:grid; grid-template-columns:repeat(4,1fr);
-  background:var(--surface-raised); border-radius:var(--radius-md); box-shadow:var(--shadow-sm);
-  overflow:hidden;
-}
-/* Bordes en TODOS los tiles en vez de la lógica :nth-child(4n) de .stat-grid:
-   acá la cantidad de tiles es variable (una métrica sin histórico no se
-   dibuja), así que cualquier regla atada a la posición se rompe sola. Los
-   bordes que quedan en el canto exterior los recorta el overflow del panel. */
-.form-tile{padding:10px 13px 11px; border-right:1px solid var(--border-soft); border-bottom:1px solid var(--border-soft);}
-.form-tile-k{
-  display:flex; align-items:center; gap:3px;
-  font-size:10.5px; color:var(--text-muted); letter-spacing:0.01em; margin-bottom:4px;
-}
-.form-tile-row{display:flex; align-items:baseline; gap:7px; flex-wrap:wrap;}
-.form-tile-v{font-family:var(--font-stat); font-size:19px; font-weight:800; font-variant-numeric:tabular-nums;}
-.form-tile-base{font-size:10.5px; color:var(--text-muted); font-variant-numeric:tabular-nums; margin-top:3px;}
-.form-delta{
-  display:inline-flex; align-items:center; gap:2px;
-  font-size:11px; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap;
-}
-.form-delta-arrow{font-size:8px; line-height:1;}
-.form-delta.up{color:var(--good);}
-.form-delta.down{color:var(--critical);}
-/* Sin cambio real: el número igual se muestra, pero en gris — teñirlo de
-   verde o rojo le daría a un ±1% un significado que no tiene. */
-.form-delta.flat{color:var(--text-muted); font-weight:600;}
-@media (max-width:760px){
-  .form-grid{grid-template-columns:repeat(2,1fr);}
-}
-
-/* Deliberately lighter than .subsection-label/.stat-grid — this is an
-   INFERENCE (see lib/aegis.ts), never a confirmed number, so it reads as a
-   soft outlined badge rather than a filled stat-tile making a hard claim. */
+/* Deliberately lighter than .subsection-label — this is an INFERENCE (see
+   lib/aegis.ts), never a confirmed number, so it reads as a soft outlined
+   badge rather than a filled tile making a hard claim. */
 /* Margin lives on the label (shared rule above) so this block starts exactly
    where "Récords personales" and every other one does — it used to sit 14px
    below its neighbour while the rest sat at 16px. */
@@ -1314,9 +1160,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .aegis-badge svg{width:13px; height:13px; flex:none; color:var(--gold);}
 .aegis-badge.protected svg{color:var(--good);}
-/* Same "one panel, thin dividers" treatment as .stat-grid — five identical
-   rows each in their own separately-shadowed card read as a stack of form
-   fields, not a ranked list. */
+/* One panel with thin dividers — five identical rows each in their own
+   separately-shadowed card read as a stack of form fields, not a ranked
+   list. */
 /* The other half of the scale correction: the podium above came down, these
    rows come up. Same padding as .panel-row now (they were 8/12 vs 9/14 for
    no reason a reader could see, and both lists sit on the same page). Also
@@ -2073,7 +1919,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .clash-lifetime-wr.good{color:var(--good); font-weight:600;}
 .clash-lifetime-wr.bad{color:var(--critical); font-weight:600;}
 .clash-lifetime-wr.neutral{color:var(--text-secondary); font-weight:600;}
-/* Same "one panel, thin dividers" treatment as .champ-pool/.stat-grid — a
+/* Same "one panel, thin dividers" treatment as .champ-pool — a
    dozen Clash days each in their own separately-shadowed, generously-padded
    card (the original design here) reads as a long stack of form fields and
    takes a full scroll to get through, not a compact list you scan at a glance. */
@@ -2248,15 +2094,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .col-winrate{grid-area:winrate; align-items:flex-end;}
   .col-forma{grid-area:forma; align-items:flex-end;}
   .col-chevron{grid-area:chev; align-self:start;}
-  /* 3-col divider math (nth-child(3n)/nth-last-child(-n+3)) doesn't apply at
-     2 columns — without this override the mobile grid grew a stray right
-     border down the middle and a stray bottom border on row 2 of 3. */
-  .stat-grid{grid-template-columns:repeat(2,1fr);}
-  .stat-tile{border-right:1px solid var(--border-soft); border-bottom:1px solid var(--border-soft);}
-  .stat-tile:nth-child(3n){border-right:1px solid var(--border-soft);}
-  .stat-tile:nth-last-child(-n+3){border-bottom:1px solid var(--border-soft);}
-  .stat-tile:nth-child(2n){border-right:none;}
-  .stat-tile:nth-last-child(-n+2){border-bottom:none;}
   .empty-state{background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm);}
 }
 
@@ -2347,10 +2184,9 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 
 /* ── Aviso de tilt (components/TiltCard.tsx) ──────────────────────────────
-   Va a ancho completo dentro de .stack-cols: es un aviso, no una de las dos
+   Va a ancho completo arriba del Resumen: es un aviso, no una de las dos
    columnas de contenido. */
 .tilt-card{
-  grid-column:1 / -1;
   background:var(--surface-raised); border-radius:var(--radius-md);
   border-left:3px solid var(--warn);
   padding:14px 16px;
@@ -2402,9 +2238,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .h2h-sep{color:var(--text-muted);}
 .h2h-mini{font-size:11px; font-weight:500; color:var(--text-muted);}
 /* La forma reciente de cada uno, debajo del rango: puntitos de las últimas
-   cinco y el winrate de las últimas veinte contra su propio histórico. Los
-   puntos son los MISMOS .fb-punto del Resumen del perfil — es el mismo dato,
-   así que no merece otro dibujo. */
+   cinco y el winrate de las últimas veinte contra su propio histórico. El
+   dibujo lo estrenó la banda del Resumen del perfil; esa banda se fue al
+   rehacer el perfil y acá quedó el único uso. */
+.h2h-punto{width:7px; height:7px; border-radius:50%; display:block; flex:none;}
+.h2h-punto.good{background:var(--good);}
+/* Media opacidad además del rojo: en deuteranopía el verde y el rojo se
+   separan poco, y el contraste contra el fondo sí se ve. El V·D de al lado
+   dice lo mismo sin depender del color. */
+.h2h-punto.bad{background:var(--critical); opacity:0.7;}
 .h2h-forma{
   display:flex; align-items:center; gap:7px 16px; flex-wrap:wrap;
   margin-top:9px; padding-top:9px; border-top:1px solid var(--border-soft);
@@ -3007,7 +2849,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    Pensado para mirarse durante la selección de campeones: los rivales primero
    y con el dato que no se puede ver en ningún otro lado —tu récord contra ese
    campeón— alineado a la derecha, que es donde el ojo lo busca. */
-.live-panel-wrap{grid-column:1 / -1;}
 .lg-cta{
   display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
   background:var(--surface-raised); border-radius:var(--radius-md);
@@ -3163,72 +3004,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .spark-extremo.abajo{ transform:translate(-50%, 0); margin-top:8px; }
 .spark-extremo.tapado{ opacity:0; }
 
-/* El pie del gráfico de LP: cada extremo de la curva con su fecha y su elo,
-   metidos hasta donde arranca y termina la línea. */
-.lp-chart-pie{
-  display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
-  margin-top:2px; padding:0 var(--lp-inset); font-size:11px; color:var(--text-muted);
-}
-.lp-chart-extremo{display:flex; flex-direction:column; gap:1px; min-width:0;}
-.lp-chart-extremo.a-la-derecha{align-items:flex-end; text-align:right;}
-.lp-chart-extremo .fecha{font-size:10.5px; letter-spacing:0.02em;}
-.lp-chart-extremo .elo{
-  font-family:var(--font-stat); font-size:12.5px; font-weight:700;
-  color:var(--text-secondary); font-variant-numeric:tabular-nums; white-space:nowrap;
-}
-.lp-chart-pie-nota{flex:1 1 auto; text-align:center; align-self:center;}
-
-/* ── Sus líneas (components/LineHistory.tsx) ──────────────────────────────
-   Cuánto jugó cada línea, cómo le fue, y si lo están sacando de la suya.
-   La barra de atrás es el volumen y la de adelante el winrate: sin la de
-   atrás, una línea de 3 partidas al 67% se ve igual que una de 112 al 61%. */
-.lineas{
-  background:var(--surface-raised); border:1px solid var(--border-soft);
-  border-radius:var(--radius-md); padding:12px 14px;
-}
-.lineas-filas{display:flex; flex-direction:column;}
-.lineas-fila{
-  display:grid; grid-template-columns:22px 62px minmax(0,1fr) 40px auto;
-  align-items:center; gap:10px; padding:7px 0;
-  border-bottom:1px solid var(--border-soft);
-}
-.lineas-fila:last-child{border-bottom:none;}
-.lineas-rol{
-  width:22px; height:22px; border-radius:5px; flex:none; overflow:hidden;
-  display:flex; align-items:center; justify-content:center; background:var(--track);
-}
-.lineas-rol img{width:100%; height:100%; object-fit:contain; display:block;}
-.lineas-nombre{font-size:12.5px; font-weight:600; color:var(--text-secondary); white-space:nowrap;}
-.lineas-barra{height:14px;}
-/* El largo total dice cuánto jugó esa línea; adentro, verde y rojo dicen cómo
-   le fue. Un mínimo de 3px para que una línea de una sola partida se vea. */
-.lineas-barra-total{display:flex; height:100%; min-width:3px; border-radius:4px; overflow:hidden;}
-.lineas-barra-v{background:var(--good); opacity:0.8; flex:none;}
-.lineas-barra-d{background:var(--critical); opacity:0.55; flex:1 1 auto;}
-.lineas-wr{
-  font-family:var(--font-stat); font-size:13px; font-weight:700;
-  font-variant-numeric:tabular-nums; text-align:right;
-}
-.lineas-wr.good{color:var(--good);}
-.lineas-wr.bad{color:var(--critical);}
-.lineas-wr.neutral{color:var(--text-secondary);}
-.lineas-detalle{
-  display:flex; align-items:baseline; gap:8px; white-space:nowrap;
-  font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted);
-}
-.lineas-kda{opacity:0.8;}
-.lineas-conclusion{
-  margin:10px 0 0; padding-top:10px; border-top:1px solid var(--border-soft);
-  font-size:12px; line-height:1.55; color:var(--text-secondary);
-}
-.lineas-conclusion strong{font-weight:700;}
-@media (max-width:560px){
-  /* El nombre de la línea se va: el ícono ya lo dice y en 390px esos 62px
-     son la diferencia entre que la barra se lea y que no. */
-  .lineas-fila{grid-template-columns:22px minmax(0,1fr) 38px; gap:8px;}
-  .lineas-nombre{display:none;}
-  .lineas-detalle{grid-column:2 / -1; padding-left:0;}
-}
 
 /* ── La cerradura (components/Cerradura.tsx) ──────────────────────────────
    Mirar la app no pide nada; el candado solo importa cuando vas a tocar algo
@@ -6364,165 +6139,330 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .volver span, .volver:hover span{transition:none; transform:none;}
 }
 
-/* ── "Cómo viene": la banda de forma del Resumen ──────────────────────────
-   Una banda de tres lecturas, no seis fichas. Sin rectángulo detrás: la
-   separan del gráfico una línea fina y el espacio, igual que en Estadísticas.
-   Cada bloque lleva SU MUESTRA escrita, que es lo que las fichas no hacían. */
-.forma-band{
-  display:flex; flex-wrap:wrap; gap:14px 34px; align-items:flex-start;
-  padding:2px 2px 16px; margin-bottom:14px;
+
+/* ── El Resumen del perfil ───────────────────────────────────────────────
+   Eran TRES pestañas (Resumen / Mejorar / Campeones) y la del medio no era
+   otra dimensión del perfil: era la interpretación de los datos del perfil.
+   Repetía adentro las líneas y la forma reciente, con otro dibujo. Ahora son
+   dos, y la regla que ordena todo esto es una sola: UNA INFORMACIÓN APARECE
+   UNA SOLA VEZ.
+
+   Lo otro que cambió es la cantidad de interfaz, no la de información. Acá
+   abajo casi no hay cajas: seis récords que eran seis rectángulos son una
+   tira, ocho fichas de forma reciente son cuatro renglones, y la tabla de
+   líneas perdió las barras. El material es tipografía, jerarquía, espacio y
+   una línea fina — que alcanza para todo lo que hacía un rectángulo. */
+.resumen{
+  display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);
+  gap:26px 28px; align-items:start;
+}
+/* Colocación explícita y no grid-template-areas: la partida en vivo y el
+   aviso de tilt aparecen a veces, y una fila con nombre que queda vacía
+   igual aporta su gap (ya nos costó 52px de aire muerto en el Inicio). Con
+   auto-placement, lo que no se dibuja no ocupa nada. */
+.resumen-ancho{grid-column:1 / -1;}
+.resumen-titulo{
+  display:flex; align-items:center; gap:6px; margin:0 0 11px;
+  font-family:var(--font-body); font-size:10.5px; font-weight:700;
+  text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted);
+}
+.resumen-titulo.con-aire{margin-top:26px;}
+/* "Su momento" va a lo ancho y con una línea abajo: es el bloque que
+   contesta "¿qué le está pasando?" y los dos de abajo son el detalle. */
+.resumen-momento{padding-bottom:22px; border-bottom:1px solid var(--border-soft);}
+/* El perfil se parte en dos más tarde que el resto de la app, y con tope de
+   ancho: a 768 las dos columnas le dejaban 285px a la lista de partidas
+   —MENOS que los 302 de un teléfono— y "Nunu y Willump" no entraba ni
+   compactando la fila. */
+@media (max-width:900px){
+  .resumen{grid-template-columns:1fr; max-width:680px; gap:22px;}
+}
+
+/* ── La progresión de LP (components/ProgresionLP.tsx) ───────────────────
+   Cada punto es una partida. El gráfico viejo dibujaba las últimas veinte
+   FOTOS de LP en 260px de alto para contestar una sola cosa —"subió 92 LP"—
+   y encima las fotos las saca el cron cada quince minutos, así que un valle
+   podía ser dos derrotas o podía ser una tarde sin jugar. Este mide 96px y
+   contesta cómo llegó de un lado al otro. */
+.prog{display:flex; flex-direction:column;}
+.prog-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px;}
+.prog-rotulo{font-size:11px; color:var(--text-muted);}
+.prog-neto{display:inline-flex; align-items:baseline; gap:7px; white-space:nowrap;}
+.prog-neto b{
+  font-family:var(--font-stat); font-size:15px; font-weight:800;
+  font-variant-numeric:tabular-nums; letter-spacing:-0.01em;
+}
+.prog-neto b.good{color:var(--good);}
+.prog-neto b.bad{color:var(--critical);}
+.prog-neto i{font-style:normal; font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+/* Alto fijo y ancho elástico: el SVG va con preserveAspectRatio="none", así
+   que la altura es exactamente la del viewBox (96) a cualquier ancho. Es lo
+   que mantiene el gráfico BAJO en un monitor grande, que es medio punto de
+   haberlo rehecho. */
+.prog-caja{position:relative; margin-top:8px;}
+.prog-svg{display:block; width:100%; height:96px;}
+.prog-linea{fill:none; stroke:var(--accent-dim); stroke-width:1.6px; stroke-linejoin:round; stroke-linecap:round;}
+/* Los puntos son líneas de largo cero con la punta redonda (ver el
+   componente): con el SVG estirado, un <circle> sale ovalado y una punta
+   redonda de stroke que no escala, no. */
+.prog-punto{stroke-linecap:round; stroke-width:5.5px;}
+.prog-punto.v{stroke:var(--good);}
+.prog-punto.d{stroke:var(--critical); opacity:0.8;}
+.prog-punto.activo{stroke-width:9px; opacity:1;}
+/* Un cambio de división parte la progresión en dos, y eso se ve mejor con un
+   corte de punta a punta que con una marca chiquita al lado del punto. */
+.prog-hito{stroke-width:1px; stroke-dasharray:2 3;}
+.prog-hito.ascenso{stroke:rgba(var(--good-rgb),0.45);}
+.prog-hito.descenso{stroke:rgba(var(--critical-rgb),0.45);}
+.prog-hito-et{
+  position:absolute; top:-2px; transform:translateX(-50%); z-index:4;
+  font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase;
+  white-space:nowrap; pointer-events:none; background:var(--bg); padding:0 4px;
+}
+/* Abajo del dibujo y no encima: el gráfico mide 96px y el panel 82, así que
+   flotando adentro tapaba justo la curva que se está inspeccionando. Abajo
+   tapa el pie, que son dos rótulos que se pueden leer sin el mouse puesto. */
+.prog-panel{
+  position:absolute; top:100%; margin-top:5px; z-index:6; width:198px; box-sizing:border-box;
+  display:flex; flex-direction:column; gap:4px;
+  /* Opaco y no translúcido como el tooltip del SparkChart: ese flota SOBRE
+     el gráfico, este cae sobre el texto de abajo, y ahí el vidrio deja leer
+     los dos a la vez y no se lee ninguno. */
+  background:var(--surface-raised);
+  border:1px solid var(--border-firm); border-radius:10px;
+  box-shadow:var(--shadow); padding:8px 10px; pointer-events:none;
+}
+.prog-panel-res{
+  display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+  font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;
+}
+.prog-panel-res.v{color:var(--good);}
+.prog-panel-res.d{color:var(--critical);}
+.prog-panel-res b{font-family:var(--font-stat); font-size:13px; font-variant-numeric:tabular-nums; letter-spacing:0;}
+.prog-panel-champ{
+  display:flex; align-items:center; gap:7px; min-width:0;
+  font-size:12px; font-weight:600; color:var(--text-primary);
+}
+.prog-panel-champ i{
+  font-style:normal; font-size:10.5px; font-weight:500; color:var(--text-muted);
+  font-variant-numeric:tabular-nums; margin-left:auto; white-space:nowrap;
+}
+.prog-panel-art{
+  width:20px; height:20px; border-radius:6px; flex:none; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--surface-hover); color:var(--text-secondary);
+  font-size:8px; font-weight:700;
+}
+.prog-panel-tramo{
+  font-size:10.5px; color:var(--text-secondary); font-variant-numeric:tabular-nums;
+  padding-top:4px; border-top:1px solid rgba(255,255,255,0.08);
+}
+.prog-pie{
+  display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+  margin-top:5px; font-size:10.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;
+}
+.prog-punta.a-la-derecha{text-align:right;}
+.prog-faltan{flex:1 1 auto; text-align:center; opacity:0.85;}
+.prog-vacio{margin:0; font-size:12.5px; color:var(--text-muted); line-height:1.6; max-width:58ch;}
+@media (max-width:640px){
+  /* A 390 el panel son 198px contra 302 de gráfico: al lado del anteúltimo
+     punto se salía de la caja (medido, llegaba a 395 en una pantalla de
+     390). Pasa a ocupar el ancho entero. Con !important porque `left` y
+     `transform` los escribe el componente en el style del nodo. */
+  .prog-panel{left:0 !important; right:0; width:auto; transform:none !important;}
+  /* Y el rótulo del hito no entra: dos ascensos seguidos se pisan entre
+     ellos antes de pisar nada más. */
+  .prog-hito-et{display:none;}
+}
+
+
+/* ── "Forma reciente" (components/RecentForm.tsx) ────────────────────────
+   Eran ocho fichas en una grilla, cada una con su rectángulo, y la mitad
+   decía "no se movió" con el mismo peso que la que se movió un 92%. Ahora
+   son renglones y solo las que de verdad se movieron, hasta cuatro; las
+   quietas se cuentan en una línea al pie. */
+/* El encabezado de la forma reciente es el título de su bloque —abajo de
+   "Últimas partidas" y con el mismo peso—, no un rótulo adentro de otra
+   sección. */
+.forma-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;}
+.forma-rotulo{
+  display:inline-flex; align-items:center; gap:6px;
+  font-family:var(--font-body); font-size:10.5px; font-weight:700;
+  text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted);
+}
+.forma-ventana{font-size:10.5px; color:var(--text-muted); opacity:0.8; font-variant-numeric:tabular-nums; white-space:nowrap;}
+.forma-lista{list-style:none; margin:0; padding:0;}
+.forma-fila{
+  display:grid; grid-template-columns:minmax(0,1fr) auto auto;
+  column-gap:10px; padding:7px 0; border-bottom:1px solid var(--border-soft);
+}
+.forma-fila:last-child{border-bottom:none;}
+.forma-metrica{
+  grid-column:1; grid-row:1; display:flex; align-items:center; gap:4px;
+  font-size:12.5px; font-weight:600; min-width:0;
+}
+.forma-valor{
+  grid-column:2; grid-row:1; text-align:right; white-space:nowrap;
+  font-family:var(--font-stat); font-size:13.5px; font-weight:700; font-variant-numeric:tabular-nums;
+}
+.forma-delta{
+  grid-column:3; grid-row:1; justify-self:end; min-width:7ch; text-align:right;
+  display:inline-flex; align-items:center; justify-content:flex-end; gap:2px;
+  font-size:11.5px; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+.forma-flecha{font-size:8px; line-height:1;}
+.forma-delta.up{color:var(--good);}
+.forma-delta.down{color:var(--critical);}
+.forma-delta.flat{color:var(--text-muted); font-weight:600;}
+.forma-antes{
+  grid-column:1 / -1; grid-row:2; margin-top:1px;
+  font-size:10.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;
+}
+.forma-quieto{margin:8px 0 0; font-size:11px; color:var(--text-muted);}
+.forma-despues{margin-top:24px;}
+
+/* ── La lectura del perfil (components/ProfileLectura.tsx) ───────────────
+   Lo que quedó de la pestaña Mejorar. Antes eran las SIETE métricas del rol
+   en una tabla y el trabajo de encontrar las importantes quedaba del lado de
+   la persona; ahora entran las que se despegan de verdad —tres como mucho— y
+   el foco es uno solo. Ver lib/lectura.ts. */
+.lec{display:flex; flex-direction:column; gap:15px;}
+/* Una frase, no una fila: con display:flex cada nodo de texto era un ítem y
+   en 390px se partía en "Contra los demás Mid" / "del grupo · sus 180…". */
+.lec-muestra{margin:0; font-size:11px; color:var(--text-muted); line-height:1.55;}
+.lec-muestra strong{color:var(--text-secondary); font-weight:700;}
+.lec-vacio{margin:0; font-size:12.5px; color:var(--text-muted); line-height:1.6; max-width:60ch;}
+/* Mismo peso que .resumen-titulo: "Dónde está destacando" y "Su foco ahora"
+   son secciones del Resumen, no subtítulos de otra. */
+.lec-titulo{
+  display:flex; align-items:center; gap:6px; margin-bottom:7px;
+  font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
+  color:var(--text-muted);
+}
+.lec-punto{width:7px; height:7px; border-radius:50%; flex:none;}
+.lec-punto.good{background:var(--good);}
+.lec-punto.bad{background:var(--critical);}
+.lec-lista{list-style:none; margin:0; padding:0;}
+.lec-fila{
+  display:grid; grid-template-columns:minmax(0,1fr) auto auto auto;
+  align-items:baseline; gap:10px; padding:6px 0;
   border-bottom:1px solid var(--border-soft);
 }
-.fb-bloque{display:flex; flex-direction:column; gap:3px; min-width:0;}
-.fb-et{
+.lec-fila:last-child{border-bottom:none;}
+.lec-metrica{font-size:12.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.lec-valor{
+  font-family:var(--font-stat); font-size:13px; font-weight:700;
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+.lec-rol{font-size:10.5px; color:var(--text-muted); white-space:nowrap;}
+.lec-rol b{font-weight:700; color:var(--text-secondary); font-variant-numeric:tabular-nums;}
+.lec-dif{
+  font-family:var(--font-stat); font-size:13px; font-weight:800;
+  font-variant-numeric:tabular-nums; text-align:right; min-width:5ch;
+}
+.lec-dif.good{color:var(--good);}
+/* El foco lleva una línea al costado y nada más. Es UNA cosa: darle una
+   caja entera lo pondría al mismo nivel que un panel, y darle nada lo
+   dejaría indistinguible de la lista de arriba. */
+.lec-foco{border-left:2px solid var(--critical); padding-left:12px;}
+.lec-foco-que{
+  display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 10px; margin:0;
+  font-size:13px;
+}
+.lec-foco-que strong{font-weight:700;}
+.lec-foco-nums{
+  display:inline-flex; align-items:baseline; gap:6px;
+  font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;
+}
+.lec-foco-nums b{font-family:var(--font-stat); font-size:13px; font-weight:800;}
+.lec-foco-nums b.bad{color:var(--critical);}
+.lec-foco-txt{margin:5px 0 0; font-size:12px; color:var(--text-secondary); line-height:1.55; max-width:56ch;}
+.lec-pie{margin:0; font-size:11px; color:var(--text-muted); line-height:1.5;}
+.lec-corta{display:none;}
+@media (max-width:720px){
+  .lec-larga{display:none;}
+  .lec-corta{display:inline;}
+  .lec-fila{gap:8px;}
+}
+
+/* ── Sus líneas (components/LineHistory.tsx) ─────────────────────────────
+   Tenía una barra por línea, apilando victorias y derrotas, con el largo
+   proporcional a las partidas. Las barras eran lo más grande de la sección,
+   no decían nada que el winrate de al lado no dijera mejor, y encima MENTÍAN
+   POR TAMAÑO: "Support 100% · 2V-0D" con una barra verde entera se lee como
+   un resultado extraordinario. Ahora es una tabla, y la muestra chica va
+   marcada — que es lo que la barra hacía al revés. */
+.lineas{display:flex; flex-direction:column;}
+.lineas-cab, .lineas-fila{
+  display:grid; grid-template-columns:minmax(0,1fr) 30px 50px 46px 74px;
+  align-items:center; gap:10px;
+}
+.lineas-cab{
+  padding-bottom:6px; border-bottom:1px solid var(--border-soft);
   font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em;
-  color:var(--text-muted); display:flex; align-items:center; gap:5px; white-space:nowrap;
+  color:var(--text-muted);
 }
-/* Los mismos puntos de 6px que el estado de forma de Estadísticas: es el
-   mismo dato con la misma forma en las dos pantallas. */
-.fb-puntos{display:flex; gap:4px; align-items:center; height:22px;}
-.fb-punto{width:7px; height:7px; border-radius:50%; display:block; flex:none;}
-.fb-punto.good{background:var(--good);}
-/* Media opacidad además del rojo: en deuteranopía el verde y el rojo se
-   separan poco, y el contraste contra el fondo sí se ve. El V·D de al lado
-   dice lo mismo sin depender del color. */
-.fb-punto.bad{background:var(--critical); opacity:0.7;}
-.fb-cifra{
-  font-family:var(--font-stat); font-size:21px; font-weight:800; line-height:1.05;
-  font-variant-numeric:tabular-nums; letter-spacing:-0.02em;
+.lineas-fila{padding:8px 0; border-bottom:1px solid var(--border-soft);}
+.lineas-fila:last-of-type{border-bottom:none;}
+.lineas-num{text-align:right; font-variant-numeric:tabular-nums;}
+.lineas-quien{display:flex; align-items:center; gap:8px; min-width:0;}
+.lineas-rol{
+  width:20px; height:20px; border-radius:5px; flex:none; overflow:hidden;
+  display:flex; align-items:center; justify-content:center; background:var(--track);
 }
-.fb-cifra.good{color:var(--good);}
-.fb-cifra.bad{color:var(--critical);}
-.fb-cifra.neutral{color:var(--text-secondary);}
-.fb-dato{font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums; white-space:nowrap;}
-.fb-dato.good{color:var(--good);}
-.fb-dato.bad{color:var(--critical);}
+.lineas-rol img{width:100%; height:100%; object-fit:contain; display:block;}
+.lineas-nombre{
+  font-size:12.5px; font-weight:600; color:var(--text-secondary);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.lineas-principal{
+  font-style:normal; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;
+  color:var(--accent); background:var(--accent-wash); border-radius:999px; padding:2px 6px; flex:none;
+}
+.lineas-pj{font-size:12.5px; color:var(--text-secondary);}
+.lineas-wr{font-family:var(--font-stat); font-size:13px; font-weight:700;}
+.lineas-wr.good{color:var(--good);}
+.lineas-wr.bad{color:var(--critical);}
+.lineas-wr.neutral{color:var(--text-secondary);}
+/* Apagado y no teñido: un 100% de dos partidas en verde fuerte es la barra
+   vieja otra vez, con otra forma. */
+.lineas-wr.poca{color:var(--text-muted); font-weight:600;}
+.lineas-kda{font-family:var(--font-mono); font-size:11.5px; color:var(--text-secondary);}
+.lineas-nota{
+  font-size:10.5px; color:var(--text-muted); text-align:right;
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+/* Bloque y no flex, por lo mismo que .lec-muestra: es una frase con un ⓘ
+   al final, y como fila el ⓘ se iba solo a un renglón propio. */
+.lineas-aviso{
+  margin:10px 0 0; padding-top:9px; border-top:1px solid var(--border-soft);
+  font-size:11.5px; line-height:1.55; color:var(--text-secondary);
+}
+@media (max-width:560px){
+  /* Lo que se va es la columna del V-D, no el nombre: sin las barras de
+     antes, a la primera columna le sobran 130px para "Support" y un ícono
+     solo con la chapa de "principal" al lado no se entiende. */
+  .lineas-cab, .lineas-fila{grid-template-columns:minmax(0,1fr) 26px 48px 44px; gap:8px;}
+  .lineas-nota, .lineas-cab > span:last-child{display:none;}
+}
 
-@media (max-width:720px){
-  .forma-band{gap:12px 22px; padding-bottom:13px;}
-  .fb-cifra{font-size:18px;}
-  .fb-dato{white-space:normal;}
+/* ── Récords personales (components/PersonalRecords.tsx) ─────────────────
+   Eran SEIS cuadrados en una grilla de 2×3, doscientos píxeles de alto para
+   seis números de una línea cada uno. Es el caso más claro del síndrome de
+   meter cada dato en su caja: un rectángulo no le aporta nada a "43 min" que
+   no le aporten el número y su rótulo al lado. */
+.recs{
+  list-style:none; margin:0; padding:0;
+  display:flex; flex-wrap:wrap; gap:9px 18px;
 }
-@media (max-width:520px){
-  /* A 390 los tres bloques entraban dos y uno: "la season" quedaba sola en
-     el segundo renglón con medio ancho vacío al lado. Pasan a ser tres
-     renglones, cada uno con el rótulo a la izquierda y el número —con su
-     muestra debajo— contra el margen derecho. */
-  .forma-band{flex-direction:column; flex-wrap:nowrap; gap:0; padding:0 2px 10px;}
-  .fb-bloque{
-    display:grid; grid-template-columns:minmax(0,1fr) auto;
-    align-items:baseline; gap:1px 12px; width:100%; padding:8px 0;
-  }
-  .fb-bloque + .fb-bloque{border-top:1px solid var(--border-soft);}
-  .fb-et{grid-column:1; grid-row:1; white-space:normal;}
-  .fb-puntos, .fb-cifra{grid-column:2; grid-row:1; justify-self:end;}
-  .fb-puntos{height:auto;}
-  .fb-dato{grid-column:2; grid-row:2; justify-self:end; text-align:right;}
+.recs-item{display:inline-flex; align-items:center; gap:6px; min-width:0;}
+.recs-icono{display:flex; align-items:center; color:var(--text-muted); flex:none;}
+.recs-icono svg{width:13px; height:13px; display:block;}
+.recs-v{
+  font-family:var(--font-stat); font-size:14.5px; font-weight:800;
+  font-variant-numeric:tabular-nums; letter-spacing:-0.01em;
 }
-
-/* ── "Mejorar": una fila por métrica, contra el promedio de su línea ──────
-   Reemplaza al radar + su tabla + la tarjeta de fortalezas/debilidades: tres
-   dibujos del mismo par de números, y el tercero además mal calculado (ver
-   DECISIONES). Acá hay una lista ordenada, que es la forma de contestar
-   "¿en qué estoy peor?" sin tener que interpretar geometría. */
-/* El tope de ancho vive en el contenedor de la pestaña, no acá: la tabla
-   de métricas no es lo único que necesita quedarse en 780 (ver el comentario
-   en PlayerProfile.tsx). */
-.mejorar-cuerpo{max-width:780px;}
-.mej{display:flex; flex-direction:column; gap:20px;}
-.mej-cab{display:flex; flex-direction:column; gap:3px;}
-.mej-h3{font-family:var(--font-display); font-size:15px; font-weight:700; margin:0;}
-.mej-muestra{font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:5px;}
-.mej-vacio{font-size:13.5px; color:var(--text-muted); line-height:1.6; max-width:62ch; margin:0;}
-
-/* La grilla la comparten los rótulos y las filas: una sola definición. */
-.mej-rotulos, .mej-fila{
-  display:grid; grid-template-columns:minmax(0,1fr) 74px 74px 62px;
-  align-items:center; gap:12px;
-}
-.mej-rotulos{
-  padding:0 8px 6px; font-size:9.5px; font-weight:700; text-transform:uppercase;
-  letter-spacing:0.06em; color:var(--text-muted); border-bottom:1px solid var(--border-soft);
-  margin-bottom:2px;
-}
-.mej-rot-n{text-align:right;}
-
-.mej-grupo{display:flex; flex-direction:column;}
-.mej-grupo + .mej-grupo{margin-top:16px;}
-.mej-titulo{
-  font-size:12px; font-weight:700; margin:0 0 4px; display:flex; align-items:center; gap:7px;
-  color:var(--text-secondary);
-}
-/* Un punto de color y el título en tinta normal. El grupo entero teñido de
-   verde o rojo convertía la sección en dos bloques de color y hacía que las
-   cifras —que son el dato— compitieran contra el fondo. */
-.mej-punto{width:7px; height:7px; border-radius:50%; flex:none;}
-.mej-punto.good{background:var(--good);}
-.mej-punto.bad{background:var(--critical);}
-.mej-lista{list-style:none; margin:0; padding:0;}
-.mej-fila{
-  width:100%; text-align:left; cursor:pointer; padding:8px; border-radius:var(--radius-sm);
-  transition:background .12s ease;
-}
-.mej-fila:hover{background:var(--surface);}
-.mej-fila:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
-.mej-fila.abierta{background:var(--surface);}
-.mej-metrica{font-size:13.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.mej-valor{
-  font-family:var(--font-stat); font-size:14px; font-weight:700; text-align:right;
-  font-variant-numeric:tabular-nums;
-}
-/* El promedio del rol en tinta apagada: es la REFERENCIA, no un segundo
-   protagonista. Si los dos números pesan igual, la fila no dice cuál es el
-   tuyo. */
-.mej-rol{
-  font-family:var(--font-mono); font-size:12px; text-align:right; color:var(--text-muted);
-  font-variant-numeric:tabular-nums;
-}
-.mej-dif{
-  font-family:var(--font-stat); font-size:13.5px; font-weight:800; text-align:right;
-  font-variant-numeric:tabular-nums;
-}
-.mej-dif.good{color:var(--good);}
-.mej-dif.bad{color:var(--critical);}
-.mej-dif.flojo{color:var(--text-muted);}
-
-/* "¿En qué partidas se nota?" — se abre adentro de la fila. */
-.mej-donde{
-  background:var(--surface-raised); border-radius:var(--radius-sm);
-  margin:2px 0 8px; padding:11px 14px 12px;
-  display:flex; flex-direction:column; gap:9px;
-}
-.mej-donde-et{font-size:11px; color:var(--text-muted); line-height:1.5;}
-.mej-partidas{list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:8px 16px;}
-.mej-partida{display:flex; align-items:center; gap:7px;}
-.mej-partida-champ{
-  width:26px; height:26px; border-radius:8px; overflow:hidden; flex:none;
-  display:flex; align-items:center; justify-content:center;
-  font-size:8px; font-weight:700; background:var(--surface-hover); color:var(--text-secondary);
-}
-.mej-partida-champ img{width:100%; height:100%; object-fit:cover; display:block;}
-.mej-partida-valor{
-  font-family:var(--font-stat); font-size:13px; font-weight:700; font-variant-numeric:tabular-nums;
-}
-.mej-partida-valor.good{color:var(--good);}
-.mej-partida-valor.bad{color:var(--critical);}
-.mej-partida-res{font-size:10px; font-weight:700; color:var(--text-muted);}
-.mej-partida-res.w{color:var(--good);}
-.mej-partida-res.l{color:var(--critical);}
-
-@media (max-width:720px){
-  .mej-rotulos, .mej-fila{grid-template-columns:minmax(0,1fr) 58px 54px 48px; gap:8px;}
-  .mej-metrica{font-size:12.5px;}
-  .mej-valor{font-size:13px;}
-  .mej-rol{font-size:11px;}
-  .mej-dif{font-size:12.5px;}
-}
-.mej-corta{display:none;}
-@media (max-width:720px){
-  .mej-larga{display:none;}
-  .mej-corta{display:inline;}
-}
+.recs-k{font-size:11px; color:var(--text-muted); white-space:nowrap;}
 
 /* ── "Campeones", pivoteado por campeón ──────────────────────────────────
    Un selector arriba y todo lo del elegido abajo. Apilar los cinco con sus

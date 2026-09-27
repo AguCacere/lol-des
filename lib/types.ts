@@ -4,6 +4,7 @@ import type { MetricaPropia, RadarProfile } from "./radar";
 import type { TiltState } from "./tilt";
 import type { ChampionBuildStats, CompraItem } from "./builds";
 import type { HistorialLineas } from "./lineas";
+import type { Progresion } from "./progresion";
 
 export type RoleKey = "top" | "jungle" | "mid" | "adc" | "support";
 
@@ -511,6 +512,13 @@ export interface Player {
   // derived, filled in by app/api/ladder/route.ts
   lpHistory: LpHistoryPoint[];
   peakLp: PeakLp;
+  /**
+   * La progresión de LP PARTIDA POR PARTIDA de las últimas veinte, con el LP
+   * de cada una atribuido contra las fotos (ver lib/progresion.ts). Es lo que
+   * dibuja el gráfico del perfil; `lpHistory` sigue existiendo para la
+   * curvita del ladder y para todo lo que mira fotos.
+   */
+  progresion: Progresion;
   flexRank: FlexRank | null;
   championPool: ChampionPoolEntry[];
   masteryPool: MasteryEntry[];

@@ -14,6 +14,7 @@ import { computeRecentForm, type FormSample } from "@/lib/form";
 import { computeRadar, metricasPropias, RADAR_METRICS, type MetricStats, type RadarMetric } from "@/lib/radar";
 import { computeMatchups, type MatchupSample } from "@/lib/matchups";
 import { comoJugamosJuntos, type Juntos } from "@/lib/juntos";
+import { progresionPorPartida, VENTANA_PARTIDAS, type PartidaParaProgresion } from "@/lib/progresion";
 import { computeChampionInsights } from "@/lib/champion-insights";
 import { computeMatchFlag, STATS_WINDOW_SIZE, type StatSample } from "@/lib/matchflags";
 import type { AegisStats, ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, DuoSharedMatch, FlexRank, LpHistoryPoint, MasteryEntry, Match, PersonalRecords, Player, RoleAverages, RoleKey } from "@/lib/types";
@@ -428,6 +429,13 @@ export async function GET() {
   const roleFreqByPuuid = new Map<string, Map<RoleKey, number>>();
   /** Cada partida con línea resuelta, más nueva primero — la entrada de historialDeLineas. */
   const partidasConLineaByPuuid = new Map<string, PartidaConLinea[]>();
+  /**
+   * Las últimas VENTANA_PARTIDAS de cada uno, con lo mínimo para ubicarlas
+   * entre dos fotos de LP y poder contarlas: el gráfico de progresión del
+   * perfil dibuja UNA PARTIDA POR PUNTO, no una foto por punto (ver
+   * lib/progresion.ts). Sale del mismo recorrido que todo lo demás.
+   */
+  const progresionByPuuid = new Map<string, PartidaParaProgresion[]>();
   // Per-ROLE totals (kda/cs/dmg/killPart/objShare), tagged by each match's OWN
   // real team_position — not by any player's single declared/majority role.
   // `roleAggByRole` pools every tracked player's matches actually played in
@@ -660,6 +668,21 @@ export async function GET() {
       durationS: row.game_duration_s,
     });
     rankedMatchesByPuuid.set(row.puuid, rankedList);
+
+    const paraProgresion = progresionByPuuid.get(row.puuid) ?? [];
+    if (paraProgresion.length < VENTANA_PARTIDAS) {
+      paraProgresion.push({
+        matchId: row.match_id,
+        playedAt: row.played_at,
+        durationS: row.game_duration_s,
+        win: row.win,
+        champ: row.champion,
+        k: row.kills,
+        d: row.deaths,
+        a: row.assists,
+      });
+      progresionByPuuid.set(row.puuid, paraProgresion);
+    }
 
     // Same cap-while-iterating trick as matchesByPuuid below, just a bigger
     // window (25 vs. 5) — matchRows is globally played_at DESC, so a stable
@@ -1198,6 +1221,10 @@ export async function GET() {
       profileIconUrl: row.profile_icon_id != null ? profileIconUrl(ddragonVersion, row.profile_icon_id) : null,
       summonerLevel: row.summoner_level,
       lpHistory,
+      // El gráfico del perfil, ya resuelto en el servidor: es acá donde están
+      // las fotos de LP enteras y todas las partidas, así que atribuir el LP
+      // partida por partida cuesta un recorrido y no una ruta nueva.
+      progresion: progresionPorPartida(history, progresionByPuuid.get(row.puuid) ?? []),
       peakLp,
       flexRank: flexByPuuid.get(row.puuid) ?? null,
       championPool: championPool(row.puuid),

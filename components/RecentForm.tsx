@@ -66,62 +66,84 @@ function deltaOf(split: FormSplit, spec: MetricSpec) {
     text: `${redondeado > 0 ? "+" : redondeado < 0 ? "−" : ""}${fmt(Math.abs(redondeado), inPoints ? spec.decimals : 0)}${inPoints ? " pts" : "%"}`,
     arrow: flat ? "" : raw > 0 ? "▲" : "▼",
     tone: flat ? "flat" : improved ? "up" : "down",
+    flat,
+    /** Cuánto se movió en términos comparables entre métricas, para ordenar. */
+    magnitud: inPoints ? Math.abs(raw) / Math.max(1, Math.abs(split.baseline)) : Math.abs(raw) / 100,
   };
 }
 
+/** Cuántas se muestran. Cuatro es una lectura; ocho es la grilla de antes. */
+const MAXIMO = 4;
+
 /**
- * "Forma reciente" — las últimas 20 partidas contra todo el historial
- * anterior del MISMO jugador (ver lib/form.ts). Es la contracara de
- * "Comparación con tu rol", que mide contra los demás: acá el único punto de
- * referencia es uno mismo, así que responde otra pregunta ("¿estoy mejor que
- * hace un mes?") y por eso tiene su propio lenguaje visual — grilla de
- * números con su delta, no barras contra un promedio ajeno.
+ * "Forma reciente" — las últimas 20 partidas contra todo el historial anterior
+ * del MISMO jugador (ver lib/form.ts). La contracara de la comparación con el
+ * rol: acá el único punto de referencia es uno mismo.
+ *
+ * Eran OCHO fichas en una grilla, cada una con su rectángulo. Tres problemas
+ * en uno: ocupaba dos filas enteras del perfil, la mitad de las fichas decía
+ * "no se movió" con el mismo peso visual que la que se movió 92%, y ocho
+ * rectángulos para ocho números es exactamente el síndrome de meter cada dato
+ * en su caja.
+ *
+ * Ahora son renglones —sin cajas— y solo las que **de verdad se movieron**,
+ * ordenadas por cuánto, como mucho cuatro. Las que quedaron quietas se
+ * cuentan en una línea al pie: el dato no se pierde, deja de ocupar lugar.
  */
 export function RecentForm({ form }: { form: RecentFormData | null }) {
   if (!form) return null;
-  const tiles = METRICS.map((spec) => ({ spec, split: form[spec.key] as FormSplit | null })).filter(
-    (t): t is { spec: MetricSpec; split: FormSplit } => t.split !== null
-  );
-  if (tiles.length === 0) return null;
+  const todas = METRICS.map((spec) => ({ spec, split: form[spec.key] as FormSplit | null }))
+    .filter((t): t is { spec: MetricSpec; split: FormSplit } => t.split !== null)
+    .map((t) => ({ ...t, d: deltaOf(t.split, t.spec) }));
+  if (todas.length === 0) return null;
+
+  const movidas = todas.filter((t) => !t.d.flat).sort((a, b) => b.d.magnitud - a.d.magnitud).slice(0, MAXIMO);
+  const quietas = todas.length - todas.filter((t) => !t.d.flat).length;
 
   return (
-    <div className="form-wrap">
-      <h4 className="subsection-label">
-        Forma reciente
-        <InfoTip
-          text={`Tus últimas ${form.recentGames} partidas ranked comparadas contra las ${form.baselineGames} anteriores que tenemos guardadas. No es contra el promedio del grupo ni contra tu rol: es contra vos mismo, para ver si estás mejorando o cayendo.`}
-        />
-        <span className="form-window">
-          últimas {form.recentGames} vs. {form.baselineGames} anteriores
+    <div className="forma">
+      <div className="forma-head">
+        <span className="forma-rotulo">
+          Forma reciente
+          <InfoTip
+            text={`Tus últimas ${form.recentGames} partidas ranked comparadas contra las ${form.baselineGames} anteriores que tenemos guardadas. No es contra el promedio del grupo ni contra tu rol: es contra vos mismo, para ver si estás mejorando o cayendo.`}
+          />
         </span>
-      </h4>
-      <div className="form-grid">
-        {tiles.map(({ spec, split }) => {
-          const d = deltaOf(split, spec);
-          return (
-            <div className="form-tile" key={spec.key}>
-              <div className="form-tile-k">
+        <span className="forma-ventana">
+          últimas {form.recentGames} vs. {form.baselineGames}
+        </span>
+      </div>
+      {movidas.length === 0 ? (
+        <p className="forma-quieto">Viene igual que antes en las {todas.length} métricas.</p>
+      ) : (
+        <ul className="forma-lista">
+          {movidas.map(({ spec, split, d }) => (
+            <li className="forma-fila" key={spec.key}>
+              <span className="forma-metrica">
                 {spec.label}
                 {spec.tooltip && <InfoTip text={spec.tooltip} />}
-              </div>
-              <div className="form-tile-row">
-                <span className="form-tile-v">
-                  {fmt(split.recent, spec.decimals)}
-                  {spec.suffix}
-                </span>
-                <span className={`form-delta ${d.tone}`}>
-                  {d.arrow && <span className="form-delta-arrow">{d.arrow}</span>}
-                  {d.text}
-                </span>
-              </div>
-              <div className="form-tile-base">
+              </span>
+              <span className="forma-valor">
+                {fmt(split.recent, spec.decimals)}
+                {spec.suffix}
+              </span>
+              <span className={`forma-delta ${d.tone}`}>
+                {d.arrow && <span className="forma-flecha">{d.arrow}</span>}
+                {d.text}
+              </span>
+              <span className="forma-antes">
                 antes {fmt(split.baseline, spec.decimals)}
                 {spec.suffix}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {quietas > 0 && movidas.length > 0 && (
+        <p className="forma-quieto">
+          {quietas === 1 ? "Otra métrica no se movió" : `Otras ${quietas} no se movieron`}.
+        </p>
+      )}
     </div>
   );
 }
