@@ -71,6 +71,19 @@ Lo único que se pierde por no tener rutas y conviene saber: **no se puede compa
 enlace a una sección**. Si alguna vez se pide, la forma barata es el hash (`#liga`),
 no el App Router.
 
+## Aegis: la limitación que queda
+
+La detección está hecha y medida (ver `DECISIONES.md`), pero hay un techo que
+no depende del código: **solo se puede atribuir LP a una partida que quedó sola
+entre dos fotos**. Con el cron cada 15 minutos eso alcanza para casi todo —98%
+del historial— pero una tarde de partidas muy seguidas puede dejar dos en el
+mismo tramo, y esas no se miran. Si alguna vez alguien juega un Aegis ahí
+adentro, no lo vamos a ver. No hay nada que arreglar sin bajar el intervalo del
+cron, que en el plan Hobby no se puede.
+
+Lo otro, que no es un problema sino un dato: son entre una y cinco por persona
+sobre meses. Que el perfil muestre "0 Aegis" es un resultado normal.
+
 ## SQL sin correr
 
 Las migraciones de esta base se corren **a mano** desde el SQL Editor de Supabase. Desde

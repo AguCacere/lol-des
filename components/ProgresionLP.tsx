@@ -7,6 +7,8 @@ import { championLabel } from "@/lib/champion-names";
 import { ChampIcon } from "./ChampIcon";
 import { InfoTip } from "./InfoTip";
 import type { Progresion, PuntoProgresion } from "@/lib/progresion";
+import type { Aegis } from "@/lib/types";
+import { ShieldIcon } from "./StatIcons";
 
 /**
  * La progresión de LP, una partida por punto.
@@ -77,7 +79,16 @@ const cuando = (iso: string) =>
  * recibiendo el JSON viejo, que todavía no trae `progresion`. Sin esto, el
  * perfil entero se cae con "cannot read puntos of undefined".
  */
-export function ProgresionLP({ p, ddragonVersion }: { p: Progresion | undefined; ddragonVersion: string | null }) {
+export function ProgresionLP({
+  p,
+  aegis,
+  ddragonVersion,
+}: {
+  p: Progresion | undefined;
+  /** Las partidas con Aegis detectado, para marcarlas. Null es lo normal. */
+  aegis: Aegis | null;
+  ddragonVersion: string | null;
+}) {
   const [hover, setHover] = useState<number | null>(null);
   // El ancho real del dibujo. Hace falta para ubicar los rótulos de los
   // hitos: el SVG se estira, pero un rótulo de HTML mide siempre lo mismo en
@@ -117,6 +128,14 @@ export function ProgresionLP({ p, ddragonVersion }: { p: Progresion | undefined;
   // daban aire de gráfico financiero decorativo.
   const linea = linePath(pts);
   const activo = hover !== null ? p.puntos[hover] : null;
+  // Aegis, en el gráfico: un escudito arriba del punto y un renglón más en el
+  // panel. Nada más — el protagonista sigue siendo la progresión, y la
+  // explicación completa vive en la chapa de la partida, abajo.
+  const aegisPorPartida = new Map((aegis?.detections ?? []).map((d) => [d.matchId, d]));
+  const conAegis = p.puntos
+    .map((q, i) => ({ d: aegisPorPartida.get(q.matchId), x: xDe(i), y: yDe(q.score) }))
+    .filter((e): e is { d: NonNullable<typeof e.d>; x: number; y: number } => e.d !== undefined);
+  const aegisActivo = activo ? aegisPorPartida.get(activo.matchId) : undefined;
 
   /**
    * Qué hito lleva cartel y cuál no, en dos pasadas y con dos reglas.
@@ -143,6 +162,11 @@ export function ProgresionLP({ p, ddragonVersion }: { p: Progresion | undefined;
   // acomoden.
   const anchoEt = (deTier: boolean) =>
     ancho > 0 ? ((deTier ? ANCHO_TIER : ANCHO_DIV) / ancho) * W : Infinity;
+  // Cuánto se estira el SVG a lo ancho. El viewBox mide 620 y la caja mide
+  // `ancho`, mientras que a lo alto es 1:1 (96 unidades en 96px), así que
+  // cualquier dibujo que tenga que salir con su forma —el escudo de Aegis—
+  // se compensa escalando x por la inversa.
+  const escalaX = ancho > 0 ? W / ancho : 1;
   // Centrado salvo que centrado no entre. El corte es por el ANCHO REAL del
   // rótulo y no por un porcentaje fijo del gráfico: a 1440 un 15% son 185px
   // y el rótulo de tier mide 137, así que con un porcentaje se apoyaban
@@ -254,6 +278,19 @@ export function ProgresionLP({ p, ddragonVersion }: { p: Progresion | undefined;
               className={`prog-punto ${p.puntos[i].win ? "v" : "d"}${hover === i ? " activo" : ""}`}
             />
           ))}
+          {/* El escudo de Aegis, arriba del punto. Un <path> chico y no un
+              componente: adentro del SVG estirado hay que dibujarlo en
+              unidades del viewBox, y con transform de escala inversa en x
+              para que no salga ovalado como saldría un círculo. */}
+          {conAegis.map((e) => (
+            <path
+              key={`ag${e.d.matchId}`}
+              d="M0 -3.4 L2.7 -2.2 L2.7 0.4 Q2.7 2.9 0 3.9 Q-2.7 2.9 -2.7 0.4 L-2.7 -2.2 Z"
+              className={`prog-aegis ${e.d.confidence}`}
+              transform={`translate(${e.x} ${e.y - 12}) scale(${escalaX} 1)`}
+            />
+          ))}
+
           {/* La zona que escucha, arriba de todo. Por columnas y no por punto:
               apuntarle a un círculo de 3px es imposible, y lo que se quiere
               saber es "¿qué pasó acá?". `pointer` y no `mouse` para que en el
@@ -352,6 +389,16 @@ export function ProgresionLP({ p, ddragonVersion }: { p: Progresion | undefined;
                 {activo.k}/{activo.d}/{activo.a} · {activo.dur} min
               </i>
             </span>
+            {aegisActivo && (
+              <span className={`prog-panel-aegis ${aegisActivo.confidence}`}>
+                <ShieldIcon />
+                {aegisActivo.confidence === "high" ? "Aegis detectado" : "Posible Aegis"}
+                <i>
+                  {aegisActivo.ratio.toLocaleString("es-AR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}×
+                  lo habitual
+                </i>
+              </span>
+            )}
             <span className="prog-panel-tramo">
               <span className="prog-panel-cuando">{cuando(activo.playedAt)}</span>
               {rangoTxt(activo.antes)} <span aria-hidden>→</span>{" "}

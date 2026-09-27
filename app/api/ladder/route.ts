@@ -9,7 +9,7 @@ import { historialDeLineas, type PartidaConLinea } from "@/lib/lineas";
 import { getLiveGamesByPuuid } from "@/lib/live";
 import { getLatestVersion, profileIconUrl, runeIconUrlByName, summonerSpellIconUrlByName } from "@/lib/ddragon";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
-import { computeAegisStats } from "@/lib/aegis";
+import { detectarAegis } from "@/lib/aegis";
 import { computeRecentForm, type FormSample } from "@/lib/form";
 import { computeRadar, metricasPropias, RADAR_METRICS, type MetricStats, type RadarMetric } from "@/lib/radar";
 import { computeMatchups, type MatchupSample } from "@/lib/matchups";
@@ -17,7 +17,7 @@ import { comoJugamosJuntos, type Juntos } from "@/lib/juntos";
 import { progresionPorPartida, VENTANA_PARTIDAS, type PartidaParaProgresion } from "@/lib/progresion";
 import { computeChampionInsights } from "@/lib/champion-insights";
 import { computeMatchFlag, STATS_WINDOW_SIZE, type StatSample } from "@/lib/matchflags";
-import type { AegisStats, ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, DuoSharedMatch, FlexRank, LpHistoryPoint, MasteryEntry, Match, PersonalRecords, Player, RoleAverages, RoleKey } from "@/lib/types";
+import type { Aegis, ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, DuoSharedMatch, FlexRank, LpHistoryPoint, MasteryEntry, Match, PersonalRecords, Player, RoleAverages, RoleKey } from "@/lib/types";
 import { winrateExacto } from "@/lib/winrate";
 import {
   radiografia,
@@ -410,13 +410,15 @@ export async function GET() {
   // (no solo las últimas 5 mostradas) — ver lib/matchups.ts.
   const matchupSamplesByPuuid = new Map<string, MatchupSample[]>();
   // Every ranked match this player has stored, built straight from matchRows
-  // (already queue_id=420-only per the query above) since the two consumers
-  // need the FULL history, not just the last 5 kept in matchesByPuuid:
-  // computeAegisStats (lib/aegis.ts) reads playedAt/win, computeRecentForm
-  // (lib/form.ts) reads the per-match stats. Una sola lista para los dos —
+  // (already queue_id=420-only per the query above) since the consumers need
+  // the FULL history, not just the last 5 kept in matchesByPuuid:
+  // computeRecentForm (lib/form.ts) y detectTilt leen las estadísticas, y
+  // detectarAegis (lib/aegis.ts) necesita matchId, playedAt, durationS y win
+  // de TODAS —no de las últimas veinte— para que la mediana propia de LP por
+  // victoria tenga contra qué compararse. Una sola lista para los tres:
   // recorrer matchRows otra vez para armar un segundo mapa idéntico no
   // agregaba nada.
-  const rankedMatchesByPuuid = new Map<string, (FormSample & { playedAt: string })[]>();
+  const rankedMatchesByPuuid = new Map<string, (FormSample & { playedAt: string; matchId: string })[]>();
   // This player's own last STATS_WINDOW_SIZE matches (cs/min, vision/min,
   // kda) — the baseline "para repasar" flags each match against, see
   // lib/matchflags.ts. Own recent form, not the role average used elsewhere.
@@ -655,6 +657,7 @@ export async function GET() {
 
     const rankedList = rankedMatchesByPuuid.get(row.puuid) ?? [];
     rankedList.push({
+      matchId: row.match_id,
       playedAt: row.played_at,
       win: row.win,
       kills: row.kills,
@@ -747,6 +750,9 @@ export async function GET() {
       row.summoner2 ? summonerSpellIconUrlByName(ddragonVersion, row.summoner2) : Promise.resolve(null),
     ]);
     arr.push({
+      // Para poder cruzar esta partida con su detección de Aegis, que se
+      // calcula sobre el historial entero y se refiere a las partidas por id.
+      matchId: row.match_id,
       win: row.win,
       champ: row.champion,
       // Quién le tocó en la línea. Ya estaba guardado y ya se usaba en "Cara a
@@ -1155,14 +1161,25 @@ export async function GET() {
     };
   }
 
-  function aegisStatsFor(puuid: string): AegisStats | null {
+  /**
+   * Aegis sobre TODO el historial guardado, no sobre la ventana del gráfico:
+   * la mediana propia de LP por victoria necesita muestra, y con veinte
+   * partidas quedan ocho o diez victorias, que es el piso justo. El orden no
+   * importa —`atribuirLp` ordena por final de partida— así que no hay que
+   * darlo vuelta como pedía la versión anterior.
+   */
+  function aegisFor(puuid: string): Aegis | null {
     const snapshotsAsc = lpHistoryByPuuid.get(puuid);
     if (!snapshotsAsc || snapshotsAsc.length < 2) return null;
-    // matchRows (and everything built from it, including this) arrives
-    // played_at DESCENDING — reverse for computeAegisStats, which needs
-    // oldest-first to walk consecutive snapshot windows in order.
-    const rankedAsc = [...(rankedMatchesByPuuid.get(puuid) ?? [])].reverse();
-    return computeAegisStats(snapshotsAsc, rankedAsc);
+    return detectarAegis(
+      snapshotsAsc,
+      (rankedMatchesByPuuid.get(puuid) ?? []).map((m) => ({
+        matchId: m.matchId,
+        playedAt: m.playedAt,
+        durationS: m.durationS,
+        win: m.win,
+      })),
+    );
   }
 
   // Shared by computeDuoSynergy() and computeChampionLeaderboard() below —
@@ -1237,10 +1254,10 @@ export async function GET() {
       roleDistribution: roleDistributionFor(row.puuid),
       lineas: historialDeLineas(partidasConLineaByPuuid.get(row.puuid) ?? []),
       personalRecords: personalRecordsFor(row.puuid),
-      aegisStats: aegisStatsFor(row.puuid),
+      aegis: aegisFor(row.puuid),
       // rankedMatchesByPuuid ya viene played_at DESC (más nueva primero),
       // que es justo el orden que computeRecentForm espera para cortar la
-      // ventana — al revés que computeAegisStats, que lo necesita ascendente.
+      // ventana. detectarAegis, en cambio, ordena solo.
       recentForm: computeRecentForm(rankedMatchesByPuuid.get(row.puuid) ?? []),
       // Sobre rankedMatchesByPuuid y no sobre `matches`: este último está
       // capado en 5 (es lo que se muestra) y el tilt necesita ver las de antes

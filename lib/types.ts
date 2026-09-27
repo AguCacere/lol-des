@@ -33,6 +33,17 @@ export interface Tier {
 }
 
 export interface Match {
+  /**
+   * El id de Riot de la partida. Viaja para poder cruzarla con lo que se
+   * calcula aparte y se refiere a ella por id —hoy, las detecciones de Aegis
+   * (ver lib/aegis.ts)— sin duplicar campeón, KDA ni fecha adentro de esos
+   * objetos.
+   *
+   * Opcional por lo mismo que `opponent`: es un campo nuevo y durante la
+   * ventana de caché del CDN hay pestañas con el bundle nuevo recibiendo el
+   * JSON viejo, que no lo trae.
+   */
+  matchId?: string;
   win: boolean;
   champ: string;
   /**
@@ -560,7 +571,11 @@ export interface Player {
   /** Best/most-extreme single-game numbers across EVERY stored match (not just the last 5 shown) — null if there are no stored matches yet. */
   personalRecords: PersonalRecords | null;
   /** Inferred "Aegis of Valor" count (Riot exposes nothing about it — see lib/aegis.ts) — null if there isn't enough clean, isolated LP-delta data yet to infer anything. */
-  aegisStats: AegisStats | null;
+  /**
+   * Las partidas que parecen haber recibido Aegis of Valor (ver lib/aegis.ts).
+   * Opcional por la ventana de caché del CDN: el JSON viejo no trae el campo.
+   */
+  aegis?: Aegis | null;
   /** Últimas 20 partidas vs. todo el historial anterior de este mismo jugador (ver lib/form.ts) — null hasta tener al menos 30 partidas guardadas. */
   recentForm: RecentForm | null;
   /** Con qué ítem arranca con cada campeón y cómo le va (ver lib/builds.ts) — vacío hasta tener muestra suficiente y al menos dos arranques distintos que comparar. */
@@ -578,21 +593,43 @@ export interface Player {
 }
 
 /**
- * Riot doesn't expose "Aegis of Valor" (the 2026 double-LP/loss-protection
- * mechanic for good performances in an autofilled role) anywhere in the
- * Match-V5 API — confirmed by scanning full match JSON for any
- * aegis/valor-named field, three times, including a match known to have
- * triggered it. This is a STATISTICAL INFERENCE from lp_snapshots instead:
- * an isolated match's real LP delta compared against this player's own
- * median delta for a win/loss. Never a certainty — always shown as
- * "posible", not confirmed.
+ * Riot no expone "Aegis of Valor" (la mecánica de 2026 de doble LP por una
+ * buena partida en un rol autofill) en ningún campo de Match-V5 — confirmado
+ * revisando el JSON entero de una partida que sabemos que lo activó, tres
+ * veces. Esto es una INFERENCIA, no un dato: el LP real de una victoria
+ * aislada (ver lib/atribucion.ts) contra la mediana de LP por victoria de esa
+ * misma persona. Ver lib/aegis.ts para los umbrales y para por qué las
+ * "derrotas protegidas" que había antes se fueron.
+ *
+ * El campo del Player se llama `aegis` y no `aegisStats` a propósito: el
+ * viejo tenía otra forma, y durante la ventana de caché del CDN hay pestañas
+ * con el bundle nuevo recibiendo el JSON anterior. Con un nombre nuevo, ese
+ * JSON simplemente no lo trae y el guardia de siempre alcanza; con el mismo
+ * nombre, habría llegado un objeto con la forma vieja.
  */
-export interface AegisStats {
-  /** Wins whose isolated LP delta was well above this player's own median win delta. */
-  doubleLp: number;
-  /** Losses whose isolated LP delta was well above (less negative than) this player's own median loss delta. */
-  protectedLosses: number;
-  /** How many isolated (unambiguous single-match) windows fed both medians — context for how much to trust the counts above. */
+export interface AegisDetection {
+  /** Con qué partida se corresponde. El campeón, el KDA y la fecha ya están en Match/PuntoProgresion: acá no se duplican. */
+  matchId: string;
+  /** Lo que dio esa victoria, en la escala de rankScore. */
+  lpDelta: number;
+  /** La mediana propia de LP por victoria contra la que se comparó. */
+  baselineLp: number;
+  /** lpDelta / baselineLp, con un decimal. */
+  ratio: number;
+  /**
+   * `high` pide las tres cosas: ratio cerca de 2×, muestra propia suficiente
+   * y contadores de victorias/derrotas del tramo coherentes con esta partida.
+   * Si falta alguna, `possible` — y en pantalla se dice "Posible Aegis".
+   */
+  confidence: "high" | "possible";
+}
+
+export interface Aegis {
+  /** Las partidas detectadas, de la más vieja a la más nueva. Vacío es un resultado válido. */
+  detections: AegisDetection[];
+  /** La mediana propia de LP por victoria. Se muestra como "ganancia habitual". */
+  baselineLp: number;
+  /** Cuántas victorias aisladas la alimentaron — el contexto de cuánto creerle. */
   sampleSize: number;
 }
 

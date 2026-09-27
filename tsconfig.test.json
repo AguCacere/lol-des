@@ -1,0 +1,15 @@
+{
+  "//": "Los tests corren con el runner de Node sobre JavaScript compilado. Node sabe leer TypeScript directo, pero no resuelve imports sin extensión (`./ladder`), que es como los escribe todo el proyecto; compilar a CommonJS acá adentro resuelve eso sin tocar una sola línea de la app ni agregar una dependencia.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "ES2022",
+    "outDir": ".test-build",
+    "incremental": false,
+    "types": ["node"]
+  },
+  "include": ["tests/**/*.ts", "lib/atribucion.ts", "lib/progresion.ts", "lib/aegis.ts", "lib/ladder.ts", "lib/types.ts"],
+  "exclude": ["node_modules", ".next"]
+}

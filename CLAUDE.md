@@ -74,7 +74,9 @@ Sobre verificar:
   reload devuelve frames viejos y ya hizo "arreglar" dos veces algo que funcionaba.
 - Playwright: `chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })` e
   interceptar `**://ddragon.leagueoflegends.com/**`, que desde el sandbox no hay red.
-- Un solo `npm run build` al final. `npx tsc --noEmit` y `npx eslint` sí, seguido.
+- Un solo `npm run build` al final. `npx tsc --noEmit`, `npx eslint` y `npm test` sí,
+  seguido. Los tests (`tests/*.test.ts`) son de lógica pura y corren compilando a
+  `.test-build` — si tocás `lib/atribucion.ts` o `lib/aegis.ts`, corrélos.
 
 Sobre el repo:
 
@@ -90,6 +92,7 @@ Sobre el repo:
 npm run dev              # localhost:3000
 npx tsc --noEmit         # tipos
 npx eslint app lib components
+npm test                 # la lógica pura (atribución de LP, Aegis) con el runner de Node
 npm run build            # el que vale antes de commitear
 ```
 

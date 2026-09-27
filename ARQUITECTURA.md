@@ -134,7 +134,15 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
 - `matchflags.ts` — marca partidas atípicas contra la forma propia.
 - `builds.ts` — el orden de compra cruzado con el resultado.
 - `champion-insights.ts` — maestría de Riot contra el pool real de ranked.
-- `aegis.ts` — inferencia de "Aegis of Valor" a partir de los snapshots.
+- `atribucion.ts` — **cuánto LP movió una partida**. La pieza única: el par de
+  fotos consecutivas que contiene el FINAL de la partida (`playedAt + durationS`)
+  y la resta de rankScore entre las dos. Lo que comparte tramo con otra partida o
+  cae en un hueco del cron NO se reparte ni se interpola: queda sin atribuir. De
+  yapa valida contra los contadores `wins`/`losses` de la foto. La usan
+  `progresion.ts` y `aegis.ts`, y son el mismo número en los dos.
+- `aegis.ts` — qué partidas parecen haber recibido "Aegis of Valor", encima de
+  `atribucion.ts`. Compara cada victoria atribuida contra la mediana de LP por
+  victoria de esa misma persona; nunca contra otras.
 - `clash.ts` — agrupa las partidas de Clash (queue 700) en torneos.
 - `timeline.ts` — extrae de los frames de Match-V5 los números de `MatchDetail`.
 - `match-story.ts` — "dónde se dio vuelta la partida", en castellano.
@@ -397,11 +405,12 @@ pestañas.
       foco, salido de `lectura.ts`), `LineHistory` ("Sus líneas": sin barras,
       las muestras chicas marcadas, las de menos de tres partidas fuera y un
       solo renglón cuando queda una sola línea), `PersonalRecords` (una sola
-      tira) y `AegisStats`, que es lo único de la pantalla que NO es un hecho
-      y por eso va marcado como inferido.
+      tira, con el contador de Aegis al final marcado con su ⓘ, que es lo
+      único de la tira que no es un hecho).
     - A la derecha, lo reciente: `RecentForm` (solo las métricas que se movieron,
       cuatro como mucho) y la lista de partidas con `MatchDetail` (que a su vez
-      abre `MatchTimeline`).
+      abre `MatchTimeline`). Una partida con Aegis detectado lleva la chapa de
+      `AegisSenal` en su renglón, y su punto en el gráfico un escudito.
     - Y si está jugando, `LiveGamePanel` y `TiltCard` arriba de todo.
   - **Campeones** (qué juega): `ProfileCampeones` —una tira de campeones y el
     detalle DEL elegido: récord, maestría, lectura, contra quién y cómo arranca—

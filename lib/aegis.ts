@@ -1,76 +1,135 @@
-import { rankScore } from "./ladder";
-import type { AegisStats, LpHistoryPoint } from "./types";
-
 /**
- * Statistical inference for "Aegis of Valor" — see AegisStats in lib/types.ts
- * for why this is a heuristic rather than a real Riot field. The core idea:
- * every ~15min refresh takes an lp_snapshots row (see lib/refresh.ts), so a
- * pair of CONSECUTIVE snapshots brackets whatever ranked games happened
- * between them. When exactly ONE ranked match falls in that window, the
- * combined rankScore delta between the two snapshots is THAT match's real
- * LP change — unambiguous. Two or more matches in the same window can't be
- * split apart, so those windows are skipped entirely rather than guessed.
+ * **Aegis of Valor: qué partidas parecen haberlo recibido.**
+ *
+ * Riot no expone este dato en ningún campo de Match-V5 —lo buscamos tres
+ * veces, incluida una partida que sabemos que lo activó—, así que esto es y
+ * va a seguir siendo una INFERENCIA. Lo que cambió es de qué está hecha.
+ *
+ * Antes: un contador. "3 posibles doble LP, 6 veces protegido en derrota",
+ * sobre un recorrido propio de las fotos que además ubicaba las partidas por
+ * cuándo EMPEZARON. Dos problemas: el número no servía para nada —no se podía
+ * ir a ver cuáles eran— y la atribución era peor que la del gráfico de
+ * progresión, que miraba lo mismo con otro criterio.
+ *
+ * Ahora: **las partidas concretas**. La atribución de LP sale entera de
+ * `atribuirLp` (lib/atribucion.ts), la misma que dibuja la progresión, y acá
+ * queda solo lo propio de Aegis: contra qué se compara cada victoria y cuándo
+ * alcanza para decir algo.
+ *
+ * ## Cómo se decide
+ *
+ * Se compara **contra el historial de esa misma persona**, nunca contra otras.
+ * El LP por victoria depende del MMR de cada uno, así que un umbral absoluto
+ * ("más de 50 LP") marcaría Aegis en cualquiera que esté subiendo rápido y no
+ * lo marcaría nunca en uno estancado.
+ *
+ *     victorias aisladas:  +27 +29 +28 +30 +29   → mediana 29
+ *     esta victoria:       +58                   → 58 / 29 = 2,0×
+ *
+ * La mediana y no el promedio: un par de victorias raras no la mueven, que es
+ * justamente lo que hace falta cuando lo que se busca son las raras.
+ *
+ * ## Medido contra la base antes de fijar los umbrales
+ *
+ * De los catorce jugadores, doce tienen trece o más victorias con LP propio
+ * atribuido (la mediana de cada uno cae entre 18 y 30 LP). Con el umbral de
+ * 1,7× salen **27 candidatas en total**, y lo interesante es cómo se reparten:
+ * ninguna cae entre 1,0× y 1,89×. Todas están entre **1,89× y 2,22×** —36, 38,
+ * 40 y 42 LP contra medianas de 18 y 19; 60 contra 30; 56 contra 28—, o sea
+ * que son el doble exacto de una victoria normal de esa persona. No hay zona
+ * gris: o es una victoria común o es el doble. Eso es lo que da confianza en
+ * que esto está mirando la mecánica y no el ruido.
+ *
+ * Los contadores de victorias confirman las 27. Las únicas dos ventanas con
+ * contadores raros de toda la base no son candidatas.
+ *
+ * Y son raras: entre una y cinco por persona sobre meses de historial. Por eso
+ * la chapa en la partida casi nunca se va a ver en las cinco que muestra el
+ * perfil, y por eso existe además el contador en Récords.
+ *
+ * ## Qué NO se detecta más: las derrotas protegidas
+ *
+ * La versión anterior marcaba como "protegida" toda derrota que perdiera menos
+ * de un cuarto de lo habitual. No se sostiene: perder poco tiene al menos dos
+ * causas normales y frecuentes que no son Aegis —el MMR muy por encima del
+ * rango (típico después de ascender) y el piso de 0 LP de una división, que
+ * recorta la derrota sin que intervenga nada más—. Con nuestros datos no hay
+ * forma de separar esas de una protección real, así que la señal se fue
+ * entera en vez de seguir mostrándose como si fuera Aegis. Ver DECISIONES.
  */
 
-export interface RankedMatchLite {
-  playedAt: string;
-  win: boolean;
-}
+import { atribuirLp, type PartidaUbicable } from "./atribucion";
+import type { Aegis, AegisDetection, LpHistoryPoint } from "./types";
 
-/** Below this many isolated samples of EACH result (win/loss), there's not enough of this player's own history to call anything an outlier — return null rather than guess off 1-2 data points. */
-const MIN_SAMPLE_PER_RESULT = 5;
-/** A win's LP delta needs to be at least this many times the player's own median win delta to count as "posible doble LP". Not literally 2x — real deltas wobble with MMR/first-win-of-day bonuses, so a hard 2x floor would miss real cases while still safely clearing normal variance. */
-const WIN_MULTIPLIER = 1.7;
-/** A loss "protected" needs to have lost no more than this fraction of the player's own median loss (e.g. 0.25 = lost at most a quarter of their usual loss). */
-const LOSS_PROTECTION_RATIO = 0.25;
+/**
+ * Victorias aisladas que hacen falta para que la mediana propia signifique
+ * algo. Con cinco, una sola victoria rara ya la corre; con ocho hay contra
+ * qué comparar. Abajo de esto no se emite NADA — preferimos no marcar un
+ * Aegis dudoso antes que mostrar uno falso.
+ */
+export const MIN_VICTORIAS = 8;
 
-function median(values: number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+/** Y desde acá la mediana es lo bastante firme como para afirmar, no solo sugerir. */
+export const MIN_VICTORIAS_ALTA = 12;
+
+/**
+ * Cuánto tiene que despegarse de la mediana propia para ser candidata.
+ *
+ * 1,7 es el umbral que ya usaba la versión anterior y se queda: los deltas
+ * reales bailan con el MMR y con el bonus de primera victoria del día, así que
+ * un piso duro en 2,0 se perdería casos reales. Lo que cambia es que 1,7 ya no
+ * alcanza para AFIRMAR, solo para sugerir.
+ */
+export const RATIO_POSIBLE = 1.7;
+
+/** Cerca de 2×, que es de lo que se habla cuando se habla de doble LP. */
+export const RATIO_ALTO = 1.85;
+
+function mediana(valores: number[]): number {
+  const orden = [...valores].sort((a, b) => a - b);
+  const mitad = Math.floor(orden.length / 2);
+  return orden.length % 2 === 0 ? (orden[mitad - 1] + orden[mitad]) / 2 : orden[mitad];
 }
 
 /**
- * `snapshotsAsc` and `rankedMatchesAsc` must both already be sorted oldest
- * first (captured_at / played_at ascending) and pre-filtered to ranked
- * solo/duo only — this is a pure function, no sorting/filtering by
- * queue/puuid happens here (see app/api/ladder/route.ts).
+ * `fotosAsc` ascendentes por `capturedAt` y ya deduplicadas; `partidas` es
+ * TODO el historial ranked solo/duo guardado de esa persona, sin remakes y sin
+ * Clash (la ruta del ladder ya los filtra en la consulta, y son otra población:
+ * un remake no mueve LP, así que no puede ser una muestra de cuánto mueve una
+ * victoria).
+ *
+ * Devuelve null cuando no hay con qué decir nada.
  */
-export function computeAegisStats(snapshotsAsc: LpHistoryPoint[], rankedMatchesAsc: RankedMatchLite[]): AegisStats | null {
-  if (snapshotsAsc.length < 2) return null;
+export function detectarAegis(fotosAsc: LpHistoryPoint[], partidas: PartidaUbicable[]): Aegis | null {
+  if (fotosAsc.length < 2 || partidas.length === 0) return null;
 
-  const isolated: { win: boolean; delta: number }[] = [];
-  for (let i = 0; i < snapshotsAsc.length - 1; i++) {
-    const prev = snapshotsAsc[i];
-    const next = snapshotsAsc[i + 1];
-    const prevTime = new Date(prev.capturedAt).getTime();
-    const nextTime = new Date(next.capturedAt).getTime();
-    // (prevTime, nextTime] — a match played AT prevTime belongs to whatever
-    // window produced prev itself, not this one; a match played exactly at
-    // nextTime is the one that produced next.
-    const inWindow = rankedMatchesAsc.filter((m) => {
-      const t = new Date(m.playedAt).getTime();
-      return t > prevTime && t <= nextTime;
+  const { atribuidas } = atribuirLp(fotosAsc, partidas);
+  const victorias = atribuidas.filter((t) => t.partida.win);
+  if (victorias.length < MIN_VICTORIAS) return null;
+
+  const base = mediana(victorias.map((t) => t.lp));
+  // Una mediana en cero o negativa no es una referencia de nada: pasa con un
+  // historial de fotos tan incompleto que casi ningún tramo cierra bien.
+  if (base <= 0) return null;
+
+  const detections: AegisDetection[] = [];
+  for (const t of victorias) {
+    const ratio = t.lp / base;
+    if (ratio < RATIO_POSIBLE) continue;
+    // Los contadores dicen que en ese tramo pasó algo más de lo que tenemos
+    // guardado, así que el delta NO es de esta partida sola: es justo el caso
+    // que fabrica un "doble LP" falso —dos victorias sumadas dan ~2× la
+    // mediana—. Se descarta la candidata, no se la baja de confianza.
+    if (t.wl === "contradice") continue;
+    const alta = ratio >= RATIO_ALTO && victorias.length >= MIN_VICTORIAS_ALTA && t.wl === "ok";
+    detections.push({
+      matchId: t.partida.matchId,
+      lpDelta: t.lp,
+      baselineLp: Math.round(base),
+      ratio: Math.round(ratio * 10) / 10,
+      confidence: alta ? "high" : "possible",
     });
-    if (inWindow.length !== 1) continue;
-
-    const delta = rankScore(next.tier, next.division, next.lp) - rankScore(prev.tier, prev.division, prev.lp);
-    isolated.push({ win: inWindow[0].win, delta });
   }
 
-  const winSamples = isolated.filter((s) => s.win).map((s) => s.delta);
-  const lossSamples = isolated.filter((s) => !s.win).map((s) => s.delta);
-  if (winSamples.length < MIN_SAMPLE_PER_RESULT || lossSamples.length < MIN_SAMPLE_PER_RESULT) return null;
-
-  const winMedian = median(winSamples);
-  const lossMedian = median(lossSamples); // negative, in the ordinary case
-
-  let doubleLp = 0;
-  let protectedLosses = 0;
-  for (const s of isolated) {
-    if (s.win && winMedian > 0 && s.delta >= winMedian * WIN_MULTIPLIER) doubleLp++;
-    if (!s.win && lossMedian < 0 && s.delta >= lossMedian * LOSS_PROTECTION_RATIO) protectedLosses++;
-  }
-
-  return { doubleLp, protectedLosses, sampleSize: isolated.length };
+  return { detections, baselineLp: Math.round(base), sampleSize: victorias.length };
 }

@@ -3627,3 +3627,134 @@ ningún número de acá sostiene. Las frases dicen **qué mide** y nada más.
 Lo que sí se queda es cómo está construida la métrica —que el KDA es una
 división, que el % de daño depende del campeón—: eso es aritmética, no
 coaching.
+
+## Aegis of Valor: de un contador a las partidas, y una sola atribución de LP
+
+Había dos sistemas mirando lo mismo con dos criterios distintos. El gráfico de
+progresión atribuía el LP de cada partida buscando el par de fotos que contiene
+su **final**; `computeAegisStats` hacía su propio recorrido y buscaba el par que
+contiene su **inicio**. Con fotos cada 15 minutos y partidas de 25-40, casi
+todas cruzan una foto: los dos daban números distintos para la misma partida, y
+el de Aegis era el equivocado.
+
+### La atribución es ahora una sola pieza
+
+`lib/atribucion.ts`. Contesta una pregunta —cuánto LP movió esta partida— y la
+usan el gráfico y Aegis, que por lo tanto leen exactamente el mismo número. Las
+tres reglas no cambiaron, se centralizaron: por el FINAL de la partida; dos o
+más partidas en el mismo tramo no se reparten; lo que cae fuera de todos los
+tramos no se inventa.
+
+De paso el recorrido pasó a ser lineal en vez de un `find` por partida. Aegis
+mira TODO el historial —cientos de partidas contra miles de fotos— y el
+cuadrático se iba a notar en una ruta que ya hace bastante; las dos listas están
+ordenadas, así que alcanza con un puntero que nunca vuelve para atrás.
+
+### La validación que faltaba: los contadores de la foto
+
+`lp_snapshots` guarda `wins` y `losses` al lado del LP y no los estábamos
+usando para esto. En un tramo con una sola partida se puede pedir que los
+contadores se hayan movido en exactamente uno y del lado correcto. Tres
+respuestas, no dos:
+
+- **ok**: se movieron así. La atribución está confirmada por dos caminos.
+- **contradice**: se movieron, pero no así — en ese tramo pasó algo más de lo
+  que tenemos guardado, así que el delta NO es de una sola partida.
+- **sin-datos**: no se puede verificar (contadores en cero, o que retroceden por
+  un reset de season). **No invalida nada**: la atribución por LP sigue siendo
+  correcta, solo baja la confianza de lo que se construya encima.
+
+### Cómo se decide un Aegis
+
+Contra el historial **de esa misma persona**, nunca contra otras: el LP por
+victoria depende del MMR de cada uno, así que un umbral absoluto ("más de 50
+LP") marcaría a cualquiera que esté subiendo rápido y no marcaría nunca a uno
+estancado. Se toma la mediana de sus victorias con LP propio atribuido —mediana
+y no promedio, porque un par de victorias raras no la tienen que mover— y se
+compara cada victoria contra ella.
+
+**Medido contra la base antes de fijar los umbrales**, que es lo que le da
+sentido a todo esto. De los catorce, doce tienen trece o más victorias
+atribuidas (medianas entre 18 y 30 LP). Con 1,7× salen 27 candidatas, y el
+reparto es contundente: **ninguna cae entre 1,0× y 1,89×**. Todas están entre
+**1,89× y 2,22×** — 36, 38, 40 y 42 LP contra medianas de 18 y 19; 60 contra 30;
+56 contra 28. O sea el doble exacto de una victoria normal de esa persona. No
+hay zona gris: o es una victoria común o es el doble. Los contadores confirman
+las 27, y las dos únicas ventanas con contadores raros de toda la base no son
+candidatas.
+
+Los umbrales quedaron así:
+
+| | |
+|---|---|
+| Emitir algo | 8 victorias atribuidas como mínimo |
+| Candidata | 1,7× la mediana propia |
+| `high` | 1,85× **y** 12 victorias **y** contadores `ok` |
+| `possible` | cualquier otra candidata |
+| Descartada | la ventana **contradice** |
+
+Esa última fila es la que más protege: dos victorias entre las mismas dos fotos
+suman ~2× la mediana, o sea que fabrican un doble LP inventado. Los contadores
+lo detectan, y ahí se descarta la candidata en vez de bajarla a "posible" —
+precisión antes que cantidad.
+
+### Lo que se fue: las derrotas protegidas
+
+La versión anterior marcaba como "protegida" toda derrota que perdiera menos de
+un cuarto de lo habitual. No se sostiene. Perder poco tiene al menos dos causas
+normales y frecuentes que no son Aegis: el MMR muy por encima del rango —típico
+justo después de ascender— y el piso de 0 LP de una división, que recorta la
+derrota sin que intervenga nada. Con nuestros datos no hay forma de separar esas
+de una protección real, así que la señal se fue entera en vez de seguir
+mostrándose como si fuera Aegis.
+
+### Dónde aparece
+
+Aegis dejó de ser una sección. Es una propiedad **de una partida**, que es lo
+que es:
+
+- **La chapa en el renglón de la partida**, con el globo que cuenta con qué se
+  comparó: "+38 LP en esta partida, contra los ~19 que le suele dar una
+  victoria: 2,0× lo habitual". Nunca un porcentaje de probabilidad — no tenemos
+  con qué calcularlo y sería un número inventado con cara de dato.
+- **Un escudito arriba del punto** en el gráfico de progresión, y un renglón más
+  en el panel del hover. Nada más: el protagonista sigue siendo la curva.
+- **Un contador en la tira de Récords** (`🛡 2 Aegis`), que es lo único de esa
+  tira que no es un hecho y por eso lleva su ⓘ. Existe por una razón medida: son
+  entre una y cinco por persona sobre meses, y **ninguna de las 27 que hay hoy
+  cae en las últimas cinco partidas**, así que la chapa sola dejaría la
+  detección invisible.
+
+La chapa dice "Aegis" en dorado o "Posible Aegis" en gris según la confianza, y
+en una columna angosta se queda solo con el escudo — mismo truco y mismo motivo
+medido que la chapa de "Para repasar".
+
+### Dos trampas de CSS, las dos por orden de fuente
+
+1. `.aegis-sen svg` contra `.info-tip svg{width:100%}`: misma especificidad y la
+   del ⓘ vive más abajo en la hoja, así que ganaba. El escudo se estiraba al
+   ancho del padre, el padre crecía con él, y **la chapa terminaba midiendo
+   347px en una pantalla de 390** (medido), desbordando la fila entera. Se
+   arregla con el selector compuesto `.aegis-sen.info-tip svg`, que gana por
+   especificidad y no depende del orden.
+2. Lo mismo con el ancho del globo. Ahí se dejó ganar a la regla de siempre: el
+   texto entra en 230×157 y ensancharlo no ayuda, porque en un teléfono lo
+   recorta igual el `max-width:60vw`.
+
+La chapa reusa la mecánica de `.info-tip` entera —hover, foco con teclado, toque
+en el teléfono— poniéndose la clase encima, en vez de escribir otra.
+
+### Tests
+
+`npm test`. La lógica pura ahora tiene 26 tests: la atribución (una victoria
+aislada, una derrota, dos partidas en el mismo tramo, cambio de división, cambio
+de tier, el final contra el inicio, partidas fuera de rango, los tres estados de
+la validación W/L) y Aegis (2× con muestra detecta, variación normal no, muestra
+insuficiente no, contadores incoherentes nunca afirman, una derrota nunca
+detecta, dos partidas juntas no fabrican un falso, un remake no contamina).
+
+Corren con el runner de Node sobre TypeScript compilado a `.test-build`
+(`tsconfig.test.json`). Node sabe leer TypeScript directo pero no resuelve
+imports sin extensión —`./ladder`, que es como los escribe todo el proyecto—, y
+compilar a CommonJS ahí adentro lo resuelve **sin tocar una línea de la app ni
+agregar una dependencia**.

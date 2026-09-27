@@ -8,11 +8,12 @@
  * contestaba era "subió 92 LP". No decía QUÉ produjo esos cambios, que es la
  * única pregunta interesante que un gráfico de LP puede contestar.
  *
- * Acá cada punto es una partida. Y el LP de cada una no se estima: sale de la
- * misma atribución por tramos que usa la liga (ver `lpAtribuido` en
- * lib/liga.ts) — se busca el par de fotos consecutivas que contiene el FINAL
- * de la partida y la diferencia de rankScore entre esas dos fotos es lo que
- * movió.
+ * Acá cada punto es una partida. Y el LP de cada una no se estima ni se
+ * calcula acá: sale de `atribuirLp` (lib/atribucion.ts), que es la pieza
+ * única que contesta "cuánto movió esta partida" para todo el proyecto — este
+ * gráfico y la detección de Aegis leen exactamente el mismo número. Este
+ * archivo solo se ocupa de lo que el gráfico necesita encima: la ventana, la
+ * curva y los hitos de rango.
  *
  * **Medido contra la base antes de escribir esto**, porque la idea entera
  * depende de que la atribución funcione: de las últimas 20 partidas de cada
@@ -27,16 +28,11 @@
  * el gráfico muestra menos puntos y dice cuántos quedaron afuera.
  */
 
-import { rankScore } from "./ladder";
+import { atribuirLp, scoreDeFoto, type PartidaUbicable } from "./atribucion";
 import type { LpHistoryPoint, TierKey } from "./types";
 
-/** Lo mínimo que hace falta de una partida para ubicarla y contarla. */
-export interface PartidaParaProgresion {
-  matchId: string;
-  playedAt: string;
-  /** Cuánto duró. Se usa para saber CUÁNDO terminó, que es cuando se mueve el LP. */
-  durationS: number;
-  win: boolean;
+/** Lo que el gráfico necesita de cada partida, arriba de lo que pide la atribución. */
+export interface PartidaParaProgresion extends PartidaUbicable {
   champ: string;
   k: number;
   d: number;
@@ -92,11 +88,9 @@ export interface Progresion {
 /** Cuántas partidas mira. Veinte es lo que ya dibujaba el gráfico viejo en fotos. */
 export const VENTANA_PARTIDAS = 20;
 
-const score = (p: { tier: TierKey; division: number; lp: number }) => rankScore(p.tier, p.division, p.lp);
-
 /**
  * `fotos` tienen que venir ASCENDENTES y ya deduplicadas (la ruta del ladder
- * las entrega así). `partidas` puede venir en cualquier orden: se ordena acá.
+ * las entrega así). `partidas` puede venir en cualquier orden.
  */
 export function progresionPorPartida(
   fotos: LpHistoryPoint[],
@@ -113,51 +107,15 @@ export function progresionPorPartida(
     .slice(0, ventana)
     .reverse();
 
-  /**
-   * A cada partida, el tramo que contiene su FINAL. Por cuándo terminó y no
-   * por cuándo empezó: el LP se mueve al final. Con `playedAt` a secas una
-   * partida de 30 minutos que arranca 22:37 y termina 23:08 cae en el tramo
-   * de la foto de las 22:45 —que la agarró jugando— y esa foto todavía no
-   * incluía el resultado. Es la misma corrección que ya estaba en
-   * `lpAtribuido`, y no es un caso raro: las fotos van cada 15 minutos y las
-   * partidas duran 25-40, así que casi todas cruzan una.
-   */
-  const porTramo = new Map<number, PartidaParaProgresion[]>();
-  for (const m of recientes) {
-    const fin = Date.parse(m.playedAt) + m.durationS * 1000;
-    if (Number.isNaN(fin)) continue;
-    for (let i = 1; i < fotos.length; i++) {
-      const desde = Date.parse(fotos[i - 1].capturedAt);
-      const hasta = Date.parse(fotos[i].capturedAt);
-      if (fin > desde && fin <= hasta) {
-        const lista = porTramo.get(i) ?? [];
-        lista.push(m);
-        porTramo.set(i, lista);
-        break;
-      }
-    }
-  }
+  // La atribución, que es de lib/atribucion.ts y no de acá: el tramo que
+  // contiene el FINAL de cada partida, y nada para las que comparten tramo o
+  // caen en un hueco.
+  const { atribuidas, sinAtribuir } = atribuirLp(fotos, recientes);
 
-  const puntos: PuntoProgresion[] = [];
-  let sinAtribuir = 0;
-  const ubicadas = new Set<string>();
-
-  for (const [i, lista] of [...porTramo.entries()].sort((x, y) => x[0] - y[0])) {
-    for (const m of lista) ubicadas.add(m.matchId);
-    // Dos o más en el mismo tramo: no se sabe cuál dio cuánto, así que
-    // ninguna se dibuja. Medido, en la ventana reciente esto no pasa nunca;
-    // el caso existe igual porque una tarde muy seguida podría producirlo.
-    if (lista.length > 1) {
-      sinAtribuir += lista.length;
-      continue;
-    }
-    const antes = fotos[i - 1];
-    const despues = fotos[i];
-    const m = lista[0];
+  const puntos: PuntoProgresion[] = atribuidas.map(({ partida: m, antes, despues, lp }) => {
     const cruzoTier = antes.tier !== despues.tier;
     const cruzo = cruzoTier || antes.division !== despues.division;
-    const delta = score(despues) - score(antes);
-    puntos.push({
+    return {
       matchId: m.matchId,
       playedAt: m.playedAt,
       win: m.win,
@@ -166,27 +124,23 @@ export function progresionPorPartida(
       d: m.d,
       a: m.a,
       dur: Math.round(m.durationS / 60),
-      lp: delta,
-      score: score(despues),
+      lp,
+      score: scoreDeFoto(despues),
       antes: { tier: antes.tier, division: antes.division, lp: antes.lp },
       tier: despues.tier,
       division: despues.division,
       lpDespues: despues.lp,
-      hito: cruzo ? { dir: delta > 0 ? "ascenso" : "descenso", deTier: cruzoTier } : null,
-    });
-  }
+      hito: cruzo ? { dir: lp > 0 ? "ascenso" : "descenso", deTier: cruzoTier } : null,
+    };
+  });
 
-  // Las que no cayeron en ningún tramo: se jugaron antes de la primera foto
-  // guardada, o el cron se perdió las dos fotos que las rodeaban.
-  for (const m of recientes) if (!ubicadas.has(m.matchId)) sinAtribuir++;
-
-  if (puntos.length === 0) return { ...vacia, sinAtribuir };
+  if (puntos.length === 0) return { ...vacia, sinAtribuir: sinAtribuir.length };
 
   const primero = puntos[0];
   const ultimo = puntos[puntos.length - 1];
   return {
     puntos,
-    sinAtribuir,
+    sinAtribuir: sinAtribuir.length,
     // El neto es la suma de lo dibujado, no la resta entre puntas: si alguna
     // partida quedó sin atribuir, la resta entre puntas incluiría su LP y el
     // gráfico no la muestra. La suma dice exactamente lo que está dibujado.

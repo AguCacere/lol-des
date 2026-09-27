@@ -27,7 +27,7 @@ import { RecentForm } from "./RecentForm";
 import { ProgresionLP } from "./ProgresionLP";
 import { ProfileLectura } from "./ProfileLectura";
 import { ProfileCampeones } from "./ProfileCampeones";
-import { AegisStats } from "./AegisStats";
+import { AegisSenal } from "./AegisSenal";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
 import { ReviewIcon } from "./StatIcons";
@@ -162,6 +162,13 @@ export function PlayerProfile({
    * de verdad. Es lo que era la pestaña Mejorar. Ver lib/lectura.ts.
    */
   const lectura = leerElPerfil(p.radar);
+  /**
+   * Las detecciones de Aegis, por matchId. Se calculan sobre el historial
+   * ENTERO en el servidor (ver lib/aegis.ts) y acá se cruzan con lo que se
+   * dibuja: las cinco partidas de la lista y los puntos del gráfico. Con
+   * `?? []` porque el campo es nuevo y el JSON viejo del CDN no lo trae.
+   */
+  const aegisPorPartida = new Map((p.aegis?.detections ?? []).map((d) => [d.matchId, d]));
   // Se fueron TODOS los promedios sobre `p.matches` que vivían acá: wins,
   // avgKDA, avgCS, avgDmg, avgVision, avgDur, killPart y objPart. Los ocho
   // promediaban las últimas CINCO partidas y se mostraban —en las fichas del
@@ -396,7 +403,7 @@ export function PlayerProfile({
                 apuntarle a una y no. */}
             <section className="resumen-ancho resumen-momento">
               <h4 className="resumen-titulo">Su momento</h4>
-              <ProgresionLP p={p.progresion} ddragonVersion={ddragonVersion} />
+              <ProgresionLP p={p.progresion} aegis={p.aegis ?? null} ddragonVersion={ddragonVersion} />
             </section>
 
             {/* ═══ 2 y 3. Qué hace bien y qué corregir ═══
@@ -427,11 +434,9 @@ export function PlayerProfile({
               {p.personalRecords && (
                 <>
                   <h4 className="resumen-titulo con-aire">Récords</h4>
-                  <PersonalRecords records={p.personalRecords} />
+                  <PersonalRecords records={p.personalRecords} aegis={p.aegis ?? null} />
                 </>
               )}
-
-              <AegisStats stats={p.aegisStats} />
             </section>
 
             {/* La lista de partidas, en la columna de la derecha y a lo alto:
@@ -476,6 +481,13 @@ export function PlayerProfile({
                                     sola: son 70px que en 390 no sobran. */}
                                 <span className="review-badge-txt">Para repasar</span>
                               </span>
+                            )}
+                            {/* La señal de Aegis va acá, al lado del nombre
+                                del campeón y de la chapa de repasar: es una
+                                propiedad DE ESTA PARTIDA, no una estadística
+                                del jugador. Ver components/AegisSenal.tsx. */}
+                            {m.matchId && aegisPorPartida.has(m.matchId) && (
+                              <AegisSenal d={aegisPorPartida.get(m.matchId)!} />
                             )}
                             {/* Mismo truco que la chapa de repasar: en 390 la
                                 palabra entera se comía 55 de los ~98px de la

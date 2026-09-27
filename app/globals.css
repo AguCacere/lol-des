@@ -1144,29 +1144,39 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .radar-row-peer.down{color:var(--critical);}
 .radar-row-peer.flat{color:var(--text-muted);}
 
-/* "Aegis of Valor" es una INFERENCIA (ver lib/aegis.ts), y al lado conviven
-   hechos: el LP, el récord, el winrate. Eran dos chapas con borde bajo un
-   rótulo igual al del resto, o sea el mismo peso visual que un dato real.
-   Ahora la palabra "inferido" va pegada al título y el cuerpo es una frase
-   apagada, sin cajas — el número está, nada lo disfraza de medición. */
-/* Sin el dorado de .subsection-label y sin su línea: era el rótulo MÁS
-   fuerte de toda la columna, y lo que cuelga de él es lo único que no es un
-   hecho. Mismo peso que los demás títulos del Resumen, un punto más apagado. */
-.aegis{margin-top:24px;}
-.aegis-label{
-  display:flex; align-items:center; gap:6px; margin:0 0 7px;
-  font-family:var(--font-body); font-size:10.5px; font-weight:700;
-  text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted);
+/* ── La señal de Aegis (components/AegisSenal.tsx) ───────────────────────
+   Aegis dejó de ser un bloque suelto del Resumen que decía "3 posibles doble
+   LP" —un número que no se podía ir a mirar— y pasó a ser una propiedad de
+   UNA PARTIDA, que es lo que es. Va como chapa en el renglón de esa partida
+   y como escudito en el gráfico, y en ningún lado como sección propia.
+
+   La chapa lleva la clase `info-tip` además de la suya: así hereda el globo,
+   el hover, el foco con teclado y el toque en el teléfono sin duplicar nada.
+   El selector compuesto le gana en especificidad a las medidas del ⓘ sin
+   depender del orden en la hoja. */
+.aegis-sen.info-tip{
+  width:auto; height:auto; margin-left:0; flex:none;
+  display:inline-flex; align-items:center; gap:4px;
+  padding:2px 7px; border-radius:999px; cursor:help;
+  font-size:10px; font-weight:700; letter-spacing:0.02em; white-space:nowrap;
+  /* Posible va en gris y detectado en dorado. El dorado es el color de lo
+     destacado en toda la app, y reservarlo para la confianza alta es lo que
+     hace que las dos se distingan sin leer la palabra. */
+  color:var(--text-muted); background:var(--surface-hover);
 }
-.aegis-chapa{
-  font-style:normal; font-size:8.5px; font-weight:700; letter-spacing:0.08em;
-  text-transform:uppercase; color:var(--warn); background:var(--warn-wash);
-  border-radius:999px; padding:2px 7px; margin-left:2px; flex:none;
-}
-.aegis-txt{
-  margin:0; font-size:11.5px; line-height:1.55; color:var(--text-muted); max-width:58ch;
-}
-.aegis-txt b{font-weight:700; color:var(--text-secondary);}
+.aegis-sen.alta.info-tip{color:var(--accent); background:var(--accent-wash);}
+.aegis-sen.info-tip:hover, .aegis-sen.info-tip:focus-visible{color:var(--accent);}
+/* `.aegis-sen.info-tip svg` y no `.aegis-sen svg`: la regla del ⓘ es
+   `.info-tip svg{width:100%}`, misma especificidad, y vive MÁS ABAJO en la
+   hoja, así que ganaba por orden. Medido: el escudo se estiraba al ancho del
+   padre, el padre crecía con él y la chapa terminaba midiendo 347px en una
+   pantalla de 390, desbordando la fila entera. */
+.aegis-sen.info-tip svg{width:11px; height:11px; flex:none;}
+.aegis-sen b{font-weight:700;}
+/* El globo se queda con los 230px de .info-tip-bubble: medido, el texto
+   entra en 157px de alto y ensancharlo no ayuda —en un teléfono lo recorta
+   igual el max-width de 60vw—. Lo único propio es el título en su renglón. */
+.aegis-globo b{display:block; color:var(--text-primary); margin-bottom:3px;}
 /* One panel with thin dividers — five identical rows each in their own
    separately-shadowed card read as a stack of form fields, not a ranked
    list. */
@@ -1569,6 +1579,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
      "Nunu y Willump" entra al lado de la chapa de repasar. */
   .match-top-line{gap:6px;}
   .review-badge{padding:3px 3px;}
+  /* Y la de Aegis igual: el escudo solo. La explicación entera sigue
+     estando en el globo, que se abre con un toque. */
+  .aegis-sen-txt{display:none;}
+  .aegis-sen.info-tip{padding:3px 5px;}
 }
 /* No wrap: this line packs 5 stats (duración/CS/daño/KP) and a real
    champion name easily runs it past the available width in the profile's
@@ -6304,6 +6318,18 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   background:var(--surface-hover); color:var(--text-secondary);
   font-size:8px; font-weight:700;
 }
+/* El escudo en el gráfico: chico, arriba del punto y sin relleno fuerte. Es
+   una marca, no un dato más — el detalle vive en la chapa de la partida. */
+.prog-aegis{stroke-width:1; fill:none;}
+.prog-aegis.possible{stroke:var(--text-muted); opacity:0.8;}
+.prog-aegis.high{stroke:var(--accent); fill:var(--accent-wash);}
+.prog-panel-aegis{
+  display:flex; align-items:center; gap:5px;
+  font-size:10.5px; font-weight:700; color:var(--text-muted);
+}
+.prog-panel-aegis.high{color:var(--accent);}
+.prog-panel-aegis svg{width:11px; height:11px; flex:none;}
+.prog-panel-aegis i{font-style:normal; font-weight:500; color:var(--text-muted); margin-left:auto;}
 .prog-panel-tramo{
   font-size:10.5px; color:var(--text-secondary); font-variant-numeric:tabular-nums;
   padding-top:4px; border-top:1px solid var(--border-soft);
@@ -6522,7 +6548,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-family:var(--font-stat); font-size:14.5px; font-weight:800;
   font-variant-numeric:tabular-nums; letter-spacing:-0.01em;
 }
-.recs-k{font-size:11px; color:var(--text-muted); white-space:nowrap;}
+.recs-k{font-size:11px; color:var(--text-muted); white-space:nowrap; display:inline-flex; align-items:center;}
+/* El único de la tira que no es un hecho sino una inferencia (ver
+   lib/aegis.ts). No lleva caja ni color propio —sería darle MÁS peso que a
+   los récords de verdad— pero sí su ⓘ, que es donde se dice que se estima. */
+.recs-aegis .recs-icono{color:var(--accent); opacity:0.85;}
 
 /* ── "Campeones", pivoteado por campeón ──────────────────────────────────
    Un selector arriba y todo lo del elegido abajo. Apilar los cinco con sus
