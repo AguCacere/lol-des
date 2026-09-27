@@ -41,12 +41,13 @@ const PAD_Y = 14;
 const MINIMO_PUNTOS = 3;
 
 /**
- * Lo que mide un rótulo de hito en píxeles. Medido en el navegador y no
- * estimado: "▼ Descenso · Diamante 2" da 137, y se deja un poco de aire para
- * el nombre de tier más largo ("Esmeralda") y para que dos rótulos vecinos no
- * queden pegados. Es lo que decide cuántos entran sin pisarse.
+ * Lo que mide cada tipo de rótulo en píxeles. Medidos en el navegador y no
+ * estimados: "▼ Descenso · Diamante 2" da 137 y "▲ E3" da 26, con un poco de
+ * aire para el nombre de tier más largo y para que dos vecinos no queden
+ * pegados. Es lo que decide cuántos entran sin pisarse.
  */
-const ANCHO_ET = 152;
+const ANCHO_TIER = 152;
+const ANCHO_DIV = 40;
 
 const rangoTxt = (t: { tier: PuntoProgresion["tier"]; division: number; lp: number }) =>
   `${tierFor(t.tier).name} ${t.division} · ${t.lp} LP`;
@@ -118,58 +119,72 @@ export function ProgresionLP({ p, ddragonVersion }: { p: Progresion | undefined;
   const activo = hover !== null ? p.puntos[hover] : null;
 
   /**
-   * Los hitos, repartidos en dos filas —los ascensos arriba, los descensos
-   * abajo— y salteando el rótulo que se pisaría con el anterior de SU fila.
+   * Qué hito lleva cartel y cuál no, en dos pasadas y con dos reglas.
    *
-   * Las dos cosas salen del mismo problema, que se ve apenas alguien rebota
-   * en la línea de ascenso: cinco cruces seguidos daban cinco carteles
-   * encimados que además se leían como una lista sin sentido (Diamante 1,
-   * Diamante 2, Diamante 1, Diamante 2…). El corte vertical queda SIEMPRE
-   * —es el dato— y lo que se saltea es el cartel; esa partida sigue contando
-   * su historia al pasarle por encima.
+   * 1. **Los cambios de TIER primero.** Pasar de Platino a Esmeralda es la
+   *    noticia del gráfico; moverse de Esmeralda 4 a Esmeralda 3 es un
+   *    movimiento. Si no entran los dos, gana el tier — y el de división se
+   *    escribe chiquito, "▲ E3", en vez de con el nombre entero. Con siete
+   *    carteles del mismo peso, las anotaciones le compiten a la curva.
+   * 2. **Dentro de cada pasada, del más nuevo al más viejo.** El gráfico
+   *    cuenta cómo llegó hasta acá, así que el ascenso de anoche importa
+   *    más que uno de hace dos semanas. De izquierda a derecha se perdían
+   *    justo los dos últimos.
+   *
+   * Los ascensos van arriba del dibujo y los descensos abajo, y cada fila
+   * lleva su propia lista de lo ocupado. El corte vertical se dibuja
+   * SIEMPRE: lo que se saltea es el cartel, y esa partida sigue contando su
+   * historia al pasarle por encima.
    */
-  // El ancho del rótulo, pasado a unidades del viewBox: el rótulo mide
-  // siempre lo mismo en píxeles y el viewBox se estira, así que la
-  // equivalencia depende del ancho real. Sin medir (primer render, SSR) no se
-  // dibuja ninguno: mejor que aparezcan un frame después a que aparezcan
-  // encimados y se acomoden.
-  const et = ancho > 0 ? (ANCHO_ET / ancho) * W : Infinity;
-  // Contra el borde el rótulo no se centra sino que se apoya en su lado, y
-  // eso corre su caja: la separación se calcula sobre el ESPACIO QUE OCUPA,
-  // no sobre la distancia entre puntos. Con la distancia sola, los dos
-  // últimos ascensos se pisaban 22px (medido a 1440).
+  // Los anchos, pasados a unidades del viewBox: el rótulo mide siempre lo
+  // mismo en píxeles y el viewBox se estira, así que la equivalencia depende
+  // del ancho real. Sin medir (primer render, SSR) no se dibuja ninguno:
+  // mejor que aparezcan un frame después a que aparezcan encimados y se
+  // acomoden.
+  const anchoEt = (deTier: boolean) =>
+    ancho > 0 ? ((deTier ? ANCHO_TIER : ANCHO_DIV) / ancho) * W : Infinity;
   // Centrado salvo que centrado no entre. El corte es por el ANCHO REAL del
   // rótulo y no por un porcentaje fijo del gráfico: a 1440 un 15% son 185px
-  // y el rótulo mide 137, así que con un porcentaje se apoyaban contra el
-  // borde rótulos a los que les sobraba lugar para ir centrados.
-  const anclaDe = (x: number): "izq" | "centro" | "der" =>
+  // y el rótulo de tier mide 137, así que con un porcentaje se apoyaban
+  // contra el borde rótulos a los que les sobraba lugar para ir centrados.
+  const anclaDe = (x: number, et: number): "izq" | "centro" | "der" =>
     x - et / 2 < 0 ? "izq" : x + et / 2 > W ? "der" : "centro";
-  const cajaDe = (x: number): [number, number] => {
-    const a = anclaDe(x);
+  // Y la separación se mide sobre el ESPACIO QUE OCUPA el cartel, no sobre la
+  // distancia entre puntos: contra el borde se apoya en su lado en vez de
+  // centrarse, y eso corre su caja. Con la distancia sola, los dos últimos
+  // ascensos se pisaban 22px (medido a 1440).
+  const cajaDe = (x: number, et: number): [number, number] => {
+    const a = anclaDe(x, et);
     return a === "izq" ? [x, x + et] : a === "der" ? [x - et, x] : [x - et / 2, x + et / 2];
   };
-  // Y se recorre DE ATRÁS PARA ADELANTE, o sea del hito más nuevo al más
-  // viejo. Es lo que decide cuál sobrevive cuando dos no entran: el gráfico
-  // cuenta cómo llegó hasta acá, así que el ascenso de anoche importa más
-  // que uno de hace dos semanas. De izquierda a derecha se perdían justo los
-  // dos últimos.
-  const ocupado = { ascenso: Infinity, descenso: Infinity };
-  const hitos: {
-    q: PuntoProgresion;
-    x: number;
-    fila: "ascenso" | "descenso";
-    ancla: "izq" | "centro" | "der";
-    rotulo: boolean;
-  }[] = [];
-  for (let i = p.puntos.length - 1; i >= 0; i--) {
+
+  const marcas: { q: PuntoProgresion; x: number; fila: "ascenso" | "descenso"; deTier: boolean }[] = [];
+  for (let i = 0; i < p.puntos.length; i++) {
     const q = p.puntos[i];
     if (q.hito === null) continue;
-    const x = xDe(i);
-    const [izq, der] = cajaDe(x);
-    const rotulo = der <= ocupado[q.hito];
-    if (rotulo) ocupado[q.hito] = izq;
-    hitos.push({ q, x, fila: q.hito, ancla: anclaDe(x), rotulo });
+    marcas.push({ q, x: xDe(i), fila: q.hito.dir, deTier: q.hito.deTier });
   }
+
+  const ocupado: Record<"ascenso" | "descenso", [number, number][]> = { ascenso: [], descenso: [] };
+  const puestos = new Set<string>();
+  const anclas = new Map<string, "izq" | "centro" | "der">();
+  for (const pasada of [true, false]) {
+    for (let k = marcas.length - 1; k >= 0; k--) {
+      const m = marcas[k];
+      if (m.deTier !== pasada) continue;
+      const et = anchoEt(m.deTier);
+      const caja = cajaDe(m.x, et);
+      if (!ocupado[m.fila].every(([c, d]) => caja[1] <= c || caja[0] >= d)) continue;
+      ocupado[m.fila].push(caja);
+      puestos.add(m.q.matchId);
+      anclas.set(m.q.matchId, anclaDe(m.x, et));
+    }
+  }
+  const hitos = marcas.map((m) => ({
+    ...m,
+    ancla: anclas.get(m.q.matchId) ?? ("centro" as const),
+    rotulo: puestos.has(m.q.matchId),
+  }));
 
   return (
     <div className="prog">
@@ -212,7 +227,7 @@ export function ProgresionLP({ p, ddragonVersion }: { p: Progresion | undefined;
               y1={0}
               x2={h.x}
               y2={H}
-              className={`prog-hito ${h.fila}`}
+              className={`prog-hito ${h.fila}${h.deTier ? " de-tier" : ""}`}
               vectorEffect="non-scaling-stroke"
             />
           ))}
@@ -285,7 +300,7 @@ export function ProgresionLP({ p, ddragonVersion }: { p: Progresion | undefined;
               /* La clase del ancla lleva además la marquita que baja hasta el
                  dibujo: sin ella un rótulo apoyado contra el borde derecho
                  parece estar señalando el punto que tiene debajo, que es otro. */
-              className={`prog-hito-et ${h.fila} ${h.ancla}`}
+              className={`prog-hito-et ${h.fila} ${h.ancla}${h.deTier ? " de-tier" : ""}`}
               style={{
                 left: `${(h.x / W) * 100}%`,
                 // Contra el borde el rótulo centrado se sale de la caja: ahí
@@ -294,12 +309,25 @@ export function ProgresionLP({ p, ddragonVersion }: { p: Progresion | undefined;
                   h.ancla === "izq" ? "none" : h.ancla === "der" ? "translateX(-100%)" : "translateX(-50%)",
               }}
             >
-              <b>
-                {h.fila === "ascenso" ? "▲" : "▼"} {h.fila === "ascenso" ? "Ascenso" : "Descenso"}
-              </b>
-              <i style={{ color: tierFor(h.q.tier).fg }}>
-                {tierFor(h.q.tier).name} {h.q.division}
-              </i>
+              {h.deTier ? (
+                <>
+                  <b>
+                    {h.fila === "ascenso" ? "▲" : "▼"} {h.fila === "ascenso" ? "Ascenso" : "Descenso"}
+                  </b>
+                  <i style={{ color: tierFor(h.q.tier).fg }}>
+                    {tierFor(h.q.tier).name} {h.q.division}
+                  </i>
+                </>
+              ) : (
+                /* El movimiento de división, en chiquito: la flecha y el
+                   rango en dos letras. El tier no hace falta escribirlo
+                   —no cambió— y con el nombre entero eran siete carteles
+                   del mismo peso peleándole a la curva. */
+                <b title={`${tierFor(h.q.tier).name} ${h.q.division}`}>
+                  {h.fila === "ascenso" ? "▲" : "▼"} {tierFor(h.q.tier).corto}
+                  {h.q.division}
+                </b>
+              )}
             </span>
           ))}
 

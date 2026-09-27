@@ -20,14 +20,49 @@ import { tonoDeWinrate, winrateTexto } from "@/lib/winrate";
  * Ahora es una tabla: línea, partidas, winrate y KDA. Sin barras, mucho más
  * baja, y las muestras chicas van marcadas — que es lo que la barra hacía al
  * revés.
+ *
+ * Dos reglas más de qué entra: una línea con menos de `FILA_MINIMA` partidas
+ * no se dibuja (salvo que sea la principal), y si al final queda una sola se
+ * escribe en un renglón en vez de armar una tabla de una fila.
  */
 
 /** Abajo de esto, el winrate no significa nada y la fila lo dice. */
 const MUESTRA_MINIMA = 5;
 
+/**
+ * Y abajo de esto la línea directamente no entra. Una o dos partidas sueltas
+ * en una línea que no juega no son "cómo le va en esa línea": son ruido con
+ * formato de fila, y encima empujan a la de verdad hacia abajo. La principal
+ * entra siempre, aunque tenga dos.
+ */
+const FILA_MINIMA = 3;
+
 export function LineHistory({ h }: { h: HistorialLineas }) {
-  const jugadas = h.lineas.filter((l) => l.games > 0);
+  const jugadas = h.lineas.filter((l) => l.games >= FILA_MINIMA || (l.role === h.principal && l.games > 0));
   if (jugadas.length === 0) return null;
+
+  // Una sola línea no es una tabla: son un encabezado y una fila para decir
+  // algo que entra en un renglón. Pasa seguido —un support que solo juega
+  // support— y con la tabla la sección prometía más de lo que entregaba.
+  if (jugadas.length === 1) {
+    const l = jugadas[0];
+    return (
+      <div className="lineas">
+        <p className="lineas-unica">
+          <span className="lineas-rol" title={ROLES[l.role].label}>
+            <RoleIcon role={l.role} />
+          </span>
+          <b>{ROLES[l.role].label}</b> en las {l.games} partidas guardadas, sin otra línea que llegue a{" "}
+          {FILA_MINIMA} partidas.{" "}
+          <span className={`lineas-wr ${l.games < MUESTRA_MINIMA ? "poca" : tonoDeWinrate(l.wins, l.games)}`}>
+            {winrateTexto(l.wins, l.games)}
+          </span>{" "}
+          y <b className="lineas-kda">{l.kda === null ? "—" : l.kda.toFixed(2)}</b> de KDA.
+        </p>
+        {h.loSacanDeSuLinea && <Aviso h={h} />}
+      </div>
+    );
+  }
 
   return (
     <div className="lineas">
@@ -62,15 +97,21 @@ export function LineHistory({ h }: { h: HistorialLineas }) {
         );
       })}
 
-      {/* Lo único que la tabla NO dice: que lo están sacando de su línea. El
-          "de mid gana el 62,5%; fuera de ahí el 57,1%" se fue — eso ya se lee
-          en las dos primeras filas. */}
-      {h.loSacanDeSuLinea && (
-        <p className="lineas-aviso">
-          Lo están sacando seguido de su línea: {h.recientesFuera} de las últimas {h.recientes} fueron en otra.
-          <InfoTip text="Riot no dice qué línea pediste en la cola, así que esto no es el autofill de verdad: es que la mayoría de su historial es una línea y últimamente está jugando bastante en otras. Puede ser autofill o puede ser que haya cambiado de main." />
-        </p>
-      )}
+      {h.loSacanDeSuLinea && <Aviso h={h} />}
     </div>
+  );
+}
+
+/**
+ * Lo único que la tabla NO dice: que lo están sacando de su línea. El "de mid
+ * gana el 62,5%; fuera de ahí el 57,1%" se fue — eso ya se lee en las dos
+ * primeras filas.
+ */
+function Aviso({ h }: { h: HistorialLineas }) {
+  return (
+    <p className="lineas-aviso">
+      Lo están sacando seguido de su línea: {h.recientesFuera} de las últimas {h.recientes} fueron en otra.
+      <InfoTip text="Riot no dice qué línea pediste en la cola, así que esto no es el autofill de verdad: es que la mayoría de su historial es una línea y últimamente está jugando bastante en otras. Puede ser autofill o puede ser que haya cambiado de main." />
+    </p>
   );
 }

@@ -18,14 +18,14 @@ export const ROLES: Record<RoleKey, { label: string }> = {
 };
 
 export const TIERS: Tier[] = [
-  { name: "Hierro", key: "iron", fg: "#a99f95", bg: "rgba(169,159,149,0.14)", rank: 0 },
-  { name: "Bronce", key: "bronze", fg: "#c98a5c", bg: "rgba(201,138,92,0.14)", rank: 1 },
-  { name: "Plata", key: "silver", fg: "#c3ccd6", bg: "rgba(195,204,214,0.14)", rank: 2 },
-  { name: "Oro", key: "gold", fg: "#F5B942", bg: "rgba(245,185,66,0.14)", rank: 3 },
-  { name: "Platino", key: "platinum", fg: "#14B8A6", bg: "rgba(20,184,166,0.14)", rank: 4 },
-  { name: "Esmeralda", key: "emerald", fg: "#10B981", bg: "rgba(16,185,129,0.14)", rank: 5 },
-  { name: "Diamante", key: "diamond", fg: "#7aa8ff", bg: "rgba(122,168,255,0.14)", rank: 6 },
-  { name: "Maestro", key: "master", fg: "#c98aff", bg: "rgba(201,138,255,0.14)", rank: 7 },
+  { name: "Hierro", corto: "H", key: "iron", fg: "#a99f95", bg: "rgba(169,159,149,0.14)", rank: 0 },
+  { name: "Bronce", corto: "B", key: "bronze", fg: "#c98a5c", bg: "rgba(201,138,92,0.14)", rank: 1 },
+  { name: "Plata", corto: "PA", key: "silver", fg: "#c3ccd6", bg: "rgba(195,204,214,0.14)", rank: 2 },
+  { name: "Oro", corto: "O", key: "gold", fg: "#F5B942", bg: "rgba(245,185,66,0.14)", rank: 3 },
+  { name: "Platino", corto: "PL", key: "platinum", fg: "#14B8A6", bg: "rgba(20,184,166,0.14)", rank: 4 },
+  { name: "Esmeralda", corto: "E", key: "emerald", fg: "#10B981", bg: "rgba(16,185,129,0.14)", rank: 5 },
+  { name: "Diamante", corto: "D", key: "diamond", fg: "#7aa8ff", bg: "rgba(122,168,255,0.14)", rank: 6 },
+  { name: "Maestro", corto: "M", key: "master", fg: "#c98aff", bg: "rgba(201,138,255,0.14)", rank: 7 },
 ];
 
 export function tierFor(key: TierKey): Tier {

@@ -93,22 +93,26 @@ export function leerElPerfil(radar: RadarProfile | null): Lectura | null {
 }
 
 /**
- * La frase del foco: qué significa estar abajo en ESA métrica, dicho en una
- * línea y sin inventar una causa.
+ * La frase del foco: QUÉ MIDE esa métrica, dicho en una línea.
  *
  * Es un diccionario y no un modelo a propósito. Un texto generado podría
  * decir "te falta visión porque jugás muy agresivo", que es una causa que
- * nadie midió. Estas frases dicen QUÉ mide la métrica y nada más; el "por
- * qué" lo pone la persona, que es la que jugó las partidas.
+ * nadie midió.
+ *
+ * Y dicen qué mide y nada más: ni la causa ni qué hacer al respecto. La
+ * primera versión se pasaba de largo en dos —"es la que más se entrena sola,
+ * en práctica", "no pide mecánica, pide estar ahí cuando pasan"— y eso ya no
+ * es explicar una métrica, es dar un consejo que nadie pidió y que ningún
+ * número de acá sostiene. Lo único que sí es descripción de la métrica y se
+ * queda es cómo está construida (que el KDA es una división, que el daño
+ * depende del campeón): eso es aritmética, no coaching.
  */
 export const QUE_SIGNIFICA: Record<RadarMetric, string> = {
-  kda: "Es la relación entre lo que aportás y lo que regalás. Bajar muertes la mueve más rápido que subir kills.",
-  killParticipation:
-    "Es en cuántas de las kills de tu equipo estuviste. Abajo del promedio suele querer decir que peleás en otro lado del mapa.",
-  dmgShare: "Es qué parte del daño del equipo ponés vos. Depende mucho del campeón, no solo de cómo jugás.",
-  objShare:
-    "Es cuánto aparecés en dragones, heraldos, barones y torres. Es la que más se corrige sola: no pide mecánica, pide estar ahí cuando pasan.",
+  kda: "Es la relación entre lo que aportás y lo que regalás. Como es una división, las muertes la mueven más que las kills.",
+  killParticipation: "Es en cuántas de las kills de tu equipo estuviste, matando o asistiendo.",
+  dmgShare: "Es qué parte del daño del equipo ponés vos. Depende bastante del campeón, no solo de cómo jugás.",
+  objShare: "Es en cuántos dragones, heraldos, barones y torres del equipo estuviste.",
   goldPerMin: "Es cuánto oro generás por minuto, entre farmeo y peleas.",
-  csPerMin: "Es cuántos súbditos rematás por minuto. Es la que más se entrena sola, en práctica.",
-  visionPerMin: "Es cuánta visión ponés y sacás por minuto. Es barata: casi toda sale de comprar los guardianes.",
+  csPerMin: "Es cuántos súbditos rematás por minuto.",
+  visionPerMin: "Es cuántos guardianes ponés y sacás por minuto.",
 };

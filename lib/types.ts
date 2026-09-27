@@ -20,6 +20,12 @@ export type TierKey =
 
 export interface Tier {
   name: string;
+  /**
+   * La abreviatura de una o dos letras, para donde no entra el nombre (el
+   * rótulo chico de los cambios de división en la progresión de LP). Dos
+   * letras en Plata y Platino a propósito: con una sola las dos son "P".
+   */
+  corto: string;
   key: TierKey;
   fg: string;
   bg: string;

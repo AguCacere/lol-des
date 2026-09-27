@@ -412,8 +412,12 @@ export function PlayerProfile({
 
               {p.lineas && (
                 <>
+                  {/* "Sus líneas" y no "Cómo está jugando": el título tiene
+                      que prometer lo que hay abajo. Con un support que solo
+                      juega support, "cómo está jugando" anuncia una lectura
+                      y entrega una fila. */}
                   <h4 className="resumen-titulo con-aire">
-                    Cómo está jugando
+                    Sus líneas
                     <InfoTip text="Sale de la posición REAL que Riot le asignó en cada partida guardada, no del rol que figura arriba." />
                   </h4>
                   <LineHistory h={p.lineas} />

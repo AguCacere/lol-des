@@ -388,12 +388,17 @@ pestañas.
     - *Su momento*, a todo el ancho: `ProgresionLP`, una partida por punto
       (segmentos rectos, no curva: lo que se sabe son estados, uno por
       partida), con el detalle de cada una al pasar por encima y los cambios
-      de división como eventos con nombre —"▲ Ascenso · Diamante 1"— que se
-      reparten en dos filas y se saltean cuando se pisarían.
+      de rango como eventos con nombre. En dos pesos: el cambio de TIER va
+      con todas las letras ("▲ Ascenso · Esmeralda 4") y el de división en
+      dos caracteres ("▲ E3"); se reparten en dos filas —ascensos arriba,
+      descensos abajo— y se saltean cuando se pisarían, primero los de tier
+      y después los de división, del más nuevo al más viejo.
     - A la izquierda, la lectura: `ProfileLectura` (dónde está destacando y su
-      foco, salido de `lectura.ts`), `LineHistory` (cómo está jugando cada línea,
-      sin barras y con las muestras chicas marcadas), `PersonalRecords` (una sola
-      tira) y `AegisStats`.
+      foco, salido de `lectura.ts`), `LineHistory` ("Sus líneas": sin barras,
+      las muestras chicas marcadas, las de menos de tres partidas fuera y un
+      solo renglón cuando queda una sola línea), `PersonalRecords` (una sola
+      tira) y `AegisStats`, que es lo único de la pantalla que NO es un hecho
+      y por eso va marcado como inferido.
     - A la derecha, lo reciente: `RecentForm` (solo las métricas que se movieron,
       cuatro como mucho) y la lista de partidas con `MatchDetail` (que a su vez
       abre `MatchTimeline`).

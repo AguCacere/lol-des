@@ -65,8 +65,15 @@ export interface PuntoProgresion {
   tier: TierKey;
   division: number;
   lpDespues: number;
-  /** Si en esta partida cruzó de división o de tier. Null si no se movió de rango. */
-  hito: "ascenso" | "descenso" | null;
+  /**
+   * Si en esta partida se movió de rango. Null en el caso normal.
+   *
+   * `deTier` separa los dos tamaños de noticia: pasar de Platino a Esmeralda
+   * es un hito de verdad, moverse de Esmeralda 4 a Esmeralda 3 es un
+   * movimiento. El gráfico los dibuja con pesos distintos — con siete
+   * carteles iguales, las anotaciones compiten con la curva.
+   */
+  hito: { dir: "ascenso" | "descenso"; deTier: boolean } | null;
 }
 
 export interface Progresion {
@@ -147,7 +154,8 @@ export function progresionPorPartida(
     const antes = fotos[i - 1];
     const despues = fotos[i];
     const m = lista[0];
-    const cruzo = antes.tier !== despues.tier || antes.division !== despues.division;
+    const cruzoTier = antes.tier !== despues.tier;
+    const cruzo = cruzoTier || antes.division !== despues.division;
     const delta = score(despues) - score(antes);
     puntos.push({
       matchId: m.matchId,
@@ -164,7 +172,7 @@ export function progresionPorPartida(
       tier: despues.tier,
       division: despues.division,
       lpDespues: despues.lp,
-      hito: cruzo ? (delta > 0 ? "ascenso" : "descenso") : null,
+      hito: cruzo ? { dir: delta > 0 ? "ascenso" : "descenso", deTier: cruzoTier } : null,
     });
   }
 

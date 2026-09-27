@@ -3553,3 +3553,77 @@ faltaba **cuándo**. Ahora arranca con "7 sept · 21:00", con la hora porque con
 cinco partidas del mismo día la fecha sola no ubica ninguna. Y se ensanchó a
 244px: con la fecha adentro, el tramo "Diamante 2 · 97 LP → Diamante 1 · 21 LP"
 se partía en dos renglones (medido).
+
+## El pulido del Resumen: dos pesos, menos tarjeta, y la inferencia marcada
+
+Cinco cosas chicas, todas del mismo tipo: nada que agregar, cosas que bajar de
+volumen.
+
+### El gráfico: cambio de TIER y cambio de división no son la misma noticia
+
+Con la primera versión de los hitos como eventos aparecieron siete carteles
+del mismo peso y las anotaciones le empezaron a competir a la curva. Son dos
+cosas distintas y ahora se dibujan distinto:
+
+- **Cambio de tier** (Platino → Esmeralda): `▲ Ascenso · Esmeralda 4`, con el
+  corte vertical a plena opacidad. Es la noticia del gráfico.
+- **Cambio de división** (Esmeralda 4 → Esmeralda 3): `▲ E3`, apagado, y el
+  corte más tenue. El tier no hace falta escribirlo porque no cambió.
+
+La abreviatura sale de `Tier.corto`, nuevo en `lib/ladder.ts`. Plata y Platino
+llevan dos letras ("PA" y "PL") porque con una sola las dos son "P".
+
+La colocación pasó a **dos pasadas**: primero los de tier y después los de
+división, cada una del más nuevo al más viejo. Así, cuando no entran los dos,
+gana el tier; y dentro de cada tipo, gana el más reciente. Cada fila —ascensos
+arriba, descensos abajo— lleva su lista de intervalos ocupados en vez de un
+solo "hasta dónde llegué", que es lo que hace falta cuando los carteles
+grandes ya están puestos y los chicos buscan hueco entre ellos.
+
+Y el dorado de la línea bajó a 0,72 de opacidad: los puntos, los cortes y los
+carteles ya llevan toda la información competitiva; la línea es lo que los
+une.
+
+### "Cómo está jugando" prometía más de lo que daba
+
+Con un support que solo juega support, el título anunciaba una lectura y
+entregaba una fila. Ahora se llama **"Sus líneas"**, que es lo que hay, y el
+bloque tiene dos reglas nuevas:
+
+- Una línea con menos de **3 partidas** no se dibuja (la principal siempre
+  entra, aunque tenga dos). Dos partidas sueltas en una línea que no juega no
+  son "cómo le va ahí": son ruido con formato de fila.
+- Y si al final queda **una sola**, se escribe en un renglón —"Support en las
+  103 partidas guardadas, sin otra línea que llegue a 3 partidas. 55,3% y 3,36
+  de KDA"— en vez de armar una tabla con encabezado para una fila.
+
+### Las partidas eran lo único con forma de tarjeta
+
+Cinco tarjetas con fondo, redondeo y sombra al lado de una columna hecha de
+texto, datos y líneas finas: la derecha se leía como un widget pegado y la
+izquierda como la app. Las filas quedaron **planas** —sin fondo ni redondeo,
+separadas por una línea de 1px— y lo único que sobrevive de la tarjeta es la
+franja del resultado, que es el dato. El fondo aparece al pasar por encima y
+cuando la fila está abierta, que es cuando sí hay una superficie.
+
+### Aegis of Valor era la etiqueta más fuerte de la columna
+
+`.aegis-label` compartía regla con `.subsection-label`: dorado, con línea al
+costado. O sea que lo único de la pantalla que **no es un hecho** tenía el
+rótulo más llamativo, al lado de "+143 LP" y "55,3%", que salen de la base.
+
+Ahora el título va al mismo peso que los demás del Resumen, con la palabra
+**INFERIDO** al lado y el cuerpo como una frase apagada sin cajas. El número
+sigue estando; nada lo disfraza de medición. El ⓘ dice cómo se estima y que
+puede haber falsos positivos.
+
+### El diccionario del foco se estaba pasando a coaching
+
+Dos frases de `QUE_SIGNIFICA` habían cruzado la línea que el archivo mismo se
+pone: "es la que más se entrena sola, en práctica" y "no pide mecánica, pide
+estar ahí cuando pasan". Eso ya no es explicar una métrica, es un consejo que
+ningún número de acá sostiene. Las frases dicen **qué mide** y nada más.
+
+Lo que sí se queda es cómo está construida la métrica —que el KDA es una
+división, que el % de daño depende del campeón—: eso es aritmética, no
+coaching.
