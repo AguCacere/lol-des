@@ -13,8 +13,12 @@ import { InfoTip } from "./InfoTip";
  * del síndrome de meter cada dato en su caja: no hay nada que un rectángulo
  * aporte a "43 min" que no aporten el número y su rótulo al lado.
  *
- * Ahora es una sola tira. Cada récord sigue con su ícono —que es lo que los
- * hace distinguibles de un vistazo— y en el teléfono la tira envuelve sola.
+ * Después fue una sola tira, y eso arregló el alto pero trajo otra cosa: el
+ * ícono, el número y el rótulo tenían pesos y separaciones distintas según lo
+ * largo que fuera cada uno, así que la tira se leía como cosas flotando. Ahora
+ * es una **grilla**: todas las celdas con la misma anatomía —ícono y número
+ * arriba, rótulo abajo— y alineadas en columnas. Sin cajas: lo que las agrupa
+ * es la grilla, no un rectángulo alrededor de cada una.
  *
  * El contador de Aegis va acá y no en una sección propia, por dos razones. La
  * primera es que encaja: un Aegis ES el LP más extremo de una partida, que es
@@ -31,30 +35,34 @@ export function PersonalRecords({ records, aegis }: { records: PersonalRecordsDa
   const detecciones = aegis?.detections ?? [];
   const altas = detecciones.filter((d) => d.confidence === "high").length;
   const items = [
-    { icono: <TrendUpIcon />, v: String(records.longestWinStreak), k: "racha" },
+    { icono: <TrendUpIcon />, v: String(records.longestWinStreak), k: "Racha" },
     { icono: <TrophyIcon />, v: records.bestKda.toFixed(2), k: `KDA · ${championLabel(records.bestKdaChamp)}` },
-    { icono: <ClockIcon />, v: `${records.longestGameMin} min`, k: "más larga" },
-    { icono: <TargetIcon />, v: String(records.mostKillsSingleGame), k: "kills" },
-    { icono: <ZapIcon />, v: records.mostDamageSingleGame.toLocaleString("es-AR"), k: "daño" },
+    { icono: <ClockIcon />, v: `${records.longestGameMin} min`, k: "La más larga" },
+    { icono: <TargetIcon />, v: String(records.mostKillsSingleGame), k: "Kills" },
+    { icono: <ZapIcon />, v: records.mostDamageSingleGame.toLocaleString("es-AR"), k: "Daño" },
     { icono: <CoinIcon />, v: String(records.mostCsSingleGame), k: "CS" },
   ];
   return (
     <ul className="recs">
       {items.map((it) => (
         <li className="recs-item" key={it.k}>
-          <span className="recs-icono" aria-hidden>{it.icono}</span>
-          <b className="recs-v">{it.v}</b>
+          <span className="recs-cifra">
+            <span className="recs-icono" aria-hidden>{it.icono}</span>
+            <b className="recs-v">{it.v}</b>
+          </span>
           <span className="recs-k">{it.k}</span>
         </li>
       ))}
       {detecciones.length > 0 && (
         <li className="recs-item recs-aegis">
-          <span className="recs-icono" aria-hidden>
-            <ShieldIcon />
+          <span className="recs-cifra">
+            <span className="recs-icono" aria-hidden>
+              <ShieldIcon />
+            </span>
+            <b className="recs-v">{detecciones.length}</b>
           </span>
-          <b className="recs-v">{detecciones.length}</b>
           <span className="recs-k">
-            {altas === detecciones.length ? "Aegis" : "posibles Aegis"}
+            {altas === detecciones.length ? "Aegis" : "posibles"}
             <InfoTip
               text={`Riot no publica este dato en ningún lado de su API, así que es una inferencia: son victorias que dieron cerca del doble de LP que una victoria normal suya (la mediana de las suyas está en ~${aegis?.baselineLp} LP, sobre ${aegis?.sampleSize} con LP propio atribuido). Aparecen marcadas en el gráfico de arriba y en la partida, cuando cae dentro de lo que se muestra.`}
             />

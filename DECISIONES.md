@@ -3758,3 +3758,73 @@ Corren con el runner de Node sobre TypeScript compilado a `.test-build`
 imports sin extensión —`./ladder`, que es como los escribe todo el proyecto—, y
 compilar a CommonJS ahí adentro lo resuelve **sin tocar una línea de la app ni
 agregar una dependencia**.
+
+## La columna izquierda del Resumen se leía como textos sueltos
+
+No era la información: era que estaba puesta una cosa abajo de la otra sin
+agrupación ni una anatomía común. Tres arreglos, y ninguno saca datos.
+
+### Las dos lecturas son el mismo concepto y estaban con dos jerarquías
+
+"Dónde está destacando" era un título verde con una lista debajo; "Su foco
+ahora" era un bloque rojo con una línea al costado, más abajo. Uno parecía un
+encabezado de sección y el otro una subsección de otra cosa, cuando son
+exactamente lo mismo mirado para los dos lados.
+
+Ahora son **dos fichas hermanas, una al lado de la otra**, con la misma
+anatomía: rótulo, nombre de la métrica, el número grande con su diferencia, el
+promedio de la línea y una frase de qué mide. La simetría es el arreglo — es lo
+que convierte dos párrafos en un par.
+
+La superficie es apenas visible (`rgba(255,255,255,0.022)`) con una línea de
+2px del color que corresponde al costado: alcanza para que se lean como par y
+no llega a ser la tarjeta con sombra de la que veníamos escapando.
+
+Cuando hay más de una fortaleza —el motor devuelve hasta tres— la principal es
+la protagonista y las otras entran en un renglón chico **adentro de la misma
+ficha**. Sacarlas sería perder datos; darles fila propia rompería la simetría,
+que es lo que había que arreglar.
+
+Y arriba de las dos volvió un título, "Rendimiento como Support", con la
+muestra de subtítulo. En la ronda anterior lo había sacado porque no agrupaba
+nada; ahora sí: abajo hay dos fichas hermanas y el título es lo que las hace un
+bloque.
+
+### "Sus líneas" con una sola línea deja de ser una frase
+
+Decía los tres números metidos adentro de una oración. Ahora es una franja con
+la misma anatomía que los récords de abajo —número grande, rótulo chico—: 103
+partidas · 55,3% winrate · 3,36 KDA. Con los números adentro del texto no se
+podían comparar de un vistazo con nada, y era otra cosa más con su propio peso
+en una columna donde ya sobraban.
+
+### Récords: grilla en vez de tira
+
+La tira arregló el alto (200px → 19) pero trajo otra cosa: el ícono, el número
+y el rótulo de cada récord caían en un lugar distinto según lo largo que fuera
+el anterior, y el conjunto se leía como cosas flotando. Ahora es una **grilla de
+cuatro columnas** (tres a 860, dos a 430) con todas las celdas iguales: ícono y
+número arriba, rótulo abajo. **Sin cajas**: lo que las agrupa es la grilla.
+
+Los rótulos también dejaron de ir en mayúsculas — uno de ellos lleva el nombre
+de un campeón adentro ("KDA · Lulu") y gritado quedaba mal.
+
+### Y el texto gris de más
+
+"Otras 2 quedaron dentro del ruido: menos de un 8% de diferencia contra su
+línea" pasó a **"Otras 2 métricas, sin diferencia real contra su línea ⓘ"**, con
+el 8% en el globo. La idea es la misma y es importante —la app está diciendo a
+propósito que no vende diferencias insignificantes como hallazgos— pero no
+necesita dos renglones para decirlo.
+
+### La container query que no funcionaba por circular
+
+El nombre largo de la métrica se acorta cuando la ficha es angosta, y eso
+depende de la columna del Resumen, no de la pantalla: a 768 el perfil pasa a una
+columna de 680 y las fichas quedan anchísimas, pero con una media query se
+acortaban igual. Así que va con `@container`.
+
+La primera versión puso el contenedor en `.lec-fichas` y consultó desde
+`.lec-fichas`: **un elemento no puede responder a su propia container query** —es
+circular y el navegador la ignora sin avisar—. Medido, a 390 las fichas seguían
+en dos columnas de 145px. El contenedor tiene que estar en el padre (`.lec`).

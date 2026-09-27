@@ -410,11 +410,22 @@ export function PlayerProfile({
                 Lo que era la pestaña Mejorar, ya interpretado: máximo tres
                 fortalezas y UN foco. Ver lib/lectura.ts. */}
             <section className="resumen-izq">
-              {/* Sin un título propio arriba: "Dónde está destacando" y "Su
-                  foco ahora" SON los títulos, y meterlos abajo de un "Contra
-                  su línea" agregaba un escalón de jerarquía que no separa
-                  nada — la línea contra la que se compara ya la dice la
-                  primera frase del bloque. */}
+              {/* El título vuelve, y ahora sí sirve para algo: abajo hay DOS
+                  fichas hermanas y el título es lo que las agrupa. Cuando
+                  "Dónde está destacando" y "Su foco" eran los títulos, cada
+                  uno agrupaba lo suyo y el bloque no existía como bloque —
+                  se leía como textos sueltos apilados. Con la muestra de
+                  subtítulo, además, la frase larga deja de flotar. */}
+              <h4 className="resumen-titulo">
+                Rendimiento como {ROLES[p.role].label}
+              </h4>
+              {lectura && (
+                <p className="resumen-sub">
+                  Contra los demás {ROLES[p.role].label} del grupo · sus {lectura.ownGames} partidas en esa línea
+                  contra {lectura.peerGames} del resto
+                  <InfoTip text="Se compara contra los que juegan SU MISMA línea y no contra el grupo entero: el CS por minuto de un support al lado del de un ADC no dice nada de ninguno de los dos. El cálculo sale de todas las partidas guardadas, no de las últimas cinco." />
+                </p>
+              )}
               <ProfileLectura l={lectura} role={p.role} />
 
               {p.lineas && (

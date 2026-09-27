@@ -6197,6 +6197,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted);
 }
 .resumen-titulo.con-aire{margin-top:26px;}
+/* La muestra, de subtítulo del bloque y no de primera línea suelta adentro:
+   es lo que define contra qué se compara todo lo de abajo. */
+.resumen-sub{
+  margin:-6px 0 12px; font-size:11px; line-height:1.55; color:var(--text-muted);
+}
 /* "Su momento" va a lo ancho y con una línea abajo: es el bloque que
    contesta "¿qué le está pasando?" y los dos de abajo son el detalle. */
 .resumen-momento{padding-bottom:22px; border-bottom:1px solid var(--border-soft);}
@@ -6402,63 +6407,80 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    en una tabla y el trabajo de encontrar las importantes quedaba del lado de
    la persona; ahora entran las que se despegan de verdad —tres como mucho— y
    el foco es uno solo. Ver lib/lectura.ts. */
-.lec{display:flex; flex-direction:column; gap:15px;}
-/* Una frase, no una fila: con display:flex cada nodo de texto era un ítem y
-   en 390px se partía en "Contra los demás Mid" / "del grupo · sus 180…". */
-.lec-muestra{margin:0; font-size:11px; color:var(--text-muted); line-height:1.55;}
-.lec-muestra strong{color:var(--text-secondary); font-weight:700;}
+/* El contenedor de la consulta va en `.lec` y NO en `.lec-fichas`: un
+   elemento no puede responder a su propia container query —es circular y el
+   navegador la ignora—, y la primera versión intentaba justo eso, así que a
+   390 las fichas seguían en dos columnas de 145px (medido). */
+.lec{display:flex; flex-direction:column; gap:12px; container:lec / inline-size;}
 .lec-vacio{margin:0; font-size:12.5px; color:var(--text-muted); line-height:1.6; max-width:60ch;}
-/* Mismo peso que .resumen-titulo: "Dónde está destacando" y "Su foco ahora"
-   son secciones del Resumen, no subtítulos de otra. */
-.lec-titulo{
-  display:flex; align-items:center; gap:6px; margin-bottom:7px;
-  font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
+/* Dos fichas hermanas, una al lado de la otra. La simetría ES el arreglo:
+   antes lo que hace bien era un título verde con una lista y lo que le
+   conviene corregir un bloque rojo con una línea al costado —el mismo
+   concepto con dos jerarquías distintas— y eso es lo que hacía que el módulo
+   se leyera como textos sueltos apilados. */
+/* Consulta al CONTENEDOR y no a la ventana: el ancho de una ficha lo decide
+   la columna del Resumen. Con media queries, a 768 —donde el perfil pasa a
+   una columna de 680 y las fichas quedan anchísimas— el nombre largo de la
+   métrica se acortaba igual. */
+.lec-fichas{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px;}
+@container lec (max-width:430px){.lec-fichas{grid-template-columns:1fr;}}
+/* Superficie apenas insinuada y una línea al costado del color que
+   corresponde: alcanza para que se lean como un par y no llega a ser una
+   tarjeta con sombra, que es de lo que veníamos escapando. */
+.lec-ficha{
+  display:flex; flex-direction:column; gap:2px; min-width:0;
+  padding:11px 13px 12px; border-radius:var(--radius-md);
+  background:rgba(255,255,255,0.022); border-left:2px solid var(--border-firm);
+}
+.lec-ficha.good{border-left-color:var(--good);}
+.lec-ficha.bad{border-left-color:var(--critical);}
+.lec-rotulo{
+  display:flex; align-items:center; gap:6px; margin-bottom:3px;
+  font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
   color:var(--text-muted);
 }
-.lec-punto{width:7px; height:7px; border-radius:50%; flex:none;}
+.lec-punto{width:6px; height:6px; border-radius:50%; flex:none;}
 .lec-punto.good{background:var(--good);}
 .lec-punto.bad{background:var(--critical);}
-.lec-lista{list-style:none; margin:0; padding:0;}
-.lec-fila{
-  display:grid; grid-template-columns:minmax(0,1fr) auto auto auto;
-  align-items:baseline; gap:10px; padding:6px 0;
-  border-bottom:1px solid var(--border-soft);
+.lec-metrica{font-size:12.5px; font-weight:600; color:var(--text-secondary); min-width:0;}
+.lec-cifra{display:flex; align-items:baseline; gap:9px; flex-wrap:wrap;}
+.lec-cifra b{
+  font-family:var(--font-stat); font-size:24px; font-weight:800; line-height:1.1;
+  font-variant-numeric:tabular-nums; letter-spacing:-0.02em;
 }
-.lec-fila:last-child{border-bottom:none;}
-.lec-metrica{font-size:12.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.lec-valor{
-  font-family:var(--font-stat); font-size:13px; font-weight:700;
+.lec-dif{
+  font-style:normal; font-family:var(--font-stat); font-size:12.5px; font-weight:800;
   font-variant-numeric:tabular-nums; white-space:nowrap;
 }
-.lec-rol{font-size:10.5px; color:var(--text-muted); white-space:nowrap;}
-.lec-rol b{font-weight:700; color:var(--text-secondary); font-variant-numeric:tabular-nums;}
-.lec-dif{
-  font-family:var(--font-stat); font-size:13px; font-weight:800;
-  font-variant-numeric:tabular-nums; text-align:right; min-width:5ch;
-}
 .lec-dif.good{color:var(--good);}
-/* El foco lleva una línea al costado y nada más. Es UNA cosa: darle una
-   caja entera lo pondría al mismo nivel que un panel, y darle nada lo
-   dejaría indistinguible de la lista de arriba. */
-.lec-foco{border-left:2px solid var(--critical); padding-left:12px;}
-.lec-foco-que{
-  display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 10px; margin:0;
-  font-size:13px;
+.lec-dif.bad{color:var(--critical);}
+.lec-rol{font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+.lec-rol b{font-weight:700; color:var(--text-secondary);}
+/* Las otras fortalezas, adentro de la misma ficha: sacarlas sería perder
+   datos y darles fila propia rompería la simetría. */
+.lec-otras{
+  margin-top:5px; padding-top:6px; border-top:1px solid var(--border-soft);
+  font-size:10.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;
 }
-.lec-foco-que strong{font-weight:700;}
-.lec-foco-nums{
-  display:inline-flex; align-items:baseline; gap:6px;
-  font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;
+.lec-otras b{font-weight:700; color:var(--good);}
+/* Qué mide la métrica del foco. Se quedó en la ficha y no se fue al globo
+   porque es lo único accionable de las dos, pero en el cuerpo más chico que
+   hay: es contexto, no un dato. */
+.lec-que{
+  margin-top:5px; padding-top:6px; border-top:1px solid var(--border-soft);
+  font-size:10.5px; line-height:1.5; color:var(--text-muted);
 }
-.lec-foco-nums b{font-family:var(--font-stat); font-size:13px; font-weight:800;}
-.lec-foco-nums b.bad{color:var(--critical);}
-.lec-foco-txt{margin:5px 0 0; font-size:12px; color:var(--text-secondary); line-height:1.55; max-width:56ch;}
 .lec-pie{margin:0; font-size:11px; color:var(--text-muted); line-height:1.5;}
 .lec-corta{display:none;}
-@media (max-width:720px){
+/* 520 de contenedor son fichas de ~250, que es donde "Participación en
+   objetivos" deja de entrar en un renglón (medido). */
+@container lec (max-width:520px){
   .lec-larga{display:none;}
   .lec-corta{display:inline;}
-  .lec-fila{gap:8px;}
+}
+@container lec (max-width:430px){
+  .lec-larga{display:inline;}
+  .lec-corta{display:none;}
 }
 
 /* ── Sus líneas (components/LineHistory.tsx) ─────────────────────────────
@@ -6470,15 +6492,27 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    marcada — que es lo que la barra hacía al revés. */
 .lineas{display:flex; flex-direction:column;}
 /* Una sola línea con muestra no arma una tabla: un encabezado y una fila
-   para decir algo que entra en un renglón prometen más de lo que dan. Y va
-   al peso del resto del texto de la columna, no al de un titular: es un
-   dato, no la conclusión del perfil. */
-.lineas-unica{
-  display:flex; align-items:center; flex-wrap:wrap; gap:4px 7px; margin:0;
-  font-size:12.5px; line-height:1.6; color:var(--text-secondary);
+   para decir algo que entra en un renglón prometen más de lo que dan. Va
+   como una franja de tres datos con la misma anatomía que los récords de
+   abajo —número grande, rótulo chico— y no como una frase: metidos adentro
+   del texto, los tres números no se podían comparar de un vistazo con nada. */
+.lineas-una{
+  display:flex; align-items:center; flex-wrap:wrap; gap:12px 26px;
+  padding:4px 0 2px;
 }
-.lineas-unica b{font-weight:700; color:var(--text-primary);}
-.lineas-unica .lineas-wr, .lineas-unica .lineas-kda{font-size:12.5px;}
+.lineas-una .lineas-quien{gap:8px; margin-right:4px;}
+.lineas-una .lineas-quien b{font-size:13px; font-weight:700;}
+.lineas-una .dato{display:flex; flex-direction:column; gap:1px;}
+.lineas-una .dato b{
+  font-family:var(--font-stat); font-size:16px; font-weight:800; line-height:1.15;
+  font-variant-numeric:tabular-nums; letter-spacing:-0.01em;
+}
+.lineas-una .dato b.good{color:var(--good);}
+.lineas-una .dato b.bad{color:var(--critical);}
+.lineas-una .dato b.neutral{color:var(--text-secondary);}
+.lineas-una .dato b.poca{color:var(--text-muted);}
+.lineas-una .dato i{font-style:normal; font-size:10.5px; color:var(--text-muted);}
+.lineas-sola{margin:8px 0 0; font-size:11px; color:var(--text-muted);}
 .lineas-cab, .lineas-fila{
   display:grid; grid-template-columns:minmax(0,1fr) 30px 50px 46px 74px;
   align-items:center; gap:10px;
@@ -6537,19 +6571,33 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    seis números de una línea cada uno. Es el caso más claro del síndrome de
    meter cada dato en su caja: un rectángulo no le aporta nada a "43 min" que
    no le aporten el número y su rótulo al lado. */
+/* Grilla y no tira: en una tira, el ícono, el número y el rótulo de cada
+   récord caían en un lugar distinto según lo largo que fuera el anterior, y
+   el conjunto se leía como cosas flotando. Alineados en columnas, la misma
+   información se lee como un bloque. Sin cajas: lo que las agrupa es la
+   grilla. */
 .recs{
   list-style:none; margin:0; padding:0;
-  display:flex; flex-wrap:wrap; gap:9px 18px;
+  display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px 12px;
 }
-.recs-item{display:inline-flex; align-items:center; gap:6px; min-width:0;}
+@media (max-width:860px){.recs{grid-template-columns:repeat(3,minmax(0,1fr));}}
+@media (max-width:430px){.recs{grid-template-columns:repeat(2,minmax(0,1fr));}}
+.recs-item{display:flex; flex-direction:column; gap:1px; min-width:0;}
+.recs-cifra{display:flex; align-items:center; gap:6px; min-width:0;}
 .recs-icono{display:flex; align-items:center; color:var(--text-muted); flex:none;}
 .recs-icono svg{width:13px; height:13px; display:block;}
 .recs-v{
-  font-family:var(--font-stat); font-size:14.5px; font-weight:800;
+  font-family:var(--font-stat); font-size:17px; font-weight:800; line-height:1.15;
   font-variant-numeric:tabular-nums; letter-spacing:-0.01em;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.recs-k{font-size:11px; color:var(--text-muted); white-space:nowrap; display:inline-flex; align-items:center;}
-/* El único de la tira que no es un hecho sino una inferencia (ver
+/* Sin uppercase: el rótulo lleva el nombre del campeón adentro ("KDA ·
+   Lulu") y en mayúsculas quedaba gritado. */
+.recs-k{
+  display:flex; align-items:center; font-size:10.5px; color:var(--text-muted);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+/* El único de la grilla que no es un hecho sino una inferencia (ver
    lib/aegis.ts). No lleva caja ni color propio —sería darle MÁS peso que a
    los récords de verdad— pero sí su ⓘ, que es donde se dice que se estima. */
 .recs-aegis .recs-icono{color:var(--accent); opacity:0.85;}

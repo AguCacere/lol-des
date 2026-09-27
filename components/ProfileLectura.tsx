@@ -2,28 +2,30 @@
 
 import { RADAR_AXIS } from "@/lib/radar";
 import { ROLES } from "@/lib/ladder";
-import { QUE_SIGNIFICA, type Lectura } from "@/lib/lectura";
+import { QUE_SIGNIFICA, type FilaLectura, type Lectura } from "@/lib/lectura";
 import type { RoleKey } from "@/lib/types";
 import { InfoTip } from "./InfoTip";
 
 /**
- * "Dónde estás destacando" y "Tu foco ahora": la interpretación, no la tabla.
+ * Lo que hace mejor y lo que le conviene corregir, **en dos fichas
+ * simétricas**.
  *
- * Esto es lo que quedó de la pestaña Mejorar, que se fue entera. Mejorar no
- * era otra dimensión del perfil — era la INTERPRETACIÓN de los datos del
- * perfil— y tenerla aparte producía dos problemas a la vez: obligaba a un
- * click para llegar a la conclusión, y repetía adentro cosas que ya estaban
- * en Resumen (las líneas, la forma reciente). Una información aparece una
- * sola vez.
+ * Es lo que quedó de la pestaña Mejorar, que se fue entera: no era otra
+ * dimensión del perfil sino la INTERPRETACIÓN de sus datos. El cálculo no
+ * cambió nunca —son los mismos ejes del radar, sobre todas las partidas de
+ * esa persona en su línea contra todas las del grupo en la misma— y lo que la
+ * app hace encima es decidir qué vale la pena mostrar (ver lib/lectura.ts:
+ * entran las que se despegan de verdad, y el foco es UNO solo).
  *
- * Lo que cambió del contenido: antes se listaban las SIETE métricas del rol
- * en una tabla y el trabajo de encontrar las importantes quedaba del lado de
- * la persona. Ahora la app hace ese trabajo: entran las que se despegan de
- * verdad —máximo tres— y el foco es UNO solo. Ver lib/lectura.ts para el
- * umbral y por qué un "+6% de CS por minuto" no es una fortaleza.
+ * Lo que cambió acá es la forma. Antes eran un título verde con una lista
+ * debajo y, más abajo, un bloque rojo con una línea al costado: **dos cosas
+ * que son el mismo concepto puestas con dos jerarquías distintas**, y por eso
+ * el módulo entero se leía como textos sueltos apilados en vez de un bloque
+ * pensado. Ahora son dos fichas iguales, una al lado de la otra, con la misma
+ * anatomía: qué es, el número grande, la diferencia y contra qué se compara.
  *
- * Ningún cálculo cambió: son los mismos ejes del radar, sobre todas las
- * partidas de esa persona en su línea contra todas las del grupo en la misma.
+ * La frase de qué mide la métrica se fue al globo. Es contexto que se lee una
+ * vez, no un dato que se mira cada vez que se abre el perfil.
  */
 export function ProfileLectura({ l, role }: { l: Lectura | null; role: RoleKey }) {
   if (!l) {
@@ -38,77 +40,108 @@ export function ProfileLectura({ l, role }: { l: Lectura | null; role: RoleKey }
 
   const rol = ROLES[role].label;
   const nada = l.fuerte.length === 0 && l.foco === null;
+  // La protagonista de la ficha verde es la que más se despega; las otras
+  // —como mucho dos— entran en un renglón chico adentro de la misma ficha.
+  // Sacarlas sería perder datos; darles su propia fila rompería la simetría,
+  // que es justamente lo que había que arreglar.
+  const [mejor, ...otras] = l.fuerte;
+
+  if (nada) {
+    return (
+      <p className="lec-vacio">
+        No se despega del resto de los {rol} en ninguna métrica: las {l.parejas} están dentro de lo normal entre dos
+        poblaciones.
+      </p>
+    );
+  }
 
   return (
     <div className="lec">
-      <p className="lec-muestra">
-        Contra los demás <strong>{rol}</strong> del grupo · sus {l.ownGames} partidas en esa línea contra {l.peerGames}{" "}
-        del resto
-        <InfoTip text="Se compara contra los que juegan SU MISMA línea y no contra el grupo entero: el CS por minuto de un support al lado del de un ADC no dice nada de ninguno de los dos. El cálculo sale de todas las partidas guardadas, no de las últimas cinco." />
-      </p>
+      <div className="lec-fichas">
+        {mejor && (
+          <Ficha
+            tono="good"
+            rotulo="Destaca"
+            f={mejor}
+            rol={rol}
+            /* Las dos fichas llevan la MISMA anatomía hasta el pie, si no
+               dejan de ser un par: la frase de qué mide la métrica va en las
+               dos. Lo que solo tiene la verde es el renglón de las otras
+               fortalezas, cuando las hay. */
+            pie={
+              <>
+                <span className="lec-que">{QUE_SIGNIFICA[mejor.key]}</span>
+                {otras.length > 0 && (
+                  <span className="lec-otras">
+                    también{" "}
+                    {otras.map((o, i) => (
+                      <span key={o.key}>
+                        {i > 0 && ", "}
+                        {RADAR_AXIS[o.key].short} <b>+{o.pct}%</b>
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </>
+            }
+          />
+        )}
+        {l.foco && (
+          <Ficha
+            tono="bad"
+            rotulo="Su foco"
+            f={l.foco}
+            rol={rol}
+            pie={<span className="lec-que">{QUE_SIGNIFICA[l.foco.key]}</span>}
+          />
+        )}
+      </div>
 
-      {nada ? (
-        <p className="lec-vacio">
-          No se despega del resto de los {rol} en ninguna métrica: las {l.parejas} están dentro del ruido normal
-          entre dos poblaciones.
-        </p>
-      ) : (
-        <>
-          {l.fuerte.length > 0 && (
-            <div className="lec-bloque">
-              <span className="lec-titulo">
-                <i className="lec-punto good" aria-hidden />
-                Dónde está destacando
-              </span>
-              <ul className="lec-lista">
-                {l.fuerte.map((f) => (
-                  <li className="lec-fila" key={f.key}>
-                    <span className="lec-metrica">
-                      <span className="lec-larga">{RADAR_AXIS[f.key].long}</span>
-                      <span className="lec-corta">{RADAR_AXIS[f.key].short}</span>
-                    </span>
-                    <span className="lec-valor">{f.valor}</span>
-                    <span className="lec-rol">
-                      rol <b>{f.rol}</b>
-                    </span>
-                    <span className="lec-dif good">+{f.pct}%</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* El foco. UNO solo, y con la frase de qué mide esa métrica: sin
-              eso "participación en objetivos −9%" es un número, no algo que
-              alguien pueda ir a corregir esta noche. La frase dice QUÉ mide,
-              nunca por qué le pasa — eso no lo midió nadie. */}
-          {l.foco && (
-            <div className="lec-foco">
-              <span className="lec-titulo">
-                <i className="lec-punto bad" aria-hidden />
-                Su foco ahora
-              </span>
-              <p className="lec-foco-que">
-                <strong>{RADAR_AXIS[l.foco.key].long}</strong>
-                <span className="lec-foco-nums">
-                  {l.foco.valor} contra {l.foco.rol} del resto de los {rol}
-                  {/* El menos tipográfico, no el guión del teclado: es el
-                      mismo que usa el resto de la app. */}
-                  <b className="bad">−{Math.abs(l.foco.pct)}%</b>
-                </span>
-              </p>
-              <p className="lec-foco-txt">{QUE_SIGNIFICA[l.foco.key]}</p>
-            </div>
-          )}
-        </>
-      )}
-
-      {l.parejas > 0 && !nada && (
+      {l.parejas > 0 && (
         <p className="lec-pie">
-          {l.parejas === 1 ? "Otra métrica quedó" : `Otras ${l.parejas} quedaron`} dentro del ruido: menos de un 8% de
-          diferencia contra su línea.
+          {l.parejas === 1 ? "Otra métrica más" : `Otras ${l.parejas} métricas`}, sin diferencia real contra su línea
+          <InfoTip text={`Se quedaron abajo del 8% de diferencia contra el promedio de los ${rol} del grupo, para arriba o para abajo. A esa distancia el número no dice nada: dos poblaciones distintas nunca dan exactamente lo mismo.`} />
         </p>
       )}
+    </div>
+  );
+}
+
+/** Las dos fichas son la MISMA ficha con otro color. Ahí está medio arreglo. */
+function Ficha({
+  tono,
+  rotulo,
+  f,
+  rol,
+  pie,
+}: {
+  tono: "good" | "bad";
+  rotulo: string;
+  f: FilaLectura;
+  rol: string;
+  pie: React.ReactNode;
+}) {
+  return (
+    <div className={`lec-ficha ${tono}`}>
+      <span className="lec-rotulo">
+        <i className={`lec-punto ${tono}`} aria-hidden />
+        {rotulo}
+      </span>
+      <span className="lec-metrica">
+        <span className="lec-larga">{RADAR_AXIS[f.key].long}</span>
+        <span className="lec-corta">{RADAR_AXIS[f.key].short}</span>
+      </span>
+      <span className="lec-cifra">
+        <b>{f.valor}</b>
+        <i className={`lec-dif ${tono}`}>
+          {f.pct > 0 ? "▲" : "▼"} {f.pct > 0 ? "+" : "−"}
+          {Math.abs(f.pct)}%
+        </i>
+      </span>
+      <span className="lec-rol">
+        Los demás {rol}: <b>{f.rol}</b>
+      </span>
+      {pie}
     </div>
   );
 }

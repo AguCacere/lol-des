@@ -46,19 +46,35 @@ export function LineHistory({ h }: { h: HistorialLineas }) {
   // support— y con la tabla la sección prometía más de lo que entregaba.
   if (jugadas.length === 1) {
     const l = jugadas[0];
+    const poca = l.games < MUESTRA_MINIMA;
     return (
       <div className="lineas">
-        <p className="lineas-unica">
-          <span className="lineas-rol" title={ROLES[l.role].label}>
-            <RoleIcon role={l.role} />
+        {/* Tres datos alineados como los récords de abajo —número grande,
+            rótulo chico— y no una frase. La frase decía lo mismo, pero con
+            los números metidos adentro del texto no se podían comparar de un
+            vistazo con nada, y era otra cosa más con su propio peso en una
+            columna donde ya sobraban. */}
+        <div className="lineas-una">
+          <span className="lineas-quien">
+            <span className="lineas-rol" title={ROLES[l.role].label}>
+              <RoleIcon role={l.role} />
+            </span>
+            <b>{ROLES[l.role].label}</b>
           </span>
-          <b>{ROLES[l.role].label}</b> en las {l.games} partidas guardadas, sin otra línea que llegue a{" "}
-          {FILA_MINIMA} partidas.{" "}
-          <span className={`lineas-wr ${l.games < MUESTRA_MINIMA ? "poca" : tonoDeWinrate(l.wins, l.games)}`}>
-            {winrateTexto(l.wins, l.games)}
-          </span>{" "}
-          y <b className="lineas-kda">{l.kda === null ? "—" : l.kda.toFixed(2)}</b> de KDA.
-        </p>
+          <span className="dato">
+            <b>{l.games}</b>
+            <i>partidas</i>
+          </span>
+          <span className="dato">
+            <b className={poca ? "poca" : tonoDeWinrate(l.wins, l.games)}>{winrateTexto(l.wins, l.games)}</b>
+            <i>winrate</i>
+          </span>
+          <span className="dato">
+            <b>{l.kda === null ? "—" : l.kda.toFixed(2)}</b>
+            <i>KDA</i>
+          </span>
+        </div>
+        <p className="lineas-sola">Ninguna otra línea llega a {FILA_MINIMA} partidas.</p>
         {h.loSacanDeSuLinea && <Aviso h={h} />}
       </div>
     );

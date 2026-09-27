@@ -401,12 +401,14 @@ pestañas.
       dos caracteres ("▲ E3"); se reparten en dos filas —ascensos arriba,
       descensos abajo— y se saltean cuando se pisarían, primero los de tier
       y después los de división, del más nuevo al más viejo.
-    - A la izquierda, la lectura: `ProfileLectura` (dónde está destacando y su
-      foco, salido de `lectura.ts`), `LineHistory` ("Sus líneas": sin barras,
-      las muestras chicas marcadas, las de menos de tres partidas fuera y un
-      solo renglón cuando queda una sola línea), `PersonalRecords` (una sola
-      tira, con el contador de Aegis al final marcado con su ⓘ, que es lo
-      único de la tira que no es un hecho).
+    - A la izquierda, tres bloques: *Rendimiento como \<rol\>*, que son las
+      dos fichas hermanas de `ProfileLectura` (lo que más se despega y el
+      foco, salidos de `lectura.ts`, con la misma anatomía las dos);
+      *Sus líneas*, `LineHistory` (sin barras, muestras chicas marcadas, las
+      de menos de tres partidas fuera, y una franja de tres datos en vez de
+      tabla cuando queda una sola línea); y *Récords*, `PersonalRecords`
+      (grilla de celdas iguales, con el contador de Aegis al final marcado
+      con su ⓘ, que es lo único de la grilla que no es un hecho).
     - A la derecha, lo reciente: `RecentForm` (solo las métricas que se movieron,
       cuatro como mucho) y la lista de partidas con `MatchDetail` (que a su vez
       abre `MatchTimeline`). Una partida con Aegis detectado lleva la chapa de
