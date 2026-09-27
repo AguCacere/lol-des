@@ -385,9 +385,11 @@ pestañas.
   y repetía adentro las líneas y la forma reciente. La regla que ordena el Resumen
   es una sola: **una información aparece una sola vez**.
   - **Resumen** (qué le está pasando y qué le conviene corregir), en este orden:
-    - *Su momento*, a todo el ancho: `ProgresionLP`, una partida por punto, con
-      el detalle de cada una al pasar por encima y los cambios de división como
-      hitos verticales.
+    - *Su momento*, a todo el ancho: `ProgresionLP`, una partida por punto
+      (segmentos rectos, no curva: lo que se sabe son estados, uno por
+      partida), con el detalle de cada una al pasar por encima y los cambios
+      de división como eventos con nombre —"▲ Ascenso · Diamante 1"— que se
+      reparten en dos filas y se saltean cuando se pisarían.
     - A la izquierda, la lectura: `ProfileLectura` (dónde está destacando y su
       foco, salido de `lectura.ts`), `LineHistory` (cómo está jugando cada línea,
       sin barras y con las muestras chicas marcadas), `PersonalRecords` (una sola

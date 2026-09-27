@@ -6185,21 +6185,26 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    podía ser dos derrotas o podía ser una tarde sin jugar. Este mide 96px y
    contesta cómo llegó de un lado al otro. */
 .prog{display:flex; flex-direction:column;}
-.prog-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px;}
-.prog-rotulo{font-size:11px; color:var(--text-muted);}
-.prog-neto{display:inline-flex; align-items:baseline; gap:7px; white-space:nowrap;}
+.prog-head{display:flex; align-items:flex-start; justify-content:space-between; gap:12px;}
+.prog-rotulo{display:inline-flex; align-items:center; gap:5px; flex-wrap:wrap; font-size:11.5px; color:var(--text-secondary);}
+/* Lo que quedó sin atribuir NO es una nota al pie: explica por qué el
+   gráfico tiene catorce puntos y no veinte, así que va con el resto de lo
+   que define de qué está hecho el dibujo. */
+.prog-faltan{font-style:normal; font-size:11px; color:var(--text-muted);}
+.prog-neto{display:flex; flex-direction:column; align-items:flex-end; flex:none; text-align:right; white-space:nowrap;}
 .prog-neto b{
-  font-family:var(--font-stat); font-size:15px; font-weight:800;
+  font-family:var(--font-stat); font-size:17px; font-weight:800; line-height:1.15;
   font-variant-numeric:tabular-nums; letter-spacing:-0.01em;
 }
 .prog-neto b.good{color:var(--good);}
 .prog-neto b.bad{color:var(--critical);}
-.prog-neto i{font-style:normal; font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+.prog-neto i{font-style:normal; font-size:10.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
 /* Alto fijo y ancho elástico: el SVG va con preserveAspectRatio="none", así
    que la altura es exactamente la del viewBox (96) a cualquier ancho. Es lo
    que mantiene el gráfico BAJO en un monitor grande, que es medio punto de
-   haberlo rehecho. */
-.prog-caja{position:relative; margin-top:8px;}
+   haberlo rehecho. El padding de arriba y abajo es donde viven los rótulos
+   de los hitos: afuera del dibujo, no encima. */
+.prog-caja{position:relative; margin-top:6px; padding:17px 0;}
 .prog-svg{display:block; width:100%; height:96px;}
 .prog-linea{fill:none; stroke:var(--accent-dim); stroke-width:1.6px; stroke-linejoin:round; stroke-linecap:round;}
 /* Los puntos son líneas de largo cero con la punta redonda (ver el
@@ -6214,16 +6219,35 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .prog-hito{stroke-width:1px; stroke-dasharray:2 3;}
 .prog-hito.ascenso{stroke:rgba(var(--good-rgb),0.45);}
 .prog-hito.descenso{stroke:rgba(var(--critical-rgb),0.45);}
+/* El hito con nombre: los ascensos arriba del dibujo y los descensos abajo.
+   Repartidos en dos filas porque quien rebota en la línea de ascenso produce
+   cinco cruces seguidos, y cinco carteles en el mismo renglón se pisan. */
 .prog-hito-et{
-  position:absolute; top:-2px; transform:translateX(-50%); z-index:4;
-  font-size:9px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase;
-  white-space:nowrap; pointer-events:none; background:var(--bg); padding:0 4px;
+  position:absolute; z-index:4; white-space:nowrap; pointer-events:none;
+  display:inline-flex; align-items:baseline; gap:5px;
+  font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;
 }
-/* Abajo del dibujo y no encima: el gráfico mide 96px y el panel 82, así que
+.prog-hito-et.ascenso{top:0;}
+.prog-hito-et.descenso{bottom:0;}
+.prog-hito-et b{font-weight:800;}
+.prog-hito-et.ascenso b{color:var(--good);}
+.prog-hito-et.descenso b{color:var(--critical);}
+.prog-hito-et i{font-style:normal; font-weight:700;}
+.prog-hito-et i::before{content:"·"; color:var(--text-muted); margin-right:5px;}
+/* La marquita que baja (o sube) hasta el dibujo: dice a QUÉ corte pertenece
+   el rótulo. Sin esto, uno apoyado contra el borde derecho parece señalar el
+   punto que tiene justo debajo, que no es el suyo. */
+.prog-hito-et::after{content:""; position:absolute; width:1px; height:14px; opacity:0.5;}
+.prog-hito-et.ascenso::after{top:100%; background:var(--good);}
+.prog-hito-et.descenso::after{bottom:100%; background:var(--critical);}
+.prog-hito-et.izq::after{left:0;}
+.prog-hito-et.centro::after{left:50%;}
+.prog-hito-et.der::after{right:0;}
+/* Abajo del dibujo y no encima: el gráfico mide 96px y el panel 92, así que
    flotando adentro tapaba justo la curva que se está inspeccionando. Abajo
    tapa el pie, que son dos rótulos que se pueden leer sin el mouse puesto. */
 .prog-panel{
-  position:absolute; top:100%; margin-top:5px; z-index:6; width:198px; box-sizing:border-box;
+  position:absolute; top:100%; margin-top:2px; z-index:6; width:244px; box-sizing:border-box;
   display:flex; flex-direction:column; gap:4px;
   /* Opaco y no translúcido como el tooltip del SparkChart: ese flota SOBRE
      el gráfico, este cae sobre el texto de abajo, y ahí el vidrio deja leer
@@ -6255,14 +6279,16 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .prog-panel-tramo{
   font-size:10.5px; color:var(--text-secondary); font-variant-numeric:tabular-nums;
-  padding-top:4px; border-top:1px solid rgba(255,255,255,0.08);
+  padding-top:4px; border-top:1px solid var(--border-soft);
 }
+.prog-panel-cuando{display:block; color:var(--text-muted); margin-bottom:2px;}
 .prog-pie{
-  display:flex; align-items:baseline; justify-content:space-between; gap:10px;
-  margin-top:5px; font-size:10.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;
+  display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-top:3px;
+  font-size:11px; color:var(--text-muted); font-variant-numeric:tabular-nums;
 }
-.prog-punta.a-la-derecha{text-align:right;}
-.prog-faltan{flex:1 1 auto; text-align:center; opacity:0.85;}
+.prog-punta{display:flex; flex-direction:column; gap:1px;}
+.prog-punta i{font-style:normal; font-size:10px; opacity:0.85;}
+.prog-punta.a-la-derecha{align-items:flex-end; text-align:right;}
 .prog-vacio{margin:0; font-size:12.5px; color:var(--text-muted); line-height:1.6; max-width:58ch;}
 @media (max-width:640px){
   /* A 390 el panel son 198px contra 302 de gráfico: al lado del anteúltimo
@@ -6270,9 +6296,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
      390). Pasa a ocupar el ancho entero. Con !important porque `left` y
      `transform` los escribe el componente en el style del nodo. */
   .prog-panel{left:0 !important; right:0; width:auto; transform:none !important;}
-  /* Y el rótulo del hito no entra: dos ascensos seguidos se pisan entre
-     ellos antes de pisar nada más. */
-  .prog-hito-et{display:none;}
 }
 
 

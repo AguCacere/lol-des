@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { smoothLinePath } from "@/lib/chart";
+import { useCallback, useState } from "react";
+import { linePath } from "@/lib/chart";
 import { tierFor } from "@/lib/ladder";
 import { championLabel } from "@/lib/champion-names";
 import { ChampIcon } from "./ChampIcon";
+import { InfoTip } from "./InfoTip";
 import type { Progresion, PuntoProgresion } from "@/lib/progresion";
 
 /**
@@ -20,14 +21,15 @@ import type { Progresion, PuntoProgresion } from "@/lib/progresion";
  * Acá cada punto es UNA PARTIDA, y por eso el gráfico puede contestar la
  * pregunta que un gráfico de LP tiene que contestar: cómo llegué de acá hasta
  * acá. El punto es verde o rojo según el resultado, los cambios de división
- * son hitos verticales, y al pasar por encima aparece la partida entera:
- * campeón, KDA, duración y el tramo de LP que movió.
+ * son eventos con nombre —"Ascenso · Diamante 1"—, y al pasar por encima
+ * aparece la partida entera: cuándo, con qué campeón, con qué KDA y el tramo
+ * de LP que movió.
  *
  * Mide la mitad de alto que el anterior y dice diez veces más.
  *
  * El LP de cada partida NO se estima: sale de la atribución por tramos de
  * lib/progresion.ts, que es la misma que usa la liga. Y lo que no se puede
- * atribuir no se dibuja ni se interpola — se cuenta al pie.
+ * atribuir no se dibuja ni se interpola — se dice en el encabezado.
  */
 
 const W = 620;
@@ -35,13 +37,38 @@ const H = 96;
 const PAD_X = 10;
 const PAD_Y = 14;
 
-/** Desde cuántos puntos vale dibujar una curva. Con dos es una recta y con una, nada. */
+/** Desde cuántos puntos vale dibujar una línea. Con dos es una recta y con una, nada. */
 const MINIMO_PUNTOS = 3;
+
+/**
+ * Lo que mide un rótulo de hito en píxeles. Medido en el navegador y no
+ * estimado: "▼ Descenso · Diamante 2" da 137, y se deja un poco de aire para
+ * el nombre de tier más largo ("Esmeralda") y para que dos rótulos vecinos no
+ * queden pegados. Es lo que decide cuántos entran sin pisarse.
+ */
+const ANCHO_ET = 152;
 
 const rangoTxt = (t: { tier: PuntoProgresion["tier"]; division: number; lp: number }) =>
   `${tierFor(t.tier).name} ${t.division} · ${t.lp} LP`;
 
 const lpTxt = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n)}`;
+
+/** "19 sep", en hora argentina: sin el huso, una partida de las 22 de un 30 sale "1 oct". */
+const fechaCorta = (iso: string) =>
+  new Date(iso).toLocaleDateString("es-AR", {
+    day: "numeric",
+    month: "short",
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
+
+/** "19 sep · 23:14". La hora importa: con cinco partidas del mismo día, la fecha sola no ubica ninguna. */
+const cuando = (iso: string) =>
+  `${fechaCorta(iso)} · ${new Date(iso).toLocaleTimeString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "America/Argentina/Buenos_Aires",
+  })}`;
 
 /**
  * `p` puede llegar undefined y no es un descuido del tipo: durante la
@@ -51,6 +78,17 @@ const lpTxt = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n)}`
  */
 export function ProgresionLP({ p, ddragonVersion }: { p: Progresion | undefined; ddragonVersion: string | null }) {
   const [hover, setHover] = useState<number | null>(null);
+  // El ancho real del dibujo. Hace falta para ubicar los rótulos de los
+  // hitos: el SVG se estira, pero un rótulo de HTML mide siempre lo mismo en
+  // píxeles, así que cuántos entran sin pisarse depende del ancho de verdad y
+  // no de las unidades del viewBox. Ref con limpieza, que React 19 soporta.
+  const [ancho, setAncho] = useState(0);
+  const medir = useCallback((n: HTMLDivElement | null) => {
+    if (!n) return;
+    const ro = new ResizeObserver(([e]) => setAncho(e.contentRect.width));
+    ro.observe(n);
+    return () => ro.disconnect();
+  }, []);
 
   if (!p || p.puntos.length < MINIMO_PUNTOS) {
     return (
@@ -72,48 +110,121 @@ export function ProgresionLP({ p, ddragonVersion }: { p: Progresion | undefined;
   const xDe = (i: number) => PAD_X + (i / Math.max(1, p.puntos.length - 1)) * (W - PAD_X * 2);
   const yDe = (v: number) => H - PAD_Y - ((v - lo) / recorrido) * (H - PAD_Y * 2);
   const pts: [number, number][] = p.puntos.map((q, i) => [xDe(i), yDe(q.score)]);
-  const linea = smoothLinePath(pts);
-  const hitos = p.puntos.map((q, i) => ({ q, i })).filter((x) => x.q.hito !== null);
+  // Segmentos rectos y no una curva suave. La curva daba la impresión de que
+  // sabemos qué pasó ENTRE dos partidas, y no sabemos nada: lo que hay son
+  // estados conocidos, uno por partida. Además los valles redondeados le
+  // daban aire de gráfico financiero decorativo.
+  const linea = linePath(pts);
   const activo = hover !== null ? p.puntos[hover] : null;
+
+  /**
+   * Los hitos, repartidos en dos filas —los ascensos arriba, los descensos
+   * abajo— y salteando el rótulo que se pisaría con el anterior de SU fila.
+   *
+   * Las dos cosas salen del mismo problema, que se ve apenas alguien rebota
+   * en la línea de ascenso: cinco cruces seguidos daban cinco carteles
+   * encimados que además se leían como una lista sin sentido (Diamante 1,
+   * Diamante 2, Diamante 1, Diamante 2…). El corte vertical queda SIEMPRE
+   * —es el dato— y lo que se saltea es el cartel; esa partida sigue contando
+   * su historia al pasarle por encima.
+   */
+  // El ancho del rótulo, pasado a unidades del viewBox: el rótulo mide
+  // siempre lo mismo en píxeles y el viewBox se estira, así que la
+  // equivalencia depende del ancho real. Sin medir (primer render, SSR) no se
+  // dibuja ninguno: mejor que aparezcan un frame después a que aparezcan
+  // encimados y se acomoden.
+  const et = ancho > 0 ? (ANCHO_ET / ancho) * W : Infinity;
+  // Contra el borde el rótulo no se centra sino que se apoya en su lado, y
+  // eso corre su caja: la separación se calcula sobre el ESPACIO QUE OCUPA,
+  // no sobre la distancia entre puntos. Con la distancia sola, los dos
+  // últimos ascensos se pisaban 22px (medido a 1440).
+  // Centrado salvo que centrado no entre. El corte es por el ANCHO REAL del
+  // rótulo y no por un porcentaje fijo del gráfico: a 1440 un 15% son 185px
+  // y el rótulo mide 137, así que con un porcentaje se apoyaban contra el
+  // borde rótulos a los que les sobraba lugar para ir centrados.
+  const anclaDe = (x: number): "izq" | "centro" | "der" =>
+    x - et / 2 < 0 ? "izq" : x + et / 2 > W ? "der" : "centro";
+  const cajaDe = (x: number): [number, number] => {
+    const a = anclaDe(x);
+    return a === "izq" ? [x, x + et] : a === "der" ? [x - et, x] : [x - et / 2, x + et / 2];
+  };
+  // Y se recorre DE ATRÁS PARA ADELANTE, o sea del hito más nuevo al más
+  // viejo. Es lo que decide cuál sobrevive cuando dos no entran: el gráfico
+  // cuenta cómo llegó hasta acá, así que el ascenso de anoche importa más
+  // que uno de hace dos semanas. De izquierda a derecha se perdían justo los
+  // dos últimos.
+  const ocupado = { ascenso: Infinity, descenso: Infinity };
+  const hitos: {
+    q: PuntoProgresion;
+    x: number;
+    fila: "ascenso" | "descenso";
+    ancla: "izq" | "centro" | "der";
+    rotulo: boolean;
+  }[] = [];
+  for (let i = p.puntos.length - 1; i >= 0; i--) {
+    const q = p.puntos[i];
+    if (q.hito === null) continue;
+    const x = xDe(i);
+    const [izq, der] = cajaDe(x);
+    const rotulo = der <= ocupado[q.hito];
+    if (rotulo) ocupado[q.hito] = izq;
+    hitos.push({ q, x, fila: q.hito, ancla: anclaDe(x), rotulo });
+  }
 
   return (
     <div className="prog">
+      {/* "Últimas 14 partidas" y no "Progresión · últimas 14": el rótulo
+          tiene que decir últimas 14 QUÉ. Y lo que quedó sin atribuir va acá
+          arriba, con el resto de lo que define la muestra, en vez de suelto
+          al pie del dibujo como una nota al margen. */}
       <div className="prog-head">
-        <span className="prog-rotulo">Progresión · últimas {p.puntos.length}</span>
+        <span className="prog-rotulo">
+          Últimas {p.puntos.length} partidas
+          {p.sinAtribuir > 0 && (
+            <>
+              <i className="prog-faltan">
+                · {p.sinAtribuir} sin LP atribuido
+              </i>
+              <InfoTip
+                text={`De las últimas ${p.puntos.length + p.sinAtribuir} guardadas, ${p.sinAtribuir} quedaron sin poder saber cuánto LP movieron: se jugaron antes de la primera foto que tenemos, o el refresco se perdió alguna de las dos fotos que las rodean. No se dibujan ni se estiman — el gráfico muestra las que sí se pueden atribuir.`}
+              />
+            </>
+          )}
+        </span>
         <span className="prog-neto">
           <b className={p.neto >= 0 ? "good" : "bad"}>{lpTxt(p.neto)} LP</b>
           <i>
-            {p.victorias}V-{p.derrotas}D
+            {p.victorias}V · {p.derrotas}D
           </i>
         </span>
       </div>
 
-      <div className="prog-caja">
+      <div className="prog-caja" ref={medir}>
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="prog-svg" role="img" aria-label="LP partida por partida">
-          {/* Los hitos primero, abajo de todo: son mobiliario del gráfico, no
-              un dato más. Una línea vertical entera y no una marca chiquita —
-              un cambio de división parte la progresión en dos y eso se ve
-              mejor con un corte que con un puntito. */}
-          {hitos.map(({ q, i }) => (
+          {/* Los cortes primero, abajo de todo: son mobiliario del gráfico, no
+              un dato más. Una línea entera y no una marca chiquita — un cambio
+              de división parte la progresión en dos y eso se ve mejor con un
+              corte que con un puntito. */}
+          {hitos.map((h) => (
             <line
-              key={`h${q.matchId}`}
-              x1={xDe(i)}
+              key={`h${h.q.matchId}`}
+              x1={h.x}
               y1={0}
-              x2={xDe(i)}
+              x2={h.x}
               y2={H}
-              className={`prog-hito ${q.hito}`}
+              className={`prog-hito ${h.fila}`}
               vectorEffect="non-scaling-stroke"
             />
           ))}
           <path d={linea} className="prog-linea" vectorEffect="non-scaling-stroke" />
           {/* Un punto por partida, del color de su resultado. Es lo que
-              convierte la curva en una historia: se ve la racha de tres
+              convierte la línea en una historia: se ve la racha de tres
               verdes y el bajón de dos rojas sin tocar nada.
 
               Y son LÍNEAS DE LARGO CERO con la punta redonda, no <circle>.
               Con preserveAspectRatio="none" el SVG se estira distinto a lo
               ancho que a lo alto —en un teléfono el viewBox de 620 entra en
-              330px, o sea la mitad— y un círculo sale ovalado. El grosor de
+              302px, o sea la mitad— y un círculo sale ovalado. El grosor de
               una línea con vectorEffect="non-scaling-stroke" se mide en
               píxeles de pantalla, así que la punta redonda es un círculo
               perfecto a cualquier ancho. */}
@@ -160,20 +271,37 @@ export function ProgresionLP({ p, ddragonVersion }: { p: Progresion | undefined;
           />
         </svg>
 
-        {/* El rótulo del hito, en HTML por lo mismo que el panel: adentro del
-            SVG estirado un <text> sale deformado. Sin esto la línea punteada
-            es un corte sin explicación — hay que pasar el mouse por el punto
-            justo para enterarse de que ahí ascendió. En el teléfono no entra
-            y se va: la línea se queda y el detalle lo da el panel. */}
-        {hitos.map(({ q, i }) => (
-          <span
-            key={`e${q.matchId}`}
-            className={`prog-hito-et ${q.hito}`}
-            style={{ left: `${(xDe(i) / W) * 100}%`, color: tierFor(q.tier).fg }}
-          >
-            {tierFor(q.tier).name} {q.division}
-          </span>
-        ))}
+        {/* Los hitos, con nombre. En HTML y no adentro del SVG por lo mismo
+            que el panel: con preserveAspectRatio="none" un <text> se estira.
+            "Ascenso · Diamante 1" y no "Diamante 1" a secas — así deja de
+            leerse como una etiqueta flotante y dice qué pasó ahí. El número
+            de división va en arábigo porque así lo escribe toda la app (el
+            pie de este mismo gráfico incluido). */}
+        {hitos
+          .filter((h) => h.rotulo)
+          .map((h) => (
+            <span
+              key={`e${h.q.matchId}`}
+              /* La clase del ancla lleva además la marquita que baja hasta el
+                 dibujo: sin ella un rótulo apoyado contra el borde derecho
+                 parece estar señalando el punto que tiene debajo, que es otro. */
+              className={`prog-hito-et ${h.fila} ${h.ancla}`}
+              style={{
+                left: `${(h.x / W) * 100}%`,
+                // Contra el borde el rótulo centrado se sale de la caja: ahí
+                // se apoya en su lado.
+                transform:
+                  h.ancla === "izq" ? "none" : h.ancla === "der" ? "translateX(-100%)" : "translateX(-50%)",
+              }}
+            >
+              <b>
+                {h.fila === "ascenso" ? "▲" : "▼"} {h.fila === "ascenso" ? "Ascenso" : "Descenso"}
+              </b>
+              <i style={{ color: tierFor(h.q.tier).fg }}>
+                {tierFor(h.q.tier).name} {h.q.division}
+              </i>
+            </span>
+          ))}
 
         {/* El detalle de la partida. En HTML y no adentro del SVG: con
             preserveAspectRatio="none" un <text> se estira a lo ancho. */}
@@ -197,6 +325,7 @@ export function ProgresionLP({ p, ddragonVersion }: { p: Progresion | undefined;
               </i>
             </span>
             <span className="prog-panel-tramo">
+              <span className="prog-panel-cuando">{cuando(activo.playedAt)}</span>
               {rangoTxt(activo.antes)} <span aria-hidden>→</span>{" "}
               {rangoTxt({ tier: activo.tier, division: activo.division, lp: activo.lpDespues })}
             </span>
@@ -204,17 +333,24 @@ export function ProgresionLP({ p, ddragonVersion }: { p: Progresion | undefined;
         )}
       </div>
 
-      {/* Las dos puntas, abajo y pegadas a su lado del dibujo. */}
+      {/* Las dos puntas, cada una con su fecha. Es lo que le da eje al
+          dibujo sin dibujar un eje, y además es donde se ve por qué el
+          gráfico usa rankScore y no el LP crudo: se arranca en "Diamante 2 ·
+          40 LP" y se termina en "Diamante 1 · 32 LP", que en LP pelado
+          parecen ocho menos y son casi una división más. */}
       <div className="prog-pie">
-        {p.desde && <span className="prog-punta">{rangoTxt(p.desde)}</span>}
-        {/* Lo que quedó afuera, dicho y no escondido: son las partidas que
-            cayeron antes de la primera foto guardada o en un hueco del cron. */}
-        {p.sinAtribuir > 0 && (
-          <span className="prog-faltan">
-            {p.sinAtribuir} sin LP atribuido
+        {p.desde && (
+          <span className="prog-punta">
+            {rangoTxt(p.desde)}
+            <i>{fechaCorta(p.desde.playedAt)}</i>
           </span>
         )}
-        {p.hasta && <span className="prog-punta a-la-derecha">{rangoTxt(p.hasta)}</span>}
+        {p.hasta && (
+          <span className="prog-punta a-la-derecha">
+            {rangoTxt(p.hasta)}
+            <i>{fechaCorta(p.hasta.playedAt)}</i>
+          </span>
+        )}
       </div>
     </div>
   );

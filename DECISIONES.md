@@ -3470,3 +3470,86 @@ el `style` del nodo.
 final. Con flex cada nodo de texto es un ítem: a 390 la primera se partía en "Contra
 los demás Mid" / "del grupo · sus 180 partidas…" y en la segunda el ⓘ se iba solo a
 un renglón propio. Son frases, van como bloque.
+
+## El gráfico de LP, segunda vuelta: los hitos pasan a ser eventos
+
+Tres cosas del primer intento no funcionaban, y las tres se arreglaron
+sacando decoración, no agregando.
+
+### Los rótulos de división parecían una lista sin sentido
+
+Decían "DIAMANTE 1", "DIAMANTE 2", "DIAMANTE 1", "DIAMANTE 2", "DIAMANTE 1"
+—cinco carteles seguidos, porque el jugador estaba rebotando en la línea de
+ascenso— y no se entendía qué representaba cada vertical. Un rango escrito
+solo es una etiqueta flotante; lo que pasó ahí es un **evento**, así que ahora
+lo dice: **"▲ Ascenso · Diamante 1"** / **"▼ Descenso · Diamante 2"**.
+
+El número de división va en arábigo y no en romano porque así lo escribe toda
+la app, el pie de este mismo gráfico incluido.
+
+Con el texto más largo aparecieron dos problemas de espacio, los dos medidos:
+
+1. **Se reparten en dos filas**: los ascensos arriba del dibujo y los
+   descensos abajo. Como en un rebote alternan, eso solo ya parte el problema
+   al medio.
+2. **Y dentro de cada fila se saltea el que se pisaría con el anterior.** El
+   corte vertical se dibuja SIEMPRE —ese es el dato—; lo que se saltea es el
+   cartel, y esa partida sigue contando su historia al pasarle por encima.
+
+Dos detalles que solo aparecieron midiendo:
+
+- **La cuenta va de atrás para adelante**, del hito más nuevo al más viejo. De
+  izquierda a derecha se perdían justo los dos últimos, que son los que más
+  importan: el gráfico cuenta cómo llegó hasta acá.
+- **La separación se calcula sobre el espacio que OCUPA el rótulo, no sobre la
+  distancia entre puntos.** Contra el borde el rótulo no va centrado sino
+  apoyado en su lado, y eso corre su caja: con la distancia sola, los dos
+  últimos ascensos se pisaban 22px a 1440.
+
+Y como un rótulo apoyado contra el borde derecho parece señalar el punto que
+tiene justo debajo (que es otro), cada uno lleva **una marquita de 1px que baja
+hasta el dibujo**, en su ancla. Verificado: la marca cae exactamente sobre su
+corte, a 390, 768 y 1440 (delta 0px).
+
+El ancho del rótulo (152px, con aire sobre los 137 que mide "▼ Descenso ·
+Diamante 2") se compara contra el ancho REAL del dibujo, que sale de un
+`ResizeObserver` en el ref de la caja: el rótulo mide siempre lo mismo en
+píxeles y el viewBox se estira, así que cuántos entran depende del ancho de
+verdad. Hasta la primera medición no se dibuja ninguno — mejor que aparezcan
+un frame después a que aparezcan encimados y se acomoden.
+
+### La curva suavizada decía algo que no sabemos
+
+El trazo pasó a **segmentos rectos**. El suavizado da la impresión de que
+sabemos qué pasó ENTRE dos partidas, y no sabemos nada: lo que hay son estados
+conocidos, uno por partida. Además los valles redondeados le daban aire de
+gráfico financiero decorativo. (`smoothLinePath` sigue existiendo para el
+`SparkChart`, donde los puntos sí son una serie temporal continua.)
+
+### "6 sin LP atribuido" era una nota al margen
+
+Estaba al pie del dibujo, centrada y en gris, leyéndose como una errata. Es lo
+que explica por qué el gráfico tiene catorce puntos y no veinte, así que subió
+al encabezado, junto al resto de lo que define de qué está hecho el dibujo, con
+un ⓘ que cuenta el porqué (partidas anteriores a la primera foto guardada, o un
+refresco que se perdió alguna de las dos fotos que las rodean).
+
+De paso el encabezado dice **"Últimas 14 partidas"** y no "Progresión · últimas
+14": el rótulo tiene que decir últimas 14 *qué*. Y el neto con su récord van
+apilados a la derecha.
+
+### Y el pie ganó las fechas
+
+Cada punta lleva ahora su fecha debajo del rango. Es lo que le da eje temporal
+al dibujo sin dibujar un eje — y las dos puntas juntas son la mejor
+demostración de por qué el gráfico usa `rankScore` y no el LP crudo: se arranca
+en "Diamante 2 · 40 LP" y se termina en "Diamante 1 · 19 LP", que en LP pelado
+parecen veintiuno menos y son casi una división más.
+
+### El panel del hover
+
+Ya mostraba resultado, LP, campeón, KDA, duración y el tramo de rango; le
+faltaba **cuándo**. Ahora arranca con "7 sept · 21:00", con la hora porque con
+cinco partidas del mismo día la fecha sola no ubica ninguna. Y se ensanchó a
+244px: con la fecha adentro, el tramo "Diamante 2 · 97 LP → Diamante 1 · 21 LP"
+se partía en dos renglones (medido).
