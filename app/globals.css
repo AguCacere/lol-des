@@ -802,9 +802,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .empty-state strong{color:var(--text-secondary); display:block; margin-bottom:4px; font-weight:600;}
 
 /* ---------- profile panel ---------- */
+/* El padding de la tarjeta sale de una variable porque hay contenido que
+   necesita SALIRSE hasta el borde (la tira de campeones) y tiene que restar
+   exactamente esto. Estaba escrito a mano en 20 mientras acá decía 24: la
+   tira no llegaba al borde —que era la idea— y de paso se desbordaba 20px
+   de su contenedor. */
 .profile{
+  --card-pad:24px;
   background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow);
-  padding:24px; margin-top:16px;
+  padding:var(--card-pad); margin-top:16px;
   opacity:1; transition:opacity .16s ease;
 }
 .profile.is-fading{opacity:0;}
@@ -6700,9 +6706,17 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .pc-arte{width:60px; height:60px; border-radius:15px;}
   .pc-nombre{font-size:19px;}
   .pc-cifras{font-size:12.5px;}
-  /* La tira se sale hasta el borde: el chip cortado dice "esto sigue". */
+  /* La tira se sale hasta el borde de la tarjeta: el chip cortado dice
+     "esto sigue". El sangrado sale de --card-pad y no de un 20 escrito a
+     mano, que es lo que estaba y no coincidía con los 24 reales: la tira se
+     quedaba 4px antes del borde y, peor, se desbordaba 20px de .pc (medido,
+     scrollWidth 322 contra 302 de ancho). Lo tapaba el padding de la
+     tarjeta, así que no llegaba a la pantalla — pero es exactamente la forma
+     de romper el ancho de la página desde adentro de una tarjeta. */
   .pc-tira{
-    flex-wrap:nowrap; overflow-x:auto; margin:0 -20px; padding:0 20px 6px;
+    flex-wrap:nowrap; overflow-x:auto;
+    margin:0 calc(var(--card-pad, 24px) * -1);
+    padding:0 var(--card-pad, 24px) 6px;
     scrollbar-width:none; -ms-overflow-style:none;
   }
   .pc-tira::-webkit-scrollbar{display:none;}

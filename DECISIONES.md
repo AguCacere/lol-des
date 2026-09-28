@@ -3828,3 +3828,24 @@ La primera versión puso el contenedor en `.lec-fichas` y consultó desde
 `.lec-fichas`: **un elemento no puede responder a su propia container query** —es
 circular y el navegador la ignora sin avisar—. Medido, a 390 las fichas seguían
 en dos columnas de 145px. El contenedor tiene que estar en el padre (`.lec`).
+
+## El sangrado de la tira de campeones estaba escrito a mano y no coincidía
+
+En el teléfono, la tira de campeones se sale hasta el borde de la tarjeta a
+propósito: un chip cortado por el margen dice "esto sigue" mejor que cualquier
+flecha. Eso se hace con un margen negativo que tiene que valer **exactamente**
+el padding de la tarjeta.
+
+Estaba en 20 y el padding es 24. Dos consecuencias, las dos medidas a 390:
+
+1. La tira se quedaba 4px antes del borde, así que el efecto no terminaba de
+   funcionar.
+2. Y se desbordaba de su contenedor: `.pc` medía 302 de ancho y **322 de
+   scrollWidth**. No llegaba a la pantalla porque lo tapaba el padding de la
+   tarjeta, pero es exactamente la forma de romper el ancho de la página desde
+   adentro de una tarjeta — y una página que se pasa de ancho, en iOS Safari,
+   se dibuja entera achicada y corrida a la izquierda.
+
+Ahora el padding de `.profile` vive en `--card-pad` y la tira resta esa
+variable. Medido después: la tira va de 20 a 370, que es el borde exacto de la
+tarjeta.
