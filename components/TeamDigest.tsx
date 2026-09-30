@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { TeamDigest as TeamDigestData } from "@/lib/types";
-import { tierFor, trendColor } from "@/lib/ladder";
+import { rangoTexto, tierFor, trendColor } from "@/lib/ladder";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { ChampIcon } from "./ChampIcon";
 import { InfoTip } from "./InfoTip";
@@ -30,7 +30,7 @@ function RankEnd({ point }: { point: { tier: Parameters<typeof tierFor>[0]; divi
   return (
     <span className="digest-rank-end">
       <span style={{ color: t.fg }}>
-        {t.name} {point.division}
+        {rangoTexto(point.tier, point.division)}
       </span>
       <span className="digest-rank-lp">· {point.lp} LP</span>
     </span>

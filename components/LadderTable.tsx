@@ -1,5 +1,5 @@
 import type { Player, RoleKey } from "@/lib/types";
-import { champTag, currentStreak, liveGameTimeLabel, rankScore, ROLES, tierFor } from "@/lib/ladder";
+import { champTag, currentStreak, liveGameTimeLabel, rangoTexto, rankScore, ROLES, tierFor } from "@/lib/ladder";
 import { RoleIcon } from "./RoleIcon";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { Select, type OpcionSelect } from "./Select";
@@ -389,7 +389,7 @@ export function LadderTable({
                         {p.lp} <i>LP</i>
                       </span>
                       <span className="tier-name" style={{ color: t.fg }}>
-                        {t.name} {p.division}
+                        {rangoTexto(p.tierKey, p.division)}
                       </span>
                     </span>
                   </span>

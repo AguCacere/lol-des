@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { linePath } from "@/lib/chart";
-import { tierFor } from "@/lib/ladder";
+import { divisionCorta, rangoTexto, tierFor } from "@/lib/ladder";
 import { championLabel } from "@/lib/champion-names";
 import { ChampIcon } from "./ChampIcon";
 import { InfoTip } from "./InfoTip";
@@ -52,7 +52,7 @@ const ANCHO_TIER = 152;
 const ANCHO_DIV = 40;
 
 const rangoTxt = (t: { tier: PuntoProgresion["tier"]; division: number; lp: number }) =>
-  `${tierFor(t.tier).name} ${t.division} · ${t.lp} LP`;
+  `${rangoTexto(t.tier, t.division)} · ${t.lp} LP`;
 
 const lpTxt = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n)}`;
 
@@ -351,18 +351,16 @@ export function ProgresionLP({
                   <b>
                     {h.fila === "ascenso" ? "▲" : "▼"} {h.fila === "ascenso" ? "Ascenso" : "Descenso"}
                   </b>
-                  <i style={{ color: tierFor(h.q.tier).fg }}>
-                    {tierFor(h.q.tier).name} {h.q.division}
-                  </i>
+                  <i style={{ color: tierFor(h.q.tier).fg }}>{rangoTexto(h.q.tier, h.q.division)}</i>
                 </>
               ) : (
                 /* El movimiento de división, en chiquito: la flecha y el
                    rango en dos letras. El tier no hace falta escribirlo
                    —no cambió— y con el nombre entero eran siete carteles
                    del mismo peso peleándole a la curva. */
-                <b title={`${tierFor(h.q.tier).name} ${h.q.division}`}>
+                <b title={rangoTexto(h.q.tier, h.q.division)}>
                   {h.fila === "ascenso" ? "▲" : "▼"} {tierFor(h.q.tier).corto}
-                  {h.q.division}
+                  {divisionCorta(h.q.tier, h.q.division)}
                 </b>
               )}
             </span>

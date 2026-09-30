@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Player } from "@/lib/types";
 import type { TabKey } from "./TabNav";
-import { ROLES, tierFor } from "@/lib/ladder";
+import { rangoTexto, ROLES, tierFor } from "@/lib/ladder";
 import { championLabel } from "@/lib/champion-names";
 
 /**
@@ -69,7 +69,7 @@ export function CommandPalette({
         detalle: (
           <>
             <span style={{ color: t.fg }}>
-              {t.name} {p.division}
+              {rangoTexto(p.tierKey, p.division)}
             </span>{" "}
             · {ROLES[p.role].label} · {championLabel(p.mainChamp)}
           </>

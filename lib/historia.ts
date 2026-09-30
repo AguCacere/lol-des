@@ -30,7 +30,7 @@
  * racha, y una racha de diez no lo cambia.
  */
 
-import { currentStreak, rankScore, tierFor } from "./ladder";
+import { currentStreak, rangoTexto, rankScore, tierFor } from "./ladder";
 import type { DuoPair, Player } from "./types";
 import { lpDeHoy, lpDelGrupoHoy, RACHA_MINIMA, type Movimiento } from "./actividad";
 
@@ -71,7 +71,7 @@ export const LIGA_HORAS = 36;
 const ARG_OFFSET_MS = 3 * 60 * 60 * 1000;
 const diaArgentino = (ms: number) => Math.floor((ms - ARG_OFFSET_MS) / 86400000);
 
-const rango = (t: Parameters<typeof tierFor>[0], d: number) => `${tierFor(t).name} ${d}`;
+const rango = rangoTexto;
 const num = (n: number) => (Math.round(n * 100) / 100).toString().replace(".", ",");
 
 /** Cuántas partidas jugó hoy y cuántas ganó. */

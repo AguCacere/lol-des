@@ -6,7 +6,7 @@ import { TierEmblem } from "./TierEmblem";
 import { ChampIcon } from "./ChampIcon";
 import { useLiga, type Fila } from "./useLiga";
 import { championLabel } from "@/lib/champion-names";
-import { liveGameTimeLabel, tierFor } from "@/lib/ladder";
+import { liveGameTimeLabel, rangoTexto, tierFor } from "@/lib/ladder";
 import { puntajeTexto } from "@/lib/liga";
 import { movimientosRecientes, resumenDeHoy, type Movimiento } from "@/lib/actividad";
 import { esElMismo, historiaDelDia, lpDelGrupoHoy } from "@/lib/historia";
@@ -278,7 +278,7 @@ export function Inicio({ players, duos, loading, ddragonVersion, onPlayer, onRan
                     <TierEmblem tierKey={p.tierKey} division={p.division} />
                     <span className="inicio-rango">
                       <span className="inicio-rango-nombre" style={{ color: t.fg }}>
-                        {t.name} {p.division}
+                        {rangoTexto(p.tierKey, p.division)}
                       </span>
                       <span className="inicio-rango-lp">{p.lp} LP</span>
                     </span>

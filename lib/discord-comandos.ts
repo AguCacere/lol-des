@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { conReintento } from "./supabase";
 import COMANDOS from "./discord-comandos.json";
-import { formatRelativeTime, rankScore, tierFor } from "./ladder";
+import { formatRelativeTime, rankScore, tieneDivisiones, tierFor } from "./ladder";
 import { tierKeyFromRiot, divisionFromRiot } from "./mapping";
 import { roastMessage, worstDisaster, type RoastCandidate } from "./roast";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "./refresh";
@@ -247,7 +247,9 @@ async function comandoRanking(supabase: SupabaseClient): Promise<string> {
     const t = tierFor(r.key);
     // Maestro y para arriba no tienen división: escribir "Maestro I" es inventar
     // un escalón que no existe.
-    const rango = r.key === "master" ? t.name : `${t.name} ${NUMERO_DE_DIVISION[r.division] ?? ""}`;
+    // Romanos como los escribe Riot en Discord, pero la regla de si hay o no
+    // división es la misma de toda la app (ver tieneDivisiones en lib/ladder).
+    const rango = tieneDivisiones(r.key) ? `${t.name} ${NUMERO_DE_DIVISION[r.division] ?? ""}` : t.name;
     const jugadas = (r.f.wins ?? 0) + (r.f.losses ?? 0);
     const wr = jugadas > 0 ? ` · ${Math.round(((r.f.wins ?? 0) / jugadas) * 100)}%` : "";
     const record = jugadas > 0 ? ` · \`${r.f.wins ?? 0}V-${r.f.losses ?? 0}D\`` : "";

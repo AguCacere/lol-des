@@ -84,6 +84,23 @@ cron, que en el plan Hobby no se puede.
 Lo otro, que no es un problema sino un dato: son entre una y cinco por persona
 sobre meses. Que el perfil muestre "0 Aegis" es un resultado normal.
 
+## Faltan tres emblemas de rango
+
+`public/icons/ranks/` tiene bronce, oro, platino, esmeralda y diamante.
+**Faltan hierro, plata y maestro.** Donde falta el archivo, la app dibuja la
+chapa de letra ("M", "P4") en vez del escudo — funciona, pero desentona al lado
+de los que sí tienen arte, y hoy hay alguien en Maestro.
+
+Para arreglarlo hace falta el archivo, que desde la sesión no se puede bajar
+(no hay red a Data Dragon ni a Community Dragon, y esta última ya se descartó
+por poco confiable — ver DECISIONES). Son dos pasos:
+
+1. Poner `iron.webp`, `silver.webp` y `master.webp` en `public/icons/ranks/`,
+   al mismo tamaño que los otros cinco.
+2. Agregar las claves a `RANK_EMBLEMS_AVAILABLE` en `lib/ladder.ts`. La lista
+   es explícita a propósito: sin la clave no se pide el archivo, así que nunca
+   se dispara un 404 que muestre una imagen rota antes de caer a la chapa.
+
 ## SQL sin correr
 
 Las migraciones de esta base se corren **a mano** desde el SQL Editor de Supabase. Desde

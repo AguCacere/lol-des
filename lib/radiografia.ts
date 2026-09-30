@@ -1,4 +1,4 @@
-import { rankScore, tierFor } from "./ladder";
+import { rangoTexto, rankScore } from "./ladder";
 import { wilsonLower } from "./wilson";
 import { winrateExacto } from "./winrate";
 import type { TierKey } from "./types";
@@ -880,7 +880,7 @@ function calcularRecords(
       titulo: "El pico más alto",
       persona: pico.persona,
       quien: pico.persona.name,
-      valor: `${tierFor(pico.foto.tier).name} ${pico.foto.division}`,
+      valor: rangoTexto(pico.foto.tier, pico.foto.division),
       contexto: `con ${pico.foto.lp} PL`,
       cuando: pico.foto.capturedAt,
     });

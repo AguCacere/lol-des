@@ -3,7 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabase";
 import { dossierHash, generateCoachReport, type CoachDossier, type CoachReport } from "@/lib/coach";
 import { computeMatchups, type MatchupSample } from "@/lib/matchups";
 import { roleFromTeamPosition } from "@/lib/mapping";
-import { ROLES, tierFor } from "@/lib/ladder";
+import { rangoTexto, ROLES, tierFor } from "@/lib/ladder";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { exigirSesion } from "@/lib/auth";
 import { winrateExacto } from "@/lib/winrate";
@@ -156,7 +156,7 @@ export async function POST(req: Request) {
   const dossier: CoachDossier = {
     gameName: summoner.game_name,
     rol: rolTop ? ROLES[rolTop as keyof typeof ROLES].label : "sin rol definido",
-    rango: t ? `${t.name} ${summoner.division} · ${summoner.lp} LP` : "sin rango",
+    rango: t ? `${rangoTexto(t.key, summoner.division)} · ${summoner.lp} LP` : "sin rango",
     totalPartidas: rows.length,
     pool,
     matchups: computeMatchups(samples),

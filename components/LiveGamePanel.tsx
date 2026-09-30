@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { LiveDetail, LiveParticipant } from "@/lib/types";
-import { tierFor, ROLES } from "@/lib/ladder";
+import { rangoTexto, tierFor, ROLES } from "@/lib/ladder";
 import { championLabel } from "@/lib/champion-names";
 import { ChampIcon } from "./ChampIcon";
 import { RoleIcon } from "./RoleIcon";
@@ -68,7 +68,7 @@ function Rival({ p, version }: { p: LiveParticipant; version: string | null }) {
         <span className="lg-sub">
           {t && p.rango ? (
             <span style={{ color: t.fg }}>
-              {t.name} {p.rango.division}
+              {rangoTexto(p.rango.tier, p.rango.division)}
             </span>
           ) : (
             <span className="lg-sinrango">Sin ranked</span>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Player } from "@/lib/types";
 import type { FilaWinrate } from "@/lib/radiografia";
-import { ROLES, formatRelativeTime, tierFor } from "@/lib/ladder";
+import { rangoTexto, ROLES, formatRelativeTime, tierFor } from "@/lib/ladder";
 import { tonoDeWinrate, winrateTexto } from "@/lib/winrate";
 import { ChampIcon } from "./ChampIcon";
 import { PlayerAvatar } from "./PlayerAvatar";
@@ -69,7 +69,7 @@ function Fila({
           {t && player ? (
             <span className="ef-sub">
               <span style={{ color: t.fg }}>
-                {t.name} {player.division}
+                {rangoTexto(player.tierKey, player.division)}
               </span>
               <span className="ef-punto">·</span>
               {ROLES[player.role].label}

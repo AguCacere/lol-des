@@ -56,6 +56,31 @@ export function rankScore(tierKey: TierKey, division: number, lp: number): numbe
   return tierFor(tierKey).rank * 400 + (5 - division) * 100 + lp;
 }
 
+/**
+ * **Maestro no tiene divisiones.** "Maestro 1" no existe.
+ *
+ * Riot manda `rank: "I"` igual para los tres tiers de arriba —Master,
+ * Grandmaster y Challenger, que acá caen todos en `master` (ver
+ * lib/mapping.ts)— y `divisionFromRiot` lo convierte en 1. El 1 guardado NO
+ * se toca: `rankScore` lo necesita para que Maestro quede arriba de Diamante
+ * 1, porque la cuenta es `rank*400 + (5-división)*100`. Lo que cambia es lo
+ * que se escribe.
+ */
+export function tieneDivisiones(tierKey: TierKey): boolean {
+  return tierKey !== "master";
+}
+
+/** El rango como se escribe: "Diamante 2", "Maestro". Va en pantalla siempre. */
+export function rangoTexto(tierKey: TierKey, division: number): string {
+  const t = tierFor(tierKey);
+  return tieneDivisiones(tierKey) ? `${t.name} ${division}` : t.name;
+}
+
+/** La división para los rótulos cortos ("D2", "M"): vacía cuando no hay. */
+export function divisionCorta(tierKey: TierKey, division: number): string {
+  return tieneDivisiones(tierKey) ? String(division) : "";
+}
+
 export function tierScore(p: Player): number {
   return rankScore(p.tierKey, p.division, p.lp);
 }

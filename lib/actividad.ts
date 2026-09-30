@@ -22,7 +22,7 @@
  * convierte una promoción —el mejor momento de la semana— en una caída de 70.
  */
 
-import { currentStreak, rankScore, tierFor } from "./ladder";
+import { currentStreak, rangoTexto, rankScore } from "./ladder";
 import type { LpHistoryPoint, Player } from "./types";
 
 /** Cuánto para atrás mira el feed. Un día: menos es un feed casi siempre vacío en un grupo de siete. */
@@ -91,11 +91,6 @@ function desde(historia: LpHistoryPoint[], corte: number): LpHistoryPoint | null
 function lpTexto(lp: number | null): string | null {
   if (lp === null || lp === 0) return null;
   return `${lp > 0 ? "+" : "−"}${Math.abs(lp)} LP hoy`;
-}
-
-/** "Esmeralda 4". El nombre que usa toda la app, no el de Riot. */
-function rangoTexto(tier: LpHistoryPoint["tier"], division: number): string {
-  return `${tierFor(tier).name} ${division}`;
 }
 
 /**

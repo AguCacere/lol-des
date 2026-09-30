@@ -3849,3 +3849,29 @@ Estaba en 20 y el padding es 24. Dos consecuencias, las dos medidas a 390:
 Ahora el padding de `.profile` vive en `--card-pad` y la tira resta esa
 variable. Medido después: la tira va de 20 a 370, que es el borde exacto de la
 tarjeta.
+
+## "Maestro 1" no existe
+
+Riot manda `rank: "I"` para los tres tiers de arriba —Master, Grandmaster y
+Challenger, que esta app pliega en `master` (ver lib/mapping.ts)— y
+`divisionFromRiot` lo convierte en 1. Once lugares escribían `${t.name}
+${division}` a mano, así que en todos salía **"Maestro 1"**, y la chapa del
+ladder decía **"M1"**.
+
+El 1 guardado **no se toca**. `rankScore` lo necesita: la cuenta es
+`rank*400 + (5-división)*100 + lp`, así que un Maestro con división 4 quedaría
+300 puntos abajo de donde va, atrás de un Diamante 1. Lo que cambia es lo que
+se escribe, y ahora sale de tres funciones en `lib/ladder.ts`
+—`tieneDivisiones`, `rangoTexto`, `divisionCorta`— que usan los once lugares.
+Antes la regla existía en uno solo (el `/top` del bot de Discord, que ya
+preguntaba `key === "master"`): estaba bien resuelta y mal repartida.
+
+De paso, dos cosas del mismo origen en la cabecera del perfil:
+
+- **La barra de progreso a la división siguiente no se dibuja en Maestro.** Ahí
+  el LP no tiene techo en 100, así que la barra medía "5 de 100" —un 5% que no
+  significa nada— y abajo decía "tope de división del sistema alcanzado", que
+  encima no es cierto: arriba están Gran Maestro y Aspirante.
+- **El rango del perfil quedaba sin emblema** en los tiers sin arte (hierro,
+  plata y maestro): el ladder caía a la chapa de letra y el perfil no dibujaba
+  nada. Ahora cae a la misma chapa.

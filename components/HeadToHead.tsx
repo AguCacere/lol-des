@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { DuoPair, Player } from "@/lib/types";
 import { RADAR_AXIS, type RadarMetric } from "@/lib/radar";
-import { formatRelativeTime, ROLES, tierFor } from "@/lib/ladder";
+import { formatRelativeTime, rangoTexto, ROLES, tierFor } from "@/lib/ladder";
 import { championLabel } from "@/lib/champion-names";
 import { tonoDeWinrate, winrateTexto } from "@/lib/winrate";
 import { ChampIcon } from "./ChampIcon";
@@ -83,7 +83,7 @@ function Ficha({ p, lado }: { p: Player; lado: "a" | "b" }) {
       </div>
       <div className="h2h-ficha-stats">
         <span style={{ color: t.fg }}>
-          {t.name} {p.division}
+          {rangoTexto(p.tierKey, p.division)}
         </span>
         <span className="h2h-sep">·</span>
         <span>{p.lp} LP</span>
@@ -155,10 +155,11 @@ export function HeadToHead({
     );
   }
 
-  const opciones: OpcionSelect[] = players.map((p) => {
-    const t = tierFor(p.tierKey);
-    return { value: claveDe(p), label: claveDe(p), detalle: `${t.name} ${p.division} · ${ROLES[p.role].label}` };
-  });
+  const opciones: OpcionSelect[] = players.map((p) => ({
+    value: claveDe(p),
+    label: claveDe(p),
+    detalle: `${rangoTexto(p.tierKey, p.division)} · ${ROLES[p.role].label}`,
+  }));
 
   const a = players.find((p) => claveDe(p) === claveA) ?? players[0];
   const b = players.find((p) => claveDe(p) === claveB) ?? players[1];

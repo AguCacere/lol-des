@@ -114,7 +114,9 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
 - `mapping.ts` — tiers de League-V4 → los `TierKey` de la UI.
 
 **Cálculo puro** (sin red ni base: entran datos, salen números)
-- `ladder.ts` — tier, rachas, fechas relativas, promedios por rol.
+- `ladder.ts` — tier, rachas, fechas relativas, promedios por rol. Y **cómo se
+  escribe un rango**: `rangoTexto` / `divisionCorta` / `tieneDivisiones`, que
+  son las que saben que Maestro no tiene divisiones aunque Riot mande "I".
 - `wilson.ts` — el límite inferior de Wilson, para ordenar winrates con poca muestra.
 - `lineas.ts` — historial por línea y detección de autofill.
 - `live-roles.ts` — en qué línea juega cada uno **durante** la partida (Spectator no

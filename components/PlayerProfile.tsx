@@ -5,6 +5,8 @@ import type { Player } from "@/lib/types";
 import {
   tierFor,
   champTag,
+  divisionCorta,
+  rangoTexto,
   ROLES,
   currentStreak,
   formatRelativeDate,
@@ -272,13 +274,22 @@ export function PlayerProfile({
               {/* El emblema le da al rango el ancla visual que le faltaba:
                   era el dato más importante del header y competía como texto
                   suelto contra cuatro chips de colores. */}
-              {emblemUrl && (
+              {emblemUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- ícono local fijo, no vale la config de next/image
                 <img src={emblemUrl} alt="" className="profile-tier-emblem" />
+              ) : (
+                // Sin arte para ese tier todavía (hoy: hierro, plata y
+                // maestro). La chapa de letra es la misma que usa el ladder —
+                // antes acá no se dibujaba NADA, así que el rango del perfil
+                // quedaba sin ancla justo en los tres tiers sin emblema.
+                <span className="tier-badge profile-tier-chapa" style={{ background: t.bg, color: t.fg }}>
+                  {t.name[0]}
+                  {divisionCorta(p.tierKey, p.division)}
+                </span>
               )}
               <div className="profile-tier-names">
                 <div className="tn" style={{ color: t.fg }}>
-                  {t.name} {p.division}
+                  {rangoTexto(p.tierKey, p.division)}
                 </div>
                 <div className="tl">{p.lp} LP</div>
               </div>
@@ -299,14 +310,22 @@ export function PlayerProfile({
             {/* Barra en vez de la pill "Faltan N LP para X". Los LP dentro de
                 una división van de 0 a 100, así que la proporción existe de
                 verdad y se lee de un vistazo; el texto que estaba antes queda
-                igual debajo, sin perder el número exacto. */}
+                igual debajo, sin perder el número exacto.
+
+                En Maestro NO se dibuja: ahí no hay divisiones y el LP no tiene
+                techo en 100, así que la barra medía "5 LP de 100" —un 5% que
+                no significa nada— y abajo decía "tope del sistema alcanzado",
+                que tampoco es cierto: arriba están Gran Maestro y Aspirante,
+                que esta app pliega en Maestro (ver lib/mapping.ts). */}
             <div className="rank-progress">
-              <div className="rank-progress-track">
-                <div
-                  className="rank-progress-fill"
-                  style={{ width: `${Math.max(2, Math.min(100, p.lp))}%`, background: t.fg }}
-                />
-              </div>
+              {next && (
+                <div className="rank-progress-track">
+                  <div
+                    className="rank-progress-fill"
+                    style={{ width: `${Math.max(2, Math.min(100, p.lp))}%`, background: t.fg }}
+                  />
+                </div>
+              )}
               <span className="rank-progress-label">
                 {next ? (
                   <>
@@ -314,7 +333,7 @@ export function PlayerProfile({
                     {next.division ? ` ${next.division}` : ""}
                   </>
                 ) : (
-                  "Tope de división del sistema alcanzado"
+                  "En Maestro ya no hay divisiones: se sigue sumando LP y listo"
                 )}
               </span>
             </div>
@@ -324,9 +343,7 @@ export function PlayerProfile({
             <div className="profile-tier-context">
               <span>
                 Máximo <InfoTip text={METRIC_INFO.peakLp} />{" "}
-                <span style={{ color: peakTier.fg }}>
-                  {peakTier.name} {p.peakLp.division}
-                </span>{" "}
+                <span style={{ color: peakTier.fg }}>{rangoTexto(p.peakLp.tier, p.peakLp.division)}</span>{" "}
                 · {p.peakLp.lp} LP{isAtPeak && " (actual)"}
               </span>
               {p.flexRank && (
@@ -336,7 +353,7 @@ export function PlayerProfile({
                     style={{ background: tierFor(p.flexRank.tier).bg, color: tierFor(p.flexRank.tier).fg }}
                   >
                     {tierFor(p.flexRank.tier).name[0]}
-                    {p.flexRank.division}
+                    {divisionCorta(p.flexRank.tier, p.flexRank.division)}
                   </span>
                   Flex · {p.flexRank.lp} LP
                 </span>

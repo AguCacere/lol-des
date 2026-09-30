@@ -1,7 +1,7 @@
 "use client";
 
 import type { TierKey } from "@/lib/types";
-import { tierFor, rankEmblemUrl } from "@/lib/ladder";
+import { tierFor, rankEmblemUrl, divisionCorta } from "@/lib/ladder";
 import { useImageFallback } from "@/lib/useImageFallback";
 
 /**
@@ -20,7 +20,9 @@ export function TierEmblem({ tierKey, division }: { tierKey: TierKey; division: 
     return (
       <span className="tier-badge" style={{ background: t.bg, color: t.fg }}>
         {t.name[0]}
-        {division}
+        {/* Sin número en Maestro: no tiene divisiones, así que la chapa
+            decía "M1" y eso no existe (ver tieneDivisiones en lib/ladder). */}
+        {divisionCorta(tierKey, division)}
       </span>
     );
   }

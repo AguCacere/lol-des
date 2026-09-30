@@ -19,7 +19,7 @@ import { mejorCarry, mensajeDeCarry } from "./carry";
 import { hitoDe, mejorHito, mensajeDeHito, PARTIDAS_PARA_RECORD, type Hito, type HitoCandidate } from "./hitos";
 import { roastMessage, worstDisaster, type RoastCandidate } from "./roast";
 import { detectTilt } from "./tilt";
-import { tierFor } from "./ladder";
+import { rangoTexto, tierFor } from "./ladder";
 import { divisionFromRiot, tierKeyFromRiot } from "./mapping";
 
 type SupabaseClient = ReturnType<typeof getSupabaseServerClient>;
@@ -182,18 +182,18 @@ function rankOrdinal(tier: string, rank: string): number {
 async function notifyPromotion(supabase: SupabaseClient, puuid: string, entry: RiotLeagueEntry) {
   const label = await summonerLabel(supabase, puuid);
   if (!label) return;
-  const t = tierFor(tierKeyFromRiot(entry.tier));
+  const tierKey = tierKeyFromRiot(entry.tier);
   const division = divisionFromRiot(entry.rank);
-  await sendDiscordNotification(`📈 **${label}** subió a **${t.name} ${division}**. Bien ahí.`);
+  await sendDiscordNotification(`📈 **${label}** subió a **${rangoTexto(tierKey, division)}**. Bien ahí.`);
 }
 
 /** Only for a genuine LEAGUE drop (e.g. Esmeralda → Platino) — a division drop within the same tier (Platino 2 → Platino 3) never calls this, see the tier-rank-only check in upsertRankSnapshot. */
 async function notifyDemotion(supabase: SupabaseClient, puuid: string, entry: RiotLeagueEntry) {
   const label = await summonerLabel(supabase, puuid);
   if (!label) return;
-  const t = tierFor(tierKeyFromRiot(entry.tier));
+  const tierKey = tierKeyFromRiot(entry.tier);
   const division = divisionFromRiot(entry.rank);
-  await sendDiscordNotification(`📉 **${label}** se fue a **${t.name} ${division}**. A remarla de nuevo.`);
+  await sendDiscordNotification(`📉 **${label}** se fue a **${rangoTexto(tierKey, division)}**. A remarla de nuevo.`);
 }
 
 /**

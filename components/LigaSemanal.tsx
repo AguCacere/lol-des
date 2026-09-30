@@ -15,7 +15,7 @@ import { StreakIcon } from "./StreakIcon";
 import { ChampIcon } from "./ChampIcon";
 import { RoleIcon } from "./RoleIcon";
 import { championLabel } from "@/lib/champion-names";
-import { ROLES, tierFor } from "@/lib/ladder";
+import { rangoTexto as rangoDeTier, ROLES, tierFor } from "@/lib/ladder";
 import { puntajeTexto } from "@/lib/liga";
 import { useLiga, type Fila, type PartidaLiga } from "./useLiga";
 
@@ -634,7 +634,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                         <>
                           <TierEmblem tierKey={f.rango.tier} division={f.rango.division} />
                           <span style={{ color: t.fg }}>
-                            {t.name} {f.rango.division}
+                            {rangoDeTier(f.rango.tier, f.rango.division)}
                           </span>
                           <span className="jug-meta-lp">{f.rango.lp} LP</span>
                         </>
