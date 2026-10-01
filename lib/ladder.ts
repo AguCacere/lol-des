@@ -45,7 +45,7 @@ export function tierFor(key: TierKey): Tier {
  * that's known to 404 and flashing a broken image first — add the file AND
  * the key here when new art lands.
  */
-const RANK_EMBLEMS_AVAILABLE: ReadonlySet<TierKey> = new Set(["bronze", "gold", "platinum", "emerald", "diamond"]);
+const RANK_EMBLEMS_AVAILABLE: ReadonlySet<TierKey> = new Set(["silver", "bronze", "gold", "platinum", "emerald", "diamond", "master"]);
 
 export function rankEmblemUrl(tierKey: TierKey): string | null {
   return RANK_EMBLEMS_AVAILABLE.has(tierKey) ? `/icons/ranks/${tierKey}.webp` : null;
