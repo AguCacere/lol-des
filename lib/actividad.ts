@@ -202,6 +202,26 @@ export interface Hoy {
 }
 
 /**
+ * El titular del día, combinando lo TERMINADO con lo que está pasando ahora.
+ *
+ * Existe porque la pantalla se contradecía sola: arriba decía "2 en partida" y
+ * el titular decía "Todavía no jugó nadie". Las dos frases eran ciertas —nadie
+ * TERMINÓ una partida todavía— pero juntas no se pueden leer. Si hay gente
+ * jugando, el día arrancó.
+ *
+ * `enCurso` sale de `gruposEnVivo` (lib/live-grupos.ts), que es la única
+ * representación de Live de la app. Devuelve solo el texto: los números del
+ * desglose —victorias, derrotas, quiénes jugaron— los sigue poniendo la misma
+ * franja de siempre.
+ */
+export function tituloDeHoy(partidas: number, enCurso: number): string {
+  const jugando = enCurso === 1 ? "1 está jugando ahora" : `${enCurso} están jugando ahora`;
+  if (partidas === 0) return enCurso === 0 ? "Todavía no arrancó el día" : jugando;
+  const hechas = `${partidas} partida${partidas === 1 ? "" : "s"} hoy`;
+  return enCurso === 0 ? hechas : `${hechas} · ${enCurso} en curso`;
+}
+
+/**
  * El pulso del día. Existe porque el encabezado de la app ya dice cuántos
  * invocadores hay, en qué región y quién está en partida —los tres datos de
  * "estado ambiente"— y repetirlos abajo, más grandes, no es un resumen: es la

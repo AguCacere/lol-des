@@ -460,7 +460,16 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    marcaba secciones —ocho encabezados con una lucecita— y con la app
    refrescándose sola cada 15 minutos no señalaba nada: solo hacía que todo
    pareciera un panel de estado. */
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.45;}}
+/* De .45 a .62: el latido tiene que leerse como "esto está pasando ahora",
+   no como un parpadeo. A .45 el punto casi desaparecía en cada ciclo y en una
+   barra fija eso termina molestando. */
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.62;}}
+@media (prefers-reduced-motion:reduce){
+  /* Explícito: el interruptor global deja la animación en 0.001ms, que la
+     para en un fotograma cualquiera —puede ser el del .62— y el punto
+     quedaría apagado para siempre. Acá es verde fijo y listo. */
+  .live-dot{animation:none; opacity:1;}
+}
 
 /* Transparent, no pill fill — the dot + its own soft halo already carry
    enough "this is live" weight without a colored background block. */
@@ -563,6 +572,17 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   padding:11px 13px 9px; border-bottom:1px solid var(--border-soft);
 }
 .live-tray-list{display:flex; flex-direction:column;}
+/* Expandida muestra todas, pero con tope: desde la cuarta scrollea en vez de
+   trepar por la pantalla. Es un indicador persistente, no un panel. */
+.live-tray-list.abierta{max-height:252px; overflow-y:auto;}
+.live-tray-mas{
+  margin-left:auto; appearance:none; -webkit-appearance:none; cursor:pointer;
+  background:none; border:none; padding:0 2px;
+  font-family:var(--font-mono); font-size:10px; font-weight:700;
+  color:var(--text-muted); transition:color var(--t-toque) var(--e-entra);
+}
+.live-tray-mas:hover{color:var(--good);}
+.live-tray-mas:focus-visible{outline:2px solid var(--good); outline-offset:2px; border-radius:3px;}
 /* Ahora es un <button>: hay que resetear lo que el navegador le pone de
    fábrica (fondo, borde, tipografía, alineación) o la fila se deforma. */
 .live-tray-row{
@@ -2969,8 +2989,84 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* Ámbar y no rojo: alguien atrasado no es un error de la app, es un aviso
    de que a ese invocador le viene fallando el refresco. */
 .brand-atrasados{color:var(--accent);}
-.brand-live{display:inline-flex; align-items:center; gap:5px; color:var(--good); font-weight:600;}
+/* "N en partida" pasó de rótulo a botón: el número ya estaba, lo que faltaba
+   era poder preguntarle QUIÉNES. Sin caja ni subrayado en reposo — en la
+   barra, un botón con forma de botón compite con la marca. */
+.brand-live-wrap{position:relative; display:inline-flex;}
+.brand-live{
+  display:inline-flex; align-items:center; gap:5px; color:var(--good); font-weight:600;
+  appearance:none; -webkit-appearance:none; background:none; border:none; padding:0;
+  font-family:inherit; font-size:inherit; cursor:pointer;
+  transition:filter var(--t-toque) var(--e-entra);
+}
+.brand-live:hover, .brand-live.is-abierto{filter:brightness(1.25);}
+.brand-live:focus-visible{outline:2px solid var(--good); outline-offset:3px; border-radius:4px;}
 .brand-live .live-dot{width:6px; height:6px; box-shadow:0 0 0 2.5px var(--good-wash);}
+
+/* ── El popover de en vivo ──
+   Cuelga del botón y no crece la barra, que es el requisito: la barra es un
+   indicador global y tiene que seguir midiendo lo mismo con cero o con seis
+   partidas en curso. */
+.live-pop{
+  position:absolute; top:calc(100% + 10px); left:-8px; z-index:60;
+  min-width:272px; max-width:min(340px, calc(100vw - 32px));
+  background:var(--surface-raised); border:1px solid var(--border-firm);
+  border-radius:var(--radius-md); box-shadow:var(--shadow-lg, 0 18px 40px rgba(0,0,0,.55));
+  overflow:hidden;
+  animation:hero-entra 160ms var(--e-entra) both;
+}
+.live-pop-head{
+  display:flex; align-items:center; gap:7px;
+  padding:9px 12px; border-bottom:1px solid var(--border-soft);
+  font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--good); background:rgba(0,0,0,0.2);
+}
+/* Desde la cuarta partida scrollea en vez de crecer. */
+.live-pop-list{display:flex; flex-direction:column; max-height:264px; overflow-y:auto;}
+.live-pop-row{
+  display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+  appearance:none; -webkit-appearance:none; cursor:pointer;
+  background:none; border:none; border-bottom:1px solid var(--border-soft);
+  padding:9px 12px; font-family:inherit;
+  transition:background var(--t-toque) var(--e-entra);
+}
+.live-pop-row:last-child{border-bottom:none;}
+.live-pop-row:hover{background:var(--surface);}
+.live-pop-row:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
+/* Los campeones encimados cuando son varios: dicen "esto es una partida" sin
+   gastar el ancho de un ícono por persona. */
+.live-pop-champs{display:inline-flex; flex:none;}
+.live-pop-champ{
+  width:26px; height:26px; border-radius:7px; flex:none;
+  box-shadow:0 0 0 2px var(--surface-raised);
+}
+.live-pop-champs .live-pop-champ + .live-pop-champ{margin-left:-9px;}
+.live-pop-mid{display:flex; flex-direction:column; gap:2px; min-width:0;}
+.live-pop-nombres{
+  font-size:12.5px; font-weight:700; color:var(--text-primary);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.live-pop-meta{
+  display:flex; align-items:center; gap:4px; flex-wrap:wrap;
+  font-size:10.5px; color:var(--text-muted);
+}
+.live-pop-sep{opacity:0.5;}
+.live-pop-juntos{display:inline-flex; align-items:center; gap:3px; color:var(--accent); font-weight:700;}
+.live-pop-juntos svg{width:10px; height:10px; flex:none;}
+@media (max-width:520px){
+  /* En un teléfono se ancla a la PANTALLA y no al botón: colgado del botón se
+     salía por la derecha —medido, 390px de viewport y el panel terminaba
+     afuera—. Y `left:0` no alcanzaba, porque ese cero es el del envoltorio,
+     que está metido adentro de la marca.
+
+     `position:fixed` con `top:auto` conserva la posición estática —o sea
+     sigue cayendo abajo del botón— pero los lados pasan a medirse contra el
+     viewport, que es exactamente lo que hace falta. */
+  .live-pop{
+    position:fixed; left:14px; right:14px; top:auto;
+    min-width:0; max-width:none; width:auto;
+  }
+}
 
 /* Pegada arriba al scrollear: las pestañas largas obligaban a volver al
    principio cada vez que se quería cambiar de sección. El fondo es opaco
@@ -5411,23 +5507,54 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .pulso-lp.good{color:var(--good);}
 .pulso-lp.bad{color:var(--critical);}
-/* El estado vivo CIERRA la franja en vez de flotar arriba a la derecha. Es lo
-   único verde de la zona, y acá el verde significa "está pasando ahora", no
-   "es bueno" — por eso lo lleva el punto y no el texto. */
-.pulso-vivo{display:flex; align-items:center; gap:7px; min-width:0;}
-.pulso-vivo-chip{
-  display:inline-flex; align-items:center; gap:6px; min-width:0;
-  appearance:none; -webkit-appearance:none; border:none; cursor:pointer;
-  background:none; padding:0; border-radius:var(--radius-sm);
-  color:var(--text-primary); font-family:var(--font-display);
-  font-size:13px; font-weight:700;
-  transition:color .12s ease;
+/* "N en curso" pegado al titular, en dorado apagado: el dato de que una parte
+   de esas partidas todavía se está jugando. */
+.pulso-encurso{font-style:normal; color:var(--accent-dim); font-weight:700;}
+
+/* ── Ahora mismo ──
+   Reemplaza al chip que decía "Fulano y 1 más están jugando" al final de la
+   franja. Ese chip era la MISMA información que la barra de arriba y que la
+   bandeja flotante, con un tercer texto distinto; esto dice lo que esos dos no
+   pueden —qué partida es, con qué campeones y si están juntos— y las otras se
+   cuentan en vez de listarse.
+
+   Franja con filete verde, no card: el verde acá significa "está pasando
+   ahora", no "es bueno", y una caja alrededor lo convertiría en otro bloque
+   de contenido en vez de un estado. */
+.ahora{
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+  margin:0 0 4px; padding:11px 0 13px 15px;
+  border-left:2px solid var(--good); border-bottom:1px solid var(--border-soft);
 }
-.pulso-vivo-chip:hover{color:var(--accent);}
-.pulso-vivo-chip:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
-.pulso-vivo-champ{width:20px; height:20px; border-radius:50%; flex:none;}
-.pulso-vivo-nombre{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.pulso-vivo-txt{font-size:12px; color:var(--text-muted); white-space:nowrap;}
+.ahora-rotulo{
+  display:inline-flex; align-items:center; gap:7px; margin:0; flex:none;
+  font-size:9.5px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase;
+  color:var(--good);
+}
+.ahora-cuerpo{display:flex; align-items:center; gap:12px; min-width:0; flex:1 1 320px;}
+.ahora-champs{display:inline-flex; flex:none;}
+.ahora-champ{
+  width:30px; height:30px; border-radius:8px; flex:none;
+  box-shadow:0 0 0 2px var(--bg);
+}
+.ahora-champs .ahora-champ + .ahora-champ{margin-left:-10px;}
+.ahora-texto{
+  margin:0; min-width:0; font-size:13px; color:var(--text-secondary);
+  display:flex; flex-wrap:wrap; align-items:baseline; gap:0 6px;
+}
+.ahora-nombres{
+  appearance:none; -webkit-appearance:none; background:none; border:none; padding:0;
+  cursor:pointer; font-family:var(--font-display); font-size:14px; font-weight:700;
+  color:var(--text-primary); transition:color var(--t-toque) var(--e-entra);
+}
+.ahora-nombres:hover{color:var(--accent);}
+.ahora-nombres:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:4px;}
+/* La cola, el reloj y cuántas más hay: metadata, renglón propio. */
+.ahora-meta{flex-basis:100%; font-size:11.5px; color:var(--text-muted); font-family:var(--font-mono);}
+@media (max-width:560px){
+  .ahora{gap:10px; padding:10px 0 12px 12px;}
+  .ahora-rotulo{flex-basis:100%;}
+}
 
 /* ── 2. La liga ──────────────────────────────────────────────────────────── */
 /* La única card. Filete dorado y nada más: sin degradado, sin glow y sin

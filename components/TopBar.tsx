@@ -1,16 +1,28 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Cerradura } from "./Cerradura";
-import { formatRelativeTime } from "@/lib/ladder";
+import { formatRelativeTime, liveGameTimeLabel } from "@/lib/ladder";
+import { cuantosEnVivo, type GrupoEnVivo, nombresDelGrupo } from "@/lib/live-grupos";
+import { ChampIcon } from "./ChampIcon";
+import { UsersIcon } from "./StatIcons";
+import { championLabel } from "@/lib/champion-names";
 
 export type AddStatus = { kind: "idle" } | { kind: "adding" } | { kind: "error"; message: string };
 
 interface TopBarProps {
   /** Cuántos invocadores hay cargados — el subtítulo dice algo real en vez de una frase fija. */
   invocadores: number;
-  /** Cuántos están en partida ahora mismo. */
-  enVivo: number;
+  /**
+   * Las partidas en curso, agrupadas (ver lib/live-grupos.ts). La barra
+   * muestra el total de JUGADORES y el popover las PARTIDAS: los que están
+   * juntos son una fila sola, no dos.
+   */
+  enVivo: GrupoEnVivo[];
+  /** Para los íconos de campeón del popover. */
+  ddragonVersion: string | null;
+  /** Abrir el perfil de alguien — la misma función que usa el ladder. */
+  onPlayer: (key: string) => void;
   /** Cuándo se trajeron los datos por última vez. Null mientras carga. */
   lastUpdated: string | null;
   /** Cuántos invocadores viene fallando el refresco. Casi siempre 0. */
@@ -22,8 +34,11 @@ interface TopBarProps {
   addStatus: AddStatus;
 }
 
-export function TopBar({ invocadores, enVivo, lastUpdated, desactualizados, filterText, onFilterChange, onSubmit, canAdd, addStatus }: TopBarProps) {
+export function TopBar({ invocadores, enVivo, ddragonVersion, onPlayer, lastUpdated, desactualizados, filterText, onFilterChange, onSubmit, canAdd, addStatus }: TopBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [abierto, setAbierto] = useState(false);
+  const vivoRef = useRef<HTMLDivElement>(null);
+  const jugando = cuantosEnVivo(enVivo);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -35,6 +50,37 @@ export function TopBar({ invocadores, enVivo, lastUpdated, desactualizados, filt
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
+
+  // Cerrar el popover al tocar afuera o con Escape. Sin lo segundo queda
+  // atrapado para quien navega con teclado.
+  useEffect(() => {
+    if (!abierto) return;
+    function afuera(e: MouseEvent) {
+      if (!vivoRef.current?.contains(e.target as Node)) setAbierto(false);
+    }
+    function escape(e: KeyboardEvent) {
+      if (e.key === "Escape") setAbierto(false);
+    }
+    document.addEventListener("mousedown", afuera);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("mousedown", afuera);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [abierto]);
+
+  // Si el último se sale de la partida con el popover abierto, no puede
+  // quedar abierto para la próxima: el botón desaparece con él, y cuando
+  // alguien vuelva a entrar en partida el panel se abriría solo.
+  //
+  // Ajuste de estado DURANTE el render y no en un efecto — es el patrón que
+  // documenta React para estado derivado y el mismo que usa PlayerProfile
+  // acá al lado. En un efecto dispara un render en cascada.
+  const [vivosVistos, setVivosVistos] = useState(jugando);
+  if (jugando !== vivosVistos) {
+    setVivosVistos(jugando);
+    if (jugando === 0) setAbierto(false);
+  }
 
   return (
     <header className="topbar">
@@ -59,12 +105,45 @@ export function TopBar({ invocadores, enVivo, lastUpdated, desactualizados, filt
             {invocadores > 0 ? `${invocadores} invocadores` : "Ranked del grupo"}
             <span className="brand-sep">·</span>
             LAS
-            {enVivo > 0 && (
+            {jugando > 0 && (
               <>
                 <span className="brand-sep">·</span>
-                <span className="brand-live">
-                  <span className="live-dot" />
-                  {enVivo} en partida
+                {/* De rótulo a botón. El número ya estaba; lo que faltaba era
+                    poder preguntarle QUIÉNES. El popover muestra partidas y no
+                    jugadores: los que están en la misma van en una fila. */}
+                <span className="brand-live-wrap" ref={vivoRef}>
+                  <button
+                    type="button"
+                    className={`brand-live${abierto ? " is-abierto" : ""}`}
+                    onClick={() => setAbierto((v) => !v)}
+                    aria-expanded={abierto}
+                    aria-haspopup="dialog"
+                    title="Ver quiénes están en partida"
+                  >
+                    <span className="live-dot" />
+                    {jugando} en partida
+                  </button>
+                  {abierto && (
+                    <div className="live-pop" role="dialog" aria-label="En vivo ahora">
+                      <div className="live-pop-head">
+                        <span className="live-dot" />
+                        En vivo ahora · {jugando}
+                      </div>
+                      <div className="live-pop-list">
+                        {enVivo.map((g) => (
+                          <FilaEnVivo
+                            key={g.key}
+                            g={g}
+                            ddragonVersion={ddragonVersion}
+                            onPlayer={(k) => {
+                              setAbierto(false);
+                              onPlayer(k);
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </span>
               </>
             )}
@@ -128,5 +207,66 @@ export function TopBar({ invocadores, enVivo, lastUpdated, desactualizados, filt
           app no lo necesita. Solo importa cuando vas a tocar algo. */}
       <Cerradura />
     </header>
+  );
+}
+
+/**
+ * Una partida del popover. Misma anatomía que la bandeja flotante —caritas
+ * con el campeón encima, nombres, cola y reloj— pero más apretada: acá hay
+ * que poder barrer cuatro de un vistazo, no quedarse leyendo una.
+ *
+ * Abrir el perfil de cualquiera del grupo muestra exactamente la misma
+ * partida, así que el grupo entero lleva al primero.
+ */
+function FilaEnVivo({
+  g,
+  ddragonVersion,
+  onPlayer,
+}: {
+  g: GrupoEnVivo;
+  ddragonVersion: string | null;
+  onPlayer: (key: string) => void;
+}) {
+  const uno = g.jugadores[0];
+  return (
+    <button
+      type="button"
+      className="live-pop-row"
+      onClick={() => onPlayer(`${uno.name}#${uno.tag}`)}
+      title="Ver la partida y los rivales"
+    >
+      <span className="live-pop-champs">
+        {g.jugadores.map((p) => (
+          <ChampIcon
+            key={`${p.name}#${p.tag}`}
+            champ={p.liveGame!.champion}
+            version={ddragonVersion}
+            className="live-pop-champ"
+          />
+        ))}
+      </span>
+      <span className="live-pop-mid">
+        <span className="live-pop-nombres">{nombresDelGrupo(g)}</span>
+        <span className="live-pop-meta">
+          {g.juntos ? (
+            <>
+              <span className="live-pop-juntos">
+                <UsersIcon />
+                Jugando juntos
+              </span>
+              <span className="live-pop-sep">·</span>
+            </>
+          ) : (
+            <>
+              {championLabel(uno.liveGame!.champion)}
+              <span className="live-pop-sep">·</span>
+            </>
+          )}
+          {g.partida.queueLabel}
+          <span className="live-pop-sep">·</span>
+          {liveGameTimeLabel(g.partida.startedMinutesAgo)}
+        </span>
+      </span>
+    </button>
   );
 }

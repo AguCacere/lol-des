@@ -1,35 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import type { Player } from "@/lib/types";
+import { cuantosEnVivo, type GrupoEnVivo } from "@/lib/live-grupos";
 import { liveGameTimeLabel } from "@/lib/ladder";
 import { ChampIcon } from "./ChampIcon";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { UsersIcon } from "./StatIcons";
 import { playerKey } from "./LadderTable";
 import { championLabel } from "@/lib/champion-names";
-
-interface LiveGroup {
-  key: string;
-  players: Player[];
-}
-
-/**
- * Two tracked players show up as one shared row only when they're in the
- * EXACT same live game AND on the same team — Riot's own gameId + teamId,
- * not just "both happen to be live right now" (which could just as easily
- * be two separate solo queues, or even facing each other as enemies).
- */
-function groupLive(players: Player[]): LiveGroup[] {
-  const byKey = new Map<string, Player[]>();
-  for (const p of players) {
-    if (!p.liveGame) continue;
-    const key = `${p.liveGame.gameId}:${p.liveGame.teamId}`;
-    const arr = byKey.get(key) ?? [];
-    arr.push(p);
-    byKey.set(key, arr);
-  }
-  return [...byKey.entries()].map(([key, group]) => ({ key, players: group }));
-}
 
 /**
  * Fixed corner tray listing everyone currently live — one shared card, not a
@@ -41,31 +20,47 @@ function groupLive(players: Player[]): LiveGroup[] {
  * guard in globals.css around both this and that rule).
  */
 export function LiveTray({
-  players,
+  grupos,
   ddragonVersion,
   onPlayer,
 }: {
-  players: Player[];
+  /** Ya agrupados por partida — ver lib/live-grupos.ts. La bandeja no vuelve a agrupar. */
+  grupos: GrupoEnVivo[];
   ddragonVersion: string | null;
   /** Abrir el perfil de ese invocador — donde está el panel de la partida en vivo. */
   onPlayer: (key: string) => void;
 }) {
-  const groups = groupLive(players);
-  if (groups.length === 0) return null;
-  const total = groups.reduce((s, g) => s + g.players.length, 0);
+  /**
+   * Arranca mostrando UNA partida. Con tres o cuatro en curso la bandeja se
+   * comía media pantalla sin que nadie la hubiera pedido: es un indicador
+   * persistente, no un panel. La primera es la más nueva (lo decide
+   * `gruposEnVivo`, por minuto de juego), que es la regla objetiva.
+   */
+  const [abierta, setAbierta] = useState(false);
+  if (grupos.length === 0) return null;
+  const total = cuantosEnVivo(grupos);
+  const visibles = abierta ? grupos : grupos.slice(0, 1);
+  const ocultas = grupos.length - visibles.length;
 
   return (
     <div className="live-tray">
       <div className="live-tray-head">
         <span className="live-dot" />
         En vivo ahora · {total}
+        {grupos.length > 1 && (
+          <button type="button" className="live-tray-mas" onClick={() => setAbierta((v) => !v)} aria-expanded={abierta}>
+            {abierta ? "Ver menos" : `+${ocultas}`}
+          </button>
+        )}
       </div>
-      <div className="live-tray-list">
-        {groups.map((g) =>
-          g.players.length > 1 ? (
+      {/* El alto máximo lo pone el CSS: desde la cuarta partida esto scrollea
+          en vez de crecer. */}
+      <div className={`live-tray-list${abierta ? " abierta" : ""}`}>
+        {visibles.map((g) =>
+          g.juntos ? (
             <TogetherRow group={g} ddragonVersion={ddragonVersion} onPlayer={onPlayer} key={g.key} />
           ) : (
-            <SoloRow p={g.players[0]} ddragonVersion={ddragonVersion} onPlayer={onPlayer} key={g.key} />
+            <SoloRow p={g.jugadores[0]} ddragonVersion={ddragonVersion} onPlayer={onPlayer} key={g.key} />
           )
         )}
       </div>
@@ -110,12 +105,12 @@ function TogetherRow({
   ddragonVersion,
   onPlayer,
 }: {
-  group: LiveGroup;
+  group: GrupoEnVivo;
   ddragonVersion: string | null;
   onPlayer: (key: string) => void;
 }) {
-  const { players } = group;
-  const game = players[0].liveGame!;
+  const players = group.jugadores;
+  const game = group.partida;
   return (
     // Están en la MISMA partida, así que abrir el perfil de cualquiera de los
     // dos muestra exactamente los mismos diez jugadores.

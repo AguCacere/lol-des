@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ClashPlayerStats, ClashTournament, DuoPair, LiveGame, Player, RoleKey, TeamDigest as TeamDigestData } from "@/lib/types";
 import { TopBar, type AddStatus } from "@/components/TopBar";
 import { TabNav, type TabKey } from "@/components/TabNav";
@@ -19,6 +19,7 @@ import { Mejora } from "@/components/Mejora";
 import { claveDesdeHash, hashDeClave } from "@/lib/ruta-perfil";
 import { ClashHistory } from "@/components/ClashHistory";
 import { LiveTray } from "@/components/LiveTray";
+import { gruposEnVivo } from "@/lib/live-grupos";
 import { TeamDigest } from "@/components/TeamDigest";
 import { ComoJugamosJuntos } from "@/components/ComoJugamosJuntos";
 import { fetchConClave } from "@/components/Cerradura";
@@ -261,6 +262,13 @@ export default function Home() {
    * de la tabla: sin eso, elegir a alguien te deja mirando el ladder sin
    * ninguna señal de que pasó algo.
    */
+  /**
+   * Quién está jugando ahora, agrupado por partida. Se calcula UNA vez acá y
+   * baja a la barra, a Inicio y a la bandeja: antes cada uno lo resolvía por
+   * su cuenta y decían tres cosas distintas del mismo hecho.
+   */
+  const enVivo = useMemo(() => gruposEnVivo(players), [players]);
+
   const abrirPerfil = useCallback((key: string) => {
     // Antes esto scrolleaba: el perfil vivía DEBAJO del ladder y elegir a
     // alguien te bajaba dos mil píxeles. El perfil ya tiene contenido de
@@ -383,7 +391,13 @@ export default function Home() {
         canAdd={canAdd}
         addStatus={addStatus}
         invocadores={players.length}
-        enVivo={players.filter((p) => p.liveGame).length}
+        /* Los grupos y no un número suelto: la barra cuenta jugadores pero el
+           popover tiene que mostrar PARTIDAS, con los que están juntos en una
+           sola fila. Es la misma lista que usan Inicio y la bandeja (ver
+           lib/live-grupos.ts) — una sola representación de Live, no tres. */
+        enVivo={enVivo}
+        ddragonVersion={ddragonVersion}
+        onPlayer={abrirPerfil}
         lastUpdated={lastUpdated}
         desactualizados={desactualizados}
       />
@@ -521,7 +535,7 @@ export default function Home() {
 
 
 
-      <LiveTray players={players} ddragonVersion={ddragonVersion} onPlayer={abrirPerfil} />
+      <LiveTray grupos={enVivo} ddragonVersion={ddragonVersion} onPlayer={abrirPerfil} />
     </div>
   );
 }

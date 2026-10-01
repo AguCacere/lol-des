@@ -7,8 +7,9 @@ import { ChampIcon } from "./ChampIcon";
 import { useLiga, type Fila } from "./useLiga";
 import { championLabel } from "@/lib/champion-names";
 import { liveGameTimeLabel, rangoTexto, tierFor } from "@/lib/ladder";
+import { cuantosEnVivo, gruposEnVivo, nombresDelGrupo } from "@/lib/live-grupos";
 import { puntajeTexto } from "@/lib/liga";
-import { movimientosRecientes, resumenDeHoy, type Movimiento } from "@/lib/actividad";
+import { movimientosRecientes, resumenDeHoy, tituloDeHoy, type Movimiento } from "@/lib/actividad";
 import { esElMismo, historiaDelDia, lpDelGrupoHoy } from "@/lib/historia";
 import type { DuoPair, Player } from "@/lib/types";
 
@@ -106,7 +107,15 @@ export function Inicio({ players, duos, loading, ddragonVersion, onPlayer, onRan
   const movimientos = useMemo(() => movimientosRecientes(players), [players]);
   /** Lo que movió TODO el grupo hoy. Null cuando no se puede afirmar (ver lpDelGrupoHoy). */
   const lpGrupo = useMemo(() => lpDelGrupoHoy(players), [players]);
-  const enVivo = players.filter((p) => p.liveGame);
+  /**
+   * Quién está jugando, agrupado por partida. MISMA función que usan la barra
+   * de arriba y la bandeja flotante (lib/live-grupos.ts): los tres decían
+   * cosas distintas del mismo hecho porque cada uno lo contaba por su cuenta.
+   */
+  const enVivo = useMemo(() => {
+    const grupos = gruposEnVivo(players);
+    return { grupos, jugando: cuantosEnVivo(grupos) };
+  }, [players]);
   const top3 = players.slice(0, 3);
 
   /**
@@ -188,12 +197,17 @@ export function Inicio({ players, duos, loading, ddragonVersion, onPlayer, onRan
         <div className="pulso-linea">
           {hoy.partidas === 0 ? (
             <p className="pulso-datos">
-              <span className="pulso-cifra">Todavía no jugó nadie</span>
+              {/* El titular mira las dos cosas. Decía "Todavía no jugó nadie"
+                  con dos personas en partida tres centímetros más arriba: las
+                  dos frases eran ciertas —nadie TERMINÓ una— pero juntas no se
+                  pueden leer. Ver tituloDeHoy. */}
+              <span className="pulso-cifra">{tituloDeHoy(0, enVivo.jugando)}</span>
             </p>
           ) : (
             <p className="pulso-datos">
               <span className="pulso-cifra">
                 {hoy.partidas} partida{hoy.partidas === 1 ? "" : "s"}
+                {enVivo.jugando > 0 && <i className="pulso-encurso"> · {enVivo.jugando} en curso</i>}
               </span>
               {/* El primero lleva clase propia porque en celular se esconde:
                   la cifra se lleva su renglón y este punto quedaría abriendo
@@ -224,28 +238,51 @@ export function Inicio({ players, duos, loading, ddragonVersion, onPlayer, onRan
               )}
             </p>
           )}
-          {/* El estado vivo cierra la franja en vez de flotar arriba a la
-              derecha. Es lo único verde de la zona: el verde acá significa
-              "está pasando ahora", no "es bueno". */}
-          {enVivo.length > 0 && (
-            <div className="pulso-vivo">
-              <span className="live-dot" />
-              <button
-                type="button"
-                className="pulso-vivo-chip"
-                onClick={() => onPlayer(clave(enVivo[0]))}
-                title={`${enVivo[0].name} · ${championLabel(enVivo[0].liveGame!.champion)} · ${liveGameTimeLabel(enVivo[0].liveGame!.startedMinutesAgo)}`}
-              >
-                <ChampIcon champ={enVivo[0].liveGame!.champion} version={ddragonVersion} className="pulso-vivo-champ" />
-                <span className="pulso-vivo-nombre">{enVivo[0].name}</span>
-              </button>
-              <span className="pulso-vivo-txt">
-                {enVivo.length === 1 ? "está jugando" : `y ${enVivo.length - 1} más están jugando`}
-              </span>
-            </div>
-          )}
         </div>
       </header>
+
+      {/* ═══ 2. Ahora mismo ═══
+          Era un chip al final de la franja que decía "Fulano y 1 más están
+          jugando" — la MISMA información que la barra de arriba y que la
+          bandeja flotante, con un tercer texto distinto. Ahora es una franja
+          editorial que dice lo que esas dos no pueden: QUÉ partida es, con
+          qué campeones y si están juntos.
+
+          No repite el Live Center: muestra el acontecimiento principal —la
+          partida más nueva— y, si hay más, cuántas. El detalle completo está
+          a un click en la bandeja o en el popover de la barra. */}
+      {enVivo.grupos.length > 0 && (
+        <section className="ahora">
+          <p className="ahora-rotulo">
+            <span className="live-dot" />
+            Ahora mismo
+          </p>
+          <div className="ahora-cuerpo">
+            <span className="ahora-champs">
+              {enVivo.grupos[0].jugadores.map((p) => (
+                <ChampIcon key={clave(p)} champ={p.liveGame!.champion} version={ddragonVersion} className="ahora-champ" />
+              ))}
+            </span>
+            <p className="ahora-texto">
+              <button type="button" className="ahora-nombres" onClick={() => onPlayer(clave(enVivo.grupos[0].jugadores[0]))}>
+                {nombresDelGrupo(enVivo.grupos[0])}
+              </button>{" "}
+              {enVivo.grupos[0].juntos ? "están jugando juntos" : "está jugando"}
+              <span className="ahora-meta">
+                {enVivo.grupos[0].juntos
+                  ? enVivo.grupos[0].partida.queueLabel
+                  : `${championLabel(enVivo.grupos[0].partida.champion)} · ${enVivo.grupos[0].partida.queueLabel}`}{" "}
+                · {liveGameTimeLabel(enVivo.grupos[0].partida.startedMinutesAgo)}
+                {/* Las otras partidas se cuentan, no se listan: para eso está
+                    el Live Center, y listarlas acá sería la cuarta copia. */}
+                {enVivo.grupos.length > 1 && (
+                  <> · {enVivo.grupos.length - 1} partida{enVivo.grupos.length - 1 === 1 ? "" : "s"} más en curso</>
+                )}
+              </span>
+            </p>
+          </div>
+        </section>
+      )}
 
       <div className="inicio-cuerpo">
       {/* ═══ 3. Ladder ═══
@@ -342,7 +379,13 @@ export function Inicio({ players, duos, loading, ddragonVersion, onPlayer, onRan
           >
             <span className="historia-icono" aria-hidden>{historia.icono}</span>
             <span className="historia-txt">
-              <span className="historia-rotulo">La historia del día</span>
+              {/* El rótulo cambia con la clase: una historia de alguien que
+                  está jugando AHORA no es "la historia del día", y con el
+                  mismo rótulo que el resto se leía como una repetición de la
+                  franja de arriba en vez de como su continuación. */}
+              <span className="historia-rotulo">
+                {historia.clase === "vivo" ? "Pasando ahora" : "La historia del día"}
+              </span>
               <strong className="historia-titulo">{historia.titulo}</strong>
               {historia.detalle && <span className="historia-detalle">{historia.detalle}</span>}
             </span>

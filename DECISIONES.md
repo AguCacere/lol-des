@@ -4415,3 +4415,89 @@ pantallas angostas: "Para cobrar: 10 en la semana · 3 el último día" mide 397
 y no podía partirse, así que el min-content de la sección entera quedaba en
 459px. En el árbol de hoy la liga vive en un contenedor de bloque y no se
 notaba; en cualquier ancestro flex o grid habría salido scroll horizontal.
+
+## Live estaba en tres lugares y cada uno lo contaba distinto
+
+La barra decía "2 en partida", Inicio decía "Fulano y 1 más están jugando" y la
+bandeja flotante mostraba "EN VIVO AHORA · 2". Tres textos para el mismo hecho,
+tres lugares donde arreglar un bug y —lo peor— tres criterios: la barra contaba
+JUGADORES, la bandeja agrupaba por PARTIDA y el chip de Inicio nombraba a uno y
+resumía el resto.
+
+Ahora hay una sola representación, `lib/live-grupos.ts`. **No es una fuente
+nueva**: la fuente sigue siendo `player.liveGame`, que `app/page.tsx` refresca
+contra `/api/live` cada 60 segundos. `gruposEnVivo` es una función pura sobre la
+lista que ya está en memoria, se calcula una vez en `page.tsx` y baja a los
+tres. Cero requests nuevos, cero polling nuevo, cero estado nuevo.
+
+**Dos jugadores están juntos cuando comparten `gameId` Y `teamId`.** El gameId
+solo no alcanza y la diferencia da vuelta el significado: dos del grupo pueden
+estar en la misma partida siendo RIVALES, y ahí "jugando juntos" sería
+exactamente al revés. Los dos campos vienen del Spectator, así que no se infiere
+por horario ni por campeón. Hay un test para ese caso justamente porque es el
+que se escribe mal solo.
+
+Y "jugando juntos" significa eso y nada más: que están en la misma partida del
+mismo lado. **No dice "duo"** — el Spectator no expone con quién entró cada uno
+a la cola, y dos del grupo pueden caer juntos por sorteo.
+
+### El titular que se contradecía
+
+Arriba decía "2 en partida" y el titular de Inicio decía "Todavía no jugó
+nadie". Las dos frases eran ciertas —nadie TERMINÓ una partida— pero juntas no
+se pueden leer. `tituloDeHoy` mira las dos cosas: sin nada, "Todavía no arrancó
+el día"; sin terminadas y con gente jugando, "2 están jugando ahora"; con las
+dos, "3 partidas hoy · 2 en curso".
+
+### "N en partida" pasa de rótulo a botón
+
+El número ya estaba; lo que faltaba era poder preguntarle QUIÉNES. El popover
+cuelga del botón y **la barra no crece**: medido, 40px en desktop y 103px en
+mobile, con el panel abierto y cerrado.
+
+En el teléfono se ancla a la PANTALLA y no al botón. El primer intento fue
+`left:0` sobre el envoltorio y no alcanzaba: ese cero es el del envoltorio, que
+está metido adentro de la marca, así que el panel seguía saliéndose por la
+derecha (medido a 390px). La solución es `position:fixed` con `top:auto`, que
+conserva la posición estática —sigue cayendo abajo del botón— pero mide los
+lados contra el viewport.
+
+### La bandeja arranca cerrada
+
+Con tres o cuatro partidas en curso se comía media pantalla sin que nadie la
+hubiera pedido: es un indicador persistente, no un panel. Muestra una y un
+"+2"; expandida tiene tope de alto y scrollea desde la cuarta. La que muestra
+es la más nueva, que es una regla objetiva y estable —la decide `gruposEnVivo`
+por minuto de juego— y no "la primera que vino en la lista".
+
+### El chip del pulso se fue, y lo reemplaza una franja
+
+"Fulano y 1 más están jugando" era la información de la barra y de la bandeja
+con un tercer texto. La franja "Ahora mismo" dice lo que esas dos no pueden:
+qué partida es, con qué campeones y si están juntos. Las otras partidas **se
+cuentan, no se listan**: para eso está el Live Center, y listarlas ahí sería la
+cuarta copia.
+
+### La historia de "está jugando ahora" pide DOS condiciones
+
+Live es prioridad alta para la historia del día, pero una historia que dijera
+solo "Fulano está jugando" sería la franja de arriba escrita de nuevo treinta
+centímetros más abajo. Por eso solo aparece con **live + racha de tres o más**:
+lo que agrega, y la franja no puede, es con qué viene.
+
+Pesa 9.800: arriba de todo salvo un ascenso o una caída de TIER. Eso pasa una
+vez por mes y es la noticia del mes; esto está pasando mientras mirás la
+pantalla y en diez minutos deja de existir.
+
+Y describe, no explica. Dice "viene de 3+ derrotas al hilo" y que está jugando.
+No dice que esté intentando cortarla, ni que esté en tilt, ni qué va a pasar —
+hay un test que recorre esa lista de palabras prohibidas.
+
+### El punto que late
+
+De `opacity .45` a `.62` en el valle: a .45 el punto casi desaparecía en cada
+ciclo y en una barra fija eso termina molestando. Y con
+`prefers-reduced-motion` se apaga **explícito**, por lo mismo que el paneo del
+perfil: el interruptor global deja la animación en 0.001ms, que la congela en
+un fotograma cualquiera —puede ser el del .62— y el punto quedaría apagado para
+siempre. Acá es verde fijo.

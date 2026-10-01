@@ -30,6 +30,7 @@
  * racha, y una racha de diez no lo cambia.
  */
 
+import { championLabel } from "./champion-names";
 import { currentStreak, rangoTexto, rankScore, tierFor } from "./ladder";
 import type { DuoPair, Player } from "./types";
 import { lpDeHoy, lpDelGrupoHoy, RACHA_MINIMA, type Movimiento } from "./actividad";
@@ -38,7 +39,7 @@ import { lpDeHoy, lpDelGrupoHoy, RACHA_MINIMA, type Movimiento } from "./activid
 // saber que viven en actividad.ts.
 export { lpDeHoy, lpDelGrupoHoy };
 
-export type ClaseHistoria = "ascenso" | "pico" | "racha" | "derrumbe" | "liga" | "duo";
+export type ClaseHistoria = "ascenso" | "pico" | "racha" | "derrumbe" | "liga" | "duo" | "vivo";
 
 export interface Historia {
   clase: ClaseHistoria;
@@ -184,6 +185,35 @@ export function historiaDelDia(
     // ── La racha. En el feed alcanza con tres; para ser LA historia del día
     //    hacen falta cuatro.
     const racha = currentStreak(p.matches ?? []);
+
+    // ── Está jugando AHORA, y viene de una racha.
+    //
+    //    La condición doble no es un capricho: arriba de Inicio ya hay una
+    //    franja que dice quién está en partida, con qué campeón, en qué cola y
+    //    desde hace cuánto (ver "Ahora mismo"). Una historia que dijera solo
+    //    "Fulano está jugando" sería esa misma franja escrita de nuevo treinta
+    //    centímetros más abajo. Lo que esta historia agrega —y la franja no
+    //    puede— es CON QUÉ VIENE.
+    //
+    //    Describe y no explica: dice que viene de tres derrotas y que está
+    //    jugando. No dice que esté intentando cortarla, ni que esté en tilt, ni
+    //    qué va a pasar.
+    if (p.liveGame && racha && racha.count >= RACHA_MINIMA) {
+      const perdiendo = racha.result === "L";
+      candidatas.push({
+        clase: "vivo",
+        icono: "🔴",
+        titulo: `${p.name} está jugando ahora`,
+        detalle: `Viene de ${racha.count}${racha.capped ? "+" : ""} ${perdiendo ? "derrotas" : "victorias"} al hilo · ${championLabel(p.liveGame.champion)} · ${p.liveGame.queueLabel}`,
+        key,
+        destino: "perfil",
+        tono: perdiendo ? "malo" : "bueno",
+        // Arriba de todo salvo un ascenso o una caída de TIER. Eso pasa una vez
+        // por mes y es la noticia del mes; esto está pasando mientras mirás la
+        // pantalla, y en diez minutos deja de existir.
+        peso: 9800,
+      });
+    }
     if (racha && racha.count >= RACHA_DESTACADA) {
       const gana = racha.result === "W";
       candidatas.push({

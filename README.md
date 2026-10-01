@@ -43,6 +43,12 @@ El perfil tiene enlace propio (`#inv/nombre-tag`) y se sale con "← Volver al l
 con el botón Atrás del navegador. Adentro de esta misma pestaña vive la **liga
 semanal**: se cambia con el enlace que está al lado del título.
 
+El **Inicio** es la portada: qué pasó hoy, quién está jugando ahora mismo, el podio del
+ladder, qué se movió en las últimas 24 h y una historia del día. El "N en partida" de la
+barra de arriba se toca y despliega a todos: los que están en la MISMA partida aparecen
+en una sola fila, con los dos campeones y un "jugando juntos" — que quiere decir eso y no
+"duo", porque Riot no dice con quién entró cada uno a la cola.
+
 **Estadísticas** — la radiografía del grupo, filtrable por 7 días, 30 días o toda la
 temporada. Arranca con la historia del período (quién lo dominó, y lo demás que
 pasó al costado), sigue con el estado de forma —una clasificación compacta con las últimas 10

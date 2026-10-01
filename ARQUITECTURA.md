@@ -184,6 +184,12 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   PostgREST la corte en 1000 filas sin avisar. Lo usan las dos consultas grandes
   de `/api/ladder`. El orden que se le pase tiene que ser TOTAL (desempatado por
   algo único) o la paginación repite filas y se saltea otras. Ver DECISIONES.
+- `live-grupos.ts` — **la única representación de quién está jugando ahora**.
+  `gruposEnVivo` agrupa por `gameId`+`teamId` (el teamId no es opcional: sin él,
+  dos del grupo que se están enfrentando saldrían como "jugando juntos"). No es
+  una fuente nueva: es una función pura sobre `player.liveGame`, que ya refresca
+  `app/page.tsx` contra `/api/live`. Se calcula una vez ahí y baja a la barra, a
+  Inicio y a la bandeja flotante.
 - `liga-ahora.ts` — qué está pasando en la semana EN CURSO: `acontecimientos`
   da como mucho tres hechos (margen con el segundo, racha, cambio de puesto,
   quién ya cumple los mínimos), todos restas sobre la tabla que ya está en
