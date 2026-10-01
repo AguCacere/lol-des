@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { puntajeTexto, rangoDeSemana } from "@/lib/liga";
-import { palmares, titulosDe, type Edicion } from "@/lib/palmares";
+import { type EnPalmares, palmares, titulosDe, type Edicion } from "@/lib/palmares";
 
 /** El puntaje sin signo: "1,5". Para frases donde el signo no significa nada. */
 const sinSigno = (n: number) => puntajeTexto(Math.abs(n)).replace("+", "");
@@ -58,20 +58,30 @@ function Titulos({ n }: { n: number }) {
  */
 export function LigaHistorial({
   ediciones,
+  palmaresCompleto,
   onAbrir,
 }: {
   ediciones: Edicion[];
+  /**
+   * El palmarés contado sobre TODAS las semanas cerradas, no sobre las ocho
+   * que llegan en `ediciones`. Opcional porque el campo es nuevo y el JSON
+   * viejo del CDN no lo trae: durante la ventana de caché se sigue contando
+   * acá, que da el mismo número mientras no haya más de ocho ediciones.
+   */
+  palmaresCompleto?: EnPalmares[];
   /** Abrir el archivo de esa edición. */
   onAbrir: (semana: string) => void;
 }) {
   const [ultima, ...viejas] = ediciones;
   const titulos = useMemo(() => titulosDe(ediciones), [ediciones]);
-  const tabla = useMemo(() => palmares(ediciones), [ediciones]);
-  // El palmarés recién existe cuando alguien ganó dos veces. Hasta entonces la
-  // sección es UNA columna: con la grilla puesta igual, la crónica quedaba en
-  // el 58% del ancho y el 42% de la derecha era un hueco esperando una tabla
-  // que todavía no hay.
-  const hayPalmares = tabla.some((p) => p.titulos > 1);
+  const local = useMemo(() => palmares(ediciones), [ediciones]);
+  const tabla = palmaresCompleto ?? local;
+  // Desde la SEGUNDA edición. Antes el umbral era "alguien ganó dos veces", y
+  // con eso la sección no aparecía nunca en una liga joven: hoy hay dos
+  // campeones con un título cada uno y el palmarés estaba escrito, andando y
+  // escondido. Con una sola edición sí se calla — ahí la tabla es la crónica
+  // de arriba escrita de nuevo, y eso no es un palmarés.
+  const hayPalmares = ediciones.length >= 2 && tabla.length > 0;
   const clave = (e: Edicion) => e.puuid ?? `nombre:${e.nombre}`;
 
   if (!ultima) return null;
@@ -185,9 +195,7 @@ export function LigaHistorial({
           )}
         </div>
 
-        {/* ── El palmarés ──
-            Solo desde que alguien ganó más de una vez. Con una copa cada uno no
-            es un palmarés, es la misma lista de arriba ordenada distinto. */}
+        {/* ── El palmarés: las copas de cada uno ── */}
         {hayPalmares && (
           <div className="hist-palmares">
             <span className="hist-viejas-rotulo">Palmarés</span>
@@ -195,11 +203,15 @@ export function LigaHistorial({
               <div className="hist-palmares-fila" key={p.puuid ?? p.nombre}>
                 <PlayerAvatar name={p.nombre} iconUrl={p.iconUrl} className="hist-avatar chico" />
                 <span className="hist-fila-quien">{p.nombre}</span>
-                <span className="hist-copas" aria-label={`${p.titulos} ${p.titulos === 1 ? "título" : "títulos"}`}>
-                  {/* Una copa por título hasta cinco; de ahí en adelante el
-                      número, porque una fila de nueve copitas deja de contarse
-                      de un vistazo y es lo único que una copa tiene que hacer. */}
-                  {p.titulos <= 5 ? <span aria-hidden>{"🏆".repeat(p.titulos)}</span> : <span aria-hidden>🏆 ×{p.titulos}</span>}
+                {/* Las copas Y el número. Las copas se cuentan de un vistazo
+                    hasta cinco y el número no deja dudas arriba de eso; con
+                    las copas solas, "🏆🏆🏆" y "🏆🏆🏆🏆" se parecen
+                    demasiado de reojo. */}
+                <span className="hist-copas" aria-hidden>
+                  {p.titulos <= 5 ? "🏆".repeat(p.titulos) : `🏆 ×${p.titulos}`}
+                </span>
+                <span className="hist-copas-n">
+                  {p.titulos} {p.titulos === 1 ? "título" : "títulos"}
                 </span>
               </div>
             ))}

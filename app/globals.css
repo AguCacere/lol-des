@@ -878,76 +878,136 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   border:1px solid var(--border); box-shadow:var(--shadow-sm); flex:none;
   overflow:hidden; position:relative;
 }
+.profile-avatar-wrap{position:relative; flex:none;}
 .profile-avatar-img{width:100%; height:100%; object-fit:cover; display:block;}
 /* Summoner-V4 account level, same call that already fetches the avatar art —
    overlaid on the icon's own corner like the real client does, rather than
    another line of text competing with name/role/main for attention. */
 .profile-level-badge{
-  position:absolute; right:-3px; bottom:-3px;
+  position:absolute; right:-4px; bottom:-4px;
   background:var(--bg); color:var(--text-secondary);
   font-family:var(--font-mono); font-size:9.5px; font-weight:700;
-  line-height:1; padding:3px 5px; border-radius:6px;
+  line-height:1; padding:3px 6px; border-radius:6px;
   border:1px solid var(--border); box-shadow:var(--shadow-sm);
+  display:inline-flex; align-items:baseline; gap:3px; white-space:nowrap;
 }
+/* "Nivel" en chiquito adelante del número. Suelto, el "323" parecía un dato
+   accidental pegado al avatar y nadie sabía de qué era. */
+.pl-rot{font-size:7.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted);}
 .profile-name{font-family:var(--font-display); font-weight:700; font-size:21px; margin:0; display:flex; align-items:center; gap:9px; flex-wrap:wrap; overflow-wrap:anywhere;}
 .profile-sub{font-size:12.5px; color:var(--text-muted); margin-top:3px;}
-.profile-tier{text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:9px; flex:0 0 auto;}
-.profile-tier-top{display:flex; align-items:center; gap:11px;}
-.profile-tier-emblem{width:44px; height:44px; flex:none; object-fit:contain;}
+/* El ancho está ACOTADO, no solo con un mínimo. Sin el máximo, el bloque
+   crecía hasta el renglón más largo que tuviera adentro —"▲395 LP netos ·
+   últimos 14 días · 2 victorias seguidas" mide 560px— y la barra de progreso,
+   que es width:100%, se estiraba igual: una línea de medio metro colgando de
+   un rango que ocupa 150px. Con el tope, el pulso se parte en dos renglones
+   como en el boceto y la barra mide lo que mide el rango. */
+.profile-tier{
+  text-align:right; display:flex; flex-direction:column; align-items:flex-end;
+  gap:4px; flex:0 0 auto; min-width:232px; max-width:272px;
+}
+.profile-tier-top{display:flex; align-items:center; gap:12px;}
+.profile-tier-emblem{width:44px; height:44px; flex:none; object-fit:contain; display:block;}
 /* El reemplazo cuando ese tier todavía no tiene arte: la misma chapa del
    ladder, al tamaño del emblema que sustituye. */
-.profile-tier-chapa{width:38px; height:38px; flex:none; font-size:14px; border-radius:11px;}
+.profile-tier-chapa{width:40px; height:40px; flex:none; font-size:15px; border-radius:11px;}
 .profile-tier-names{text-align:right;}
-.profile-tier .tn{font-family:var(--font-display); font-weight:700; font-size:19px; line-height:1.15;}
-.profile-tier .tl{font-family:var(--font-mono); font-size:12px; color:var(--text-muted);}
-.profile-tier-meta{display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:wrap;}
+.profile-tier .tn{font-family:var(--font-display); font-weight:700; font-size:20px; line-height:1.1; letter-spacing:-0.01em;}
+.profile-tier .tl{
+  font-family:var(--font-mono); font-size:12px; color:var(--text-muted);
+  display:flex; align-items:center; justify-content:flex-end; gap:5px;
+}
 
-/* La progresión dentro de la división. Los LP van de 0 a 100 ahí adentro,
-   así que la proporción es real y no una escala inventada — por eso acá sí
-   corresponde una barra y no otro chip de texto. */
-.rank-progress{display:flex; flex-direction:column; align-items:flex-end; gap:5px; width:100%; min-width:190px;}
+/* El halo del tier detrás del emblema. Es la dosis más alta de color de rango
+   de todo el hero y aun así ronda el 20% de alfa sobre un radial que se apaga
+   al 70%: lo que se ve es una luz, no un círculo. Se abre un toque en hover
+   —única microinteracción del emblema: nada de girar, rebotar ni pulsar. */
+.hero-emblema{position:relative; display:inline-flex; flex:none;}
+.hero-emblema::before{
+  content:""; position:absolute; inset:-34%; border-radius:50%; z-index:0;
+  background:radial-gradient(circle, color-mix(in srgb, var(--tier, #fff) 20%, transparent) 0%, transparent 70%);
+  transition:opacity var(--t-chico) var(--e-ambos), transform var(--t-chico) var(--e-ambos);
+}
+.hero-emblema > *{position:relative; z-index:1;}
+.profile-header:hover .hero-emblema::before{transform:scale(1.12); opacity:.75;}
+
+/* La regla que separa el rango de su contexto, y que cuando hay próxima
+   división ES la barra de progreso: los LP van de 0 a 100 ahí adentro, así que
+   la proporción es real y no una escala inventada. En Maestro el track queda
+   vacío y hace de línea. */
+.rank-progress{display:flex; width:100%;}
 .rank-progress-track{
-  width:100%; height:5px; border-radius:99px; background:var(--track); overflow:hidden;
+  width:100%; height:4px; border-radius:99px; background:var(--track); overflow:hidden;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04);
 }
 /* El color lo pone el tier desde el JSX: es la misma señal que el nombre del
    rango de arriba, y con un acento fijo la barra se leía como un progreso
    genérico y no como "te falta esto para el próximo escalón". */
 .rank-progress-fill{height:100%; border-radius:99px; transition:width .3s ease;}
-.rank-progress-label{font-size:11px; color:var(--text-muted); white-space:nowrap;}
-.rank-progress-label strong{color:var(--text-secondary); font-family:var(--font-mono); font-weight:700;}
 
-/* Contexto, no titular: máximo y flex eran dos pills con fondo que competían
-   con el rango. Como texto apagado en una línea siguen estando y dejan de
-   pelear. */
-.profile-tier-context{
-  display:flex; align-items:center; justify-content:flex-end; gap:6px 14px; flex-wrap:wrap;
-  font-size:11px; color:var(--text-muted);
+/* El pulso: LP de la ventana y racha. Eran dos pills con fondo de color que
+   pesaban más que el rango de arriba. Ahora son texto con una flecha —el
+   color sigue diciendo si va bien o mal, que es para lo único que esta app
+   usa verde y rojo— y el rango vuelve a ser lo más fuerte del bloque. */
+.profile-tier-meta{
+  display:flex; flex-direction:column; align-items:flex-end; gap:2px;
+  font-size:11.5px; font-family:var(--font-mono); line-height:1.2;
 }
-.profile-flex{display:inline-flex; align-items:center; gap:5px;}
+.hero-dato{display:inline-flex; align-items:center; gap:5px; white-space:nowrap;}
+.hero-dato.up{color:var(--good);}
+.hero-dato.down{color:var(--critical);}
+.hero-dato svg{width:10px; height:10px; flex:none;}
+/* La ventana sobre la que se midió el delta, apagada: el número es el dato,
+   "últimos 12 días" es la letra chica que lo hace verdadero. */
+.hero-dato-ventana{color:var(--text-muted); font-weight:400;}
+
+/* Contexto, no titular: máximo y flex. Dos filas alineadas —rótulo, emblema
+   chico, rango, LP— para que se lean como una tablita y no como dos frases
+   sueltas de largo distinto. */
+/* Grilla de tres columnas —rótulo · emblema · rango— y no dos filas sueltas:
+   es lo único que pone los dos emblemas chicos uno debajo del otro. Con filas
+   flex alineadas a la derecha coincidía el borde derecho, y como los textos
+   miden distinto los emblemas quedaban desfasados y las dos líneas no se
+   leían como una tablita. El bloque entero sigue pegado a la derecha
+   (`align-self`), pero adentro manda la columna. */
+.profile-tier-context{
+  display:grid; grid-template-columns:auto auto auto; align-items:center;
+  gap:1px 7px; align-self:flex-end; text-align:left;
+  font-size:11px; color:var(--text-muted); line-height:1.25;
+}
+.hero-ctx-fila{display:contents;}
+.hero-ctx-rotulo{display:inline-flex; align-items:center; gap:3px; color:var(--text-muted);}
+.hero-ctx-dato{white-space:nowrap;}
+.hero-ctx-lp{font-family:var(--font-mono); font-size:11px;}
+/* El emblema del ladder, encogido. Mismo componente y mismo archivo: no hay
+   un segundo juego de assets ni un segundo tamaño en el JSX. */
+.profile-tier-context .tier-badge{width:17px; height:17px; font-size:7px;}
 @media (max-width:760px){
   /* Apilado, el rango alineado a la derecha quedaba desfasado contra la
      identidad y los roles, que van a la izquierda — tres bloques con dos
      ejes de lectura distintos. Acá pasa a ocupar el ancho entero y alinear
      como los otros dos. */
-  .profile-tier{align-items:stretch; text-align:left; width:100%;}
+  /* No es el desktop encogido. Apilado, el eje de lectura pasa a ser la
+     izquierda: el rango alineado a la derecha quedaba desfasado contra la
+     identidad, que va a la izquierda — dos bloques con dos ejes distintos. */
+  .profile-tier{align-items:stretch; text-align:left; width:100%; min-width:0; max-width:none; gap:6px;}
   .profile-tier-names{text-align:left;}
-  .profile-tier-meta, .profile-tier-context{justify-content:flex-start;}
-  .rank-progress{align-items:flex-start;}
+  .profile-tier-meta{align-items:flex-start;}
+  /* El contexto se pega a la izquierda y los rótulos dejan de alinearse a la
+     derecha, que acá no tendría contra qué. */
+  .profile-tier-context{align-self:flex-start;}
+  .hero-ctx-rotulo{justify-content:flex-start;}
+  /* Un escalón menos de emblema: 52px al lado del nombre apilado pesaba más
+     que el nombre. Sigue siendo el grande de los tres. */
+  .profile-tier-emblem{width:44px; height:44px;}
+  .profile-tier .tn{font-size:19px;}
+  .profile-tier .tl{justify-content:flex-start;}
+  .rank-progress{min-width:0;}
+  /* Y el header deja de ser dos columnas: con flex-wrap a secas el bloque de
+     rango se iba a 244px y dejaba una canaleta muerta al lado. */
+  .profile-header{gap:16px; margin-bottom:18px; padding-bottom:16px;}
 }
-.streak-chip{
-  font-size:10.5px; font-weight:700; letter-spacing:0.02em; padding:3px 9px; border-radius:999px;
-  white-space:nowrap; display:inline-flex; align-items:center; gap:3px;
-}
-.streak-chip svg{width:9px; height:9px; flex:none;}
-.streak-chip.w{background:var(--good-wash); color:var(--good);}
-.streak-chip.l{background:var(--critical-wash); color:var(--critical);}
-.delta-chip{
-  font-family:var(--font-mono); font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px;
-  white-space:nowrap;
-}
-.delta-chip.up{background:var(--good-wash); color:var(--good);}
-.delta-chip.down{background:var(--critical-wash); color:var(--critical);}
+
 /*
   Was a bare vertical stack of plain text lines (peak record, next-division
   progress) sitting next to the one item that WAS chip-styled (flex) — three
@@ -962,12 +1022,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   padding:4px 10px; border-radius:999px;
 }
 .info-pill strong{color:var(--text-primary); font-family:var(--font-mono); font-weight:700;}
-.flex-chip{display:flex; align-items:center; gap:5px;}
-.flex-chip-badge{
-  width:16px; height:16px; border-radius:4px; flex:none;
-  display:flex; align-items:center; justify-content:center;
-  font-family:var(--font-display); font-weight:700; font-size:8.5px;
-}
 
 
 /* Sub-navegación del perfil (Resumen / Rendimiento / Campeones). Misma
@@ -2256,25 +2310,108 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    La franja de identidad del perfil: el splash del campeón principal detrás,
    y una línea del color del rango arriba de todo. */
 .profile{position:relative; border-top:2px solid transparent;}
-.profile-hero-art{
+/* El contenedor que RECORTA. Existe porque el splash ahora se mueve y escala:
+   sin esto se desbordaría de la card, y la card no puede llevar
+   overflow:hidden —los InfoTips del perfil se salen de su caja a propósito y
+   recortarlos los rompe—. Acá adentro no hay ningún InfoTip, así que recortar
+   es gratis. */
+.profile-hero-wrap{
   position:absolute; top:0; right:0; left:0; height:250px; z-index:0;
-  background-size:cover; background-position:right 22%;
-  opacity:0.24; pointer-events:none;
-  /* Redondeado propio en vez de overflow:hidden en .profile — el perfil
-     tiene InfoTips que se salen de su caja, y recortarlos los rompería. */
+  overflow:hidden; pointer-events:none;
   border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+}
+.profile-hero-art{
+  position:absolute; inset:0;
+  background-size:cover; background-position:right 22%;
+  /* De 0.24 a 0.40. Estaba tan apagado que Lee Sin no participaba del hero:
+     había una imagen cara ahí atrás y no se veía. Lo que protege la
+     legibilidad NO es bajarle la opacidad a todo —eso ensucia parejo, y deja
+     el texto sobre un gris— sino el velo de abajo, que apaga la imagen
+     exactamente donde hay texto y la deja respirar donde no. */
+  opacity:0.40;
   /* Un solo gradiente radial anclado arriba a la derecha desvanece a la vez
      hacia la izquierda (donde va el nombre) y hacia abajo (donde arrancan las
-     pestañas), sin tener que componer dos máscaras. */
-  -webkit-mask-image:radial-gradient(115% 100% at 100% 0%, #000 0%, transparent 72%);
-  mask-image:radial-gradient(115% 100% at 100% 0%, #000 0%, transparent 72%);
+     pestañas), sin tener que componer dos máscaras. Se abrió de 72% a 85%:
+     con el velo nuevo encargándose del contraste, la máscara ya no tiene que
+     hacer las dos cosas. */
+  -webkit-mask-image:radial-gradient(110% 105% at 96% 0%, #000 0%, transparent 82%);
+  mask-image:radial-gradient(110% 105% at 96% 0%, #000 0%, transparent 82%);
+  /* El paneo ambiental: 17 segundos de ida y 17 de vuelta. Está deliberadamente
+     por debajo del umbral en el que uno piensa "hay algo moviéndose" —8px en
+     17s es medio píxel por segundo—. La escala arranca en 1.04 y no en 1 para
+     que los 8px de corrimiento nunca descubran el borde. Solo transform:
+     ni width, ni left, ni filtros, así que el navegador lo resuelve en la GPU
+     sin recalcular layout en ningún frame. */
+  animation:hero-paneo 17s var(--e-ambos) infinite alternate;
+}
+@keyframes hero-paneo{
+  from{transform:scale(1.04) translateX(0);}
+  to{transform:scale(1.07) translateX(-8px);}
+}
+/* La luz del tier. Capa aparte y quieta: si viviera como un gradiente más
+   sobre el splash se movería con el paneo, y una luz que se desplaza se nota.
+   Anclada donde está el emblema (arriba a la derecha), bien abierta y con
+   ~14% de alfa en el centro: a ojo son dos o tres por ciento de presencia
+   sobre el negro. */
+.hero-luz{
+  position:absolute; inset:0;
+  background:radial-gradient(60% 85% at 86% 8%, color-mix(in srgb, var(--tier, #fff) 14%, transparent) 0%, transparent 68%);
+}
+/* El velo: negro sólido abajo que se abre hacia arriba, y un segundo pase
+   desde la izquierda. Es lo que compra el contraste del nombre y de los
+   números ahora que el splash está al 40%. Va arriba del splash y de la luz,
+   y abajo del contenido. */
+.hero-velo{
+  position:absolute; inset:0;
+  background:
+    linear-gradient(to top, var(--surface) 0%, color-mix(in srgb, var(--surface) 84%, transparent) 34%, transparent 72%),
+    linear-gradient(to right, var(--surface) 0%, color-mix(in srgb, var(--surface) 80%, transparent) 34%, transparent 66%);
 }
 /* Todo el contenido del perfil va por encima del arte. */
-.profile > *:not(.profile-hero-art){position:relative; z-index:1;}
+.profile > *:not(.profile-hero-wrap){position:relative; z-index:1;}
+
+/* ── La entrada ──────────────────────────────────────────────────────────
+   Tres pasos de ~60ms: primero quién es, después en qué rango está, después
+   el contexto. Dura 480ms de punta a punta y después NO vuelve a pasar: lo
+   que la dispara es el remount del header, y el header lleva `key` por
+   jugador (ver PlayerProfile.tsx), así que un refetch del mismo jugador deja
+   el nodo donde está y no reanima nada. `both` para que el elemento ya esté
+   invisible en el primer frame y no haya un parpadeo antes del delay. */
+@keyframes hero-entra{
+  from{opacity:0; transform:translateY(4px);}
+  to{opacity:1; transform:translateY(0);}
+}
+.hero-paso-1{animation:hero-entra 320ms var(--e-entra) both;}
+.hero-paso-2{animation:hero-entra 320ms var(--e-entra) 80ms both;}
+.hero-paso-3{animation:hero-entra 320ms var(--e-entra) 160ms both;}
+
+@media (prefers-reduced-motion:reduce){
+  /* El interruptor global de arriba del archivo acorta toda animación a
+     0.001ms, lo que acá no alcanza: el paneo terminaría CLAVADO en su
+     fotograma final —corrido 8px y escalado 1.07— en vez de quedarse donde
+     tiene que estar. Y la entrada quedaría bien por accidente, no por
+     decisión. Las dos se apagan explícitas. */
+  .profile-hero-art{animation:none; transform:none;}
+  .hero-paso-1, .hero-paso-2, .hero-paso-3{animation:none; opacity:1; transform:none;}
+  .hero-emblema::before, .profile-header:hover .hero-emblema::before{transition:none; transform:none;}
+}
+
 @media (max-width:720px){
   /* En mobile el header es mucho más alto (todo apilado) y el arte llegaba
-     hasta la mitad del bloque de rango, ensuciando los números. */
-  .profile-hero-art{height:170px; opacity:0.18; background-position:right 18%;}
+     hasta la mitad del bloque de rango, ensuciando los números. Más corto,
+     más apagado y con el velo más agresivo: el splash sigue estando, pero
+     acá el ancho se lo lleva el texto y no hay zona libre que llenar. */
+  .profile-hero-wrap{height:190px;}
+  .profile-hero-art{opacity:0.26; background-position:right 18%;}
+  .hero-velo{
+    background:linear-gradient(to top, var(--surface) 0%, color-mix(in srgb, var(--surface) 78%, transparent) 46%, transparent 88%);
+  }
+  /* El paneo se acorta a la mitad: en 390px de ancho, 8px son el doble de
+     recorrido relativo y ahí sí se empieza a notar. */
+  @keyframes hero-paneo{
+    from{transform:scale(1.04) translateX(0);}
+    to{transform:scale(1.06) translateX(-4px);}
+  }
 }
 
 /* ── Aviso de tilt (components/TiltCard.tsx) ──────────────────────────────
@@ -4150,10 +4287,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
      .hist-ultima    la edición anterior, con superficie propia. Es la única
                      de la sección: es la que todavía está fresca.
      .hist-viejas    las anteriores, en filas. Registro, no destaque.
-     .hist-palmares  quién ganó más veces. Aparece recién cuando alguien
-                     repite, y es lo que hace que esto no se resetee todos los
-                     lunes: con veinte ediciones, "quién tiene más copas" es
-                     una segunda competencia corriendo en paralelo.
+     .hist-palmares  quién ganó más veces. Aparece desde la segunda edición,
+                     y es lo que hace que esto no se resetee todos los lunes:
+                     con veinte ediciones, "quién tiene más copas" es una
+                     segunda competencia corriendo en paralelo.
 
    Sin dorado más allá del borde de la card y la copa. Es historia, no la
    competencia de esta semana: si brillara igual que la liga en curso,
@@ -4285,6 +4422,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   .hist-cuerpo:not(.con-palmares){max-width:680px;}
 }
 .hist-viejas,.hist-palmares{margin-top:14px;}
+/* Un ancho de lectura para el palmarés. La columna de la grilla mide 1fr del
+   ancho de la liga, y con cuatro filas de "Nombre · copas · N títulos" eso
+   deja el nombre contra un borde y la cuenta contra el otro: la misma trampa
+   del 1fr anotada en DECISIONES. */
+.hist-palmares{max-width:380px;}
 .hist-viejas-rotulo{
   display:block; margin-bottom:5px;
   font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
@@ -4337,7 +4479,16 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   flex:none; display:inline-flex; align-items:center; gap:3px;
   font-size:10.5px; font-weight:700; color:var(--gold); font-variant-numeric:tabular-nums;
 }
+/* Las copas se van al final de la fila junto con el número, y el nombre se
+   come el espacio del medio: así los dos "N títulos" quedan en la misma
+   columna y la lista se lee de arriba abajo por la cuenta, que es para lo que
+   existe un palmarés. */
+.hist-palmares-fila .hist-fila-quien{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .hist-copas{flex:none; font-size:12px; letter-spacing:-1px;}
+.hist-copas-n{
+  flex:none; min-width:62px; text-align:right;
+  font-family:var(--font-mono); font-size:11px; color:var(--text-muted); white-space:nowrap;
+}
 
 @media (max-width:560px){
   /* La fecha pasa a ser el dato más chico de la fila: en 390px el nombre es

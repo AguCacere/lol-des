@@ -19,7 +19,12 @@ con la diferencia entre el primero y el segundo y cuánto falta para el cierre.
 
 **Ranking** — el ladder ordenado por LP, con rango, racha, V/D y el gráfico de LP de
 cada uno. Tocando una fila se sale del ladder y se entra al perfil, que tiene dos
-pestañas:
+pestañas. Arriba de las dos, **la cabecera**: el splash de su campeón principal de
+fondo con un paneo lentísimo, el nombre, el nivel y la línea, y a la derecha el rango
+de SoloQ con el emblema grande, cuánto LP se movió en la ventana de fotos que tenemos
+y en cuántos días, la racha (desde dos seguidas, antes no es una racha) y —con el
+mismo emblema en chiquito— su máximo histórico y su rango de Flex. El color del rango
+pinta una luz tenue detrás del emblema; el resto de la app sigue siendo dorada.
 
 - **Resumen** — qué le está pasando y qué le conviene corregir. Arriba, la progresión
   de LP **partida por partida**: cada punto es una, pasando por encima aparece con qué
@@ -203,8 +208,10 @@ tabla** y, al pie, **el historial**.
 El historial no es una lista de resultados viejos. Arranca con la última edición
 contada como crónica —cuándo fue, quién ganó, con qué récord, **cómo se ganó** ("llegó
 al último día 2º, a 1 punto del puntero, y lo dio vuelta") y quiénes quedaron 2º y
-3º—, sigue con la tira de campeones anteriores y, desde que alguien gana dos veces,
-el palmarés. Tocando cualquiera se **revive la semana**: el resultado, la carrera día
+3º—, sigue con la tira de campeones anteriores y, desde la segunda edición, **el
+palmarés**: las copas que tiene cada uno, de más a menos. Se cuenta por invocador y
+no por nombre —el Riot ID se puede cambiar y el palmarés no se tiene que partir por
+eso— y sobre TODAS las semanas cerradas, no sobre las últimas que se muestran. Tocando cualquiera se **revive la semana**: el resultado, la carrera día
 por día con el campeón y su escolta destacados, **los momentos** (la mayor subida, la
 mayor caída, el día en que la punta estuvo más peleada, si se dio vuelta al final) y
 la clasificación con podio. Todo sale de restas sobre la misma curva: no hay ninguna

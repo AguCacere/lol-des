@@ -31,6 +31,7 @@ import { ProgresionLP } from "./ProgresionLP";
 import { ProfileLectura } from "./ProfileLectura";
 import { ProfileCampeones } from "./ProfileCampeones";
 import { AegisSenal } from "./AegisSenal";
+import { TierEmblem } from "./TierEmblem";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
 import { ReviewIcon } from "./StatIcons";
@@ -194,7 +195,28 @@ export function PlayerProfile({
   // chip de "▲92 LP netos" al lado del rango). El GRÁFICO ya no sale de acá:
   // dibuja una partida por punto desde `p.progresion`, ver ProgresionLP.tsx.
   const lpDeltaUnit = lpCrossedBoundary ? "LP netos" : "LP";
-  const streak = currentStreak(p.matches);
+  /**
+   * De cuántos días es ese delta. NO es un "últimos 15 días" escrito a mano:
+   * la ventana de fotos es `.slice(-20)` de `lp_snapshots` (ver la ruta del
+   * ladder), así que dura lo que duren esas veinte fotos — unos días en
+   * alguien que juega todos los días, semanas en alguien que no. Sin esto el
+   * "▲92 LP" no decía sobre qué.
+   *
+   * 0 cuando el historial no alcanzaba y la ruta devolvió el punto de relleno
+   * dos veces (las dos con `capturedAt` de ahora): ahí no hay ventana que
+   * nombrar y la frase se omite sola.
+   */
+  const lpDiasVentana = Math.floor(
+    (Date.parse(p.lpHistory[p.lpHistory.length - 1].capturedAt) - Date.parse(p.lpHistory[0].capturedAt)) / 86400000,
+  );
+  const streakCrudo = currentStreak(p.matches);
+  /**
+   * Una sola victoria no es una racha. El umbral es visual y no toca
+   * `currentStreak`, que la sigue contando igual para todo lo demás: lo que
+   * cambia es que el header deje de anunciar "1 WIN STREAK" como si fuera
+   * una noticia.
+   */
+  const streak = streakCrudo && streakCrudo.count >= 2 ? streakCrudo : null;
   // Se fueron `metricInsights` y su split en fortalezas/debilidades. No es
   // que sobraran: estaban MAL. Sus valores salían de `avgKDA`, `avgCS`,
   // `avgDmg`, `killPart` y `objPart`, que promedian las últimas CINCO
@@ -220,27 +242,69 @@ export function PlayerProfile({
     // enorme que viene justo abajo, y la ayuda señalaba una tabla que en esta
     // vista no está en pantalla.
     <section id="profileSection">
-      <div className={`profile${fading ? " is-fading" : ""}`} style={{ borderTopColor: t.fg }}>
-        {/* El splash del campeón principal, apagado y desvanecido hacia la
-            izquierda: le da identidad al perfil sin pelearle legibilidad al
-            nombre ni al rango, que son los datos. Es un fondo CSS y no un
-            <img> a propósito — si la URL falla, no queda un ícono roto, no
-            queda nada. */}
-        <div
-          className="profile-hero-art"
-          style={{ backgroundImage: `url(${championSplashUrl(p.mainChamp)})` }}
-          aria-hidden="true"
-        />
-        <div className="profile-header">
-          <div className="profile-id">
-            <div className="profile-avatar" style={{ background: t.bg, color: t.fg, borderColor: `${t.fg}44` }}>
-              {p.profileIconUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element -- one small fixed-size avatar, not worth next/image's config for an external CDN
-                <img src={p.profileIconUrl} alt="" className="profile-avatar-img" />
-              ) : (
-                champTag(p.mainChamp)
+      {/* `--tier` es el color del rango ACTUAL, y de acá para abajo lo usan
+          el halo del emblema, la luz ambiental sobre el splash y la línea de
+          arriba. Va como variable y no como tres `style` sueltos porque es
+          UNA decisión —"este jugador es Maestro"— y así el CSS puede dosificar
+          cuánto de ese color aparece en cada lugar sin que el componente opine.
+          El tema de la app no se mueve: el dorado sigue siendo de Grieta
+          Central, el violeta es de él. */}
+      <div
+        className={`profile${fading ? " is-fading" : ""}`}
+        style={{ borderTopColor: t.fg, ["--tier" as string]: t.fg }}
+      >
+        {/* El splash vive adentro de un contenedor que RECORTA. Antes era un
+            solo div y alcanzaba; ahora se mueve y escala, y sin recorte se
+            desbordaría de la card —que no puede llevar overflow:hidden porque
+            los InfoTips del perfil se salen de su caja a propósito—. */}
+        <div className="profile-hero-wrap" aria-hidden="true">
+          {/* El splash del campeón principal. Es un fondo CSS y no un <img> a
+              propósito: si la URL falla no queda un ícono roto, no queda nada.
+
+              Subió de 0.24 a 0.40 de opacidad y la máscara ahora deja el
+              centro-derecha mucho más limpio: estaba tan apagado que el
+              personaje no participaba. Lo que protege la legibilidad no es
+              bajarle la opacidad a todo —eso ensucia parejo— sino el degradado
+              de abajo, que apaga la imagen justo donde arrancan los textos. */}
+          <div
+            className="profile-hero-art"
+            style={{ backgroundImage: `url(${championSplashUrl(p.mainChamp)})` }}
+          />
+          {/* La luz del tier: una mancha del color del rango sobre la zona del
+              emblema. Capa aparte y no un gradiente más sobre el splash para
+              que no se mueva con el paneo — la luz se queda quieta y el
+              personaje se mueve por detrás. */}
+          <div className="hero-luz" />
+          {/* Y el apagón de abajo, que es lo que hace legible todo lo demás. */}
+          <div className="hero-velo" />
+        </div>
+        {/* `key` por jugador: es lo que hace que la entrada escalonada se
+            dispare al CAMBIAR de perfil y no en cada render. Mismo jugador con
+            datos frescos = misma key = React conserva el nodo = la animación
+            no vuelve a arrancar. */}
+        <div className="profile-header" key={`${p.name}#${p.tag}`}>
+          <div className="profile-id hero-paso-1">
+            {/* La chapa del nivel va en un envoltorio y NO adentro del avatar:
+                el avatar lleva overflow:hidden para recortar el ícono redondo,
+                así que cualquier cosa posicionada fuera de sus bordes se come
+                el recorte. Antes se notaba poco porque la chapa decía "323" y
+                sobresalía tres píxeles; con "Nivel 323" quedaba cortada. */}
+            <div className="profile-avatar-wrap">
+              <div className="profile-avatar" style={{ background: t.bg, color: t.fg, borderColor: `${t.fg}44` }}>
+                {p.profileIconUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- one small fixed-size avatar, not worth next/image's config for an external CDN
+                  <img src={p.profileIconUrl} alt="" className="profile-avatar-img" />
+                ) : (
+                  champTag(p.mainChamp)
+                )}
+              </div>
+              {/* "Nivel 323" y no "323" pelado: suelto en la esquina parecía
+                  un número accidental y nadie sabía de qué. */}
+              {p.summonerLevel != null && (
+                <span className="profile-level-badge">
+                  <span className="pl-rot">Nivel</span> {p.summonerLevel}
+                </span>
               )}
-              {p.summonerLevel != null && <span className="profile-level-badge">{p.summonerLevel}</span>}
             </div>
             <div>
               <p className="profile-name">
@@ -271,92 +335,114 @@ export function PlayerProfile({
               bueno escondido. */}
 
           <div className="profile-tier">
-            <div className="profile-tier-top">
+            <div className="profile-tier-top hero-paso-2">
               {/* El emblema le da al rango el ancla visual que le faltaba:
                   era el dato más importante del header y competía como texto
-                  suelto contra cuatro chips de colores. */}
-              {emblemUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element -- ícono local fijo, no vale la config de next/image
-                <img src={emblemUrl} alt="" className="profile-tier-emblem" />
-              ) : (
-                // Sin arte para ese tier todavía (hoy: hierro, plata y
-                // maestro). La chapa de letra es la misma que usa el ladder —
-                // antes acá no se dibujaba NADA, así que el rango del perfil
-                // quedaba sin ancla justo en los tres tiers sin emblema.
-                <span className="tier-badge profile-tier-chapa" style={{ background: t.bg, color: t.fg }}>
-                  {t.name[0]}
-                  {divisionCorta(p.tierKey, p.division)}
-                </span>
-              )}
+                  suelto contra cuatro chips de colores. El halo del color del
+                  tier va atrás, en ::before, y se abre un poco en hover. */}
+              <span className="hero-emblema">
+                {emblemUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- ícono local fijo, no vale la config de next/image
+                  <img src={emblemUrl} alt="" className="profile-tier-emblem" />
+                ) : (
+                  // Sin arte para ese tier todavía (hoy: solo hierro). La chapa
+                  // de letra es la misma que usa el ladder — antes acá no se
+                  // dibujaba NADA y el rango quedaba sin ancla.
+                  <span className="tier-badge profile-tier-chapa" style={{ background: t.bg, color: t.fg }}>
+                    {t.name[0]}
+                    {divisionCorta(p.tierKey, p.division)}
+                  </span>
+                )}
+              </span>
               <div className="profile-tier-names">
                 <div className="tn" style={{ color: t.fg }}>
                   {rangoTexto(p.tierKey, p.division)}
                 </div>
-                <div className="tl">{p.lp} LP</div>
+                <div className="tl">
+                  {p.lp} LP
+                  {/* Lo que antes era una línea fija del banner. "En Maestro ya
+                      no hay divisiones" y "faltan N LP para X" explican el
+                      SISTEMA, no al jugador, y se comían un renglón entero del
+                      hero para siempre. Acá están igual, a un hover. */}
+                  <InfoTip
+                    align="end"
+                    text={
+                      next
+                        ? `Faltan ${next.lpNeeded} LP para ${nextTier!.name}${next.division ? ` ${next.division}` : ""}.`
+                        : "En Maestro ya no hay divisiones: se sigue sumando LP y listo."
+                    }
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="profile-tier-meta">
-              <span className={`delta-chip ${lpDelta >= 0 ? "up" : "down"}`}>
-                {lpDelta >= 0 ? "▲" : "▼"} {Math.abs(lpDelta)} {lpDeltaUnit}
-              </span>
-              {streak && (
-                <span className={`streak-chip ${streak.result === "W" ? "w" : "l"}`}>
-                  <StreakIcon result={streak.result} /> {streak.count}
-                  {streak.capped ? "+" : ""} {streak.result === "W" ? "WIN STREAK" : "LOSS STREAK"}
-                </span>
-              )}
-            </div>
-
-            {/* Barra en vez de la pill "Faltan N LP para X". Los LP dentro de
-                una división van de 0 a 100, así que la proporción existe de
-                verdad y se lee de un vistazo; el texto que estaba antes queda
-                igual debajo, sin perder el número exacto.
-
-                En Maestro NO se dibuja: ahí no hay divisiones y el LP no tiene
-                techo en 100, así que la barra medía "5 LP de 100" —un 5% que
-                no significa nada— y abajo decía "tope del sistema alcanzado",
-                que tampoco es cierto: arriba están Gran Maestro y Aspirante,
-                que esta app pliega en Maestro (ver lib/mapping.ts). */}
-            <div className="rank-progress">
-              {next && (
-                <div className="rank-progress-track">
+            {/* La regla que separa el rango de su contexto. Cuando hay próxima
+                división ES la barra de progreso —los LP van de 0 a 100 ahí
+                adentro, así que la proporción es real—; en Maestro, donde esa
+                cuenta no significa nada, queda como una línea apagada y la
+                composición no se rompe. */}
+            <div className="rank-progress hero-paso-2">
+              <div className="rank-progress-track">
+                {next && (
                   <div
                     className="rank-progress-fill"
                     style={{ width: `${Math.max(2, Math.min(100, p.lp))}%`, background: t.fg }}
                   />
-                </div>
-              )}
-              <span className="rank-progress-label">
-                {next ? (
-                  <>
-                    Faltan <strong>{next.lpNeeded} LP</strong> para {nextTier!.name}
-                    {next.division ? ` ${next.division}` : ""}
-                  </>
-                ) : (
-                  "En Maestro ya no hay divisiones: se sigue sumando LP y listo"
                 )}
-              </span>
+              </div>
             </div>
 
-            {/* Máximo y Flex en una sola línea apagada: son contexto, no
-                titulares, y como pills competían con el rango de arriba. */}
-            <div className="profile-tier-context">
-              <span>
-                Máximo <InfoTip text={METRIC_INFO.peakLp} />{" "}
-                <span style={{ color: peakTier.fg }}>{rangoTexto(p.peakLp.tier, p.peakLp.division)}</span>{" "}
-                · {p.peakLp.lp} LP{isAtPeak && " (actual)"}
+            <div className="profile-tier-meta hero-paso-3">
+              <span className={`hero-dato ${lpDelta >= 0 ? "up" : "down"}`}>
+                {lpDelta >= 0 ? "▲" : "▼"} {Math.abs(lpDelta)} {lpDeltaUnit}
+                {lpDiasVentana >= 1 && (
+                  <span className="hero-dato-ventana">
+                    {" "}
+                    · últimos {lpDiasVentana} {lpDiasVentana === 1 ? "día" : "días"}
+                  </span>
+                )}
+              </span>
+              {streak && (
+                <span className={`hero-dato ${streak.result === "W" ? "up" : "down"}`}>
+                  <StreakIcon result={streak.result} /> {streak.count}
+                  {streak.capped ? "+" : ""} {streak.result === "W" ? "victorias seguidas" : "derrotas seguidas"}
+                </span>
+              )}
+            </div>
+
+            {/* Máximo y Flex, cada uno con su emblema CHICO y real. Antes el
+                máximo era texto de color y el flex una chapita verde de 16px
+                con la letra adentro; las dos cosas decían el rango sin
+                parecerse al rango. Con el mismo emblema del ladder a 20px la
+                jerarquía se lee sola: uno grande arriba, dos chicos abajo. */}
+            <div className="profile-tier-context hero-paso-3">
+              {/* `display:contents` en la fila: las tres celdas de cada una
+                  caen directo en la grilla del padre, que es lo que hace que
+                  los dos emblemas queden uno debajo del otro. Alineados a la
+                  derecha como el resto del bloque NO quedaban: las dos líneas
+                  miden distinto ("Diamante 1 · 32 LP" contra "Esmeralda 4 ·
+                  83 LP"), así que coincidía el borde derecho y bailaba todo
+                  lo demás. */}
+              <span className="hero-ctx-fila">
+                <span className="hero-ctx-rotulo">
+                  Máximo <InfoTip text={METRIC_INFO.peakLp} />
+                </span>
+                <TierEmblem tierKey={p.peakLp.tier} division={p.peakLp.division} />
+                <span className="hero-ctx-dato">
+                  <span style={{ color: peakTier.fg }}>{rangoTexto(p.peakLp.tier, p.peakLp.division)}</span>
+                  <span className="hero-ctx-lp"> · {p.peakLp.lp} LP{isAtPeak && " (actual)"}</span>
+                </span>
               </span>
               {p.flexRank && (
-                <span className="profile-flex">
-                  <span
-                    className="flex-chip-badge"
-                    style={{ background: tierFor(p.flexRank.tier).bg, color: tierFor(p.flexRank.tier).fg }}
-                  >
-                    {tierFor(p.flexRank.tier).name[0]}
-                    {divisionCorta(p.flexRank.tier, p.flexRank.division)}
+                <span className="hero-ctx-fila">
+                  <span className="hero-ctx-rotulo">Flex</span>
+                  <TierEmblem tierKey={p.flexRank.tier} division={p.flexRank.division} />
+                  <span className="hero-ctx-dato">
+                    <span style={{ color: tierFor(p.flexRank.tier).fg }}>
+                      {rangoTexto(p.flexRank.tier, p.flexRank.division)}
+                    </span>
+                    <span className="hero-ctx-lp"> · {p.flexRank.lp} LP</span>
                   </span>
-                  Flex · {p.flexRank.lp} LP
                 </span>
               )}
             </div>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { RoleKey, TierKey } from "@/lib/types";
-import type { Edicion } from "@/lib/palmares";
+import type { Edicion, EnPalmares } from "@/lib/palmares";
 
 /**
  * Los datos de la liga, UNA sola vez por pestaña del navegador.
@@ -176,6 +176,12 @@ export interface Datos {
    * TypeScript no podía avisar de nada.
    */
   historial: Edicion[];
+  /**
+   * El palmarés contado sobre TODAS las semanas cerradas, no sobre las ocho
+   * de `historial`. Opcional por la ventana de caché del CDN: el JSON viejo
+   * no trae el campo y el componente vuelve a contarlo con lo que tiene.
+   */
+  palmares?: EnPalmares[];
   /** Para el arte de campeón. Opcional por la misma razón. */
   ddragonVersion?: string | null;
   /**

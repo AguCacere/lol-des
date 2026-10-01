@@ -1035,7 +1035,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
           títulos, y el palmarés desde que alguien gana dos veces. Ver
           components/LigaHistorial.tsx. */}
       {d.arrancada && d.historial.length > 0 && (
-        <LigaHistorial ediciones={d.historial} onAbrir={setTorneo} />
+        <LigaHistorial ediciones={d.historial} palmaresCompleto={d.palmares} onAbrir={setTorneo} />
       )}
 
       {torneo && (

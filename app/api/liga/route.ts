@@ -5,7 +5,7 @@ import { exigirSesion } from "@/lib/auth";
 import { getLatestVersion, profileIconUrl } from "@/lib/ddragon";
 import { tablaDeLaSemana, puntosDeSecuencia, puntosPorDia, PUNTOS_VICTORIA, PUNTOS_DERROTA, PUNTOS_EN_RACHA, RACHA_DESDE, lpPorPartida, type AjusteLiga, type Participante, type RecordSemanal, type Snapshot, lpAtribuido, derrotaMitigada } from "@/lib/liga";
 import { claveDeTorneo, diaCorriente, diaDeCierre, diasDelCierre, duracionEnDias, empezoElUltimoDia, esTorneoDeLiga, etiquetasDeDias, LIGA_INICIO, torneoDe } from "@/lib/torneo";
-import { dueloDeLaEdicion, podioDeLaEdicion } from "@/lib/palmares";
+import { dueloDeLaEdicion, palmares, podioDeLaEdicion } from "@/lib/palmares";
 import { relatoDeLaEdicion } from "@/lib/momentos";
 import type { ResumenSemana } from "@/lib/liga-cierre";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
@@ -392,6 +392,31 @@ export async function GET() {
     };
   });
 
+  // ── El palmarés, contado sobre TODAS las semanas cerradas ──
+  // Query aparte y no derivado de `vitrina`, que trae las últimas ocho: un
+  // palmarés armado sobre una ventana no es un palmarés. Con ocho ediciones
+  // daba lo mismo y por eso no se notaba; con la novena, el primer título de
+  // alguien se le caía de la cuenta y la pantalla iba a mostrar un número
+  // menor sin decir que estaba recortado. Son dos columnas de una tabla que
+  // tiene una fila por semana: ni con años de liga cuesta nada.
+  const { data: todasLasEdiciones } = await supabase
+    .from("liga_semanas")
+    .select("semana, ganador_puuid, ganador_label");
+  const tablaPalmares = palmares(
+    (todasLasEdiciones ?? []).map((h) => {
+      const g = h.ganador_puuid ? porPuuid.get(h.ganador_puuid as string) : null;
+      const label = (h.ganador_label as string | null) ?? null;
+      return {
+        semana: h.semana as string,
+        puuid: (h.ganador_puuid as string | null) ?? null,
+        nombre: g?.game_name ?? (label ? label.split("#")[0] : null),
+        iconUrl: version && g?.profile_icon_id != null ? profileIconUrl(version, g.profile_icon_id) : null,
+        puntos: null,
+        jugadores: 0,
+      };
+    }),
+  );
+
   return NextResponse.json(
     {
       arrancada,
@@ -449,6 +474,7 @@ export async function GET() {
         participa: Boolean(s.participa_liga),
       })),
       historial: vitrina,
+      palmares: tablaPalmares,
     },
     {
       // La liga NO tenía caché y es la tabla de la pestaña por defecto: cinco

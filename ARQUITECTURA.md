@@ -35,7 +35,7 @@ cerradura no está puesta, nadie escribe).
 | `/api/live-detail` | GET | Los diez de una partida en vivo, con líneas estimadas | no | no | `s-maxage=120` |
 | `/api/clash` | GET | Torneos de Clash agrupados | no | no | `s-maxage=300` |
 | `/api/team-digest` | GET | Resumen semanal del grupo | no | no | `s-maxage=300` (semana 0) / `3600` |
-| `/api/liga` | GET | Tabla de la liga de la semana, la carrera, la vitrina de campeones, TODAS las partidas de la semana de cada uno con su LP y su KDA (el detalle que se abre las agrupa por día para poder auditar el puntaje), y `actualizado` (cuándo escribió el cron, para el cartel de frescura propio de la liga) | no | no | `s-maxage=240, swr=600` |
+| `/api/liga` | GET | Tabla de la liga de la semana, la carrera, la vitrina de campeones, el `palmares` contado sobre TODAS las semanas cerradas, TODAS las partidas de la semana de cada uno con su LP y su KDA (el detalle que se abre las agrupa por día para poder auditar el puntaje), y `actualizado` (cuándo escribió el cron, para el cartel de frescura propio de la liga) | no | no | `s-maxage=240, swr=600` |
 | `/api/liga` | POST | Anota o saca gente de la liga | sí | **sí** | — |
 | `/api/liga/semana` | GET | Cómo terminó una semana vieja: tabla final, carrera y quién cobró | no | no | `s-maxage=21600, swr=86400` |
 | `/api/liga/semana` | POST | Rescata a mano la foto de una semana vieja sin `resumen` | sí | **sí** | — |
@@ -183,7 +183,9 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
 - `palmares.ts` — el historial de la liga: `dueloDeLaEdicion` (por cuánto ganó y
   contra quién, null si el campeón no terminó primero), `palmares` y `titulosDe`
   (cuántas copas tiene cada uno, contadas por PUUID para que un renombre no
-  parta a una persona en dos) y `comoSeDefinio`, la narración de la edición
+  parta a una persona en dos — y **sobre todas las semanas cerradas**, no sobre
+  las ocho que manda la vitrina: la ruta hace su propia query y lo cuenta
+  server-side) y `comoSeDefinio`, la narración de la edición
   armada con restas sobre `porDia` y no con un modelo. Todas devuelven null
   cuando el dato no alcanza.
 - `liga-titulos.ts` — los títulos de la semana: `repartirTitulos` da UNO por persona

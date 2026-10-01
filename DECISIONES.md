@@ -4047,3 +4047,166 @@ existen porque sin ellas el canal se vuelve inusable:
 El empate no cuenta como sorpasso: hace falta pasar, no igualar. Con `rankScore`
 el empate exacto existe (mismo tier, misma división, mismo LP) y anunciar
 "le empató" no es una noticia.
+
+## El hero del perfil: de card con el rango en la esquina a banner de jugador
+
+El header funcionaba y se sentía muerto: identidad a la izquierda, rango
+aislado a la derecha, un splash de Lee Sin tan apagado (0.24) que la imagen
+cara que había atrás no participaba de nada. Y abajo del rango, cuatro cosas
+con cuatro formas distintas —dos pills de color, una barra, una línea de
+texto— donde nada decía cuál era la importante.
+
+**La regla que ordenó todo**: el hero habla DEL JUGADOR. Todo lo que explicaba
+el sistema de rangos se fue.
+
+### La jerarquía de emblemas, que es lo que más cambió
+
+Uno grande arriba (SoloQ, 44px) y dos chicos abajo (máximo y flex, 17px), los
+tres con el MISMO componente, `TierEmblem`, y el mismo archivo de
+`public/icons/ranks/`. No hay un segundo juego de assets ni un segundo tamaño
+escrito en el JSX: el tamaño lo pone una regla de CSS acotada al bloque de
+contexto.
+
+Antes el máximo era texto de color y el flex una chapita verde de 16px con
+"E4" adentro. Las dos decían el rango sin parecerse al rango que había
+quince píxeles más arriba, y la chapa de letra competía con el emblema real en
+vez de subordinársele.
+
+Las dos filas van en una **grilla de tres columnas** —rótulo · emblema ·
+rango— y no en dos filas flex alineadas a la derecha. Con flex coincidía el
+borde derecho, y como "Diamante 1 · 32 LP" y "Esmeralda 4 · 83 LP" miden
+distinto, los emblemas quedaban desfasados y las dos líneas no se leían como
+una tablita. Las filas llevan `display:contents` para que sus celdas caigan
+directo en la grilla del padre.
+
+### El color del tier, dosificado desde una variable
+
+`--tier` se escribe una vez en la card con el color del rango actual, y de ahí
+abajo el CSS decide cuánto de ese color aparece en cada lugar: ~20% de alfa en
+un radial que se apaga al 70% detrás del emblema, ~14% en una mancha de luz
+sobre el splash, y la línea de arriba de la card, que ya era del tier.
+
+**El tema de la app no se mueve.** El dorado sigue siendo de Grieta Central; el
+violeta es de él. Una variable y no tres `style` sueltos porque es UNA
+decisión —"este jugador es Maestro"— y así el componente no opina sobre la
+dosis.
+
+La luz del tier vive en su **propia capa**, no como un gradiente más sobre el
+splash. Si estuviera sobre el splash se movería con el paneo, y una luz que se
+desplaza se nota; así el personaje se mueve por detrás y la luz se queda donde
+está.
+
+### El splash: más visible, y lo que lo hace legible no es la opacidad
+
+Subió de 0.24 a 0.40. Lo que protege el texto NO es bajarle la opacidad a todo
+—eso ensucia parejo y deja el nombre sobre un gris— sino un **velo**: negro
+sólido abajo que se abre hacia arriba, y un segundo pase desde la izquierda.
+La imagen queda apagada exactamente donde hay texto y respira donde no.
+
+Primero probé lo contrario —cerrar la máscara al 74% para que el splash se
+quedara arriba a la derecha— y medido quedaba peor: el personaje desaparecía
+en una esquina y los dos tercios izquierdos eran negro liso.
+
+### El paneo, y por qué hizo falta un contenedor nuevo
+
+17 segundos de ida y 17 de vuelta, `scale(1.04)→(1.07)` y `translateX(0)→(-8px)`.
+Ocho píxeles en diecisiete segundos es medio píxel por segundo: está
+deliberadamente abajo del umbral en el que uno piensa "hay algo moviéndose".
+La escala arranca en 1.04 y no en 1 para que el corrimiento nunca descubra el
+borde. Solo `transform`: ni `width`, ni `left`, ni filtros.
+
+**El contenedor que recorta (`.profile-hero-wrap`) no es opcional**: al
+escalar, el splash se desbordaba de la card, y la card no puede llevar
+`overflow:hidden` porque los InfoTips del perfil se salen de su caja a
+propósito. El envoltorio recorta solo el arte, donde no hay ningún InfoTip.
+
+En mobile el recorrido baja a 4px: en 390px de ancho, 8px son el doble de
+recorrido relativo y ahí sí se empieza a notar.
+
+### La entrada, y cómo se evita que se repita
+
+Tres pasos de 80ms —identidad, rango, contexto— de 320ms cada uno. Lo que la
+dispara es el **remount del header**, y el header lleva `key` por jugador. Un
+refetch del mismo jugador (el poll de "en vivo" corre cada 60s y reconstruye la
+lista entera) deja la key igual, React conserva el nodo y no se reanima nada.
+Un `useEffect` con un flag habría hecho lo mismo con más código y un render de
+más.
+
+`animation-fill-mode: both` para que el elemento ya esté invisible en el primer
+frame: sin eso hay un parpadeo antes de que corra el delay.
+
+### `prefers-reduced-motion` se apaga EXPLÍCITO
+
+El interruptor global del principio de globals.css acorta toda animación a
+0.001ms, y acá eso no alcanza: el paneo terminaría clavado en su fotograma
+final —corrido 8px y escalado 1.07— en vez de quedarse donde tiene que estar.
+Verificado en Chromium con `reducedMotion: "reduce"`: `animation-name` en
+`none`, `transform` en `none` y la entrada con `opacity` en 1.
+
+### Lo que se fue del hero
+
+- **"En Maestro ya no hay divisiones"** y **"Faltan N LP para X"**. Las dos
+  explican el SISTEMA, no al jugador, y se comían un renglón entero del banner
+  para siempre. Están igual, a un hover, en el InfoTip del LP.
+- **La racha de 1.** Umbral visual en 2: "1 WIN STREAK" no es una noticia. El
+  umbral NO toca `currentStreak`, que la sigue contando igual para todo lo
+  demás.
+- **"2 WIN STREAK"** → "2 victorias seguidas". El resto de la interfaz está en
+  castellano.
+- **Las pills de color** del delta y la racha. Pesaban más que el rango, que es
+  el titular. Ahora son texto con una flecha; el color sigue diciendo si va
+  bien o mal, que es para lo único que esta app usa verde y rojo.
+
+### El delta ahora dice sobre qué
+
+"▲ 92 LP netos" no decía de cuándo. La ventana es `.slice(-20)` de
+`lp_snapshots`, así que dura lo que duren esas veinte fotos —unos días en
+alguien que juega todos los días, semanas en alguien que no—: el número de días
+sale de restar el `capturedAt` de las dos puntas, nunca de un "15 días"
+escrito a mano. Se omite cuando da menos de un día, que es el caso del
+historial corto donde la ruta devuelve el punto de relleno dos veces.
+
+### El alto, medido
+
+El requisito era no crecer. Medido con Playwright sobre el mismo fixture, el
+header del perfil pasó de **142px a 146px en desktop** y de **230px a 228px en
+mobile** — con dos renglones MÁS de información (el máximo y el flex pasaron
+de compartir una línea a tener una cada uno). Los cuatro píxeles de desktop
+salieron de apretar interlineados y gaps después de medir, no antes: la
+primera versión daba 165 y hubo que recortar en tres pasadas.
+
+### Una chapa que estaba rota desde antes
+
+El nivel del invocador decía "323" suelto en la esquina del avatar y parecía un
+número accidental. Ahora dice "NIVEL 323" — y eso destapó que el badge estaba
+posicionado FUERA del avatar, que lleva `overflow:hidden` para recortar el
+ícono redondo. Con "323" sobresalía tres píxeles y casi no se veía; con la
+palabra adelante quedaba cortado. La chapa se fue a un envoltorio.
+
+## El palmarés estaba escrito, andando y escondido
+
+Pedido como feature nueva, y ya existía entero: `palmares()` en lib/palmares.ts
+y su bloque en LigaHistorial. No se veía por dos razones, y las dos eran
+bugs de criterio.
+
+**La primera: el umbral.** Aparecía solo cuando alguien ganaba DOS veces, con
+el argumento de que "con una copa cada uno no es un palmarés, es la misma
+lista de arriba ordenada distinto". Con dos ediciones y dos campeones
+distintos —que es exactamente la liga de hoy— eso significa que no aparece
+nunca. Ahora aparece **desde la segunda edición**. Con una sola sí se calla:
+ahí la tabla es la crónica de arriba escrita de nuevo.
+
+**La segunda, peor: se contaba sobre una ventana.** `palmares()` recibía las
+ediciones que manda `/api/liga`, que vienen con `.limit(8)`. Con ocho o menos
+daba lo mismo y por eso nunca se notó; con la novena, el primer título de
+alguien se le caía de la cuenta y la pantalla iba a mostrar un número menor
+sin decir que estaba recortado. **Un palmarés armado sobre una ventana no es
+un palmarés.** Ahora sale de una query propia sobre toda `liga_semanas` —dos
+columnas, una fila por semana— y viaja contado desde el server. El componente
+conserva el cálculo local como respaldo para la ventana de caché del CDN, que
+entrega JSON viejo sin el campo.
+
+Lo que no cambió, porque ya estaba bien: se cuenta **por puuid** y no por
+nombre. El Riot ID se puede cambiar cuando uno quiera, y por nombre el
+palmarés de alguien que se renombró se partiría en dos personas con un título
+cada una.
