@@ -5760,17 +5760,14 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    lista se leía como una tabla de diez renglones en vez de cinco cosas que
    pasaron. El nombre y su cambio siguen a 1px; lo que crece es la distancia
    al evento siguiente. */
-.inicio-movidas li + li{margin-top:6px;}
+.inicio-movidas li + li{margin-top:11px;}
 /* El botón arranca DESPUÉS del hilo para que el fondo del hover no se lo
    coma: el hilo vive en el 0 y la fila en el 12. */
 .inicio-movida{
-  /* Centrada y no alineada arriba: con la chapa de 38px y tres renglones de
-     texto, `flex-start` dejaba el ícono pegado al nombre y un hueco abajo. */
-  display:flex; align-items:center; gap:12px;
+  display:flex; align-items:flex-start; gap:10px;
   width:calc(100% - 12px); margin-left:12px; text-align:left;
   appearance:none; -webkit-appearance:none; border:none; cursor:pointer;
-  background:none; padding:6px 8px 6px 6px; border-radius:var(--radius-md);
-  transition:background var(--t-toque) var(--e-entra);
+  background:none; padding:3px 8px 3px 0; border-radius:var(--radius-sm);
 }
 /* SIN fondo en hover. Era `background:var(--surface-hover)` y con la chapa
    nueva al lado dejaba de leerse como "esto se toca" para leerse como una
@@ -5779,45 +5776,52 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    en la flecha, que aparece — dos señales que no dibujan una caja. */
 .inicio-movida:hover .inicio-movida-nombre{color:var(--accent);}
 .inicio-movida:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
-/* ── La chapa del ícono ──
-   Era un carácter suelto de quince píxeles al costado del nombre —"↑", "↓",
-   "≡", "+"— y a ese tamaño no decía nada: había que leer el texto igual. El
-   "≡" de las rachas era el peor, porque además no significa nada.
+/* ── El ícono ──
+   Era un carácter suelto —"↑", "↓", "≡", "+"— y a quince píxeles no decía
+   nada: había que leer el texto igual. El "≡" de las rachas era el peor,
+   porque además no significa nada. Ahora es un ícono de verdad y cada tipo de
+   movimiento tiene el suyo.
 
-   En una chapa con el fondo lavado del tono, el ícono pasa a ser lo primero
-   que se ve de la fila y dice de qué se trata antes de leer una palabra. El
-   fondo es el wash y no el color pleno: pleno serían tres cuadrados de color
-   gritando en una columna de tres filas. */
-.inicio-movida-chapa{
-  flex:none; width:38px; height:38px; border-radius:11px;
+   SIN chapa. Tuvo una, de 38px con el fondo lavado del tono, y era demasiado:
+   tres cuadrados de color en una columna de tres filas vuelven a meter las
+   cajitas que esta pantalla sacó a propósito. A 17px y suelto, el ícono dice
+   de qué se trata la fila antes de leer una palabra y no compite con el
+   nombre, que es lo que hay que leer primero.
+
+   Alineado con la PRIMERA línea de texto y no al centro del bloque: el texto
+   son tres renglones de alturas distintas y centrarlo contra ellos dejaba el
+   ícono flotando entre el nombre y el dato. */
+.inicio-movida-icono{
+  flex:none; width:17px; height:17px; margin-top:1px;
   display:flex; align-items:center; justify-content:center;
 }
-.inicio-movida-chapa svg{width:18px; height:18px; display:block;}
-.inicio-movida.bueno .inicio-movida-chapa{background:var(--good-wash); color:var(--good);}
-.inicio-movida.malo .inicio-movida-chapa{background:var(--critical-wash); color:var(--critical);}
-.inicio-movida.neutro .inicio-movida-chapa{background:var(--surface-raised); color:var(--text-muted);}
+.inicio-movida-icono svg{width:100%; height:100%; display:block;}
+.inicio-movida.bueno .inicio-movida-icono{color:var(--good);}
+.inicio-movida.malo .inicio-movida-icono{color:var(--critical);}
+.inicio-movida.neutro .inicio-movida-icono{color:var(--text-muted);}
 /* TRES renglones y no dos: nombre, qué pasó y el contexto. Estaban el cambio
    y el contexto apretados en la misma línea de 11px —"3 ganadas al hilo
    Esmeralda 4"— y con la columna entera para ellos eso es un renglón chiquito
    nadando en el espacio de una sección. Partidos, cada uno tiene su tamaño y
    la fila se lee de arriba abajo como una noticia corta. */
 .inicio-movida-txt{display:flex; flex-direction:column; gap:1px; min-width:0; flex:1 1 auto;}
-/* Un escalón más grandes los tres. Con la chapa al lado, la escala vieja
-   —13,5 / 12 / 11— dejaba el texto enano contra el ícono y la fila se leía
-   como un pie de foto. */
+/* Medio punto más grandes que el original. Llegaron a 15 / 13,5 / 12 para
+   compensar la chapa de 38px; sin ella esa escala pesaba de más y el bloque
+   le ganaba al ladder de al lado, que es el que contesta la pregunta
+   principal de la página. */
 .inicio-movida-nombre{
-  font-size:15px; font-weight:700; color:var(--text-primary); letter-spacing:-0.01em;
+  font-size:14px; font-weight:700; color:var(--text-primary); letter-spacing:-0.01em;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .inicio-movida-cambio{
-  font-family:var(--font-mono); font-size:13.5px; font-weight:700;
+  font-family:var(--font-mono); font-size:12.5px; font-weight:700;
   color:var(--text-secondary); font-variant-numeric:tabular-nums;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .inicio-movida.bueno .inicio-movida-cambio{color:var(--good);}
 .inicio-movida.malo .inicio-movida-cambio{color:var(--critical);}
 .inicio-movida-ctx{
-  font-size:12px; color:var(--text-muted); font-variant-numeric:tabular-nums;
+  font-size:11.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 /* La flecha aparece con el mouse encima. Puesta siempre, tres flechas en

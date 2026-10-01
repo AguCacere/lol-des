@@ -5,7 +5,7 @@ import { PlayerAvatar } from "./PlayerAvatar";
 import { TierEmblem } from "./TierEmblem";
 import { ChampIcon } from "./ChampIcon";
 import { StreakIcon } from "./StreakIcon";
-import { TrendDownIcon, TrendUpIcon } from "./StatIcons";
+import { ArrowDownIcon, ArrowUpIcon, TrendDownIcon, TrendUpIcon } from "./StatIcons";
 import { useLiga, type Fila } from "./useLiga";
 import { championLabel } from "@/lib/champion-names";
 import { liveGameTimeLabel, rangoTexto, tierFor } from "@/lib/ladder";
@@ -67,27 +67,29 @@ const sinSigno = (n: number) => puntajeTexto(Math.abs(n)).replace("+", "");
 
 /** La flecha de un movimiento. Es el único lugar donde el tipo se vuelve un glifo. */
 /**
- * El ícono de un movimiento, en una chapa del color de lo que pasó.
+ * El ícono de un movimiento. Cada tipo tiene el suyo y ninguno se repite:
  *
- * Eran caracteres sueltos —"↑", "↓", "≡", "+"— de quince píxeles al costado
- * del nombre, y a ese tamaño no decían nada: había que leer el texto igual.
- * El "≡" de las rachas era el peor, porque no significa nada.
+ *   caída de LP      ↘  tendencia hacia abajo
+ *   subida de LP     ↗  tendencia hacia arriba
+ *   ascenso          ↑  flecha recta — cruzaste un escalón, no es una tendencia
+ *   descenso         ↓  flecha recta
+ *   racha            🔥 la llama, ganando o perdiendo; el color dice cuál
  *
- * Van en SVG y NO en emoji aunque un 🔥 sea lo obvio: es la misma decisión
- * que ya está escrita en StreakIcon.tsx — los emoji de color caen a un bitmap
- * escalado en Windows y Android, y encima traen su propio rojo/naranja fijo
- * en vez de tomar el color de la fila. Estos son los mismos íconos que usa el
- * resto de la app.
+ * La llama va para las DOS rachas. StreakIcon con "L" devuelve un triángulo
+ * hacia abajo, que es casi el mismo dibujo que TrendDownIcon: en esta columna,
+ * una caída de LP y una racha de derrotas quedaban con el mismo ícono para dos
+ * cosas distintas. La llama significa "racha"; el rojo, que es mala.
+ *
+ * **Sin `lucide-react`.** La semántica es la de esa librería, pero el repo ya
+ * tiene su propio juego de íconos en StatIcons.tsx —de donde salen tres de los
+ * cinco— y agregar una dependencia entera para dos flechas sería cambiar un
+ * archivo de veinte líneas por un paquete en el bundle.
  */
 function IconoDeMovida({ m }: { m: Movimiento }) {
-  // La LLAMA para las dos rachas, ganando o perdiendo, y el color dice cuál
-  // es. StreakIcon con "L" devuelve un triángulo hacia abajo, que es
-  // prácticamente el mismo dibujo que TrendDownIcon: en esta columna, una
-  // caída de LP y una racha de derrotas quedaban con el mismo ícono para dos
-  // cosas distintas. La llama significa "racha"; el rojo, que es mala.
   if (m.tipo === "racha") return <StreakIcon result="W" />;
-  if (m.tipo === "ascenso" || (m.tipo === "lp" && m.tono === "bueno")) return <TrendUpIcon />;
-  return <TrendDownIcon />;
+  if (m.tipo === "ascenso") return <ArrowUpIcon />;
+  if (m.tipo === "descenso") return <ArrowDownIcon />;
+  return m.tono === "bueno" ? <TrendUpIcon /> : <TrendDownIcon />;
 }
 
 /**
@@ -362,7 +364,7 @@ export function Inicio({ players, duos, loading, ddragonVersion, onPlayer, onRan
                       "Esmeralda 2 → Esmeralda 1" ya no necesita el
                       "Ascendió". */}
                   <button type="button" className={`inicio-movida ${m.tono}`} onClick={() => onPlayer(m.key)}>
-                    <span className="inicio-movida-chapa" aria-hidden>
+                    <span className="inicio-movida-icono" aria-hidden>
                       <IconoDeMovida m={m} />
                     </span>
                     <span className="inicio-movida-txt">

@@ -75,6 +75,34 @@ export function TrendDownIcon() {
   );
 }
 
+/**
+ * Flecha recta arriba/abajo, para un ASCENSO o un DESCENSO de división.
+ *
+ * Distinta de TrendUp/TrendDown a propósito, y la diferencia es semántica: la
+ * línea quebrada dice "esto se movió en el tiempo" y sirve para el LP, que
+ * sube y baja todo el día; la flecha recta dice "cruzaste un escalón", que es
+ * lo que pasa una vez y no se deshace sola. En la misma columna, con los dos
+ * íconos de tendencia al lado, usar el mismo dibujo para las dos cosas las
+ * hacía indistinguibles.
+ */
+export function ArrowUpIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="20" x2="12" y2="5" />
+      <polyline points="5.5 11.5 12 5 18.5 11.5" />
+    </svg>
+  );
+}
+
+export function ArrowDownIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="4" x2="12" y2="19" />
+      <polyline points="5.5 12.5 12 19 18.5 12.5" />
+    </svg>
+  );
+}
+
 export function CopyIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">

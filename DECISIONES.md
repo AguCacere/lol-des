@@ -4508,9 +4508,37 @@ El feed tenía un carácter suelto de quince píxeles al costado del nombre —"
 "↓", "≡", "+"— y a ese tamaño no decía nada: había que leer el texto igual. El
 "≡" de las rachas era el peor, porque además no significa nada.
 
-Ahora cada movimiento lleva una chapa de 38px con el fondo lavado de su tono y
-el ícono adentro. El fondo es el wash y no el color pleno: pleno serían tres
-cuadrados de color gritando en una columna de tres filas.
+Ahora cada movimiento lleva un ícono de 17px, suelto. **Tuvo una chapa** de
+38px con el fondo lavado del tono, y era demasiado: tres cuadrados de color en
+una columna de tres filas vuelven a meter las cajitas que esta pantalla había
+sacado a propósito. Suelto, el ícono dice de qué se trata la fila antes de leer
+una palabra y no compite con el nombre, que es lo que hay que leer primero.
+
+La escala del texto acompañó ese ida y vuelta: subió a 15 / 13,5 / 12 para
+compensar la chapa y bajó a 14 / 12,5 / 11,5 al sacarla, medio punto arriba de
+la original. Con la escala grande y sin chapa, el bloque le ganaba al ladder de
+al lado, que es el que contesta la pregunta principal de la página.
+
+### Un ícono por tipo, y ninguno repetido
+
+| | |
+|---|---|
+| caída de LP | tendencia hacia abajo |
+| subida de LP | tendencia hacia arriba |
+| ascenso de división | flecha RECTA hacia arriba |
+| descenso de división | flecha recta hacia abajo |
+| racha | la llama, ganando o perdiendo |
+
+La flecha recta y la línea quebrada no son lo mismo y la diferencia es
+semántica: la quebrada dice "esto se movió en el tiempo" y sirve para el LP,
+que sube y baja todo el día; la recta dice "cruzaste un escalón", que pasa una
+vez y no se deshace solo. Con el mismo dibujo para las dos cosas, en la misma
+columna, eran indistinguibles.
+
+**Sin `lucide-react`.** La semántica es la de esa librería y el nombre de cada
+ícono también, pero el repo ya tiene su propio juego en StatIcons.tsx —de donde
+salen tres de los cinco— y agregar una dependencia entera para dos flechas
+sería cambiar veinte líneas por un paquete en el bundle.
 
 **En SVG y no en emoji**, aunque un 🔥 sea lo obvio para una racha. Es la misma
 decisión que ya estaba escrita en StreakIcon.tsx: los emoji de color caen a un
