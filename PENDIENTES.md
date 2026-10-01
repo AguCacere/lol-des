@@ -105,41 +105,16 @@ Nadie del grupo está en hierro, así que no corre apuro.
 
 Las migraciones de esta base se corren **a mano** desde el SQL Editor de Supabase. Desde
 la sesión hay acceso de LECTURA por MCP —sirve para auditar y para verificar que algo se
-corrió— pero las migraciones las sigue corriendo el dueño, que es como se trabajó hasta
-ahora (ver `PROXIMO-TORNEO.md` → "Mejoras en la base").
+corrió— pero las migraciones las sigue corriendo el dueño.
 
-**Todo lo que falta correr, en un solo bloque y EN ESTE ORDEN.** Va junto a propósito:
-estuvo partido en dos y el `insert` se corrió sin la tabla creada, que da
-`42P01: relation "liga_torneos" does not exist`.
+**Verificado contra la base el 1/10**: `liga_torneos` existe, la columna `discord_id`
+existe, y el torneo "Semana del 14 (extendida)" está cargado. Todo lo que este bloque
+decía antes YA ESTABA CORRIDO y seguía acá como si faltara. Lo único que falta es esto:
 
 ```sql
--- 1. La tabla de torneos (lib/torneo.ts). Sin ella no se rompe nada: la liga
---    sigue usando el lunes a domingo deducido. Lo que no se puede es cambiar fechas.
-create table if not exists liga_torneos (
-  id            uuid primary key default gen_random_uuid(),
-  nombre        text,
-  arranca_at    timestamptz not null,
-  cierra_at     timestamptz not null,
-  minimo_total  int not null default 10,
-  minimo_ultimo int not null default 3,
-  ultimo_desde  timestamptz,
-  premio        text,
-  creado_at     timestamptz not null default now(),
-  constraint liga_torneos_ventana_valida check (cierra_at > arranca_at)
-);
-create index if not exists liga_torneos_ventana_idx on liga_torneos (arranca_at, cierra_at);
-alter table liga_torneos enable row level security;
-
--- 2. La columna del bot. Sin ella los comandos andan igual, resolviendo por
---    nombre; lo único que falta es que `/ultima` sin argumentos diga "la tuya".
-alter table summoners add column if not exists discord_id text;
-create unique index if not exists summoners_discord_id_idx
-  on summoners (discord_id) where discord_id is not null;
-
--- 3. La quiniela de la liga (lib/quiniela.ts, comando /apostar). Sin ella el
---    comando contesta "todavía no está creada la tabla" y no se rompe nada más.
---    Va DESPUÉS de la columna discord_id: sin esa columna nadie está vinculado,
---    así que nadie puede apostar.
+-- Las apuestas del bot (lib/quiniela.ts, comando /apostar). Dos tablas porque
+-- las dos quieren la misma clave: una apuesta por persona y por semana.
+-- Sin ellas el comando contesta "todavía no están creadas" y nada más se rompe.
 create table if not exists liga_apuestas (
   semana     text not null,
   discord_id text not null,
@@ -150,8 +125,6 @@ create table if not exists liga_apuestas (
 create index if not exists liga_apuestas_semana_idx on liga_apuestas (semana);
 alter table liga_apuestas enable row level security;
 
--- 4. El pronóstico sube/baja (la otra mitad de /apostar). Tabla aparte porque
---    quiere la misma clave que la de arriba: una por persona y por semana.
 create table if not exists liga_pronosticos (
   semana     text not null,
   discord_id text not null,
@@ -162,48 +135,20 @@ create table if not exists liga_pronosticos (
 );
 create index if not exists liga_pronosticos_semana_idx on liga_pronosticos (semana);
 alter table liga_pronosticos enable row level security;
-
--- 5. El torneo en curso, extendido al lunes: 14/9 al 21/9, ocho días.
-insert into liga_torneos (nombre, arranca_at, cierra_at, minimo_total, minimo_ultimo, ultimo_desde)
-values (
-  'Semana del 14 (extendida)',
-  '2026-09-14T03:00:00Z',   -- lunes 14, 00:00 argentina
-  '2026-09-22T03:00:00Z',   -- martes 22, 00:00 argentina → el último día es el lunes 21
-  10, 3,
-  '2026-09-21T03:00:00Z'    -- el mínimo de 3 cuenta el LUNES. Hay que avisarlo en el Discord.
-);
 ```
 
-**Si preferís que el último día siga siendo el domingo** y el lunes sea solo tiempo extra
-—nadie pierde lo que venía planeando—, se cambia con esto, o desde el panel:
-
-```sql
-update liga_torneos set ultimo_desde = '2026-09-20T03:00:00Z'
-where nombre = 'Semana del 14 (extendida)';
-```
-
-Las opciones NO van comentadas adentro del `values`: elegir una línea de ahí es fácil de
-hacer mal y el error que da no dice qué pasó.
-
-Después de esto, las fechas se editan desde el panel de la liga (atrás de la contraseña,
-arriba del selector de jugadores) y para vincular a cada uno con Discord:
+**Y falta lo que de verdad bloquea `/apostar`: no hay NADIE vinculado.** Los catorce
+invocadores tienen `discord_id` en null (verificado el 1/10), y esa columna es la lista
+de permitidos para escribir. Con las tablas creadas y sin esto, el comando contesta
+"para apostar te tengo que tener vinculado" y no deja apostar a nadie. El id sale de
+Discord con el modo desarrollador prendido: botón derecho sobre la persona → "Copiar ID".
 
 ```sql
 update summoners set discord_id = '123456789012345678' where game_name = 'VORE';
 ```
 
-**Verificado el 17/9 contra la base, ya corrido y sin nada que hacer**: `liga_ajustes`
-existe, la penalización de IGNAPP está cargada, y `heal_teammates` y `shield_teammates`
-están las dos en `matches`.
-
-**Pero ojo con la penalización de IGNAPP**: la fila está, y no hace nada. Él tiene
-`participa_liga = false`, así que no está en la tabla de esta semana y el −2 no se lo
-resta nadie. O se lo anota a la liga y ahí sí le pega, o la fila es decorativa y conviene
-borrarla para que no aparezca el lunes que viene sin que nadie se acuerde de por qué:
-
-```sql
-delete from liga_ajustes where semana = '2026-09-14'::date;
-```
+Las fechas de los torneos se editan desde el panel de la liga (atrás de la contraseña,
+arriba del selector de jugadores), no por SQL.
 
 ## La reparación de partidas, a medias
 
@@ -379,14 +324,16 @@ ella casi todo funciona: los comandos resuelven al jugador por nombre con autoco
 Lo que falta es que `/ultima` sin argumentos conteste "la tuya" — y **`/apostar` directamente
 no se puede usar**, porque la vinculación ES la autorización para escribir.
 
-**`/apostar` (la quiniela) está escrito y sin estrenar.** Para que arranque hacen falta
-dos cosas que no se pueden hacer desde la sesión:
+**`/apostar` está escrito y sin estrenar.** Para que arranque hacen falta tres cosas, y
+ninguna se puede hacer desde la sesión:
 
-1. Correr la tabla `liga_apuestas` del bloque de "SQL sin correr", y la columna
-   `discord_id` que va antes.
-2. **Volver a correr `node scripts/registrar-comandos.mjs`**, o el comando no aparece en
-   Discord: la lista registrada es la de la última corrida, no la de
-   `lib/discord-comandos.json`.
+1. Correr las dos tablas del bloque de "SQL sin correr".
+2. **Vincular al menos a los que vayan a apostar** con el `update ... set discord_id`.
+   Hoy no hay ninguno: sin eso el comando existe y no deja apostar a nadie.
+3. **Re-registrar el menú**, o el comando no aparece al tipear "/". Desde la consola del
+   navegador, logueado en la app: `fetch("/api/discord/registrar", {method:"POST"}).then(r=>r.json()).then(console.log)`.
+   La lista que Discord muestra es la de la última corrida de eso, NO la que se
+   deployó: un comando nuevo en `lib/discord-comandos.json` funciona pero no se ve.
 
 Si algo deja de salir, el orden para mirarlo es siempre el mismo:
 `POST /api/discord/probar` sin body dice quién es el bot y qué canal ve sin escribirle a
