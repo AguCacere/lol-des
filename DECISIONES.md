@@ -3961,3 +3961,63 @@ el largo del trazo a 1 sin importar la geometría, así que alcanza con
   aparezcan al pasar por ellas agrega espera, no información.
 - **Una librería.** Todo esto son seis tokens, tres `@keyframes` y una función
   de diez líneas. Framer Motion para esto es 40kB para no escribir CSS.
+
+## El bot empieza a escribir, y lo que lo autoriza no es la firma
+
+Hasta ahora el bot era **de solo lectura a propósito**. La razón no era técnica:
+la app se entra con una contraseña compartida, y pedirla en un canal de Discord
+—donde el historial queda— era la peor forma imaginable de autorizar algo.
+
+`/apostar` es la primera escritura. Lo que la habilita es un cambio de
+mecanismo, no de criterio:
+
+- **La firma Ed25519 NO alcanza.** Prueba que el pedido vino de Discord, no
+  quién lo tipeó. En un server con canales abiertos, cualquiera que vea el bot
+  puede invocarlo.
+- **La lista de permitidos es `summoners.discord_id`.** Si el que tipea no está
+  vinculado a un invocador, no escribe. Es la misma columna que ya resolvía "la
+  tuya" en `/ultima`, usada ahora para lo que de verdad importa.
+- **La contraseña del grupo no entra al bot.** Ni como argumento, ni como
+  variable, ni para un comando de admin. Si algún día hace falta un comando
+  destructivo, la respuesta es otra lista, no la contraseña.
+
+El alcance de la escritura también es chico a propósito: `liga_apuestas` es una
+tabla propia, con `primary key (semana, discord_id)`, y lo único que se puede
+hacer es pisar la fila de uno mismo. Nada de lo que decide la liga —partidas,
+LP, puntajes— se toca desde Discord.
+
+La ventana de apuestas cierra cuando **arranca el último día del torneo**
+(`empezoElUltimoDia`), que es la misma regla que ya define el mínimo del último
+día para cobrar el premio. No es por elegancia: al final de la semana la tabla
+ya se ve venir, y una apuesta que se puede hacer sabiendo el resultado no es
+una apuesta.
+
+El pago va **en un mensaje aparte**, abajo del cierre, y envuelto en try/catch.
+La semana ya quedó registrada en `liga_semanas` antes de mandar nada: si la
+tabla de apuestas no existe todavía o Discord se cae en ese segundo mensaje,
+el cierre no se deshace y el cron de mañana no lo reintenta. Sin apuestas el
+texto es cadena vacía y no se manda nada — un mensaje para avisar que no hubo
+apuestas es ruido.
+
+## "Alguien te pasó": un aviso que es casi todo filtro
+
+El ladder ya se recalcula cada quince minutos, así que detectar un sorpasso no
+cuesta una consulta nueva: `refreshAllSummoners` guarda el orden antes del
+ciclo y lo compara contra el de después.
+
+Lo difícil no era detectarlo: era **no anunciarlo**. Un mensaje cada quince
+minutos cansa en un día y después nadie lee el canal. Tres reglas, y las tres
+existen porque sin ellas el canal se vuelve inusable:
+
+- **Solo los primeros tres puestos.** Que el noveno pase al octavo no le
+  importa a nadie, ni siquiera al noveno.
+- **El que pasó tiene que haber jugado en este ciclo** (`score` distinto al de
+  antes). Si subió porque el otro bajó, el mensaje es del otro, y ese ya lo
+  anuncia el aviso de descenso.
+- **Un mensaje por ciclo como mucho**, el del puesto más alto. En un ciclo de
+  quince minutos puede haber tres cambios de orden y los tres juntos no se
+  leen; el que importa es el de arriba.
+
+El empate no cuenta como sorpasso: hace falta pasar, no igualar. Con `rankScore`
+el empate exacto existe (mismo tier, misma división, mismo LP) y anunciar
+"le empató" no es una noticia.

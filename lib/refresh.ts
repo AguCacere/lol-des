@@ -15,11 +15,12 @@ import {
 import { championNameById, runeNameById, summonerSpellNameById } from "./ddragon";
 import { extractTimelineStats, minutosSinJugar } from "./timeline";
 import { sendDiscordNotification } from "./discord";
+import { detectarSorpaso, mensajeDeSorpaso, type PuestoLadder } from "./sorpasso";
 import { mejorCarry, mensajeDeCarry } from "./carry";
 import { hitoDe, mejorHito, mensajeDeHito, PARTIDAS_PARA_RECORD, type Hito, type HitoCandidate } from "./hitos";
 import { roastMessage, worstDisaster, type RoastCandidate } from "./roast";
 import { detectTilt } from "./tilt";
-import { rangoTexto, tierFor } from "./ladder";
+import { rangoTexto, rankScore, tierFor } from "./ladder";
 import { divisionFromRiot, tierKeyFromRiot } from "./mapping";
 
 type SupabaseClient = ReturnType<typeof getSupabaseServerClient>;
@@ -1446,6 +1447,40 @@ const REFRESH_CONCURRENCY = 2;
  * POST /api/refresh so repeated calls (or several friends triggering it at
  * once) can't burn through the personal API key's rate limit.
  */
+/**
+ * El orden del ladder AHORA, resuelto a puntaje comparable.
+ *
+ * Se lee dos veces por ciclo —antes y después de refrescar a todos— y la
+ * diferencia es lo que anuncia "alguien te pasó" (ver lib/sorpasso.ts). Son
+ * catorce filas de una vista que ya existe, así que cuesta dos consultas por
+ * ciclo y no hace falta guardar el orden anterior en ningún lado.
+ *
+ * Si falla, devuelve lista vacía: perder el aviso es gratis, cortar el ciclo
+ * de refresco por culpa de un aviso no.
+ */
+async function ordenDelLadder(supabase: SupabaseClient): Promise<PuestoLadder[]> {
+  const { data, error } = await supabase
+    .from("ladder")
+    .select("puuid, game_name, tier, division, lp")
+    .returns<{ puuid: string; game_name: string; tier: string | null; division: string | null; lp: number | null }[]>();
+  if (error || !data) return [];
+  return data
+    .filter((r) => r.tier)
+    .map((r) => {
+      const tierKey = tierKeyFromRiot(r.tier);
+      const division = divisionFromRiot(r.division);
+      const lp = r.lp ?? 0;
+      return {
+        puuid: r.puuid,
+        label: r.game_name,
+        score: rankScore(tierKey, division, lp),
+        rango: rangoTexto(tierKey, division),
+        lp,
+      };
+    })
+    .sort((a, b) => b.score - a.score);
+}
+
 export async function refreshAllSummoners(
   supabase: SupabaseClient,
   { onlyStale = false }: { onlyStale?: boolean } = {}
@@ -1460,6 +1495,9 @@ export async function refreshAllSummoners(
 
   const now = Date.now();
   const results: Record<string, string> = {};
+  // La foto del orden ANTES de tocar nada. Si esto falla queda vacía y el
+  // aviso no sale: no corta el refresco.
+  const ordenAntes = await ordenDelLadder(supabase);
 
   const toRefresh = (summoners ?? []).filter((summoner) => {
     if (onlyStale && summoner.last_refreshed_at) {
@@ -1518,5 +1556,26 @@ export async function refreshAllSummoners(
     }
   }
 
+  await avisarSorpaso(supabase, ordenAntes);
+
   return results;
+}
+
+/**
+ * Compara el orden del ladder contra el de antes del ciclo y, si alguien pasó
+ * a alguien arriba de todo, lo anuncia. Como mucho un mensaje por ciclo.
+ *
+ * Envuelto en try/catch entero: esto es un adorno del ciclo de refresco, y un
+ * adorno no puede tirar abajo las catorce actualizaciones que ya se
+ * escribieron bien.
+ */
+async function avisarSorpaso(supabase: SupabaseClient, antes: PuestoLadder[]): Promise<void> {
+  if (antes.length < 2) return;
+  try {
+    const despues = await ordenDelLadder(supabase);
+    const s = detectarSorpaso(antes, despues);
+    if (s) await sendDiscordNotification(mensajeDeSorpaso(s));
+  } catch (err) {
+    console.error("avisarSorpaso:", err instanceof Error ? err.message : err);
+  }
 }

@@ -7,19 +7,23 @@ import { roastMessage, worstDisaster, type RoastCandidate } from "./roast";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "./refresh";
 import { tablaDeSemanaEnBase } from "./liga-cierre";
 import { ganadorDe, puntajeDe, puntajeTexto, puntosDeSecuencia } from "./liga";
-import { diaCorriente, duracionEnDias, empezoElUltimoDia, esTorneoDeLiga, torneoDe } from "./torneo";
+import { claveDeTorneo, diaCorriente, duracionEnDias, empezoElUltimoDia, esTorneoDeLiga, torneoDe } from "./torneo";
+import { apuestasDeLaSemana, errorDeApuestas, mensajeDeQuiniela } from "./quiniela";
 
 /**
  * Los cuatro comandos del bot: de Supabase al texto que sale en el canal.
  *
- * Todos son de LECTURA y todos salen de Supabase. Ninguno le pregunta nada a
- * Riot, que es lo que los mantiene baratos y predecibles — y lo que deja el
- * rate limit entero para el cron de refresco, que es el que lo necesita.
+ * Todos salen de Supabase. Ninguno le pregunta nada a Riot, que es lo que los
+ * mantiene baratos y predecibles — y lo que deja el rate limit entero para el
+ * cron de refresco, que es el que lo necesita.
  *
- * Nada de esto escribe. Anotarse a la liga, refrescar o anular una partida es
- * la cerradura de la app expuesta en un canal donde cualquiera del server puede
- * tipear. Cuando haga falta escribir va con lista de `discord_id` permitidos,
- * no con la contraseña del grupo.
+ * **Uno solo escribe: `/apostar`.** Y lo que lo autoriza no es la firma de
+ * Discord —que prueba que el pedido vino de Discord, no quién lo tipeó— sino
+ * que el `discord_id` de quien tipea esté vinculado a un invocador. Esa
+ * columna ES la lista de permitidos. Lo que sigue sin estar expuesto es la
+ * cerradura de la app: anotarse a la liga, refrescar o anular una partida no
+ * se hacen desde un canal donde cualquiera del server puede tipear, y la
+ * contraseña del grupo no viaja por acá ni de casualidad.
  *
  * La respuesta la arma acá adentro y no el route handler a propósito: es la
  * misma regla que el resto de `lib/` —el handler junta, no calcula— y además
@@ -450,6 +454,53 @@ async function valorEnLaLiga(
  * canal de Discord, y "se rompió algo leyendo la liga" se puede leer y
  * arreglar; el "la aplicación no respondió" que deja una excepción, no.
  */
+/**
+ * `/apostar` — la quiniela de la semana.
+ *
+ * Sin jugador, muestra cómo va. Con jugador, registra o cambia la apuesta de
+ * quien tipeó. Es el ÚNICO comando que escribe, y por eso es el único que
+ * exige estar vinculado: sin `discord_id` no hay quién apostó, y sin quién no
+ * hay apuesta.
+ */
+async function comandoApostar(
+  supabase: SupabaseClient,
+  jugador: string | null,
+  discordId: string | null,
+): Promise<string> {
+  const torneo = await torneoDe(supabase);
+  if (!esTorneoDeLiga(torneo)) return "Esta semana no hay liga, así que no hay a qué apostarle.";
+  const semana = claveDeTorneo(torneo);
+  const titulo = torneo.nombre ?? "La liga de la semana";
+  const cerrada = empezoElUltimoDia(torneo);
+
+  if (jugador && jugador.trim()) {
+    if (cerrada) {
+      return `🎲 Las apuestas de **${titulo}** ya cerraron: arrancó el último día. Mirá cómo quedó la quiniela con \`/apostar\` sin nombre.`;
+    }
+    // La autorización. No es la firma: es estar vinculado.
+    const yo = await porDiscord(supabase, discordId);
+    if (!yo) {
+      return "Para apostar te tengo que tener vinculado. Pedile a alguien que te cargue el Discord en tu invocador y listo.";
+    }
+    const aQuien = await porTexto(supabase, jugador);
+    if (!aQuien) return noSeQuien(jugador);
+
+    const { error } = await supabase
+      .from("liga_apuestas")
+      .upsert({ semana, discord_id: discordId, puuid: aQuien.puuid }, { onConflict: "semana,discord_id" });
+    if (error) return errorDeApuestas(error.message);
+
+    const todas = await apuestasDeLaSemana(supabase, semana);
+    if (typeof todas === "string") return todas;
+    const cuantas = todas.length;
+    return `🎲 Anotado: **${yo.game_name}** le apuesta a **${aQuien.game_name}** para ganar **${titulo}**. Van ${cuantas} ${cuantas === 1 ? "apuesta" : "apuestas"}. Se puede cambiar hasta que arranque el último día.`;
+  }
+
+  const todas = await apuestasDeLaSemana(supabase, semana);
+  if (typeof todas === "string") return todas;
+  return mensajeDeQuiniela(titulo, todas, cerrada);
+}
+
 export async function responderComando(
   supabase: SupabaseClient,
   nombre: string,
@@ -466,6 +517,8 @@ export async function responderComando(
         return await comandoCargar(supabase, opciones.jugador ?? null, discordId);
       case "ultima":
         return await comandoUltima(supabase, opciones.jugador ?? null, discordId);
+      case "apostar":
+        return await comandoApostar(supabase, opciones.jugador ?? null, discordId);
       default:
         // La lista sale del mismo JSON que se registró, así que un comando que
         // quedó registrado de una versión vieja se delata solo: no aparece acá.

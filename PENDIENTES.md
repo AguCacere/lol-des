@@ -136,7 +136,21 @@ alter table summoners add column if not exists discord_id text;
 create unique index if not exists summoners_discord_id_idx
   on summoners (discord_id) where discord_id is not null;
 
--- 3. El torneo en curso, extendido al lunes: 14/9 al 21/9, ocho días.
+-- 3. La quiniela de la liga (lib/quiniela.ts, comando /apostar). Sin ella el
+--    comando contesta "todavía no está creada la tabla" y no se rompe nada más.
+--    Va DESPUÉS de la columna discord_id: sin esa columna nadie está vinculado,
+--    así que nadie puede apostar.
+create table if not exists liga_apuestas (
+  semana     text not null,
+  discord_id text not null,
+  puuid      text not null references summoners(puuid) on delete cascade,
+  creada_at  timestamptz not null default now(),
+  primary key (semana, discord_id)
+);
+create index if not exists liga_apuestas_semana_idx on liga_apuestas (semana);
+alter table liga_apuestas enable row level security;
+
+-- 4. El torneo en curso, extendido al lunes: 14/9 al 21/9, ocho días.
 insert into liga_torneos (nombre, arranca_at, cierra_at, minimo_total, minimo_ultimo, ultimo_desde)
 values (
   'Semana del 14 (extendida)',
@@ -348,8 +362,18 @@ Verificado con `POST /api/discord/probar`, que da `camino: "bot"` y los cinco pa
 verde.
 
 Lo único que queda es **la migración de `discord_id`** (arriba, en "SQL sin correr"). Sin
-ella todo funciona: los comandos resuelven al jugador por nombre con autocompletado. Lo
-único que falta es que `/ultima` sin argumentos conteste "la tuya".
+ella casi todo funciona: los comandos resuelven al jugador por nombre con autocompletado.
+Lo que falta es que `/ultima` sin argumentos conteste "la tuya" — y **`/apostar` directamente
+no se puede usar**, porque la vinculación ES la autorización para escribir.
+
+**`/apostar` (la quiniela) está escrito y sin estrenar.** Para que arranque hacen falta
+dos cosas que no se pueden hacer desde la sesión:
+
+1. Correr la tabla `liga_apuestas` del bloque de "SQL sin correr", y la columna
+   `discord_id` que va antes.
+2. **Volver a correr `node scripts/registrar-comandos.mjs`**, o el comando no aparece en
+   Discord: la lista registrada es la de la última corrida, no la de
+   `lib/discord-comandos.json`.
 
 Si algo deja de salir, el orden para mirarlo es siempre el mismo:
 `POST /api/discord/probar` sin body dice quién es el bot y qué canal ve sin escribirle a

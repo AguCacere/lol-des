@@ -341,6 +341,28 @@ create unique index if not exists summoners_discord_id_idx
 alter table liga_ajustes enable row level security;
 alter table liga_semanas enable row level security;
 alter table summoners enable row level security;
+-- ── La quiniela de la liga ────────────────────────────────────────────────
+-- Cada uno apuesta a quién gana la semana. Una apuesta por persona y por
+-- semana: la PK compuesta es lo que hace que "cambiar la apuesta" sea un
+-- upsert y no una fila nueva, sin tener que borrar nada.
+--
+-- `semana` es la misma clave que usa liga_semanas (claveDeTorneo, la fecha de
+-- arranque en hora argentina). No es una FK a propósito: se apuesta MIENTRAS
+-- la semana corre, y la fila de liga_semanas recién existe cuando cierra.
+--
+-- `discord_id` y no puuid para el apostador: el que apuesta es una persona de
+-- Discord, y que esté vinculada a un invocador es justamente la autorización
+-- (ver lib/quiniela.ts). Guardar el puuid obligaría a resolverlo dos veces.
+create table if not exists liga_apuestas (
+  semana     text not null,
+  discord_id text not null,
+  puuid      text not null references summoners(puuid) on delete cascade,
+  creada_at  timestamptz not null default now(),
+  primary key (semana, discord_id)
+);
+create index if not exists liga_apuestas_semana_idx on liga_apuestas (semana);
+alter table liga_apuestas enable row level security;
+
 alter table lp_snapshots enable row level security;
 alter table matches enable row level security;
 alter table champion_mastery enable row level security;

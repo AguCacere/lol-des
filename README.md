@@ -89,13 +89,17 @@ enganche) y daño aguantado con el cuerpo (el tanque). Si jugó así y encima pe
 con otro texto: lo dejaron solo. Salta en ~2,5% de las partidas, la mitad de seguido que
 la cargada — si saliera todos los días dejaría de significar algo.
 
+Y avisa cuando **alguien te pasó**: si cambia el orden del podio del ladder, lo dice con
+nombre y por cuántos LP. Solo el top 3, solo si el que pasó jugó, y uno por ciclo — un
+aviso cada quince minutos cansa en un día.
+
 Y avisa cuando **pasa algo**: un pentakill (no salió ninguno en toda la historia del
 grupo, así que el día que pase va a gritar), un cuádruple, una partida terminada sin
 morir, o un récord personal roto —más kills, más daño o más CS que nunca—. El récord pide
 treinta partidas de historial y romperlo por un 10%: sin eso saltaría una de cada nueve
 partidas y dejaría de ser un récord.
 
-Y **contesta comandos**. Cuatro, todos de lectura y todos servidos de Supabase:
+Y **contesta comandos**, todos servidos de Supabase:
 
 | Comando | Qué contesta |
 |---|---|
@@ -103,6 +107,14 @@ Y **contesta comandos**. Cuatro, todos de lectura y todos servidos de Supabase:
 | `/ranking` | El ladder, de mejor a peor |
 | `/cargar jugador:<alguien>` | Su peor partida reciente, con la cargada puesta |
 | `/ultima [jugador:<alguien>]` | Su última de soloq con KDA y **lo que valió en la liga**. Sin nombre, la tuya |
+| `/apostar [jugador:<alguien>]` | **La quiniela**: a quién le apostás para ganar la semana. Sin nombre, cómo va |
+
+Los cuatro primeros son de lectura. `/apostar` es el único que escribe, y para usarlo hay
+que estar vinculado: la columna `discord_id` del invocador es la lista de permitidos. La
+contraseña del grupo no se pide nunca por Discord, que es justamente por qué el bot nació
+de solo lectura. Se puede cambiar la apuesta hasta que arranca el último día del torneo;
+después no, porque a esa altura la tabla ya se ve venir. El lunes, abajo del cierre, el
+bot dice quién cobró.
 
 El campo `jugador` autocompleta con la gente del grupo, así que no hay forma de escribir
 mal un nombre. Cada respuesta lleva al pie cuándo se actualizaron los datos — en un canal

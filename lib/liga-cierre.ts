@@ -5,6 +5,7 @@ import { type AjusteLiga, type DetalleSemanal, type FilaDelDia, type FilaLiga, g
 import { cargarVetados, conVetado } from "./vetados";
 import { claveDeTorneo, diaCorriente, duracionEnDias, esTorneoDeLiga, etiquetasDeDias, type Torneo, torneoAnterior, torneoDe } from "./torneo";
 import { repartirTitulos } from "./liga-titulos";
+import { apuestasDeLaSemana, mensajeDeResultado } from "./quiniela";
 
 /**
  * El cierre de la semana, separado de la ruta para poder llamarlo también
@@ -428,6 +429,25 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
   if (error) return { cerrada: null, ganador: null, lpNeto: null, jugadores: 0, motivo: `no se registró: ${error.message}` };
 
   await sendDiscordNotification(mensajeDeCierre(anterior, tabla, repartirTitulos(tabla, duracionEnDias(anterior))));
+
+  // La quiniela se paga abajo del cierre, en un mensaje aparte: el del cierre
+  // es el que importa y no se le mete ruido. Va envuelto porque la semana YA
+  // quedó registrada arriba — si la tabla de apuestas no existe todavía, o
+  // Discord se cae acá, eso no puede deshacer un cierre ni hacer que el cron
+  // de mañana lo reintente.
+  try {
+    const apuestas = await apuestasDeLaSemana(supabase, clave);
+    if (typeof apuestas === "string") {
+      console.error(`cerrarSemanasPendientes: ${apuestas}`);
+    } else {
+      // `quien` y `aQuien` son game_name pelado, así que el ganador se nombra
+      // igual: con el `name#tag` nunca coincidiría el auto-apostado.
+      const texto = mensajeDeResultado(apuestas, ganador?.puuid ?? null, ganador?.name ?? null);
+      if (texto) await sendDiscordNotification(texto);
+    }
+  } catch (e) {
+    console.error("cerrarSemanasPendientes: falló la quiniela", e);
+  }
 
   return {
     cerrada: clave,

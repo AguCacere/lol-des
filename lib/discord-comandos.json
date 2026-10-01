@@ -13,14 +13,39 @@
     "name": "cargar",
     "description": "La peor partida reciente de alguien, para cargarlo",
     "options": [
-      { "type": 3, "name": "jugador", "description": "A quién", "required": true, "autocomplete": true }
+      {
+        "type": 3,
+        "name": "jugador",
+        "description": "A quién",
+        "required": true,
+        "autocomplete": true
+      }
     ]
   },
   {
     "name": "ultima",
     "description": "La última de soloq de alguien y lo que valió en la liga",
     "options": [
-      { "type": 3, "name": "jugador", "description": "De quién (vacío: la tuya)", "required": false, "autocomplete": true }
+      {
+        "type": 3,
+        "name": "jugador",
+        "description": "De quién (vacío: la tuya)",
+        "required": false,
+        "autocomplete": true
+      }
+    ]
+  },
+  {
+    "name": "apostar",
+    "description": "Apostá a quién gana la liga de la semana (sin nadie: cómo va la quiniela)",
+    "options": [
+      {
+        "type": 3,
+        "name": "jugador",
+        "description": "A quién le apostás (vacío: ver la quiniela)",
+        "required": false,
+        "autocomplete": true
+      }
     ]
   }
 ]

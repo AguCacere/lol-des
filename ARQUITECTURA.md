@@ -91,9 +91,19 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   porque un webhook no tiene identidad con la cual reaccionar.
 - `discord-firma.ts` — verifica la firma Ed25519 de cada interacción. Sin
   dependencia nueva: Node hace Ed25519 nativo.
-- `discord-comandos.ts` — los cuatro comandos del bot, de Supabase al texto.
-  Ninguno toca Riot. Las definiciones que se le registran a Discord viven en
+- `discord-comandos.ts` — los comandos del bot, de Supabase al texto. Ninguno
+  toca Riot. Las definiciones que se le registran a Discord viven en
   `discord-comandos.json`, que también lee `scripts/registrar-comandos.mjs`.
+  Cuatro son de lectura; `/apostar` es el único que escribe, y lo que lo
+  autoriza es que el `discord_id` esté vinculado a un invocador — nunca la
+  contraseña del grupo, que en un canal de Discord no entra.
+- `quiniela.ts` — la quiniela de la liga entera: lee `liga_apuestas`, agrupa
+  por candidato y arma los dos textos (cómo va, y quién cobró). Junta y no
+  repartida porque la usan el comando y el cierre, y partirla haría un ciclo
+  con `liga-cierre.ts`.
+- `sorpasso.ts` — "alguien te pasó". Compara el orden del ladder antes y después
+  del refresco. Lo que define el módulo es lo que NO anuncia: solo el top 3, solo
+  si el que pasó jugó en este ciclo, y un mensaje por ciclo como mucho.
 
 **Ingesta**
 - `refresh.ts` — todo lo que escribe partidas. **Sus puertas son `refreshOne`,
@@ -182,7 +192,9 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   por día—, `vistaPreviaDeCierre` devuelve el texto del anuncio sin escribir ni mandar
   nada, y `comoTerminoLaSemana` la foto que muestra el cartel del torneo pasado. Los
   tres salen del mismo armado a propósito: si la pantalla armara la tabla por su
-  cuenta, una semana vieja podría mostrar un ganador distinto del que anunció el bot.
+  cuenta, una semana vieja podría mostrar un ganador distinto del que anunció el bot. Al
+  final del cierre paga la quiniela (`lib/quiniela.ts`) en un mensaje aparte, envuelto:
+  la semana ya quedó registrada y una apuesta que falla no puede deshacer eso.
 - `roast.ts` — las cargadas: plantillas, precedencia y las especiales.
 - `hitos.ts` — los momentos que merecen un grito: penta, cuádruple, partida sin
   morir y récord personal roto. La tercera categoría, distinta de las otras dos:
