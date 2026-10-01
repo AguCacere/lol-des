@@ -94,9 +94,12 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
 - `discord-comandos.ts` — los comandos del bot, de Supabase al texto. Ninguno
   toca Riot. Las definiciones que se le registran a Discord viven en
   `discord-comandos.json`, que también lee `scripts/registrar-comandos.mjs`.
-  Cuatro son de lectura; `/apostar` es el único que escribe, y lo que lo
-  autoriza es que el `discord_id` esté vinculado a un invocador — nunca la
-  contraseña del grupo, que en un canal de Discord no entra.
+  Cuatro son de lectura; `/apostar`, `/shell` y `/vincular` escriben, y lo que
+  los autoriza es que el `discord_id` esté vinculado a un invocador — nunca la
+  contraseña del grupo, que en un canal de Discord no entra. `/vincular` es la
+  excepción obvia, porque es el que ARMA esa vinculación: ahí lo que autoriza
+  es que nadie haya reclamado todavía ese invocador, y el id sale de
+  `interaction.user.id`, nunca de algo tipeado.
 - `quiniela.ts` — las apuestas enteras, las dos clases: la quiniela
   (`liga_apuestas`, a quién le apostás para ganar) y el pronóstico sube/baja
   (`liga_pronosticos`). De cada una, la lectura, el agrupado y los dos textos

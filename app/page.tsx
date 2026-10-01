@@ -443,6 +443,7 @@ export default function Home() {
             players={players}
             duos={duoSynergy}
             loading={loading}
+            error={loadError}
             ddragonVersion={ddragonVersion}
             onPlayer={abrirPerfil}
             onRanking={() => conTransicion(() => { setTab("ranking"); setVista("ladder"); })}

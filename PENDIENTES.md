@@ -162,14 +162,23 @@ Las dos cosas que faltan ya no son esquema, son datos y configuración:
 1. **No hay NADIE vinculado.** Los catorce invocadores tienen `discord_id` en
    null, y esa columna es la lista de permitidos: sin ella `/shell` y
    `/apostar` contestan "no tenés tu cuenta vinculada" y no dejan hacer nada.
-   El id sale de Discord con el modo desarrollador prendido: botón derecho
-   sobre la persona → "Copiar ID".
+
+   Ya no hace falta cargarlos a mano: **cada uno corre `/vincular` una vez** y
+   elige su Riot ID. El id sale de `interaction.user.id`, así que nadie lo
+   tipea ni lo copia a ningún lado. Es por orden de llegada y una sola vez —
+   desvincular es a mano, a propósito.
+
+   El camino manual sigue existiendo por si hay que corregir alguno. El id se
+   saca de Discord con el modo desarrollador prendido: botón derecho sobre la
+   persona → "Copiar ID".
 
    ```sql
    update summoners set discord_id = '123456789012345678' where game_name = 'VORE';
+   -- Y para soltar uno mal cargado, antes de que se revincule:
+   update summoners set discord_id = null where game_name = 'VORE';
    ```
 
-2. **Re-registrar el menú de comandos**, o `/shell` y `/apostar` no aparecen al
+2. **Re-registrar el menú de comandos**, o `/shell`, `/apostar` y `/vincular` no aparecen al
    tipear "/". Desde la consola del navegador, logueado en la app:
 
    ```js

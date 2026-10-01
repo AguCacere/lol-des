@@ -715,6 +715,93 @@ function mensajeDeShell(r: LanzamientoHecho, actor: string, objetivo: string): s
   ].join("\n");
 }
 
+/**
+ * `/vincular` — atar la cuenta de Discord de quien tipea a un invocador.
+ *
+ * Existe para no tener que cargar catorce `discord_id` a mano en el SQL
+ * editor. Y, sobre todo, para que los ids no pasen por ningún lado: el id NO
+ * se tipea ni se elige, sale de `interaction.user.id`, que lo pone Discord y
+ * nadie puede falsificar sin la firma del webhook.
+ *
+ * ## Quién puede quedarse con qué
+ *
+ * Es por orden de llegada, y una sola vez:
+ *
+ *   - si el invocador que pediste ya está vinculado a otro Discord, no;
+ *   - si vos ya estás vinculado a otro invocador, tampoco.
+ *
+ * El segundo candado parece de más y no lo es: sin él, alguien que se vinculó
+ * al que menos juega podría pasarse después al que va ganando la liga y
+ * quedarse con sus shells. Deshacer una vinculación es a mano, a propósito.
+ *
+ * El candado de verdad igual no está acá sino en la base: el índice único
+ * parcial `summoners_discord_id_idx`. Dos `/vincular` simultáneos pasan los
+ * dos chequeos de arriba y uno de los dos se va a estrellar contra el índice
+ * — por eso el 23505 se contesta y no se deja explotar.
+ */
+async function comandoVincular(
+  supabase: SupabaseClient,
+  jugador: string | null,
+  discordId: string | null,
+): Promise<string> {
+  if (!discordId) {
+    return "No pude leer tu cuenta de Discord. Probá de nuevo desde el servidor, no por mensaje privado.";
+  }
+
+  // ¿Ya estás vinculado? Se pregunta ANTES de resolver el nombre: si ya
+  // tenés dueño, lo que hayas escrito no importa.
+  const ya = await porDiscord(supabase, discordId);
+  if (ya) {
+    return ya.game_name === jugador?.trim() || !jugador?.trim()
+      ? `Ya estás vinculado a **${etiqueta(ya)}**.`
+      : `Ya estás vinculado a **${etiqueta(ya)}**. Si te equivocaste, pedile a Agus que te desvincule.`;
+  }
+
+  if (!jugador || !jugador.trim()) return "¿Cuál sos? Pasame tu Riot ID.";
+  const quien = await porTexto(supabase, jugador);
+  if (!quien) return noSeQuien(jugador);
+
+  // Y que ese invocador no sea de otro. El `is null` del update lo vuelve a
+  // chequear contra la base, pero avisar acá da un mensaje decente en vez de
+  // "no se actualizó nada".
+  const { data: duenio } = await supabase
+    .from("summoners")
+    .select("discord_id")
+    .eq("puuid", quien.puuid)
+    .maybeSingle<{ discord_id: string | null }>();
+  if (duenio?.discord_id) {
+    return `**${etiqueta(quien)}** ya está vinculado a otra cuenta de Discord.`;
+  }
+
+  // El `is null` no es decorativo: es lo que hace que dos pedidos a la vez no
+  // se pisen. El que llega segundo no encuentra fila que actualizar.
+  const { data: tocadas, error } = await supabase
+    .from("summoners")
+    .update({ discord_id: discordId })
+    .eq("puuid", quien.puuid)
+    .is("discord_id", null)
+    .select("puuid")
+    .returns<{ puuid: string }[]>();
+
+  if (error) {
+    // 23505 = el índice único. Tu Discord ya quedó atado a otro invocador
+    // entre que preguntamos y escribimos.
+    if ((error as { code?: string }).code === "23505") {
+      return "Tu cuenta de Discord ya quedó vinculada a otro invocador.";
+    }
+    return `No pude vincularte: ${error.message}`;
+  }
+  if (!tocadas || tocadas.length === 0) {
+    return `**${etiqueta(quien)}** ya está vinculado a otra cuenta de Discord.`;
+  }
+
+  return [
+    `🔗 Listo: sos **${etiqueta(quien)}**.`,
+    "",
+    "Ya podés usar `/shell` y `/apostar` sin escribir tu nombre.",
+  ].join("\n");
+}
+
 export async function responderComando(
   supabase: SupabaseClient,
   nombre: string,
@@ -741,6 +828,8 @@ export async function responderComando(
         return await comandoShell(supabase, opciones.jugador ?? null, discordId, interaccionId);
       case "apostar":
         return await comandoApostar(supabase, opciones.jugador ?? null, opciones.direccion ?? null, discordId);
+      case "vincular":
+        return await comandoVincular(supabase, opciones.jugador ?? null, discordId);
       default:
         // La lista sale del mismo JSON que se registró, así que un comando que
         // quedó registrado de una versión vieja se delata solo: no aparece acá.

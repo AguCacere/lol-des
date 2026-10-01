@@ -20,6 +20,16 @@ interface InicioProps {
   /** La sinergia de dúo, para la historia del día ("X e Y jugaron 4 juntos"). */
   duos: DuoPair[];
   loading: boolean;
+  /**
+   * Por qué no se pudo cargar el ladder, si no se pudo.
+   *
+   * Antes esto no llegaba hasta acá y el resultado fue el peor posible: con
+   * `/api/ladder` caído, `players` quedaba en `[]` e Inicio mostraba "Todavía
+   * no hay nadie en el grupo". O sea, un problema de conexión se leía como
+   * "se borró la base". La pantalla tiene que poder distinguir "no hay datos"
+   * de "no pude ir a buscarlos".
+   */
+  error?: string | null;
   ddragonVersion: string | null;
   /** Abrir el perfil de alguien (cae en Ranking y baja hasta el perfil). */
   onPlayer: (key: string) => void;
@@ -123,7 +133,7 @@ function IconoDeMovida({ m }: { m: Movimiento }) {
  * - No muestra secciones vacías. Sin nadie en partida y sin movimientos, esos
  *   dos bloques no existen.
  */
-export function Inicio({ players, duos, loading, ddragonVersion, onPlayer, onRanking, onLiga }: InicioProps) {
+export function Inicio({ players, duos, loading, error, ddragonVersion, onPlayer, onRanking, onLiga }: InicioProps) {
   const { d: liga } = useLiga();
 
   const hoy = useMemo(() => resumenDeHoy(players), [players]);
@@ -184,6 +194,19 @@ export function Inicio({ players, duos, loading, ddragonVersion, onPlayer, onRan
           <div className="sk sk-inicio-historia zona-historia" />
           <div className="sk sk-inicio-liga liga-spot" />
         </div>
+      </div>
+    );
+  }
+
+  // El error ANTES del vacío, que es el orden en el que importan: sin esta
+  // rama, cualquier caída de /api/ladder se mostraba como un grupo vacío y
+  // mandaba a buscar gente que ya está cargada. Mismo texto y misma clase que
+  // LadderTable, que ya lo hacía bien.
+  if (error) {
+    return (
+      <div className="empty-state">
+        <strong>No se pudo cargar el ladder</strong>
+        {error}
       </div>
     );
   }
