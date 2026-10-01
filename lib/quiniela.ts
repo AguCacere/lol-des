@@ -146,10 +146,147 @@ export async function apuestasDeLaSemana(
   }));
 }
 
-/** La tabla se crea a mano, así que su ausencia se cuenta, no se traga. */
+/** Las tablas se crean a mano, así que su ausencia se cuenta, no se traga. */
 export function errorDeApuestas(detalle: string): string {
-  if (/liga_apuestas/.test(detalle)) {
-    return "Todavía no está creada la tabla de apuestas. Hay que correr la migración de `supabase/schema.sql` desde el editor SQL.";
+  if (/liga_apuestas|liga_pronosticos/.test(detalle)) {
+    return "Todavía no están creadas las tablas de apuestas. Hay que correr la migración de `supabase/schema.sql` desde el editor SQL.";
   }
   return `No pude leer las apuestas: ${detalle}`;
+}
+
+/* ──────────────────────── El pronóstico: sube o baja ────────────────────────
+ *
+ * La otra mitad de la apuesta, y es un juego distinto al de la quiniela: acá
+ * no se elige al mejor, se elige a alguien y se dice para dónde va. Se le puede
+ * pegar apostando a que el peor del grupo se hunde todavía más.
+ *
+ * Tabla aparte (`liga_pronosticos`) y no una columna en `liga_apuestas`, por
+ * algo chiquito pero que importa: las dos cosas quieren la MISMA clave
+ * primaria —una por persona y por semana— y meterlas juntas obligaba a una
+ * clave de tres campos con un check cruzado para que nadie apueste sube y baja
+ * del mismo jugador. Dos tablas con la clave obvia salen más baratas, y además
+ * la de la quiniela ya estaba escrita en una migración sin correr.
+ */
+
+export type Direccion = "sube" | "baja";
+
+/** Un pronóstico, ya resuelto a nombres. */
+export interface PronosticoResuelto {
+  quien: string;
+  aQuien: string;
+  puuid: string;
+  direccion: Direccion;
+}
+
+/** Cómo se dice una dirección en una línea de texto. */
+const FLECHA: Record<Direccion, string> = { sube: "▲ sube", baja: "▼ baja" };
+
+/**
+ * Cuánto LP movió de verdad en la semana.
+ *
+ * NO es `lpNeto` pelado: ese viene con el tope de 22 por victoria, que es una
+ * regla de la liga para que una cuenta nueva no saque ventaja — no una
+ * afirmación sobre qué le pasó al LP de nadie. Para "subió o bajó" lo que vale
+ * es lo que pasó, así que se le devuelve lo recortado. Sin esto, alguien que
+ * ganó +40 reales con el tope en +22 podría aparecer bajando si además perdió,
+ * y el pronóstico se pagaría al revés.
+ */
+export function lpRealDeLaSemana(f: { lpNeto: number; lpRecortado: number }): number {
+  return f.lpNeto + f.lpRecortado;
+}
+
+/** Cómo va la tabla de pronósticos, para contestar `/apostar` sin argumentos. */
+export function mensajeDePronosticos(pronosticos: PronosticoResuelto[], cerrada: boolean): string {
+  if (pronosticos.length === 0) return "";
+  const lineas = ["", `📈 **Sube o baja** · ${pronosticos.length}`, ""];
+  // Por apostado y después alfabético: así el mismo jugador queda junto y la
+  // lista no se reordena sola entre una corrida y la siguiente.
+  const orden = [...pronosticos].sort(
+    (x, y) => x.aQuien.localeCompare(y.aQuien, "es") || x.quien.localeCompare(y.quien, "es"),
+  );
+  for (const p of orden) {
+    lineas.push(`**${p.aQuien}** ${FLECHA[p.direccion]} — ${p.quien}`);
+  }
+  if (!cerrada) lineas.push("", "_Se apuesta con `/apostar jugador:<alguien> direccion:<sube|baja>`._");
+  return lineas.join("\n");
+}
+
+/**
+ * El resultado de los pronósticos, para pegarlo abajo del cierre.
+ *
+ * `netos` es el LP real de cada uno en la semana (ver `lpRealDeLaSemana`).
+ * Quien no esté en ese mapa no jugó la liga esa semana y su pronóstico se
+ * anula: inventarle un 0 sería pagarle al que apostó a "baja" por una semana
+ * que esa persona no jugó.
+ */
+export function mensajeDeResultadoPronosticos(
+  pronosticos: PronosticoResuelto[],
+  netos: Map<string, number>,
+): string {
+  if (pronosticos.length === 0) return "";
+
+  const acertaron: string[] = [];
+  const erraron: string[] = [];
+  const anulados: string[] = [];
+
+  for (const p of pronosticos) {
+    const neto = netos.get(p.puuid);
+    // Clavado en 0 tampoco subió ni bajó. Es rarísimo y es un empate, no una
+    // derrota: nadie pierde una apuesta porque el otro no se movió.
+    if (neto === undefined || neto === 0) {
+      anulados.push(`**${p.quien}** (${p.aQuien})`);
+      continue;
+    }
+    const pegó = p.direccion === "sube" ? neto > 0 : neto < 0;
+    const signo = neto > 0 ? `+${neto}` : `${neto}`;
+    const linea = `**${p.quien}** → **${p.aQuien}** ${FLECHA[p.direccion]} (${signo} LP)`;
+    (pegó ? acertaron : erraron).push(linea);
+  }
+
+  const lineas = ["📈 **Sube o baja:**"];
+  if (acertaron.length > 0) {
+    lineas.push(`Le pegaron: ${acertaron.join(", ")}.`);
+  } else {
+    lineas.push("No le pegó nadie. Ni uno.");
+  }
+  if (erraron.length > 0) lineas.push(`Erraron: ${erraron.join(", ")}.`);
+  if (anulados.length > 0) {
+    lineas.push(`Se anulan ${anulados.join(", ")}: no se movió de donde estaba.`);
+  }
+  return lineas.join("\n");
+}
+
+/**
+ * Los pronósticos de una semana, ya resueltos a nombres.
+ *
+ * Mismo trato que `apuestasDeLaSemana`: devuelve un string cuando no se pudo
+ * leer, porque la tabla se crea con una migración a mano.
+ */
+export async function pronosticosDeLaSemana(
+  supabase: SupabaseClient,
+  semana: string,
+): Promise<PronosticoResuelto[] | string> {
+  const { data, error } = await supabase
+    .from("liga_pronosticos")
+    .select("discord_id, puuid, direccion")
+    .eq("semana", semana)
+    .returns<{ discord_id: string; puuid: string; direccion: Direccion }[]>();
+  if (error) return errorDeApuestas(error.message);
+  if (!data || data.length === 0) return [];
+
+  const { data: gente } = await supabase
+    .from("summoners")
+    .select("puuid, game_name, discord_id")
+    .returns<{ puuid: string; game_name: string; discord_id: string | null }[]>();
+  const porPuuid = new Map((gente ?? []).map((g) => [g.puuid, g.game_name]));
+  const porDiscordId = new Map(
+    (gente ?? []).filter((g) => g.discord_id).map((g) => [g.discord_id as string, g.game_name]),
+  );
+
+  return data.map((p) => ({
+    quien: porDiscordId.get(p.discord_id) ?? `<@${p.discord_id}>`,
+    aQuien: porPuuid.get(p.puuid) ?? "alguien que ya no está",
+    puuid: p.puuid,
+    direccion: p.direccion,
+  }));
 }

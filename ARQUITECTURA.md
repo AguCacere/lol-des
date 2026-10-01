@@ -97,10 +97,13 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   Cuatro son de lectura; `/apostar` es el único que escribe, y lo que lo
   autoriza es que el `discord_id` esté vinculado a un invocador — nunca la
   contraseña del grupo, que en un canal de Discord no entra.
-- `quiniela.ts` — la quiniela de la liga entera: lee `liga_apuestas`, agrupa
-  por candidato y arma los dos textos (cómo va, y quién cobró). Junta y no
-  repartida porque la usan el comando y el cierre, y partirla haría un ciclo
-  con `liga-cierre.ts`.
+- `quiniela.ts` — las apuestas enteras, las dos clases: la quiniela
+  (`liga_apuestas`, a quién le apostás para ganar) y el pronóstico sube/baja
+  (`liga_pronosticos`). De cada una, la lectura, el agrupado y los dos textos
+  —cómo va y quién cobró—. Junta y no repartida porque la usan el comando y el
+  cierre, y partirla haría un ciclo con `liga-cierre.ts`. El sube/baja se paga
+  contra `lpRealDeLaSemana`, que es `lpNeto + lpRecortado`: el tope por victoria
+  es una regla de puntaje, no un dato sobre el LP.
 - `sorpasso.ts` — "alguien te pasó". Compara el orden del ladder antes y después
   del refresco. Lo que define el módulo es lo que NO anuncia: solo el top 3, solo
   si el que pasó jugó en este ciclo, y un mensaje por ciclo como mucho.

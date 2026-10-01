@@ -363,6 +363,26 @@ create table if not exists liga_apuestas (
 create index if not exists liga_apuestas_semana_idx on liga_apuestas (semana);
 alter table liga_apuestas enable row level security;
 
+-- ── El pronóstico: sube o baja (lib/quiniela.ts, /apostar con direccion) ──
+-- La otra mitad de la apuesta: elegir a alguien y decir para dónde va su LP.
+-- Se paga contra el LP real de la semana (el neto SIN el tope por victoria,
+-- que es una regla de puntaje y no dice qué le pasó al LP de nadie).
+--
+-- Tabla aparte y no una columna en liga_apuestas: las dos quieren la MISMA
+-- clave primaria —una por persona y por semana— y juntarlas pedía una clave
+-- de tres campos con un check cruzado para que nadie apueste sube y baja del
+-- mismo jugador. Dos tablas con la clave obvia salen más baratas.
+create table if not exists liga_pronosticos (
+  semana     text not null,
+  discord_id text not null,
+  puuid      text not null references summoners(puuid) on delete cascade,
+  direccion  text not null check (direccion in ('sube', 'baja')),
+  creada_at  timestamptz not null default now(),
+  primary key (semana, discord_id)
+);
+create index if not exists liga_pronosticos_semana_idx on liga_pronosticos (semana);
+alter table liga_pronosticos enable row level security;
+
 alter table lp_snapshots enable row level security;
 alter table matches enable row level security;
 alter table champion_mastery enable row level security;

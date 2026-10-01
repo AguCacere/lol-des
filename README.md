@@ -107,7 +107,7 @@ Y **contesta comandos**, todos servidos de Supabase:
 | `/ranking` | El ladder, de mejor a peor |
 | `/cargar jugador:<alguien>` | Su peor partida reciente, con la cargada puesta |
 | `/ultima [jugador:<alguien>]` | Su última de soloq con KDA y **lo que valió en la liga**. Sin nombre, la tuya |
-| `/apostar [jugador:<alguien>]` | **La quiniela**: a quién le apostás para ganar la semana. Sin nombre, cómo va |
+| `/apostar [jugador:<alguien>] [direccion:sube\|baja]` | **Las apuestas**: con nombre solo, a quién le apostás para ganar la semana; con dirección, a que ese sube o baja de LP. Sin nada, cómo van las dos |
 
 Los cuatro primeros son de lectura. `/apostar` es el único que escribe, y para usarlo hay
 que estar vinculado: la columna `discord_id` del invocador es la lista de permitidos. La
@@ -115,6 +115,11 @@ contraseña del grupo no se pide nunca por Discord, que es justamente por qué e
 de solo lectura. Se puede cambiar la apuesta hasta que arranca el último día del torneo;
 después no, porque a esa altura la tabla ya se ve venir. El lunes, abajo del cierre, el
 bot dice quién cobró.
+
+El **sube o baja** se paga contra el LP real de la semana, que no es el que muestra la
+tabla de la liga: ese viene con el tope de 22 por victoria, que es una regla de puntaje y
+no dice qué le pasó al LP de nadie. Si el apostado no jugó, o terminó clavado donde
+empezó, el pronóstico se anula — nadie cobra porque el otro no se movió.
 
 El campo `jugador` autocompleta con la gente del grupo, así que no hay forma de escribir
 mal un nombre. Cada respuesta lleva al pie cuándo se actualizaron los datos — en un canal

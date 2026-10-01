@@ -3992,6 +3992,32 @@ día para cobrar el premio. No es por elegancia: al final de la semana la tabla
 ya se ve venir, y una apuesta que se puede hacer sabiendo el resultado no es
 una apuesta.
 
+### El sube o baja, y por qué es otra tabla
+
+La segunda clase de apuesta: elegir a alguien y decir para dónde va su LP. Es
+un juego distinto —acá no se elige al mejor, y se le puede pegar apostando a
+que el peor se hunde más— pero comparte el comando, la ventana y la
+autorización.
+
+Tabla aparte (`liga_pronosticos`) y no una columna en `liga_apuestas`. Las dos
+quieren la MISMA clave primaria, `(semana, discord_id)`: una por persona y por
+semana. Juntarlas obligaba a una clave de tres campos más un check cruzado para
+que nadie apostara sube y baja del mismo jugador en la misma semana. Dos tablas
+con la clave obvia salen más baratas, y de paso la migración de la quiniela
+—que todavía no estaba corrida— no había que reescribirla.
+
+**Se paga contra `lpNeto + lpRecortado`, no contra `lpNeto`.** El `lpNeto` que
+muestra la liga viene con el tope de 22 por victoria, que existe para que una
+cuenta nueva no saque ventaja: es una regla de puntaje, no una afirmación sobre
+qué le pasó al LP de nadie. Y el signo se puede dar vuelta: alguien que ganó
++40 reales y perdió −30 tiene +10 de verdad y −8 topeado. Pagar el pronóstico
+con el número topeado habría pagado al revés.
+
+Dos casos se **anulan** en vez de perderse: el apostado no jugó la liga esa
+semana, o terminó clavado en 0. Nadie pierde una apuesta porque el otro no se
+movió, y sobre todo: apostar "baja" contra alguien que no juega no puede ser
+plata gratis.
+
 El pago va **en un mensaje aparte**, abajo del cierre, y envuelto en try/catch.
 La semana ya quedó registrada en `liga_semanas` antes de mandar nada: si la
 tabla de apuestas no existe todavía o Discord se cae en ese segundo mensaje,

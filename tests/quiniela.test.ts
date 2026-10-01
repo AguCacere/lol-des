@@ -81,3 +81,70 @@ test("una sola apuesta y acierta: no dice 'todos'", () => {
   assert.match(m, /le había apostado/);
   assert.doesNotMatch(m, /Le apostaron todos/);
 });
+
+/* ───────────────────────── Sube o baja ───────────────────────── */
+
+import { lpRealDeLaSemana, mensajeDePronosticos, mensajeDeResultadoPronosticos, type PronosticoResuelto } from "../lib/quiniela";
+
+const pr = (quien: string, aQuien: string, direccion: "sube" | "baja"): PronosticoResuelto => ({
+  quien,
+  aQuien,
+  puuid: `puuid-${aQuien}`,
+  direccion,
+});
+
+test("el LP real le devuelve lo que recortó el tope", () => {
+  // El caso que motiva la función: +40 reales, el tope lo deja en +22, y si
+  // encima perdió −30 el topeado da −8 (bajó) pero de verdad subió +10.
+  assert.equal(lpRealDeLaSemana({ lpNeto: -8, lpRecortado: 18 }), 10);
+  assert.equal(lpRealDeLaSemana({ lpNeto: 25, lpRecortado: 0 }), 25);
+});
+
+test("sin pronósticos no se dice nada, ni en la tabla ni en el cierre", () => {
+  assert.equal(mensajeDePronosticos([], false), "");
+  assert.equal(mensajeDeResultadoPronosticos([], new Map()), "");
+});
+
+test("la tabla de pronósticos lista uno por línea y solo invita si está abierta", () => {
+  const m = mensajeDePronosticos([pr("Ana", "Vore", "baja"), pr("Beto", "Sagi", "sube")], false);
+  assert.match(m, /\*\*Sagi\*\* ▲ sube — Beto/);
+  assert.match(m, /\*\*Vore\*\* ▼ baja — Ana/);
+  assert.match(m, /\/apostar/);
+  assert.doesNotMatch(mensajeDePronosticos([pr("Ana", "Vore", "baja")], true), /\/apostar/);
+});
+
+test("acertar sube y acertar baja", () => {
+  const m = mensajeDeResultadoPronosticos(
+    [pr("Ana", "Vore", "sube"), pr("Beto", "Sagi", "baja")],
+    new Map([["puuid-Vore", 31], ["puuid-Sagi", -18]]),
+  );
+  assert.match(m, /Le pegaron:/);
+  assert.match(m, /\*\*Ana\*\* → \*\*Vore\*\* ▲ sube \(\+31 LP\)/);
+  assert.match(m, /\*\*Beto\*\* → \*\*Sagi\*\* ▼ baja \(-18 LP\)/);
+  assert.doesNotMatch(m, /Erraron/);
+});
+
+test("errar es al revés del signo, no cualquier cosa", () => {
+  const m = mensajeDeResultadoPronosticos(
+    [pr("Ana", "Vore", "sube")],
+    new Map([["puuid-Vore", -12]]),
+  );
+  assert.match(m, /No le pegó nadie/);
+  assert.match(m, /Erraron: \*\*Ana\*\* → \*\*Vore\*\*/);
+});
+
+test("clavado en 0 es empate y se anula: nadie cobra por que el otro no se movió", () => {
+  const m = mensajeDeResultadoPronosticos(
+    [pr("Ana", "Vore", "baja")],
+    new Map([["puuid-Vore", 0]]),
+  );
+  assert.match(m, /Se anulan \*\*Ana\*\* \(Vore\)/);
+  assert.doesNotMatch(m, /Erraron/);
+});
+
+test("si el apostado no jugó la liga esa semana el pronóstico se anula, no se paga", () => {
+  // Sin esto, apostar "baja" contra alguien que no jugó sería plata gratis.
+  const m = mensajeDeResultadoPronosticos([pr("Ana", "Nadie", "baja")], new Map());
+  assert.match(m, /Se anulan/);
+  assert.doesNotMatch(m, /Le pegaron/);
+});

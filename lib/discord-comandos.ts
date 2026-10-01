@@ -8,7 +8,7 @@ import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "./refresh";
 import { tablaDeSemanaEnBase } from "./liga-cierre";
 import { ganadorDe, puntajeDe, puntajeTexto, puntosDeSecuencia } from "./liga";
 import { claveDeTorneo, diaCorriente, duracionEnDias, empezoElUltimoDia, esTorneoDeLiga, torneoDe } from "./torneo";
-import { apuestasDeLaSemana, errorDeApuestas, mensajeDeQuiniela } from "./quiniela";
+import { apuestasDeLaSemana, errorDeApuestas, mensajeDePronosticos, mensajeDeQuiniela, pronosticosDeLaSemana } from "./quiniela";
 
 /**
  * Los cuatro comandos del bot: de Supabase al texto que sale en el canal.
@@ -465,6 +465,7 @@ async function valorEnLaLiga(
 async function comandoApostar(
   supabase: SupabaseClient,
   jugador: string | null,
+  direccion: string | null,
   discordId: string | null,
 ): Promise<string> {
   const torneo = await torneoDe(supabase);
@@ -473,9 +474,18 @@ async function comandoApostar(
   const titulo = torneo.nombre ?? "La liga de la semana";
   const cerrada = empezoElUltimoDia(torneo);
 
+  const haciaDonde = (direccion ?? "").trim().toLowerCase();
+  if (haciaDonde && haciaDonde !== "sube" && haciaDonde !== "baja") {
+    return "La dirección es `sube` o `baja`, nada más.";
+  }
+  // La dirección sin jugador no dice nada: "apuesto a que sube" ¿quién.
+  if (haciaDonde && !(jugador && jugador.trim())) {
+    return "¿Que sube quién? Pasame también el jugador.";
+  }
+
   if (jugador && jugador.trim()) {
     if (cerrada) {
-      return `🎲 Las apuestas de **${titulo}** ya cerraron: arrancó el último día. Mirá cómo quedó la quiniela con \`/apostar\` sin nombre.`;
+      return `🎲 Las apuestas de **${titulo}** ya cerraron: arrancó el último día. Mirá cómo quedaron con \`/apostar\` sin nada.`;
     }
     // La autorización. No es la firma: es estar vinculado.
     const yo = await porDiscord(supabase, discordId);
@@ -484,6 +494,18 @@ async function comandoApostar(
     }
     const aQuien = await porTexto(supabase, jugador);
     if (!aQuien) return noSeQuien(jugador);
+
+    if (haciaDonde) {
+      const { error } = await supabase
+        .from("liga_pronosticos")
+        .upsert(
+          { semana, discord_id: discordId, puuid: aQuien.puuid, direccion: haciaDonde },
+          { onConflict: "semana,discord_id" },
+        );
+      if (error) return errorDeApuestas(error.message);
+      const flecha = haciaDonde === "sube" ? "▲" : "▼";
+      return `📈 Anotado: **${yo.game_name}** apuesta a que **${aQuien.game_name}** ${flecha} **${haciaDonde}** de LP en **${titulo}**. Se paga contra el LP real de la semana, y se puede cambiar hasta que arranque el último día.`;
+    }
 
     const { error } = await supabase
       .from("liga_apuestas")
@@ -496,9 +518,17 @@ async function comandoApostar(
     return `🎲 Anotado: **${yo.game_name}** le apuesta a **${aQuien.game_name}** para ganar **${titulo}**. Van ${cuantas} ${cuantas === 1 ? "apuesta" : "apuestas"}. Se puede cambiar hasta que arranque el último día.`;
   }
 
+  // Sin argumentos: las dos tablas, una abajo de la otra. Si la de pronósticos
+  // está vacía su mensaje es cadena vacía y no se ve — no hace falta avisar
+  // que nadie usó la mitad del comando.
   const todas = await apuestasDeLaSemana(supabase, semana);
   if (typeof todas === "string") return todas;
-  return mensajeDeQuiniela(titulo, todas, cerrada);
+  const pron = await pronosticosDeLaSemana(supabase, semana);
+  const quiniela = mensajeDeQuiniela(titulo, todas, cerrada);
+  // Un error leyendo los pronósticos NO se come la quiniela: son dos tablas y
+  // la migración de la segunda puede no estar corrida.
+  if (typeof pron === "string") return `${quiniela}\n\n_${pron}_`;
+  return quiniela + mensajeDePronosticos(pron, cerrada);
 }
 
 export async function responderComando(
@@ -518,7 +548,7 @@ export async function responderComando(
       case "ultima":
         return await comandoUltima(supabase, opciones.jugador ?? null, discordId);
       case "apostar":
-        return await comandoApostar(supabase, opciones.jugador ?? null, discordId);
+        return await comandoApostar(supabase, opciones.jugador ?? null, opciones.direccion ?? null, discordId);
       default:
         // La lista sale del mismo JSON que se registró, así que un comando que
         // quedó registrado de una versión vieja se delata solo: no aparece acá.

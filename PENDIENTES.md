@@ -150,7 +150,20 @@ create table if not exists liga_apuestas (
 create index if not exists liga_apuestas_semana_idx on liga_apuestas (semana);
 alter table liga_apuestas enable row level security;
 
--- 4. El torneo en curso, extendido al lunes: 14/9 al 21/9, ocho días.
+-- 4. El pronóstico sube/baja (la otra mitad de /apostar). Tabla aparte porque
+--    quiere la misma clave que la de arriba: una por persona y por semana.
+create table if not exists liga_pronosticos (
+  semana     text not null,
+  discord_id text not null,
+  puuid      text not null references summoners(puuid) on delete cascade,
+  direccion  text not null check (direccion in ('sube', 'baja')),
+  creada_at  timestamptz not null default now(),
+  primary key (semana, discord_id)
+);
+create index if not exists liga_pronosticos_semana_idx on liga_pronosticos (semana);
+alter table liga_pronosticos enable row level security;
+
+-- 5. El torneo en curso, extendido al lunes: 14/9 al 21/9, ocho días.
 insert into liga_torneos (nombre, arranca_at, cierra_at, minimo_total, minimo_ultimo, ultimo_desde)
 values (
   'Semana del 14 (extendida)',

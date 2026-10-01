@@ -5,7 +5,7 @@ import { type AjusteLiga, type DetalleSemanal, type FilaDelDia, type FilaLiga, g
 import { cargarVetados, conVetado } from "./vetados";
 import { claveDeTorneo, diaCorriente, duracionEnDias, esTorneoDeLiga, etiquetasDeDias, type Torneo, torneoAnterior, torneoDe } from "./torneo";
 import { repartirTitulos } from "./liga-titulos";
-import { apuestasDeLaSemana, mensajeDeResultado } from "./quiniela";
+import { apuestasDeLaSemana, lpRealDeLaSemana, mensajeDeResultado, mensajeDeResultadoPronosticos, pronosticosDeLaSemana } from "./quiniela";
 
 /**
  * El cierre de la semana, separado de la ruta para poder llamarlo también
@@ -443,6 +443,17 @@ export async function cerrarSemanasPendientes(supabase: SupabaseClient): Promise
       // `quien` y `aQuien` son game_name pelado, así que el ganador se nombra
       // igual: con el `name#tag` nunca coincidiría el auto-apostado.
       const texto = mensajeDeResultado(apuestas, ganador?.puuid ?? null, ganador?.name ?? null);
+      if (texto) await sendDiscordNotification(texto);
+    }
+
+    const pronosticos = await pronosticosDeLaSemana(supabase, clave);
+    if (typeof pronosticos === "string") {
+      console.error(`cerrarSemanasPendientes: ${pronosticos}`);
+    } else {
+      // El neto REAL, no el topeado: ver lpRealDeLaSemana. Quien no esté en la
+      // tabla no entra al mapa y su pronóstico se anula solo.
+      const netos = new Map(tabla.filter((f) => !f.sinJugar).map((f) => [f.puuid, lpRealDeLaSemana(f)]));
+      const texto = mensajeDeResultadoPronosticos(pronosticos, netos);
       if (texto) await sendDiscordNotification(texto);
     }
   } catch (e) {

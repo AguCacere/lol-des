@@ -37,14 +37,30 @@
   },
   {
     "name": "apostar",
-    "description": "Apostá a quién gana la liga de la semana (sin nadie: cómo va la quiniela)",
+    "description": "Apostá a quién gana la liga, o a que alguien sube o baja de LP",
     "options": [
       {
         "type": 3,
         "name": "jugador",
-        "description": "A quién le apostás (vacío: ver la quiniela)",
+        "description": "A quién (vacío: ver cómo van las apuestas)",
         "required": false,
         "autocomplete": true
+      },
+      {
+        "type": 3,
+        "name": "direccion",
+        "description": "Sube o baja de LP esta semana (vacío: apostás a que gana la liga)",
+        "required": false,
+        "choices": [
+          {
+            "name": "sube",
+            "value": "sube"
+          },
+          {
+            "name": "baja",
+            "value": "baja"
+          }
+        ]
       }
     ]
   }
