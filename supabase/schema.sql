@@ -383,6 +383,95 @@ create table if not exists liga_pronosticos (
 create index if not exists liga_pronosticos_semana_idx on liga_pronosticos (semana);
 alter table liga_pronosticos enable row level security;
 
+-- ── Blue Shells (lib/shell.ts) ───────────────────────────────────────────
+-- El objeto de la edición larga. Tres tablas y ninguna guarda un total: todo
+-- se deriva de movimientos, que es lo que permite auditar después de dónde
+-- salió cada punto.
+--
+-- NADA de esto toca el puntaje de JUEGO. Las shells mueven `puntos_objetos`,
+-- que es otra cuenta; ver tablaDeLaSemana en lib/liga.ts. Una edición sin
+-- shells tiene puntos_objetos = 0 y se calcula exactamente igual que antes.
+
+-- 1. El inventario, como LEDGER y no como contador.
+--    +1 cuando se otorga, −1 cuando se usa. Las disponibles son la suma.
+--    Un contador mutable no deja auditar de dónde salió cada shell ni en qué
+--    evento se gastó, y es el que se desincroniza cuando algo falla a mitad.
+create table if not exists liga_shells (
+  id        uuid primary key default gen_random_uuid(),
+  semana    text not null,            -- la edición, claveDeTorneo()
+  puuid     text not null references summoners(puuid) on delete cascade,
+  delta     int  not null check (delta in (1, -1)),
+  origen    text not null,            -- RACHA | PERFECT | COMEBACK | ADMIN | USO
+  -- El período de la recompensa automática, para la idempotencia. Null en los
+  -- usos y en lo que se da a mano.
+  periodo   text,
+  -- El lanzamiento que la consumió, en los delta = −1.
+  evento_id uuid,
+  meta      jsonb,
+  creado_at timestamptz not null default now()
+);
+-- **La guarda que impide regalar dos veces lo mismo.** El cron puede correr
+-- muchas veces en el mismo período; con esto, la segunda entrega choca contra
+-- el índice en vez de sumar otra shell. No alcanza con chequearlo en
+-- TypeScript: dos corridas simultáneas pasan las dos por el chequeo.
+create unique index if not exists liga_shells_premio_idx
+  on liga_shells (semana, puuid, origen, periodo) where periodo is not null;
+create index if not exists liga_shells_semana_idx on liga_shells (semana, puuid);
+alter table liga_shells enable row level security;
+
+-- 2. Los eventos del torneo. Con esto se puede reconstruir la historia entera.
+create table if not exists liga_eventos (
+  id             uuid primary key default gen_random_uuid(),
+  semana         text not null,
+  tipo           text not null,   -- SHELL_LANZADA | SHELL_OTORGADA | EFECTO_CERRADO
+  efecto         text,            -- RANDOM_CHAMPION | MAIN_BAN | STEAL_POINTS
+  actor_puuid    text references summoners(puuid) on delete set null,
+  objetivo_puuid text references summoners(puuid) on delete set null,
+  -- Quién se lo comió. Distinto del objetivo cuando rebotó.
+  final_puuid    text references summoners(puuid) on delete set null,
+  rebotado       boolean not null default false,
+  monto          numeric(5,2),
+  -- **La idempotencia de Discord.** Discord reintenta una interacción cuando
+  -- no contesta a tiempo, y sin esto un reintento lanzaría dos shells. El id
+  -- de la interacción es único y estable, así que el segundo intento choca.
+  interaccion_id text,
+  match_id       text,
+  padre_id       uuid references liga_eventos(id) on delete set null,
+  meta           jsonb,
+  creado_at      timestamptz not null default now()
+);
+create unique index if not exists liga_eventos_interaccion_idx
+  on liga_eventos (interaccion_id) where interaccion_id is not null;
+create index if not exists liga_eventos_semana_idx on liga_eventos (semana, creado_at);
+alter table liga_eventos enable row level security;
+
+-- 3. Los efectos que dependen de partidas FUTURAS, con su progreso.
+--    RANDOM_CHAMPION y MAIN_BAN no se resuelven al lanzarse: esperan a que la
+--    persona juegue. El cron de Riot los va cerrando (ver lib/refresh.ts).
+create table if not exists liga_efectos (
+  id         uuid primary key default gen_random_uuid(),
+  evento_id  uuid not null references liga_eventos(id) on delete cascade,
+  semana     text not null,
+  puuid      text not null references summoners(puuid) on delete cascade,
+  efecto     text not null,
+  estado     text not null default 'PENDIENTE',  -- PENDIENTE|CUMPLIDO|INCUMPLIDO|VENCIDO
+  -- RANDOM_CHAMPION: el campeón sorteado. Se guarda EN EL MOMENTO del efecto
+  -- para que refrescar la página no vuelva a sortear.
+  campeon    text,
+  -- MAIN_BAN: los tres congelados al activarse, y cuántas partidas faltan.
+  prohibidos text[],
+  faltan     int,
+  -- Las partidas que ya consumieron progreso. **Es la idempotencia del cron**:
+  -- una misma partida no puede descontar dos veces aunque el refresco se
+  -- repita. Va como array y no como contador por eso mismo.
+  matches    text[] not null default '{}',
+  creado_at  timestamptz not null default now(),
+  cerrado_at timestamptz
+);
+create index if not exists liga_efectos_pend_idx
+  on liga_efectos (puuid, estado) where estado = 'PENDIENTE';
+alter table liga_efectos enable row level security;
+
 alter table lp_snapshots enable row level security;
 alter table matches enable row level security;
 alter table champion_mastery enable row level security;

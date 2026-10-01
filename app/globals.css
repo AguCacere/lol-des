@@ -3466,6 +3466,40 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
      línea al final de la franja, que es donde el margin-left:auto lo deja. */
   .estado-frescura{flex-basis:100%; text-align:right;}
 }
+/* ── Blue Shells en la clasificación ──
+   Dos señales chiquitas en la fila y el desglose completo al expandir. La
+   regla es la misma de siempre: la fila contesta "quién va ganando" y el
+   detalle contesta "por qué". Llenar la fila de íconos convierte la liga en
+   un tablero de estados. */
+.liga-shells{
+  display:inline-flex; align-items:center; gap:3px; flex:none;
+  font-family:var(--font-mono); font-size:10.5px; font-weight:700;
+  color:var(--accent);
+}
+.liga-efecto{
+  display:inline-flex; align-items:center; gap:4px; flex:none;
+  font-size:10.5px; color:var(--text-muted); white-space:nowrap;
+}
+
+/* El desglose juego / objetos / total. Tres renglones alineados a la derecha
+   con una línea antes del total: es una cuenta y se lee como una cuenta. */
+.liga-desglose{
+  display:flex; flex-direction:column; gap:2px; align-self:flex-start;
+  margin:0 0 12px; min-width:190px;
+  font-size:12px; color:var(--text-muted);
+}
+.liga-desglose-fila{display:flex; align-items:baseline; justify-content:space-between; gap:18px;}
+.liga-desglose-fila i{font-style:normal;}
+.liga-desglose-fila b{
+  font-family:var(--font-stat); font-weight:800; font-variant-numeric:tabular-nums;
+  color:var(--text-secondary);
+}
+.liga-desglose-fila.total{
+  margin-top:3px; padding-top:4px; border-top:1px solid var(--border-soft);
+  color:var(--text-secondary);
+}
+.liga-desglose-fila.total b{color:var(--text-primary); font-size:14px;}
+
 .liga-tabla{
   background:var(--bg); border-radius:var(--radius-lg); box-shadow:var(--shadow); overflow:hidden;
 }
@@ -3608,13 +3642,25 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   /* El padding de abajo le hace lugar al "HOY", que va posicionado y por lo
      tanto no empuja. */
   padding:6px 16px 14px; margin-top:2px;
+  /* El ancho de cada día, como variable: el riel lo necesita para arrancar
+     justo abajo del primer punto, así que no puede estar escrito dos veces. */
+  --dia-w:24px;
+}
+/* Una edición de catorce días son catorce puntos, y a 24px cada uno eso son
+   336 más el padding: en un teléfono de 390 se salía de la tarjeta y el último
+   día quedaba cortado contra el borde. Medido. */
+.estado-linea.larga{--dia-w:19px;}
+@media (max-width:420px){
+  .estado-linea.larga{--dia-w:15px;}
+  .estado-linea.larga .estado-dia{font-size:8.5px;}
+  .estado-linea.larga .estado-dia-hoy{font-size:7px;}
 }
 /* El riel arranca y termina en el CENTRO del primer y del último punto, no en
    el borde del bloque: con `left:16px` los puntos quedaban once píxeles
-   adentro de las puntas y la línea sobresalía por los dos lados. 16 del
-   padding + la mitad del ancho fijo de un día. */
+   adentro de las puntas y la línea sobresalía por los dos lados. */
 .estado-linea-riel{
-  position:absolute; left:28px; right:28px; top:10px; height:2px;
+  position:absolute; left:calc(16px + var(--dia-w) / 2); right:calc(16px + var(--dia-w) / 2);
+  top:10px; height:2px;
   border-radius:99px; background:var(--track); overflow:hidden;
 }
 /* Lo corrido de la semana, en dorado. Es un ancho que avanza, no un punto por
@@ -3635,7 +3681,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   position:relative;
   display:flex; flex-direction:column; align-items:center; gap:3px;
   font-size:9.5px; font-weight:700; letter-spacing:0.02em;
-  color:var(--text-muted); opacity:0.5; width:24px;
+  color:var(--text-muted); opacity:0.5; width:var(--dia-w);
 }
 .estado-dia-punto{
   width:7px; height:7px; border-radius:50%; flex:none;
@@ -3663,6 +3709,18 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .estado-dia.decide{opacity:0.85;}
 .estado-dia.decide.hoy{opacity:1;}
+/* El corte de semana en una edición larga: catorce puntos en fila son
+   catorce puntos, y "¿en cuál estoy?" se vuelve a contestar contando. Con el
+   filete, la segunda semana se ve de una. */
+.estado-dia.corte{border-left:1px solid var(--border-firm); margin-left:5px; padding-left:5px;}
+/* "Día 8 de 14 · Semana 2", arriba de la tira. Solo en ediciones largas: en
+   una de siete días la semana es una sola y decirlo es ruido. */
+.estado-linea-rotulo{
+  display:block; margin:0 0 6px;
+  font-size:9.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--text-muted);
+}
+.estado-linea-rotulo b{color:var(--accent); font-weight:700;}
 
 @media (max-width:640px){
   .estado{grid-template-columns:minmax(0,1fr); gap:10px;}

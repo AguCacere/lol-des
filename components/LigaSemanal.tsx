@@ -625,6 +625,8 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                 ? anterior.puntos ?? anterior.netas ?? anterior.victorias - anterior.derrotas
                 : null;
               const empatado = !f.sinJugar && puntajeAnterior != null && puntajeAnterior === puntaje;
+              const misShells = d.shells?.[f.puuid] ?? 0;
+              const misEfectos = (d.efectos ?? []).filter((e) => e.puuid === f.puuid);
               return (
                 <div key={f.puuid} className="liga-grupo">
                 <div
@@ -798,6 +800,26 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                         {/* Si cobra o qué le falta: lo único que le avisa al que
                             va primero que quedarse quieto no le alcanza. */}
                         {cupo(f)}
+                        {/* Las Blue Shells que tiene a mano. UNA señal y con
+                            el número al lado, no una tortuga por shell: tres
+                            emojis en fila dejan de contarse de un vistazo. */}
+                        {misShells > 0 && (
+                          <span className="liga-shells" title={`Tiene ${misShells} Blue Shell${misShells === 1 ? "" : "s"} sin usar`}>
+                            🐢 ×{misShells}
+                          </span>
+                        )}
+                        {/* Y el efecto que tiene encima, si tiene. Uno solo en
+                            la fila aunque tenga dos: la fila dice que PASA
+                            algo, el detalle dice qué. */}
+                        {misEfectos[0] && (
+                          <span className="liga-efecto" title="Efecto de una Blue Shell">
+                            {misEfectos[0].efecto === "MAIN_BAN"
+                              ? `🚫 Sin sus mains · ${(misEfectos[0].total ?? 3) - (misEfectos[0].faltan ?? 0)}/${misEfectos[0].total ?? 3}`
+                              : misEfectos[0].efecto === "RANDOM_CHAMPION"
+                                ? `🎲 ${misEfectos[0].campeon ? championLabel(misEfectos[0].campeon) : "Campeón asignado"} · próxima soloq`
+                                : "🐢 Efecto activo"}
+                          </span>
+                        )}
                       </span>
                     ) : (
                       <span className="jug-apagado">todavía no jugó</span>
@@ -839,10 +861,36 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                         más apagada. Antes iban los dos en el mismo renglón y
                         con el mismo peso, así que la aclaración competía con el
                         título en vez de acompañarlo. */}
+                    {/* ── De dónde sale el total ──
+                        Solo cuando hay objetos de por medio. Sin shells ni
+                        ajustes el total ES el puntaje de juego, y un desglose
+                        de una sola línea es el mismo número escrito dos veces.
+
+                        Va acá adentro, al expandir, y no en la fila: la fila
+                        contesta "quién va ganando" y esto contesta "por qué",
+                        que es otra pregunta y de otro momento. */}
+                    {(f.puntosObjetos ?? 0) !== 0 && (
+                      <div className="liga-desglose">
+                        <span className="liga-desglose-fila">
+                          <i>Partidas</i>
+                          <b>{puntajeTexto(f.puntosJuego ?? 0)}</b>
+                        </span>
+                        <span className="liga-desglose-fila">
+                          <i>Blue Shells</i>
+                          <b className={(f.puntosObjetos ?? 0) < 0 ? "gd-neg" : "gd-pos"}>
+                            {puntajeTexto(f.puntosObjetos ?? 0)}
+                          </b>
+                        </span>
+                        <span className="liga-desglose-fila total">
+                          <i>Total</i>
+                          <b>{puntajeTexto(f.puntos ?? 0)}</b>
+                        </span>
+                      </div>
+                    )}
                     <p className="liga-detalle-titulo">
                       Las {f.ultimas!.length} de la semana
                       <span className="liga-detalle-nota">
-                        De dónde sale su {puntajeTexto(f.puntos ?? 0)}, partida por partida y día por día.
+                        De dónde sale su {puntajeTexto(f.puntosJuego ?? f.puntos ?? 0)} de partidas, una por una y día por día.
                       </span>
                     </p>
                     {agruparPorDia(f, d.semana, d.dias ?? []).map((grupo, iDia, grupos) => {

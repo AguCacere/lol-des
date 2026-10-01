@@ -169,6 +169,22 @@ export interface FilaLiga {
    */
   puntos: number;
   /**
+   * El puntaje que salió de JUGAR y nada más: victorias, derrotas y la racha.
+   * Ni un ajuste a mano ni una Blue Shell lo tocan — es la cuenta que se
+   * explica partida por partida en el detalle de la fila.
+   */
+  puntosJuego: number;
+  /**
+   * Lo que movieron los OBJETOS: el ajuste a mano de siempre (liga_ajustes)
+   * más lo que robaron o regalaron las Blue Shells. 0 en todas las ediciones
+   * anteriores, que es lo que las deja calcular igual que siempre.
+   *
+   * `puntos` es exactamente `puntosJuego + puntosObjetos`. Los tres se
+   * guardan por separado para poder mostrar de dónde salió el resultado:
+   * un total opaco no se puede desarmar.
+   */
+  puntosObjetos: number;
+  /**
    * Victorias menos derrotas, sin la tabla de puntos. Ya no decide nada; se
    * calcula igual porque es la cuenta que la gente hace de cabeza.
    */
@@ -688,6 +704,13 @@ export function tablaDeLaSemana(
    * llamadas viejas siguen dando exactamente el mismo resultado.
    */
   minimos: { total: number; ultimo: number } = { total: MINIMO_SEMANAL, ultimo: MINIMO_ULTIMO_DIA },
+  /**
+   * Lo que los OBJETOS le movieron a cada uno en la edición (hoy: las Blue
+   * Shells; ver lib/shell.ts). Opcional y por defecto vacío, así que una
+   * edición sin objetos —todas las anteriores— da exactamente el mismo
+   * resultado que antes, sin migrar ni inventar nada.
+   */
+  objetos?: Map<string, number>,
 ): FilaLiga[] {
   const desde = inicio.getTime();
   const hasta = fin.getTime();
@@ -729,13 +752,30 @@ export function tablaDeLaSemana(
     // número contara la racha y el gráfico no, la fila se contradiría sola.
     const cuenta = puntosDeSecuencia(secuencia);
     const ajuste = ajustes?.get(p.puuid) ?? null;
-    const puntos = (MODO_LIGA === "puntos" ? cuenta.total : victorias - derrotas) + (ajuste?.puntos ?? 0);
+    // ── Juego y objetos, SEPARADOS ──
+    // `puntosJuego` es lo que salió de jugar y nada más: victorias, derrotas y
+    // la racha. Ni un ajuste a mano ni una Blue Shell lo tocan jamás — es la
+    // cuenta que tiene que poder explicarse partida por partida en el detalle.
+    //
+    // `puntosObjetos` es todo lo demás que mueve el marcador: el ajuste a mano
+    // de siempre (liga_ajustes) y lo que las shells robaron o regalaron. Los
+    // dos van en la misma bolsa porque son lo mismo conceptualmente —puntos
+    // que no salieron de jugar— y porque los dos se explican con un motivo.
+    //
+    // El total es la suma, y es lo único que decide la liga.
+    const puntosJuego = MODO_LIGA === "puntos" ? cuenta.total : victorias - derrotas;
+    const puntosObjetos = Math.round(((ajuste?.puntos ?? 0) + (objetos?.get(p.puuid) ?? 0)) * 100) / 100;
+    const puntos = Math.round((puntosJuego + puntosObjetos) * 100) / 100;
     // El ajuste también entra en la curva, y en TODOS los días: si el gráfico
     // dibujara el puntaje sin ajustar, la línea terminaría dos puntos arriba
     // del número que tiene al lado. Vale para toda la semana —no es algo que
     // pasó un martes— así que corre la curva entera para abajo en paralelo,
     // sin inventarle un escalón a ningún día.
-    const porDiaConAjuste = ajuste ? porDia.map((v) => v + ajuste.puntos) : porDia;
+    // Lo mismo vale para las shells: si el gráfico dibujara el puntaje de juego
+    // pelado, la línea terminaría medio punto arriba del número que tiene al
+    // lado. Corre la curva entera en paralelo y no le inventa un escalón a
+    // ningún día — el robo no pasó un martes, pasó y ya.
+    const porDiaConAjuste = puntosObjetos !== 0 ? porDia.map((v) => Math.round((v + puntosObjetos) * 100) / 100) : porDia;
     const entroTarde = suDesde > desde ? new Date(suDesde).toISOString() : null;
     const rango = ultima
       ? { tier: tierKeyFromRiot(ultima.tier), division: divisionFromRiot(ultima.division), lp: ultima.lp }
@@ -745,7 +785,7 @@ export function tablaDeLaSemana(
       // Sin una sola foto no hay nada que medir, pero igual va la línea
       // plana en 0: un gráfico vacío parece roto, y "no se movió" es
       // información.
-      filas.push({ ...p, puntos, netas: victorias - derrotas, lpNeto: 0, lpRecortado: 0, victorias, derrotas, racha, champion, linea, ultimas, ultimoDia, hoy, detalle, habilitado, sinJugar: victorias + derrotas === 0, rango, porDia: porDiaConAjuste, entroTarde, ajuste });
+      filas.push({ ...p, puntos, puntosJuego, puntosObjetos, netas: victorias - derrotas, lpNeto: 0, lpRecortado: 0, victorias, derrotas, racha, champion, linea, ultimas, ultimoDia, hoy, detalle, habilitado, sinJugar: victorias + derrotas === 0, rango, porDia: porDiaConAjuste, entroTarde, ajuste });
       continue;
     }
 
@@ -753,6 +793,8 @@ export function tablaDeLaSemana(
     filas.push({
       ...p,
       puntos,
+      puntosJuego,
+      puntosObjetos,
       netas: victorias - derrotas,
       lpNeto: neto,
       lpRecortado: recortado,

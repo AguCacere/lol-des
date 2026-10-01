@@ -22,6 +22,8 @@ import { roastMessage, worstDisaster, type RoastCandidate } from "./roast";
 import { detectTilt } from "./tilt";
 import { rangoTexto, rankScore, tierFor } from "./ladder";
 import { divisionFromRiot, tierKeyFromRiot } from "./mapping";
+// Abajo de todo a propósito: ver el header de lib/shell-cron.ts sobre el ciclo.
+import { cerrarEfectosPendientes } from "./shell-cron";
 
 type SupabaseClient = ReturnType<typeof getSupabaseServerClient>;
 
@@ -1150,6 +1152,13 @@ export async function refreshOne(supabase: SupabaseClient, puuid: string): Promi
     warnings.push(`riot id: ${message}`);
     console.error(`refreshOne(${puuid}): no se pudo releer el Riot ID —`, message);
   }
+
+  // Y los efectos de Blue Shell que esperaban partidas. Va ACÁ, colgado del
+  // cron que ya corre, y no en un polling aparte: las partidas que necesita
+  // son las que este mismo refresco acaba de guardar. Nunca tira —la liga
+  // tiene que seguir andando aunque el juego de arriba falle— y es idempotente
+  // por la lista de match_id ya consumidos. Ver lib/shell-cron.ts.
+  await cerrarEfectosPendientes(supabase, puuid);
 
   await supabase.from("summoners").update({ last_refreshed_at: new Date().toISOString() }).eq("puuid", puuid);
   return warnings;

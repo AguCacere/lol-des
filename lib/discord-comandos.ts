@@ -9,6 +9,9 @@ import { tablaDeSemanaEnBase } from "./liga-cierre";
 import { ganadorDe, puntajeDe, puntajeTexto, puntosDeSecuencia } from "./liga";
 import { claveDeTorneo, diaCorriente, duracionEnDias, empezoElUltimoDia, esTorneoDeLiga, torneoDe } from "./torneo";
 import { apuestasDeLaSemana, errorDeApuestas, mensajeDePronosticos, mensajeDeQuiniela, pronosticosDeLaSemana } from "./quiniela";
+import { CONFIG_SHELL } from "./shell";
+import { fallo, type LanzamientoHecho, lanzarShell } from "./shell-db";
+import { championLabel } from "./champion-names";
 
 /**
  * Los cuatro comandos del bot: de Supabase al texto que sale en el canal.
@@ -531,11 +534,190 @@ async function comandoApostar(
   return quiniela + mensajeDePronosticos(pron, cerrada);
 }
 
+/** ─────────────────────────── /shell ───────────────────────────
+ *
+ * El único comando que puede cambiar la clasificación, así que es también el
+ * que más guardas tiene. En orden:
+ *
+ *   1. Hay edición de liga corriendo.
+ *   2. **El actor sale del Discord ID**, el que firmó Discord. No es un
+ *      parámetro: no existe `/shell --de fulano` y no se puede escribir el
+ *      Riot ID de otro para lanzar en su nombre.
+ *   3. El actor está anotado en la edición.
+ *   4. El objetivo existe y está anotado.
+ *   5. Tiene al menos una shell.
+ *   6. El sorteo pasa del lado del servidor, una sola vez, y queda escrito.
+ *
+ * Nada de esto se valida en el cliente, porque no hay cliente: la web solo
+ * muestra lo que ya está persistido.
+ */
+async function comandoShell(
+  supabase: SupabaseClient,
+  jugador: string | null,
+  discordId: string | null,
+  interaccionId: string | null,
+): Promise<string> {
+  const torneo = await torneoDe(supabase);
+  if (!esTorneoDeLiga(torneo)) return "Esta semana no hay liga, así que las Blue Shells no van a ningún lado.";
+  const semana = claveDeTorneo(torneo);
+
+  // La identidad. Igual que en /apostar: lo que autoriza no es la firma de
+  // Discord —esa solo prueba que el pedido vino de Discord— sino que el
+  // discord_id esté vinculado a un invocador.
+  const yo = await porDiscord(supabase, discordId);
+  if (!yo) {
+    return "No tenés tu cuenta de Discord vinculada a un invocador de Grieta Central.";
+  }
+  if (!jugador || !jugador.trim()) return "¿A quién? Pasame el jugador.";
+  const victima = await porTexto(supabase, jugador);
+  if (!victima) return noSeQuien(jugador);
+
+  // Los dos tienen que estar compitiendo. Tirarle una shell al que no se
+  // anotó no le hace nada y le descuenta una al que la tiró.
+  const { data: anotados } = await supabase
+    .from("summoners")
+    .select("puuid")
+    .eq("participa_liga", true)
+    .returns<{ puuid: string }[]>();
+  const enLiga = new Set((anotados ?? []).map((a) => a.puuid));
+  if (!enLiga.has(yo.puuid)) return "No estás anotado en la liga de esta edición.";
+  if (!enLiga.has(victima.puuid)) return `**${victima.game_name}** no está anotado en la liga.`;
+
+  const res = await lanzarShell(supabase, {
+    semana,
+    actor: yo.puuid,
+    objetivo: victima.puuid,
+    interaccionId,
+    mainsDe: (puuid) => mainsDe(supabase, puuid),
+    campeonPara: (puuid) => campeonAlAzarDeSuLinea(supabase, puuid),
+  });
+  if (fallo(res)) return `🐢 ${res.error}`;
+
+  return mensajeDeShell(res, yo.game_name, victima.game_name);
+}
+
+/**
+ * Los tres campeones más jugados de alguien, para congelarlos en un MAIN_BAN.
+ *
+ * Salen de las partidas guardadas y no de la maestría de Riot: la maestría es
+ * de toda la vida y acá lo que importa es con qué juega AHORA. Se congelan en
+ * el momento del efecto —quedan escritos en la fila— así que seguir jugando
+ * otra cosa después no cambia cuáles eran.
+ */
+async function mainsDe(supabase: SupabaseClient, puuid: string): Promise<string[]> {
+  const { data } = await supabase
+    .from("matches")
+    .select("champion")
+    .eq("puuid", puuid)
+    .eq("queue_id", RANKED_SOLO_QUEUE_ID)
+    .gte("game_duration_s", DURACION_MINIMA_S)
+    .order("played_at", { ascending: false })
+    .limit(200)
+    .returns<{ champion: string | null }[]>();
+  const cuenta = new Map<string, number>();
+  for (const m of data ?? []) {
+    if (!m.champion) continue;
+    cuenta.set(m.champion, (cuenta.get(m.champion) ?? 0) + 1);
+  }
+  return [...cuenta.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, CONFIG_SHELL.mainsProhibidos)
+    .map(([c]) => c);
+}
+
+/**
+ * Un campeón al azar de la línea de esa persona.
+ *
+ * **Sale de datos reales y no de una lista escrita a mano.** Los campeones
+ * candidatos son los que el GRUPO ENTERO jugó de verdad en esa línea: eso es
+ * un hecho guardado en `matches` (champion + team_position), no una opinión
+ * sobre qué campeón es de qué rol. Una lista inventada de "junglas" es
+ * exactamente lo que no hay que hacer acá — Riot no la expone y armarla a ojo
+ * terminaría mandando a un support a jugar un ADC.
+ *
+ * Se excluyen los que esa persona ya juega: la gracia del efecto es que le
+ * toque algo que no eligió.
+ *
+ * Devuelve null cuando no hay con qué, y ahí el efecto no se asigna en vez de
+ * inventar un campeón.
+ */
+async function campeonAlAzarDeSuLinea(supabase: SupabaseClient, puuid: string): Promise<string | null> {
+  const { data: suyas } = await supabase
+    .from("matches")
+    .select("champion, team_position")
+    .eq("puuid", puuid)
+    .eq("queue_id", RANKED_SOLO_QUEUE_ID)
+    .order("played_at", { ascending: false })
+    .limit(60)
+    .returns<{ champion: string | null; team_position: string | null }[]>();
+  const lineas = new Map<string, number>();
+  const propios = new Set<string>();
+  for (const m of suyas ?? []) {
+    if (m.champion) propios.add(m.champion);
+    if (m.team_position) lineas.set(m.team_position, (lineas.get(m.team_position) ?? 0) + 1);
+  }
+  const suLinea = [...lineas.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  if (!suLinea) return null;
+
+  const { data: delGrupo } = await supabase
+    .from("matches")
+    .select("champion")
+    .eq("team_position", suLinea)
+    .eq("queue_id", RANKED_SOLO_QUEUE_ID)
+    .limit(2000)
+    .returns<{ champion: string | null }[]>();
+  const candidatos = [...new Set((delGrupo ?? []).map((m) => m.champion).filter((c): c is string => !!c))]
+    .filter((c) => !propios.has(c))
+    .sort();
+  if (candidatos.length === 0) return null;
+  return candidatos[Math.floor(Math.random() * candidatos.length)];
+}
+
+/** El mensaje del lanzamiento, con el rebote bien contado. */
+function mensajeDeShell(r: LanzamientoHecho, actor: string, objetivo: string): string {
+  const quien = r.rebotado ? actor : objetivo;
+  const cabeza = r.rebotado
+    ? [`🪞 **¡REBOTE!**`, "", `La Blue Shell de **${actor}** volvió contra él.`, ""]
+    : [`🐢 **BLUE SHELL** · ${actor} → ${objetivo}`, "", "💥 **IMPACTO**", ""];
+
+  if (r.efecto === "STEAL_POINTS") {
+    const gana = r.rebotado ? objetivo : actor;
+    return [
+      ...cabeza,
+      `💰 **ROBO**`,
+      `**${gana}** +${puntajeTexto(CONFIG_SHELL.robo).replace("+", "")} · **${quien}** −${puntajeTexto(CONFIG_SHELL.robo).replace("+", "")}`,
+      "",
+      "_Se descuenta de los puntos de objetos, no de los de juego._",
+    ].join("\n");
+  }
+  if (r.efecto === "MAIN_BAN") {
+    const lista = r.prohibidos.length > 0 ? r.prohibidos.map((c) => championLabel(c)).join(", ") : "sus mains";
+    return [
+      ...cabeza,
+      `🚫 **MAIN BAN**`,
+      `**${quien}** queda sin ${lista} durante sus próximas ${CONFIG_SHELL.partidasDeBan} de soloq.`,
+    ].join("\n");
+  }
+  return [
+    ...cabeza,
+    `🎲 **CAMPEÓN ALEATORIO**`,
+    r.campeon
+      ? `**${quien}** tiene que jugar su próxima soloq con **${championLabel(r.campeon)}**.`
+      : `**${quien}** zafó: no tengo suficientes partidas guardadas de su línea como para sortearle un campeón.`,
+  ].join("\n");
+}
+
 export async function responderComando(
   supabase: SupabaseClient,
   nombre: string,
   opciones: Record<string, string>,
   discordId: string | null,
+  /**
+   * El id de la interacción de Discord. Es la llave de idempotencia de
+   * `/shell`: Discord reintenta cuando no le contestás a tiempo, y sin esto un
+   * reintento lanzaría la shell dos veces.
+   */
+  interaccionId: string | null = null,
 ): Promise<string> {
   try {
     switch (nombre) {
@@ -547,6 +729,8 @@ export async function responderComando(
         return await comandoCargar(supabase, opciones.jugador ?? null, discordId);
       case "ultima":
         return await comandoUltima(supabase, opciones.jugador ?? null, discordId);
+      case "shell":
+        return await comandoShell(supabase, opciones.jugador ?? null, discordId, interaccionId);
       case "apostar":
         return await comandoApostar(supabase, opciones.jugador ?? null, opciones.direccion ?? null, discordId);
       default:

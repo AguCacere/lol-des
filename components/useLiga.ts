@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { RoleKey, TierKey } from "@/lib/types";
 import type { Edicion, EnPalmares } from "@/lib/palmares";
 import type { RecordLiga } from "@/lib/liga-ahora";
+import type { EfectoEnPantalla } from "@/lib/shell-db";
 
 /**
  * Los datos de la liga, UNA sola vez por pestaña del navegador.
@@ -95,6 +96,10 @@ export interface Fila {
   profileIconUrl: string | null;
   /** El puntaje de la semana: lo que decide. Opcional por la ventana de caché del CDN. */
   puntos?: number;
+  /** El puntaje que salió de JUGAR. Opcional por la ventana de caché del CDN. */
+  puntosJuego?: number;
+  /** Lo que movieron los objetos (ajustes + Blue Shells). 0 o ausente en las ediciones sin objetos. */
+  puntosObjetos?: number;
   /** Victorias menos derrotas. Ya no puntúa; queda como cuenta rápida. */
   netas?: number;
   lpNeto: number;
@@ -185,6 +190,10 @@ export interface Datos {
   palmares?: EnPalmares[];
   /** La mejor semana de la historia de la liga. Null si ninguna tiene puntaje. Opcional por la caché del CDN. */
   record?: RecordLiga | null;
+  /** Blue Shells disponibles por puuid. Ausente mientras la migración no corra. */
+  shells?: Record<string, number>;
+  /** Los efectos de Blue Shell todavía abiertos. */
+  efectos?: EfectoEnPantalla[];
   /** Para el arte de campeón. Opcional por la misma razón. */
   ddragonVersion?: string | null;
   /**

@@ -101,6 +101,43 @@ dos pasos:
 
 Nadie del grupo está en hierro, así que no corre apuro.
 
+## Blue Shells: lo que quedó configurable y lo que falta decidir
+
+El sistema está entero y andando, pero **el balance no está cerrado** y eso es
+a propósito. Todo lo ajustable vive en `CONFIG_SHELL` (lib/shell.ts), en un
+solo objeto:
+
+| | hoy | qué falta |
+|---|---|---|
+| Pesos de los tres efectos | 1 / 1 / 1 | decidir si alguno es más raro |
+| Probabilidad de rebote | 0,15 | probarlo y ver si cansa o si no se nota |
+| Puntos del robo | 0,5 | pedido así; se puede subir |
+| Partidas de un MAIN_BAN | 3 | pedido así |
+| Tope de inventario | 3 | sin probar |
+| Comeback | 1 shell cada 3 días a los 2 últimos | la regla está, la entrega automática NO |
+
+**Decisiones de producto que siguen pendientes y que NO se inventaron:**
+
+1. **Qué es un "Perfect".** El origen `PERFECT` existe en el ledger y no lo
+   otorga nadie: no hay definición, así que no hay regla.
+2. **Las shells por racha.** Mismo caso: `RACHA` existe como origen y no se
+   entrega sola. Falta decidir desde cuántas y cada cuánto.
+3. **La entrega automática del comeback.** `periodoDeComeback` y
+   `ultimosParaComeback` están escritos y testeados, y `otorgarShell` ya es
+   idempotente contra el índice único — pero **no hay nada llamándolos desde
+   el cron todavía**. Falta decidir en qué momento del día corre y si se
+   anuncia en Discord.
+4. **La penalización por incumplir un efecto.** El estado `INCUMPLIDO` se
+   registra correctamente y no hace nada. Hoy jugar un campeón prohibido
+   queda anotado y listo.
+
+Mientras tanto las shells se reparten a mano con `origen = 'ADMIN'`:
+
+```sql
+insert into liga_shells (semana, puuid, delta, origen)
+values ('2026-10-05', (select puuid from summoners where game_name = 'VORE'), 1, 'ADMIN');
+```
+
 ## SQL sin correr
 
 Las migraciones de esta base se corren **a mano** desde el SQL Editor de Supabase. Desde
@@ -135,6 +172,65 @@ create table if not exists liga_pronosticos (
 );
 create index if not exists liga_pronosticos_semana_idx on liga_pronosticos (semana);
 alter table liga_pronosticos enable row level security;
+
+-- Blue Shells (lib/shell.ts). Las tres juntas y en este orden: liga_efectos
+-- referencia a liga_eventos. Sin ellas el comando /shell contesta "todavía no
+-- están creadas" y NADA más se rompe: la liga se calcula igual, con
+-- puntos_objetos = 0.
+create table if not exists liga_shells (
+  id        uuid primary key default gen_random_uuid(),
+  semana    text not null,
+  puuid     text not null references summoners(puuid) on delete cascade,
+  delta     int  not null check (delta in (1, -1)),
+  origen    text not null,
+  periodo   text,
+  evento_id uuid,
+  meta      jsonb,
+  creado_at timestamptz not null default now()
+);
+create unique index if not exists liga_shells_premio_idx
+  on liga_shells (semana, puuid, origen, periodo) where periodo is not null;
+create index if not exists liga_shells_semana_idx on liga_shells (semana, puuid);
+alter table liga_shells enable row level security;
+
+create table if not exists liga_eventos (
+  id             uuid primary key default gen_random_uuid(),
+  semana         text not null,
+  tipo           text not null,
+  efecto         text,
+  actor_puuid    text references summoners(puuid) on delete set null,
+  objetivo_puuid text references summoners(puuid) on delete set null,
+  final_puuid    text references summoners(puuid) on delete set null,
+  rebotado       boolean not null default false,
+  monto          numeric(5,2),
+  interaccion_id text,
+  match_id       text,
+  padre_id       uuid references liga_eventos(id) on delete set null,
+  meta           jsonb,
+  creado_at      timestamptz not null default now()
+);
+create unique index if not exists liga_eventos_interaccion_idx
+  on liga_eventos (interaccion_id) where interaccion_id is not null;
+create index if not exists liga_eventos_semana_idx on liga_eventos (semana, creado_at);
+alter table liga_eventos enable row level security;
+
+create table if not exists liga_efectos (
+  id         uuid primary key default gen_random_uuid(),
+  evento_id  uuid not null references liga_eventos(id) on delete cascade,
+  semana     text not null,
+  puuid      text not null references summoners(puuid) on delete cascade,
+  efecto     text not null,
+  estado     text not null default 'PENDIENTE',
+  campeon    text,
+  prohibidos text[],
+  faltan     int,
+  matches    text[] not null default '{}',
+  creado_at  timestamptz not null default now(),
+  cerrado_at timestamptz
+);
+create index if not exists liga_efectos_pend_idx
+  on liga_efectos (puuid, estado) where estado = 'PENDIENTE';
+alter table liga_efectos enable row level security;
 ```
 
 **Y falta lo que de verdad bloquea `/apostar`: no hay NADIE vinculado.** Los catorce
@@ -330,7 +426,7 @@ ninguna se puede hacer desde la sesión:
 1. Correr las dos tablas del bloque de "SQL sin correr".
 2. **Vincular al menos a los que vayan a apostar** con el `update ... set discord_id`.
    Hoy no hay ninguno: sin eso el comando existe y no deja apostar a nadie.
-3. **Re-registrar el menú**, o el comando no aparece al tipear "/". Desde la consola del
+3. **Re-registrar el menú** (también suma `/shell`), o el comando no aparece al tipear "/". Desde la consola del
    navegador, logueado en la app: `fetch("/api/discord/registrar", {method:"POST"}).then(r=>r.json()).then(console.log)`.
    La lista que Discord muestra es la de la última corrida de eso, NO la que se
    deployó: un comando nuevo en `lib/discord-comandos.json` funciona pero no se ve.

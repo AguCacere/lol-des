@@ -260,6 +260,15 @@ export function LigaCarrera({
     return { ...c, color: colores.get(c.puuid) ?? "", line: g.line, area: g.area, last: g.last, points: g.points, yOf: g.yOf };
   });
   const enFocoTrazo = trazos.find((t) => t.puuid === foco.puuid) ?? trazos[0];
+  /**
+   * Si hay que saltear una etiqueta de día sí y una no.
+   *
+   * Nueve tramos es el corte: hasta ahí las etiquetas entran incluso en un
+   * teléfono. De diez para arriba —una edición de catorce días son trece
+   * tramos— se montan unas sobre otras, y una etiqueta ilegible no es media
+   * etiqueta: es ninguna.
+   */
+  const salteadas = largo - 1 > 9;
 
   /**
    * La clasificación de un día, para el panel. Ordenada por lo acumulado A ESE
@@ -633,8 +642,18 @@ export function LigaCarrera({
       {/* Cada día CENTRADO en su tramo, no debajo del punto: el tramo entre dos
           puntos ES el día, y el punto es el cierre. Con la etiqueta debajo del
           punto, "lun" caía sobre el cierre del lunes y se leía corrido. */}
+      {/* Las etiquetas de los días. En una edición larga se muestra UNA SÍ y
+          UNA NO: catorce "lun mar mié…" en un teléfono se montan unas sobre
+          otras —medido, cinco choques a 390px— y catorce etiquetas ilegibles
+          informan menos que siete legibles. Las que quedan siguen cayendo en
+          el medio de su tramo, así que la referencia no se corre.
+
+          El criterio es el ancho disponible por día, no el número de días:
+          `salteadas` depende de cuántos entran, y a partir de ahí la regla
+          vale igual para un torneo de diez días que para uno de veinte. */}
       <div className="carrera-dias" aria-hidden>
         {dias.slice(0, largo - 1).map((d, i) => {
+          if (salteadas && i % 2 === 1) return null;
           const medio = (points[i][0] + points[i + 1][0]) / 2;
           return (
             <span key={`${d}-${i}`} style={{ left: `${(medio / W) * 100}%` }}>

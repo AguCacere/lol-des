@@ -63,5 +63,18 @@
         ]
       }
     ]
+  },
+  {
+    "name": "shell",
+    "description": "Lanzale una Blue Shell a alguien. El efecto se sortea al lanzarla",
+    "options": [
+      {
+        "type": 3,
+        "name": "jugador",
+        "description": "A quién se la tirás",
+        "required": true,
+        "autocomplete": true
+      }
+    ]
   }
 ]

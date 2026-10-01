@@ -263,7 +263,17 @@ export function LigaEstado({
 
           El último va marcado siempre: es el que decide el premio, y que se
           vea desde el lunes es justamente el punto. */}
-      <div className="estado-linea">
+      <div className={`estado-linea${dias.length > 8 ? " larga" : ""}`}>
+        {/* "Día 8 de 14 · Semana 2". Solo en ediciones largas: con siete días
+            la semana es una sola y decirlo sobra. El número de semana sale de
+            los días corridos, no de una constante — una edición de diez días
+            tiene dos semanas y la segunda dura tres días. */}
+        {dias.length > 8 && (
+          <span className="estado-linea-rotulo">
+            Día <b>{Math.min(corridos, dias.length)}</b> de {dias.length} · Semana{" "}
+            {Math.floor((Math.min(corridos, dias.length) - 1) / 7) + 1}
+          </span>
+        )}
         <div className="estado-linea-riel" aria-hidden>
           {/* El tramo recorrido, en dorado. Es un ancho y no un punto por
               día pintado: así la barra avanza con la semana y se lee como
@@ -284,7 +294,9 @@ export function LigaEstado({
                   "estado-dia" +
                   (pasado ? " pasado" : "") +
                   (hoy ? " hoy" : "") +
-                  (i === dias.length - 1 ? " decide" : "")
+                  (i === dias.length - 1 ? " decide" : "") +
+                  // El corte entre semanas, solo en ediciones de más de una.
+                  (i > 0 && i % 7 === 0 ? " corte" : "")
                 }
                 /* El nombre entero para el lector de pantalla y para el
                    hover: la inicial sola no sirve ni para una cosa ni para

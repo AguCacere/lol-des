@@ -6,6 +6,7 @@ import { cargarVetados, conVetado } from "./vetados";
 import { claveDeTorneo, diaCorriente, duracionEnDias, esTorneoDeLiga, etiquetasDeDias, type Torneo, torneoAnterior, torneoDe } from "./torneo";
 import { repartirTitulos } from "./liga-titulos";
 import { todasLasFilas } from "./paginado";
+import { objetosDeLaEdicion } from "./shell-db";
 import { apuestasDeLaSemana, lpRealDeLaSemana, mensajeDeResultado, mensajeDeResultadoPronosticos, pronosticosDeLaSemana } from "./quiniela";
 
 /**
@@ -257,10 +258,13 @@ export async function tablaDeSemanaEnBase(
     (ajustesRows ?? []).map((a) => [a.puuid as string, { puntos: Number(a.puntos), motivo: a.motivo as string }]),
   );
 
+  // Los objetos también entran en el CIERRE, o el campeón que anuncia el bot
+  // podría no ser el que la tabla mostró toda la semana.
+  const objetos = await objetosDeLaEdicion(supabase, claveDeTorneo(torneo));
   return tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], desde, fin, recordPorPuuid, ajustes, {
     total: torneo.minimoTotal,
     ultimo: torneo.minimoUltimo,
-  });
+  }, objetos);
 }
 
 /**

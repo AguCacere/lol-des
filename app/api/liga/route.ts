@@ -11,6 +11,7 @@ import type { ResumenSemana } from "@/lib/liga-cierre";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
 import { todasLasFilas } from "@/lib/paginado";
 import { recordDeLaLiga } from "@/lib/liga-ahora";
+import { efectosDeLaEdicion, inventarioDeLaEdicion, objetosDeLaEdicion } from "@/lib/shell-db";
 import { roleFromTeamPosition } from "@/lib/mapping";
 
 /**
@@ -341,10 +342,15 @@ export async function GET() {
         (ajustesRows ?? []).map((a) => [a.puuid as string, { puntos: Number(a.puntos), motivo: a.motivo as string }]),
       );
 
+      // Lo que las Blue Shells movieron en esta edición. Se deriva de los
+      // eventos —no hay un total guardado— y en una edición sin shells, o con
+      // la migración todavía sin correr, da un mapa vacío y la tabla se
+      // calcula exactamente igual que siempre.
+      const objetos = await objetosDeLaEdicion(supabase, claveDeTorneo(torneo));
       tabla = tablaDeLaSemana(participantes, (snaps ?? []) as Snapshot[], desdeVentana, fin, recordPorPuuid, ajustes, {
         total: torneo.minimoTotal,
         ultimo: torneo.minimoUltimo,
-      });
+      }, objetos);
   }
 
   // La vitrina de campeones.
@@ -502,6 +508,11 @@ export async function GET() {
       historial: vitrina,
       palmares: tablaPalmares,
       record,
+      // Las Blue Shells disponibles y los efectos abiertos, por puuid. Mapas
+      // planos para que el JSON viejo del CDN simplemente no los traiga y la
+      // pantalla no dibuje nada en vez de romperse.
+      shells: Object.fromEntries(await inventarioDeLaEdicion(supabase, claveDeTorneo(torneo))),
+      efectos: await efectosDeLaEdicion(supabase, claveDeTorneo(torneo)),
     },
     {
       // La liga NO tenía caché y es la tabla de la pestaña por defecto: cinco

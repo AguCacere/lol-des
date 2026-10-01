@@ -64,6 +64,12 @@ interface OpcionDeComando {
 }
 
 interface Interaccion {
+  /**
+   * El id de la interacción. Único por invocación y estable entre reintentos:
+   * es la llave de idempotencia de `/shell`. Discord reintenta cuando no le
+   * contestás a tiempo, y sin esto un reintento lanzaría la shell dos veces.
+   */
+  id?: string;
   type: number;
   application_id: string;
   token: string;
@@ -142,7 +148,7 @@ export async function POST(req: Request) {
 
   // El trabajo real, después de haber contestado. Ver el punto 2.
   after(async () => {
-    const texto = await responderComando(supabase, nombre, opts, discordId);
+    const texto = await responderComando(supabase, nombre, opts, discordId, i.id ?? null);
     await editarLaRespuesta(i.application_id, i.token, texto);
   });
 

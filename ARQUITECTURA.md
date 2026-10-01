@@ -190,6 +190,18 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   una fuente nueva: es una función pura sobre `player.liveGame`, que ya refresca
   `app/page.tsx` contra `/api/live`. Se calcula una vez ahí y baja a la barra, a
   Inicio y a la bandeja flotante.
+- `shell.ts` — **el motor de las Blue Shells, todo cálculo puro**: `CONFIG_SHELL`
+  (pesos, rebote, monto del robo, duración del ban — todo junto y en un solo
+  lugar), `sorteoPesado`, `resolverLanzamiento` y `movimientoDeRobo`. El azar
+  entra por parámetro, así que es determinístico en los tests y el único que
+  llama a `Math.random` es el que escribe el resultado.
+- `shell-db.ts` — lo que aquel no puede hacer: que el sorteo pase UNA vez y
+  quede escrito. `lanzarShell` es la única puerta. La atomicidad sale del ORDEN
+  y de un índice único sobre `interaccion_id`, no de una transacción: el evento
+  se escribe primero y es el candado contra el reintento de Discord.
+- `shell-cron.ts` — cierra los efectos que esperan partidas, colgado del final
+  de `refreshOne`. No abre un segundo polling. La idempotencia es la lista de
+  `match_id` ya consumidos, no un contador.
 - `liga-ahora.ts` — qué está pasando en la semana EN CURSO: `acontecimientos`
   da como mucho tres hechos (margen con el segundo, racha, cambio de puesto,
   quién ya cumple los mínimos), todos restas sobre la tabla que ya está en
