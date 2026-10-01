@@ -101,33 +101,6 @@ dos pasos:
 
 Nadie del grupo está en hierro, así que no corre apuro.
 
-## Las consultas de la liga, a la mitad del tope de Supabase
-
-El 1/10 se descubrió que PostgREST corta en 1000 filas sin avisar y que eso ya
-había roto `/api/ladder` en silencio (ver DECISIONES → "Supabase devuelve mil
-filas y no avisa"). Las dos consultas de esa ruta quedaron paginadas con
-`lib/paginado.ts`.
-
-**Las de la liga no se tocaron, y son las que deciden quién cobra.** Están
-acotadas a una ventana de ~15 días, así que hoy están lejos del tope — medido
-contra la base el 1/10: 401 fotos y 409 partidas. Pero crecen con la actividad
-del grupo, no con el tiempo, así que una racha de gente jugando mucho las
-acerca sin que nadie lo note.
-
-Dónde están: `app/api/liga/route.ts` (las dos consultas de `tablaDeLaSemana`) y
-`lib/liga-cierre.ts` (las mismas dos, para el cierre). El arreglo es envolverlas
-igual que en el ladder y agregarles un desempate único al `.order`. Hacerlo
-antes de que el número se acerque a 1000, no después: el modo de falla es que
-la tabla de la semana salga con partidas de menos y nadie se entere.
-
-Para medirlo:
-
-```sql
-select count(*) from lp_snapshots
-  where queue_type='RANKED_SOLO_5x5' and captured_at >= now() - interval '15 days';
-select count(*) from matches where queue_id=420 and played_at >= now() - interval '15 days';
-```
-
 ## SQL sin correr
 
 Las migraciones de esta base se corren **a mano** desde el SQL Editor de Supabase. Desde

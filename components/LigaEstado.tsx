@@ -35,6 +35,24 @@ export interface CorredorEstado {
   ultimoDia?: number;
 }
 
+/**
+ * La inicial del día, con la X del miércoles.
+ *
+ * `d.slice(0,1)` daba "L M M J V S D": dos emes seguidas que no se distinguen
+ * y que obligan a contar desde el lunes para saber en cuál estás. X para el
+ * miércoles es la convención de toda la vida en castellano y resuelve la
+ * única colisión que hay.
+ *
+ * Por prefijo y no por índice: los nombres vienen de `etiquetasDeDias`
+ * (lib/torneo.ts), y un torneo puede arrancar cualquier día, así que la
+ * posición en el array no dice qué día es.
+ */
+function inicialDeDia(nombre: string): string {
+  const n = nombre.toLowerCase();
+  if (n.startsWith("mi")) return "X";
+  return nombre.slice(0, 1).toUpperCase();
+}
+
 interface Props {
   /**
    * Las fichas de puntaje y los mínimos, que ANTES eran un bloque aparte
@@ -236,23 +254,51 @@ export function LigaEstado({
         )}
       </div>
 
-      {/* La semana entera, no solo lo corrido: ver los días que faltan es la
-          mitad del dato. El último va marcado siempre — es el que decide el
-          premio, y que se vea desde el lunes es justamente el punto. */}
-      <div className="estado-semana" aria-hidden>
-        {dias.map((d, i) => (
+      {/* La semana entera como LÍNEA DE TIEMPO, no como fila de chips.
+          Era `<span>` por día con la inicial adentro y tenía dos problemas:
+          parecía un selector —siete cajitas iguales que invitan a tocarlas— y
+          decía "L M M J V S D", con dos emes que no se distinguen. Ahora hay
+          un riel con un punto por día, la inicial abajo y una marca de HOY,
+          que es la pregunta que esta tira tiene que contestar.
+
+          El último va marcado siempre: es el que decide el premio, y que se
+          vea desde el lunes es justamente el punto. */}
+      <div className="estado-linea">
+        <div className="estado-linea-riel" aria-hidden>
+          {/* El tramo recorrido, en dorado. Es un ancho y no un punto por
+              día pintado: así la barra avanza con la semana y se lee como
+              progreso aunque el torneo dure ocho días en vez de siete. */}
           <span
-            key={`${d}-${i}`}
-            className={
-              "estado-dia" +
-              (i < corridos - 1 ? " pasado" : "") +
-              (i === corridos - 1 ? " hoy" : "") +
-              (i === dias.length - 1 ? " decide" : "")
-            }
-          >
-            {d.slice(0, 1).toUpperCase()}
-          </span>
-        ))}
+            className="estado-linea-hecho"
+            style={{ width: `${(Math.max(0, Math.min(corridos, dias.length) - 1) / Math.max(1, dias.length - 1)) * 100}%` }}
+          />
+        </div>
+        <ol className="estado-dias">
+          {dias.map((d, i) => {
+            const pasado = i < corridos - 1;
+            const hoy = i === corridos - 1;
+            return (
+              <li
+                key={`${d}-${i}`}
+                className={
+                  "estado-dia" +
+                  (pasado ? " pasado" : "") +
+                  (hoy ? " hoy" : "") +
+                  (i === dias.length - 1 ? " decide" : "")
+                }
+                /* El nombre entero para el lector de pantalla y para el
+                   hover: la inicial sola no sirve ni para una cosa ni para
+                   la otra. */
+                title={d}
+              >
+                <span className="estado-dia-punto" aria-hidden />
+                <span className="estado-dia-letra">{inicialDeDia(d)}</span>
+                {hoy && <span className="estado-dia-hoy">hoy</span>}
+                <span className="sr-only">{d}</span>
+              </li>
+            );
+          })}
+        </ol>
       </div>
     </div>
   );

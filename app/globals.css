@@ -320,6 +320,12 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    controles que los controles de la tabla, así que tres cosas de distinto
    rango compartían un solo valor de espacio y no agrupaba nada — se leía como
    un bloque pegado. El título tiene que despegarse del grupo que encabeza. */
+/* Texto solo para lectores de pantalla. La tira de días muestra iniciales
+   —L M X J V S D— y una inicial no se lee en voz alta como un día. */
+.sr-only{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0;
+}
 .section-head{
   display:flex; align-items:baseline; justify-content:space-between;
   margin:26px 0 20px; gap:12px; flex-wrap:wrap;
@@ -3339,8 +3345,102 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   font-size:11.5px; color:var(--text-muted); cursor:help; white-space:nowrap;
 }
 .liga-reglas-nota b{color:var(--text-secondary); font-weight:700;}
+
+/* ── Las reglas, más chicas ──
+   El contenido es el mismo y se queda: es la regla que decide la plata. Lo que
+   cambia es el peso. Eran tres píldoras con borde y fondo del tamaño de un
+   botón, y arriba de una pantalla que todavía no tiene competencia eso
+   gritaba más que la competencia.
+
+   Y el `white-space:nowrap` de la nota era un bug de verdad en el teléfono:
+   "Para cobrar: 10 en la semana · 3 el último día" mide 397px y empujaba la
+   SECCIÓN ENTERA a 459px de ancho sobre un viewport de 390. Medido — scroll
+   horizontal en toda la liga por un renglón que no podía partirse. */
+.estado-reglas .liga-ficha{
+  padding:2px 7px; font-size:10.5px;
+  background:none; box-shadow:none; color:var(--text-muted);
+}
+.estado-reglas .liga-ficha.bonus{background:none; box-shadow:none;}
+.estado-reglas .liga-reglas-label{font-size:9px;}
+@media (max-width:640px){
+  /* Que la nota pueda partirse. Sin esto no hay layout mobile que aguante. */
+  .liga-reglas-nota{white-space:normal; line-height:1.5;}
+  .estado-reglas{gap:5px 9px; padding:8px 14px;}
+  /* El "actualizado hace X" deja de pelear por el renglón: pasa a su propia
+     línea al final de la franja, que es donde el margin-left:auto lo deja. */
+  .estado-frescura{flex-basis:100%; text-align:right;}
+}
 .liga-tabla{
   background:var(--bg); border-radius:var(--radius-lg); box-shadow:var(--shadow); overflow:hidden;
+}
+
+/* ── Nadie anotado ──
+   Era un `.empty-state` centrado de ~150px en el medio de la pantalla, y eso
+   es lo peor que se puede hacer con un vacío que dura días: una competencia
+   vacía ocupando media pantalla y empujando el historial —que sí tiene algo
+   que contar— abajo del pliegue. Acá es una franja de una sola línea con la
+   cuenta real y el botón que abre el panel de siempre. */
+.liga-vacia{
+  display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+  background:var(--surface); border:1px solid var(--border-soft);
+  border-radius:var(--radius-lg); padding:16px 18px;
+}
+.liga-vacia-texto{display:flex; flex-direction:column; gap:3px; flex:1 1 280px; min-width:0;}
+.liga-vacia-texto strong{font-family:var(--font-display); font-weight:700; font-size:14.5px; color:var(--text-primary);}
+.liga-vacia-texto span{font-size:12px; color:var(--text-muted); line-height:1.5;}
+/* La cuenta de anotados como DATO y no como frase: es el número que dice si
+   esto está por arrancar o si no lo mira nadie. */
+.liga-vacia-cuenta{
+  display:flex; flex-direction:column; align-items:flex-end; gap:1px; flex:none;
+  padding-right:18px; border-right:1px solid var(--border-soft);
+}
+.liga-vacia-cuenta b{
+  font-family:var(--font-stat); font-size:22px; font-weight:800; line-height:1;
+  color:var(--text-secondary); font-variant-numeric:tabular-nums;
+}
+.liga-vacia-cuenta span{
+  font-size:9.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted);
+}
+/* El único dorado sólido de la sección: es la acción que la pantalla pide. */
+.liga-vacia-cta{
+  flex:none; appearance:none; -webkit-appearance:none; cursor:pointer; border:none;
+  background:var(--accent); color:var(--accent-ink);
+  font-family:var(--font-body); font-size:12.5px; font-weight:700;
+  padding:9px 18px; border-radius:999px;
+  transition:filter var(--t-toque) var(--e-entra), transform var(--t-toque) var(--e-entra);
+}
+.liga-vacia-cta:hover{filter:brightness(1.08);}
+.liga-vacia-cta:active{transform:scale(0.97);}
+.liga-vacia-cta:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+@media (max-width:560px){
+  /* Apilado y el botón a lo ancho: en un teléfono el CTA contra el borde
+     derecho de una fila de tres cosas no se ve. */
+  .liga-vacia{gap:14px;}
+  .liga-vacia-cuenta{
+    flex-direction:row; align-items:baseline; gap:7px;
+    padding-right:0; border-right:none;
+  }
+  .liga-vacia-cuenta b{font-size:18px;}
+  .liga-vacia-cta{width:100%;}
+}
+
+/* ── Qué está pasando ──
+   Como mucho tres hechos, todos restas sobre la tabla (ver lib/liga-ahora.ts).
+   Renglones y no tarjetas: son UNA línea cada uno y con caja propia pesarían
+   más que la carrera que tienen arriba. */
+.liga-hechos{
+  list-style:none; margin:0; padding:12px 16px 0;
+  display:flex; flex-wrap:wrap; gap:6px 22px;
+}
+.liga-hecho{
+  display:flex; align-items:center; gap:7px;
+  font-size:12px; color:var(--text-secondary); min-width:0;
+}
+.liga-hecho-icono{font-size:11px; line-height:1; opacity:0.9;}
+/* El que ya cobra es el único con color: es el que cambia qué puede pasar. */
+.liga-hecho.minimo{color:var(--good);}
+@media (max-width:560px){
+  .liga-hechos{flex-direction:column; gap:5px; padding:10px 14px 0;}
 }
 
 /* El marco de la competencia: cuánto falta y quién cobra. Es un PANEL de
@@ -3398,24 +3498,75 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    de control: quedan las iniciales en su renglón, el de hoy en dorado y el que
    decide subrayado. Con caja y borde, una barra de progreso temporal se lee
    como una fila de campos de formulario. */
-.estado-semana{
-  grid-column:1 / -1;
-  display:flex; gap:3px; padding:0 16px; margin-top:2px;
+/* ── La línea de tiempo de la semana ──
+   Era una fila de chips con la inicial adentro: siete cajitas iguales que
+   parecían un selector, y con "L M M J V S D" había que contar desde el lunes
+   para saber en cuál estabas. Ahora es un riel con un punto por día, la
+   inicial abajo y una marca de HOY. La X del miércoles la pone el componente.
+
+   El riel va detrás y los días encima, repartidos con `justify-content:
+   space-between` sobre el mismo ancho: así el primer punto y el último caen
+   exactamente en las puntas del riel sin tener que calcular posiciones. */
+.estado-linea{
+  grid-column:1 / -1; position:relative;
+  /* El padding de abajo le hace lugar al "HOY", que va posicionado y por lo
+     tanto no empuja. */
+  padding:6px 16px 14px; margin-top:2px;
 }
+/* El riel arranca y termina en el CENTRO del primer y del último punto, no en
+   el borde del bloque: con `left:16px` los puntos quedaban once píxeles
+   adentro de las puntas y la línea sobresalía por los dos lados. 16 del
+   padding + la mitad del ancho fijo de un día. */
+.estado-linea-riel{
+  position:absolute; left:28px; right:28px; top:10px; height:2px;
+  border-radius:99px; background:var(--track); overflow:hidden;
+}
+/* Lo corrido de la semana, en dorado. Es un ancho que avanza, no un punto por
+   día pintado: así se lee como progreso y funciona igual con un torneo de
+   ocho días. */
+.estado-linea-hecho{
+  display:block; height:100%; border-radius:99px;
+  background:var(--accent-dim);
+  transition:width var(--t-panel) var(--e-ambos);
+}
+.estado-dias{
+  position:relative; display:flex; justify-content:space-between;
+  list-style:none; margin:0; padding:0;
+}
+/* Ancho FIJO, no mínimo: es lo que hace que el centro de cada punto sea
+   calculable y que el riel pueda arrancar justo abajo del primero. */
 .estado-dia{
-  flex:0 0 26px; height:20px; border-radius:4px;
-  display:flex; align-items:center; justify-content:center;
+  position:relative;
+  display:flex; flex-direction:column; align-items:center; gap:3px;
   font-size:9.5px; font-weight:700; letter-spacing:0.02em;
-  background:none; color:var(--text-muted); opacity:0.45;
-  border-bottom:2px solid transparent;
+  color:var(--text-muted); opacity:0.5; width:24px;
 }
-.estado-dia.pasado{color:var(--text-secondary); opacity:0.75;}
-.estado-dia.hoy{
-  background:var(--accent-wash); color:var(--accent); opacity:1;
+.estado-dia-punto{
+  width:7px; height:7px; border-radius:50%; flex:none;
+  background:var(--surface); box-shadow:0 0 0 2px var(--track);
 }
-/* El último día lleva subrayado dorado aunque falte: es el día del premio. */
-.estado-dia.decide{border-bottom-color:var(--accent-dim); opacity:0.8;}
-.estado-dia.decide.hoy{border-bottom-color:var(--accent); opacity:1;}
+.estado-dia.pasado{opacity:0.8;}
+.estado-dia.pasado .estado-dia-punto{background:var(--accent-dim); box-shadow:0 0 0 2px var(--surface);}
+.estado-dia.hoy{color:var(--accent); opacity:1;}
+.estado-dia.hoy .estado-dia-punto{
+  background:var(--accent); box-shadow:0 0 0 3px var(--accent-wash);
+  width:9px; height:9px; margin:-1px 0;
+}
+/* "hoy" debajo de la letra, chiquito. Es la única etiqueta de la tira: el
+   resto se entiende por la posición. */
+/* Posicionado para que no le cambie el ancho al día —si lo hiciera, el punto
+   de hoy se correría del riel— ni le agregue alto a la fila. */
+.estado-dia-hoy{
+  position:absolute; top:100%; left:50%; transform:translateX(-50%);
+  font-size:8px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--accent); opacity:0.75;
+}
+/* El último día va marcado aunque falte: es el día del premio. */
+.estado-dia.decide .estado-dia-letra{
+  border-bottom:2px solid var(--accent-dim); padding-bottom:1px;
+}
+.estado-dia.decide{opacity:0.85;}
+.estado-dia.decide.hoy{opacity:1;}
 
 @media (max-width:640px){
   .estado{grid-template-columns:minmax(0,1fr); gap:10px;}
@@ -4443,20 +4594,45 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    edición es una parada, y la siguiente se ve empezar contra el borde. En el
    teléfono hace scroll horizontal, con el chip cortado diciendo "esto sigue"
    —mismo recurso que la tira de campeones del perfil—. */
+/* La tira es una LÍNEA DE TIEMPO, no una fila de tarjetas. El riel por detrás
+   es lo que la hace leer de izquierda a derecha como una cronología en vez de
+   como un carrusel de cards sueltas, y cuesta un pseudo-elemento. Con
+   scroll horizontal en el teléfono: la tira crece con cada semana y una lista
+   vertical de veinte ediciones es otra tabla. */
 .hist-tira{
+  position:relative;
   display:flex; gap:10px; overflow-x:auto;
-  margin:0 -4px; padding:2px 4px 8px;
+  margin:0 -4px; padding:10px 4px 8px;
   scrollbar-width:none; -ms-overflow-style:none;
+  scroll-snap-type:x proximity;
 }
 .hist-tira::-webkit-scrollbar{display:none;}
 .hist-hito{
+  position:relative; scroll-snap-align:start;
   flex:0 0 auto; min-width:132px; display:flex; flex-direction:column; gap:6px;
   appearance:none; -webkit-appearance:none; cursor:pointer; text-align:left;
   background:var(--surface); border:1px solid var(--border-soft);
   border-radius:var(--radius-md); padding:9px 11px;
   transition:background .12s ease, border-color .12s ease;
 }
+/* El nudo de cada edición sobre el riel. */
+.hist-hito::before{
+  content:""; position:absolute; left:14px; top:-7px;
+  width:7px; height:7px; border-radius:50%;
+  background:var(--accent-dim); box-shadow:0 0 0 3px var(--bg);
+  z-index:1;
+}
+/* Y el tramo hasta la edición siguiente. Va de nudo a nudo y NO como una
+   línea del contenedor: con `left/right` sobre `.hist-tira` el riel se dibuja
+   sobre el ancho VISIBLE, así que con tres ediciones en una pantalla ancha la
+   línea seguía hasta el borde sin nada que conectar. Así termina donde
+   termina la última. */
+.hist-hito:not(:last-child)::after{
+  content:""; position:absolute; left:17px; right:-11px; top:-4px; height:2px;
+  background:var(--border-soft);
+}
 .hist-hito:hover{background:var(--surface-raised); border-color:var(--border-firm);}
+.hist-hito:hover::before{background:var(--accent);}
 .hist-hito:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
 .hist-hito-semana{
   font-size:9.5px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase;
@@ -4484,11 +4660,30 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    columna y la lista se lee de arriba abajo por la cuenta, que es para lo que
    existe un palmarés. */
 .hist-palmares-fila .hist-fila-quien{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.hist-copas{flex:none; font-size:12px; letter-spacing:-1px;}
-.hist-copas-n{
-  flex:none; min-width:62px; text-align:right;
-  font-family:var(--font-mono); font-size:11px; color:var(--text-muted); white-space:nowrap;
+.hist-copas{
+  flex:none; display:inline-flex; align-items:baseline; gap:5px;
+  min-width:36px; justify-content:flex-end; font-size:12px;
 }
+.hist-copas b{
+  font-family:var(--font-stat); font-size:14px; font-weight:800;
+  color:var(--accent); font-variant-numeric:tabular-nums;
+}
+/* El récord, abajo del palmarés y como TEXTO. Es contexto del palmarés, no
+   otra competencia: con card propia pesaba igual que la lista de campeones. */
+.hist-record{
+  margin-top:14px; padding-top:12px; border-top:1px solid var(--border-soft);
+  display:flex; flex-direction:column; gap:3px;
+}
+.hist-record-rotulo{
+  font-size:9.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--text-muted);
+}
+.hist-record-dato{font-size:12px; color:var(--text-secondary); display:flex; align-items:baseline; gap:7px; flex-wrap:wrap;}
+.hist-record-dato b{
+  font-family:var(--font-stat); font-size:16px; font-weight:800; color:var(--accent);
+  font-variant-numeric:tabular-nums;
+}
+.hist-record-dato i{font-style:normal; font-size:10.5px; color:var(--text-muted);}
 
 @media (max-width:560px){
   /* La fecha pasa a ser el dato más chico de la fila: en 390px el nombre es

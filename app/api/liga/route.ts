@@ -9,6 +9,8 @@ import { dueloDeLaEdicion, palmares, podioDeLaEdicion } from "@/lib/palmares";
 import { relatoDeLaEdicion } from "@/lib/momentos";
 import type { ResumenSemana } from "@/lib/liga-cierre";
 import { DURACION_MINIMA_S, RANKED_SOLO_QUEUE_ID } from "@/lib/refresh";
+import { todasLasFilas } from "@/lib/paginado";
+import { recordDeLaLiga } from "@/lib/liga-ahora";
 import { roleFromTeamPosition } from "@/lib/mapping";
 
 /**
@@ -100,20 +102,30 @@ export async function GET() {
       // última foto previa al arranque, y esa cae fuera de la ventana.
       const desdeAntes = new Date(desdeVentana.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString();
       const puuids = anotados.map((s) => s.puuid);
-      const { data: snaps, error: eSnaps } = await supabase
-        .from("lp_snapshots")
-        .select("puuid, tier, division, lp, wins, losses, captured_at")
-        .in("puuid", puuids)
-        .eq("queue_type", "RANKED_SOLO_5x5")
-        .gte("captured_at", desdeAntes)
-        .lt("captured_at", fin.toISOString())
-        .order("captured_at");
+      // Paginada: hoy esta ventana da ~400 filas, pero PostgREST corta en 1000
+      // sin avisar y lo que se decide acá es quién cobra. Ver lib/paginado.ts
+      // y DECISIONES → "Supabase devuelve mil filas y no avisa". El `.order`
+      // por `id` es el desempate que la paginación necesita para no repetir
+      // una fila en dos páginas y saltearse otra.
+      const { data: snaps, error: eSnaps } = await todasLasFilas("liga/lp_snapshots", (desde, hasta) =>
+        supabase
+          .from("lp_snapshots")
+          .select("puuid, tier, division, lp, wins, losses, captured_at")
+          .in("puuid", puuids)
+          .eq("queue_type", "RANKED_SOLO_5x5")
+          .gte("captured_at", desdeAntes)
+          .lt("captured_at", fin.toISOString())
+          .order("captured_at")
+          .order("id", { ascending: true })
+          .range(desde, hasta),
+      );
 
       // Las victorias y las derrotas se cuentan de las partidas REALES de la
       // ventana. Los contadores de lp_snapshots son acumulados de la season y
       // restarlos da bien solo si las dos puntas son válidas — ver la nota en
       // tablaDeLaSemana.
-      const { data: partidas, error: ePartidas } = await supabase
+      const { data: partidas, error: ePartidas } = await todasLasFilas("liga/matches", (desdeFila, hastaFila) =>
+        supabase
         .from("matches")
         // kills/deaths/assists entran SOLO para el historial que se abre al
         // tocar una fila. No tocan el puntaje ni el orden de la tabla: la liga
@@ -136,7 +148,12 @@ export async function GET() {
         // faltara una partida del tramo, le atribuiría a otra lo que movieron
         // las dos.
         .gte("played_at", desdeVentana.toISOString())
-        .lt("played_at", fin.toISOString());
+        .lt("played_at", fin.toISOString())
+        .order("played_at", { ascending: true })
+        .order("match_id", { ascending: true })
+        .order("puuid", { ascending: true })
+        .range(desdeFila, hastaFila),
+      );
       // Las dos de arriba se chequean juntas acá: sin fotos el marcador queda
       // sin LP y sin partidas queda sin puntaje, y en los dos casos la tabla
       // sale entera mal.
@@ -401,9 +418,8 @@ export async function GET() {
   // tiene una fila por semana: ni con años de liga cuesta nada.
   const { data: todasLasEdiciones } = await supabase
     .from("liga_semanas")
-    .select("semana, ganador_puuid, ganador_label");
-  const tablaPalmares = palmares(
-    (todasLasEdiciones ?? []).map((h) => {
+    .select("semana, ganador_puuid, ganador_label, puntos");
+  const edicionesTodas = (todasLasEdiciones ?? []).map((h) => {
       const g = h.ganador_puuid ? porPuuid.get(h.ganador_puuid as string) : null;
       const label = (h.ganador_label as string | null) ?? null;
       return {
@@ -411,11 +427,21 @@ export async function GET() {
         puuid: (h.ganador_puuid as string | null) ?? null,
         nombre: g?.game_name ?? (label ? label.split("#")[0] : null),
         iconUrl: version && g?.profile_icon_id != null ? profileIconUrl(version, g.profile_icon_id) : null,
-        puntos: null,
+        puntos: (h.puntos as number | null) ?? null,
         jugadores: 0,
       };
-    }),
-  );
+    });
+  const tablaPalmares = palmares(edicionesTodas);
+  // El récord de puntos, de DOS fuentes: la columna `puntos` de todas las
+  // semanas y el puntaje ya resuelto de la vitrina. La columna es nueva y las
+  // semanas que cerraron antes la tienen en null, pero su puntaje vive adentro
+  // del `resumen` y la vitrina ya lo rescata para las ocho que muestra. Con
+  // las dos listas juntas no se pierde ninguna que se pueda conocer. Ver
+  // recordDeLaLiga.
+  const record = recordDeLaLiga([
+    ...edicionesTodas,
+    ...vitrina.map((v) => ({ semana: v.semana, nombre: v.nombre, puntos: v.puntos })),
+  ]);
 
   return NextResponse.json(
     {
@@ -475,6 +501,7 @@ export async function GET() {
       })),
       historial: vitrina,
       palmares: tablaPalmares,
+      record,
     },
     {
       // La liga NO tenía caché y es la tabla de la pestaña por defecto: cinco

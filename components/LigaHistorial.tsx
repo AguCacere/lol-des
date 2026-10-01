@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { puntajeTexto, rangoDeSemana } from "@/lib/liga";
 import { type EnPalmares, palmares, titulosDe, type Edicion } from "@/lib/palmares";
+import type { RecordLiga } from "@/lib/liga-ahora";
 
 /** El puntaje sin signo: "1,5". Para frases donde el signo no significa nada. */
 const sinSigno = (n: number) => puntajeTexto(Math.abs(n)).replace("+", "");
@@ -59,6 +60,7 @@ function Titulos({ n }: { n: number }) {
 export function LigaHistorial({
   ediciones,
   palmaresCompleto,
+  record,
   onAbrir,
 }: {
   ediciones: Edicion[];
@@ -69,6 +71,13 @@ export function LigaHistorial({
    * acá, que da el mismo número mientras no haya más de ocho ediciones.
    */
   palmaresCompleto?: EnPalmares[];
+  /**
+   * La mejor semana de la historia, calculada en el server sobre TODAS las
+   * ediciones (ver recordDeLaLiga). Opcional por la ventana de caché del CDN
+   * y null cuando ninguna semana tiene un puntaje que mirar: sin dato no se
+   * dibuja la línea, nunca se estima.
+   */
+  record?: RecordLiga | null;
   /** Abrir el archivo de esa edición. */
   onAbrir: (semana: string) => void;
 }) {
@@ -203,18 +212,32 @@ export function LigaHistorial({
               <div className="hist-palmares-fila" key={p.puuid ?? p.nombre}>
                 <PlayerAvatar name={p.nombre} iconUrl={p.iconUrl} className="hist-avatar chico" />
                 <span className="hist-fila-quien">{p.nombre}</span>
-                {/* Las copas Y el número. Las copas se cuentan de un vistazo
-                    hasta cinco y el número no deja dudas arriba de eso; con
-                    las copas solas, "🏆🏆🏆" y "🏆🏆🏆🏆" se parecen
-                    demasiado de reojo. */}
-                <span className="hist-copas" aria-hidden>
-                  {p.titulos <= 5 ? "🏆".repeat(p.titulos) : `🏆 ×${p.titulos}`}
-                </span>
-                <span className="hist-copas-n">
-                  {p.titulos} {p.titulos === 1 ? "título" : "títulos"}
+                {/* UNA copa y el número, no una copa por título. La fila de
+                    copitas se contaba de un vistazo hasta tres y después no:
+                    "🏆🏆🏆" y "🏆🏆🏆🏆" se parecen demasiado de reojo, y
+                    con cuatro campeones la columna quedaba en diente de
+                    sierra. El número ordena y la copa dice de qué. */}
+                <span className="hist-copas">
+                  <span aria-hidden>🏆</span>
+                  <b>{p.titulos}</b>
+                  <span className="sr-only">{p.titulos === 1 ? "título" : "títulos"}</span>
                 </span>
               </div>
             ))}
+            {/* El récord de puntos. Texto, no otra card: es un dato de
+                contexto del palmarés, no una competencia aparte. Solo
+                aparece si existe de verdad — se calcula sobre las semanas
+                cerradas que tienen puntaje guardado y, si no hay ninguna, no
+                se dibuja nada. */}
+            {record && (
+              <div className="hist-record">
+                <span className="hist-record-rotulo">Récord de puntos</span>
+                <span className="hist-record-dato">
+                  <b>{puntajeTexto(record.puntos)}</b> {record.nombre}
+                  <i>{rangoDeSemana(record.semana)}</i>
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>

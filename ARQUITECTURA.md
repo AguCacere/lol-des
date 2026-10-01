@@ -184,6 +184,12 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   PostgREST la corte en 1000 filas sin avisar. Lo usan las dos consultas grandes
   de `/api/ladder`. El orden que se le pase tiene que ser TOTAL (desempatado por
   algo único) o la paginación repite filas y se saltea otras. Ver DECISIONES.
+- `liga-ahora.ts` — qué está pasando en la semana EN CURSO: `acontecimientos`
+  da como mucho tres hechos (margen con el segundo, racha, cambio de puesto,
+  quién ya cumple los mínimos), todos restas sobre la tabla que ya está en
+  memoria. No narra ni predice. También vive acá `recordDeLaLiga`, el máximo
+  histórico de puntos. Para las semanas CERRADAS está `momentos.ts`, que es
+  otra cosa: aquello mira la curva entera de una edición terminada.
 - `palmares.ts` — el historial de la liga: `dueloDeLaEdicion` (por cuánto ganó y
   contra quién, null si el campeón no terminó primero), `palmares` y `titulosDe`
   (cuántas copas tiene cada uno, contadas por PUUID para que un renombre no

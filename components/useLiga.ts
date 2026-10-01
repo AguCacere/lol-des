@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { RoleKey, TierKey } from "@/lib/types";
 import type { Edicion, EnPalmares } from "@/lib/palmares";
+import type { RecordLiga } from "@/lib/liga-ahora";
 
 /**
  * Los datos de la liga, UNA sola vez por pestaña del navegador.
@@ -182,6 +183,8 @@ export interface Datos {
    * no trae el campo y el componente vuelve a contarlo con lo que tiene.
    */
   palmares?: EnPalmares[];
+  /** La mejor semana de la historia de la liga. Null si ninguna tiene puntaje. Opcional por la caché del CDN. */
+  record?: RecordLiga | null;
   /** Para el arte de campeón. Opcional por la misma razón. */
   ddragonVersion?: string | null;
   /**

@@ -5,6 +5,7 @@ import { type AjusteLiga, type DetalleSemanal, type FilaDelDia, type FilaLiga, g
 import { cargarVetados, conVetado } from "./vetados";
 import { claveDeTorneo, diaCorriente, duracionEnDias, esTorneoDeLiga, etiquetasDeDias, type Torneo, torneoAnterior, torneoDe } from "./torneo";
 import { repartirTitulos } from "./liga-titulos";
+import { todasLasFilas } from "./paginado";
 import { apuestasDeLaSemana, lpRealDeLaSemana, mensajeDeResultado, mensajeDeResultadoPronosticos, pronosticosDeLaSemana } from "./quiniela";
 
 /**
@@ -91,21 +92,30 @@ export async function tablaDeSemanaEnBase(
   const fin = torneo.cierra;
   const desdeAntes = new Date(desde.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString();
   const puuids = anotados.map((s) => s.puuid);
-  const { data: snaps, error: eSnaps } = await supabase
-    .from("lp_snapshots")
-    .select("puuid, tier, division, lp, wins, losses, captured_at")
-    .in("puuid", puuids)
-    .eq("queue_type", "RANKED_SOLO_5x5")
-    .gte("captured_at", desdeAntes)
-    .lt("captured_at", fin.toISOString())
-    .order("captured_at");
+  // Paginadas las dos de abajo: PostgREST corta en 1000 filas sin avisar y
+  // esto es el CIERRE, o sea quién cobra. Ver lib/paginado.ts. El desempate
+  // del `.order` no es opcional: sin un orden total, paginar puede repetir
+  // una fila en dos páginas y saltearse otra.
+  const { data: snaps, error: eSnaps } = await todasLasFilas("cierre/lp_snapshots", (desdeFila, hastaFila) =>
+    supabase
+      .from("lp_snapshots")
+      .select("puuid, tier, division, lp, wins, losses, captured_at")
+      .in("puuid", puuids)
+      .eq("queue_type", "RANKED_SOLO_5x5")
+      .gte("captured_at", desdeAntes)
+      .lt("captured_at", fin.toISOString())
+      .order("captured_at")
+      .order("id", { ascending: true })
+      .range(desdeFila, hastaFila),
+  );
   if (eSnaps) throw new Error(`No se pudieron leer las fotos de LP: ${eSnaps.message}`);
 
   // Las victorias y las derrotas se cuentan de las partidas REALES de la
   // ventana. Los contadores de lp_snapshots son acumulados de la season y
   // restarlos da bien solo si las dos puntas son válidas — ver la nota en
   // tablaDeLaSemana.
-  const { data: partidas, error: ePartidas } = await supabase
+  const { data: partidas, error: ePartidas } = await todasLasFilas("cierre/matches", (desdeFila, hastaFila) =>
+    supabase
     .from("matches")
     // `champion` entra solo para el anuncio: el mensaje de cierre nombra con
     // qué campeón ganó la liga el que la ganó. No toca el puntaje.
@@ -124,7 +134,12 @@ export async function tablaDeSemanaEnBase(
     // el bot anuncia un campeón que nadie vio ganar.
     .or("win.eq.true,ally_afk.eq.false")
     .gte("played_at", desde.toISOString())
-    .lt("played_at", fin.toISOString());
+    .lt("played_at", fin.toISOString())
+    .order("played_at", { ascending: true })
+    .order("match_id", { ascending: true })
+    .order("puuid", { ascending: true })
+    .range(desdeFila, hastaFila),
+  );
   if (ePartidas) throw new Error(`No se pudieron leer las partidas de esa semana: ${ePartidas.message}`);
   // Y se filtra por el arranque de CADA uno, no solo por el de la semana: el
   // que se anotó el miércoles no puede llevarse las partidas del lunes.

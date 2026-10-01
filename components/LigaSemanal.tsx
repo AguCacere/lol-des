@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { LigaCarrera } from "./LigaCarrera";
 import { LigaEstado } from "./LigaEstado";
+import { acontecimientos } from "@/lib/liga-ahora";
 import { LigaTorneo } from "./LigaTorneo";
 import { LigaHistorial } from "./LigaHistorial";
 import { LigaDiaADia } from "./LigaDiaADia";
@@ -246,6 +247,25 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
     return () => clearInterval(id);
   }, []);
 
+  /**
+   * "Anotarme" abre el panel del pie Y lleva hasta él. Sin lo segundo el
+   * botón parecía no hacer nada: el panel aparece abajo de todo, fuera de la
+   * pantalla.
+   *
+   * Va como ref callback y no como efecto porque el panel NO existe en el DOM
+   * cuando se hace click: el scroll tiene que pasar cuando el nodo aparece,
+   * que es exactamente el momento en que React llama a esta función. El flag
+   * es un ref y no estado porque no se dibuja nada con él — con estado sería
+   * un render de más y un efecto que setea estado, que es lo que la regla de
+   * React desaconseja.
+   */
+  const vinoDelCta = useRef(false);
+  const panelRef = useCallback((nodo: HTMLDivElement | null) => {
+    if (!nodo || !vinoDelCta.current) return;
+    vinoDelCta.current = false;
+    nodo.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
+
   async function anotar(puuid: string, participa: boolean) {
     setGuardando(puuid);
     try {
@@ -292,6 +312,11 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
   const minSemana = d.minimoSemanal ?? null;
   const minDia = d.minimoUltimoDia ?? null;
   const esUltimoDia = d.ultimoDia ?? false;
+  /**
+   * Los dos o tres hechos de la semana. Cálculo puro sobre la tabla que ya
+   * está en memoria (lib/liga-ahora.ts): no pide nada y no inventa nada.
+   */
+  const hechos = acontecimientos(d.tabla, minSemana, minDia);
   const tp = d.puntaje ?? null;
   // Para escalar las barras de partidas: el que más jugó ocupa todo el ancho.
   const maxPartidas = Math.max(1, ...d.tabla.map((f) => f.victorias + f.derrotas));
@@ -497,10 +522,40 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
           marcadores puestos.
         </div>
       ) : d.tabla.length === 0 ? (
-        <div className="empty-state">
-          <strong>Todavía no hay nadie anotado</strong>
-          La liga la corren los que se anotan, no todos los trackeados. Con la contraseña del grupo se anota desde acá
-          abajo.
+        /* Nadie anotado. Era un `empty-state` centrado de 150px de alto en el
+           medio de la pantalla, y eso es exactamente lo que no hay que hacer
+           con un estado vacío que va a durar varios días: una competencia
+           vacía ocupando media pantalla y empujando el historial —que SÍ tiene
+           algo que contar— abajo del pliegue.
+
+           Acá es una franja compacta, con la cuenta real de anotados y el
+           botón que abre el mismo panel de siempre. No hay un mecanismo nuevo
+           de inscripción: `setAdmin(true)` es el mismo que abre el toggle del
+           pie, con su contraseña y todo. */
+        <div className="liga-vacia">
+          <div className="liga-vacia-texto">
+            <strong>Todavía no arrancó la carrera</strong>
+            <span>
+              La liga la corren los que se anotan, no todos los trackeados. La clasificación aparece cuando se anota
+              el primero.
+            </span>
+          </div>
+          <div className="liga-vacia-cuenta">
+            <b>
+              {anotados} / {d.plantel.length}
+            </b>
+            <span>anotados</span>
+          </div>
+          <button
+            type="button"
+            className="liga-vacia-cta"
+            onClick={() => {
+              vinoDelCta.current = true;
+              setAdmin(true);
+            }}
+          >
+            Anotarme
+          </button>
         </div>
       ) : (
         <div className="liga-tabla">
@@ -525,6 +580,23 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
                   puntos: f.puntos ?? f.netas ?? f.victorias - f.derrotas,
                 }))}
             />
+          )}
+          {/* Qué está pasando: como mucho tres hechos, todos restas sobre la
+              tabla que ya está en memoria (ver lib/liga-ahora.ts). Si no hay
+              ninguno —una semana recién arrancada, un solo jugador— el bloque
+              no se dibuja. Nunca dice quién va a ganar: la liga se define por
+              cuartos de punto y la pantalla no opina. */}
+          {hechos.length > 0 && (
+            <ul className="liga-hechos">
+              {hechos.map((h) => (
+                <li key={h.clase} className={`liga-hecho ${h.clase}`}>
+                  <span className="liga-hecho-icono" aria-hidden>
+                    {h.icono}
+                  </span>
+                  {h.texto}
+                </li>
+              ))}
+            </ul>
           )}
           {/* NO hay encabezado de columnas, y es la decisión que más cambia
               esta sección. Una fila de rótulos arriba —INVOCADOR · RANGO ·
@@ -981,7 +1053,7 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
       </div>
 
       {admin && (
-        <div className="liga-admin">
+        <div className="liga-admin" ref={panelRef}>
           {/* La planificación del torneo va ARRIBA del selector: primero cuándo
               se juega y después quiénes, que es el orden en que se decide. */}
           <LigaTorneoAdmin />
@@ -1035,7 +1107,12 @@ export function LigaSemanal({ conEncabezado = true }: { conEncabezado?: boolean 
           títulos, y el palmarés desde que alguien gana dos veces. Ver
           components/LigaHistorial.tsx. */}
       {d.arrancada && d.historial.length > 0 && (
-        <LigaHistorial ediciones={d.historial} palmaresCompleto={d.palmares} onAbrir={setTorneo} />
+        <LigaHistorial
+          ediciones={d.historial}
+          palmaresCompleto={d.palmares}
+          record={d.record}
+          onAbrir={setTorneo}
+        />
       )}
 
       {torneo && (

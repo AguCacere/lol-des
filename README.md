@@ -205,11 +205,22 @@ pie se abre **el día por día**, la grilla con los números que el gráfico no 
 mostrar y en qué puesto cerró cada uno cada día—, **la
 tabla** y, al pie, **el historial**.
 
+Arriba de todo, el marco de la semana: cómo se puntúa, cuánto falta, quién se lleva el
+premio y **una línea de tiempo** con un punto por día —L M X J V S D— que marca en cuál
+estamos. Y abajo de la carrera, **qué está pasando**: como mucho tres hechos, todos
+restas sobre la tabla ("Fulano está a 0,75 del líder", "lleva 4 victorias seguidas", "ya
+cumple los dos mínimos"). Nunca dice quién va a ganar — esto se define por cuartos de
+punto y la pantalla no opina.
+
+Mientras no se anote nadie no hay una competencia vacía ocupando media pantalla: queda
+una franja con la cuenta de anotados y el botón para anotarse, y el historial sube.
+
 El historial no es una lista de resultados viejos. Arranca con la última edición
 contada como crónica —cuándo fue, quién ganó, con qué récord, **cómo se ganó** ("llegó
 al último día 2º, a 1 punto del puntero, y lo dio vuelta") y quiénes quedaron 2º y
-3º—, sigue con la tira de campeones anteriores y, desde la segunda edición, **el
-palmarés**: las copas que tiene cada uno, de más a menos. Se cuenta por invocador y
+3º—, sigue con la tira de campeones anteriores —una línea de tiempo horizontal, cada uno
+se toca para revivir esa semana— y, desde la segunda edición, **el palmarés**: las copas
+que tiene cada uno, de más a menos, con el **récord de puntos** de la liga debajo. Se cuenta por invocador y
 no por nombre —el Riot ID se puede cambiar y el palmarés no se tiene que partir por
 eso— y sobre TODAS las semanas cerradas, no sobre las últimas que se muestran. Tocando cualquiera se **revive la semana**: el resultado, la carrera día
 por día con el campeón y su escolta destacados, **los momentos** (la mayor subida, la

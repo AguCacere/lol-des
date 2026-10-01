@@ -4260,12 +4260,15 @@ Dos detalles que no son opcionales:
   total con `count` cuesta otra consulta y puede mentir si entran filas nuevas
   en el medio.
 
-### Lo que queda vigilado
+### Las de la liga también
 
-Las consultas de la liga (`/api/liga` y `lib/liga-cierre.ts`) están acotadas a
-una ventana de ~15 días y hoy dan ~400 filas cada una, medido. No se tocaron,
-pero son las que deciden quién cobra: si el grupo crece o juega mucho más,
-son las siguientes en cruzar el umbral. Anotado en PENDIENTES.
+Las consultas de `/api/liga` y `lib/liga-cierre.ts` están acotadas a una
+ventana de ~15 días y daban ~400 filas cada una, medido: lejos del tope. Se
+paginaron igual, en la pasada siguiente. No por prolijidad — son las que
+deciden quién cobra, crecen con la actividad del grupo y no con el tiempo, y
+el modo de falla es que la tabla de la semana salga con partidas de menos y no
+se entere nadie. El paginador no puede devolver menos que la consulta sola,
+así que el cambio es estrictamente más seguro.
 
 ## El gráfico de LP se dibujaba hasta la mitad en pantallas anchas
 
@@ -4299,3 +4302,116 @@ non-scaling-stroke, sin él, y sin pathLength— y solo la primera se corta.
 puro —o sea GPU, sin recalcular layout— y, al vivir en coordenadas del viewBox,
 le da exactamente lo mismo cuánto se estire el SVG. Verificado a 390, 1024,
 1440 y 1920: la línea llega al último punto en los cuatro.
+
+## La Liga, por estados: la pantalla cuenta algo distinto según el día
+
+La sección tenía un problema de reparto: con cero anotados, un `empty-state`
+centrado de 150px ocupaba el medio de la pantalla para decir que no había
+nada, y empujaba abajo del pliegue al historial, que SÍ tenía algo que contar.
+La semana en curso pesaba más que la competencia justo cuando no había
+competencia.
+
+La regla nueva es que la composición se adapta al estado real de la semana, con
+el mismo componente y sin páginas distintas.
+
+### Cero anotados
+
+Pasa de bloque centrado a franja de una línea: el texto a la izquierda, la
+cuenta real de anotados como dato (`0 / 14`) y el botón. Medido: de ~150px a
+**74px en desktop**, y el historial sube.
+
+El botón **no es un mecanismo nuevo de inscripción**: hace `setAdmin(true)`,
+que es el mismo panel que abre el toggle del pie, con su contraseña y todo.
+Lo único que agrega es llevar hasta él — el panel vive abajo de todo y abrirlo
+sin mover la pantalla parecía no hacer nada.
+
+Ese scroll va como **ref callback y no como efecto**: el panel no existe en el
+DOM cuando se hace click, así que el scroll tiene que pasar cuando el nodo
+aparece, que es exactamente cuando React llama a la función. El flag es un ref
+y no estado porque no dibuja nada; con estado sería un render de más y un
+efecto que setea estado, que es justo lo que la regla de React desaconseja.
+
+### La semana como línea de tiempo
+
+Eran siete chips con la inicial adentro, y tenían dos problemas: parecían un
+selector —siete cajitas iguales invitan a tocarlas— y decían **"L M M J V S D"**,
+con dos emes que no se distinguen. Había que contar desde el lunes para saber
+en cuál estabas.
+
+Ahora es un riel con un punto por día, la inicial abajo y una marca de HOY.
+**La X del miércoles** resuelve la única colisión que hay, y se decide por
+prefijo del nombre y no por índice: los nombres salen de `etiquetasDeDias` y un
+torneo puede arrancar cualquier día, así que la posición en el array no dice
+qué día es.
+
+Dos detalles que costaron una medición:
+
+- El riel arranca y termina en el **centro** del primer y del último punto, no
+  en el borde del bloque. Con `left:16px` los puntos quedaban once píxeles
+  adentro y la línea sobresalía por los dos lados. Los días llevan ancho FIJO
+  justamente para que ese centro sea calculable.
+- El rótulo "HOY" va posicionado. Si empujara, le cambiaría el ancho al día y
+  el punto de hoy se correría del riel.
+
+Verificado en Chromium a 1440 y 390: el riel empieza y termina exactamente en
+los centros, y el tramo dorado termina exactamente sobre el punto de hoy.
+
+### Qué está pasando
+
+Dos o tres hechos, en `lib/liga-ahora.ts`. **Esto no narra: enumera.** Cada uno
+es una resta o una comparación sobre la tabla que ya está en memoria, y si la
+resta no se puede hacer no se escribe nada. No hay "está jugando mejor", no hay
+"viene dominando" y sobre todo no hay "seguramente gana": una liga que se
+define por 0,25 puntos no admite que la pantalla opine.
+
+Los umbrales existen para que el bloque sea una noticia y no decoración fija:
+
+- **Racha desde 3**, no desde 2. Con dos, en un grupo de siete casi siempre hay
+  alguien en racha.
+- **Subir de puesto solo hasta el 3.º.** Que el décimo pase al noveno no es una
+  noticia, es ruido con forma de noticia. El puesto de ayer sale del anteúltimo
+  punto de `porDia` —el cierre de ayer—, así que es real y no una
+  reconstrucción.
+- **Solo rachas de victorias.** "4 derrotas seguidas" es una cargada y para eso
+  está el bot.
+- **Tres como máximo.** Un bloque que crece con la cantidad de gente deja de
+  ser un titular y se vuelve otra tabla, que es lo que esta pantalla ya tiene
+  abajo.
+
+### El récord de puntos
+
+Se arma de **dos fuentes**, y la razón es la misma que ya había partido al
+palmarés: la columna `puntos` de `liga_semanas` es nueva, las semanas que
+cerraron antes la tienen en null y su puntaje vive adentro del `resumen`. La
+vitrina ya rescata ese caso para las ocho que muestra, así que entran las dos
+listas y gana el máximo. Una semana vieja, sin `puntos` y fuera de esas ocho,
+no participa — y eso es preferible a contarla mal. Se arregla solo el día que
+se rellene la columna.
+
+Si ninguna semana tiene puntaje, **no se dibuja nada**. Un récord inventado en
+esta pantalla sería el peor error posible: es el registro de lo que hizo la
+gente.
+
+### Últimos campeones, y el riel que terminaba en la nada
+
+La tira ya era horizontal con scroll. Lo que se agregó es el riel que la hace
+leer como cronología y no como carrusel de tarjetas sueltas.
+
+El primer intento fue una línea sobre `.hist-tira` con `left/right`, y estaba
+mal: ese pseudo-elemento se dibuja sobre el ancho VISIBLE del contenedor, así
+que con tres ediciones en una pantalla ancha la línea seguía hasta el borde
+derecho sin nada que conectar. Ahora cada edición dibuja el tramo hasta la
+siguiente, y la última no dibuja ninguno.
+
+### Las reglas
+
+El contenido se queda entero —es la regla que decide la plata— y lo que cambia
+es el peso: las tres píldoras con borde y fondo del tamaño de un botón pasan a
+texto. Arriba de una pantalla que todavía no tiene competencia, gritaban más
+que la competencia.
+
+Y el `white-space:nowrap` de la nota de mínimos era un problema real en
+pantallas angostas: "Para cobrar: 10 en la semana · 3 el último día" mide 397px
+y no podía partirse, así que el min-content de la sección entera quedaba en
+459px. En el árbol de hoy la liga vive en un contenedor de bloque y no se
+notaba; en cualquier ancestro flex o grid habría salido scroll horizontal.
