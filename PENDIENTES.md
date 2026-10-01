@@ -13,14 +13,6 @@ no está acá: vive en **`PROXIMO-TORNEO.md`**. Esto es lo que le falta a la de 
 
 Última revisión: 27 de septiembre de 2026.
 
-## MIGRACIÓN SIN CORRER: la tabla `objetivos`
-
-**Hay que correrla una vez desde el editor SQL de Supabase.** Está en
-`supabase/schema.sql`, al final. Sin ella la pestaña Mejora funciona entera —
-diagnóstico, patrones, progreso y cruces son todos cálculo sobre `matches`— pero no
-se puede GUARDAR un foco: la ruta detecta que la tabla no existe y lo dice en
-pantalla en vez de tirar 500.
-
 ## El plan de evolución: fase 7
 
 `GRIETA_CENTRAL_PLAN_EVOLUCION.md` tiene siete fases. **Están las siete** (sistema
@@ -138,113 +130,61 @@ insert into liga_shells (semana, puuid, delta, origen)
 values ('2026-10-05', (select puuid from summoners where game_name = 'VORE'), 1, 'ADMIN');
 ```
 
-## SQL sin correr
+## SQL: TODO CORRIDO (1/10)
 
-Las migraciones de esta base se corren **a mano** desde el SQL Editor de Supabase. Desde
-la sesión hay acceso de LECTURA por MCP —sirve para auditar y para verificar que algo se
-corrió— pero las migraciones las sigue corriendo el dueño.
+**Ya no queda nada de esquema por correr.** Verificado contra la base el 1/10:
+existen `liga_torneos`, `summoners.discord_id`, `liga_apuestas`,
+`liga_pronosticos`, `liga_shells`, `liga_eventos` y `liga_efectos`, con sus
+ocho índices —incluidos los dos únicos parciales de los que depende toda la
+idempotencia—.
 
-**Verificado contra la base el 1/10**: `liga_torneos` existe, la columna `discord_id`
-existe, y el torneo "Semana del 14 (extendida)" está cargado. Todo lo que este bloque
-decía antes YA ESTABA CORRIDO y seguía acá como si faltara. Lo único que falta es esto:
+El candado de Discord se probó CONTRA LA BASE, no solo con tests: insertar dos
+veces el mismo `interaccion_id` devuelve `23505`, que es exactamente el código
+que `lanzarShell` interpreta como reintento.
 
-```sql
--- Las apuestas del bot (lib/quiniela.ts, comando /apostar). Dos tablas porque
--- las dos quieren la misma clave: una apuesta por persona y por semana.
--- Sin ellas el comando contesta "todavía no están creadas" y nada más se rompe.
-create table if not exists liga_apuestas (
-  semana     text not null,
-  discord_id text not null,
-  puuid      text not null references summoners(puuid) on delete cascade,
-  creada_at  timestamptz not null default now(),
-  primary key (semana, discord_id)
-);
-create index if not exists liga_apuestas_semana_idx on liga_apuestas (semana);
-alter table liga_apuestas enable row level security;
+### Lo que SÍ sigue bloqueando a `/shell` y a `/apostar`
 
-create table if not exists liga_pronosticos (
-  semana     text not null,
-  discord_id text not null,
-  puuid      text not null references summoners(puuid) on delete cascade,
-  direccion  text not null check (direccion in ('sube', 'baja')),
-  creada_at  timestamptz not null default now(),
-  primary key (semana, discord_id)
-);
-create index if not exists liga_pronosticos_semana_idx on liga_pronosticos (semana);
-alter table liga_pronosticos enable row level security;
+Las dos cosas que faltan ya no son esquema, son datos y configuración:
 
--- Blue Shells (lib/shell.ts). Las tres juntas y en este orden: liga_efectos
--- referencia a liga_eventos. Sin ellas el comando /shell contesta "todavía no
--- están creadas" y NADA más se rompe: la liga se calcula igual, con
--- puntos_objetos = 0.
-create table if not exists liga_shells (
-  id        uuid primary key default gen_random_uuid(),
-  semana    text not null,
-  puuid     text not null references summoners(puuid) on delete cascade,
-  delta     int  not null check (delta in (1, -1)),
-  origen    text not null,
-  periodo   text,
-  evento_id uuid,
-  meta      jsonb,
-  creado_at timestamptz not null default now()
-);
-create unique index if not exists liga_shells_premio_idx
-  on liga_shells (semana, puuid, origen, periodo) where periodo is not null;
-create index if not exists liga_shells_semana_idx on liga_shells (semana, puuid);
-alter table liga_shells enable row level security;
+1. **No hay NADIE vinculado.** Los catorce invocadores tienen `discord_id` en
+   null, y esa columna es la lista de permitidos: sin ella `/shell` y
+   `/apostar` contestan "no tenés tu cuenta vinculada" y no dejan hacer nada.
+   El id sale de Discord con el modo desarrollador prendido: botón derecho
+   sobre la persona → "Copiar ID".
 
-create table if not exists liga_eventos (
-  id             uuid primary key default gen_random_uuid(),
-  semana         text not null,
-  tipo           text not null,
-  efecto         text,
-  actor_puuid    text references summoners(puuid) on delete set null,
-  objetivo_puuid text references summoners(puuid) on delete set null,
-  final_puuid    text references summoners(puuid) on delete set null,
-  rebotado       boolean not null default false,
-  monto          numeric(5,2),
-  interaccion_id text,
-  match_id       text,
-  padre_id       uuid references liga_eventos(id) on delete set null,
-  meta           jsonb,
-  creado_at      timestamptz not null default now()
-);
-create unique index if not exists liga_eventos_interaccion_idx
-  on liga_eventos (interaccion_id) where interaccion_id is not null;
-create index if not exists liga_eventos_semana_idx on liga_eventos (semana, creado_at);
-alter table liga_eventos enable row level security;
+   ```sql
+   update summoners set discord_id = '123456789012345678' where game_name = 'VORE';
+   ```
 
-create table if not exists liga_efectos (
-  id         uuid primary key default gen_random_uuid(),
-  evento_id  uuid not null references liga_eventos(id) on delete cascade,
-  semana     text not null,
-  puuid      text not null references summoners(puuid) on delete cascade,
-  efecto     text not null,
-  estado     text not null default 'PENDIENTE',
-  campeon    text,
-  prohibidos text[],
-  faltan     int,
-  matches    text[] not null default '{}',
-  creado_at  timestamptz not null default now(),
-  cerrado_at timestamptz
-);
-create index if not exists liga_efectos_pend_idx
-  on liga_efectos (puuid, estado) where estado = 'PENDIENTE';
-alter table liga_efectos enable row level security;
-```
+2. **Re-registrar el menú de comandos**, o `/shell` y `/apostar` no aparecen al
+   tipear "/". Desde la consola del navegador, logueado en la app:
 
-**Y falta lo que de verdad bloquea `/apostar`: no hay NADIE vinculado.** Los catorce
-invocadores tienen `discord_id` en null (verificado el 1/10), y esa columna es la lista
-de permitidos para escribir. Con las tablas creadas y sin esto, el comando contesta
-"para apostar te tengo que tener vinculado" y no deja apostar a nadie. El id sale de
-Discord con el modo desarrollador prendido: botón derecho sobre la persona → "Copiar ID".
+   ```js
+   fetch("/api/discord/registrar", { method: "POST" }).then(r => r.json()).then(console.log)
+   ```
+
+### Una fila de prueba que quedó en `liga_eventos`
+
+Al verificar el índice único quedó una fila con `semana = '__test__'` que **no
+se pudo borrar**: el MCP de Supabase corta las sentencias destructivas por
+timeout, así que el `delete` no llegó a correr (se intentó tres veces, por dos
+caminos distintos).
+
+Es inerte —ninguna consulta la lee, todas filtran por la clave real del
+torneo— pero no corresponde dejarla. Se borra con esto desde el editor SQL:
 
 ```sql
-update summoners set discord_id = '123456789012345678' where game_name = 'VORE';
+delete from liga_eventos where semana = '__test__';
 ```
 
-Las fechas de los torneos se editan desde el panel de la liga (atrás de la contraseña,
-arriba del selector de jugadores), no por SQL.
+### Cómo repartir shells mientras tanto
+
+La entrega automática no existe todavía (ver arriba). A mano:
+
+```sql
+insert into liga_shells (semana, puuid, delta, origen)
+values ('2026-10-05', (select puuid from summoners where game_name = 'VORE'), 1, 'ADMIN');
+```
 
 ## La reparación de partidas, a medias
 
@@ -423,7 +363,7 @@ no se puede usar**, porque la vinculación ES la autorización para escribir.
 **`/apostar` está escrito y sin estrenar.** Para que arranque hacen falta tres cosas, y
 ninguna se puede hacer desde la sesión:
 
-1. Correr las dos tablas del bloque de "SQL sin correr".
+1. ~~Correr las tablas~~ — hecho el 1/10.
 2. **Vincular al menos a los que vayan a apostar** con el `update ... set discord_id`.
    Hoy no hay ninguno: sin eso el comando existe y no deja apostar a nadie.
 3. **Re-registrar el menú** (también suma `/shell`), o el comando no aparece al tipear "/". Desde la consola del
