@@ -108,7 +108,7 @@ export function LineHistory({ h }: { h: HistorialLineas }) {
               {winrateTexto(l.wins, l.games)}
             </span>
             <span className="lineas-num lineas-kda">{l.kda === null ? "—" : l.kda.toFixed(2)}</span>
-            <span className="lineas-nota">{poca ? "muestra baja" : `${l.wins}V-${l.games - l.wins}D`}</span>
+            <span className="lineas-nota">{poca ? "pocas" : `${l.wins}V-${l.games - l.wins}D`}</span>
           </div>
         );
       })}

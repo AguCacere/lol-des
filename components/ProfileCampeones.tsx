@@ -9,6 +9,7 @@ import { championLabel } from "@/lib/champion-names";
 import { itemIconUrl } from "@/lib/ddragon";
 import { tonoDeWinrate, winrateTexto } from "@/lib/winrate";
 import { ChampIcon } from "./ChampIcon";
+import { conTransicion } from "@/lib/transicion";
 import { InfoTip } from "./InfoTip";
 
 /**
@@ -35,6 +36,13 @@ function puntos(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(".", ",")}k`;
   return String(n);
 }
+
+/**
+ * Abajo de esto el porcentaje no significa nada y la fila lo dice. Es el
+ * mismo número y el mismo criterio que "Sus líneas" (lib/.../LineHistory):
+ * un 100% de dos partidas no es un 100%.
+ */
+const POCAS = 5;
 
 const MOTIVO: Record<ChampionInsight["kind"], string> = {
   abandonado: "Mucha maestría acumulada y todavía ninguna partida de ranked guardada.",
@@ -92,11 +100,20 @@ export function ProfileCampeones({
             key={c.champ}
             className={`pc-chip${c.champ === champ.champ ? " activo" : ""}`}
             aria-pressed={c.champ === champ.champ}
-            onClick={() => setElegido(c.champ)}
+            onClick={() => conTransicion(() => setElegido(c.champ))}
           >
             <ChampIcon champ={c.champ} version={ddragonVersion} className="pc-chip-art" />
             <span className="pc-chip-nombre">{championLabel(c.champ)}</span>
-            <span className="pc-chip-partidas">{c.games}</span>
+            {/* El winrate en el chip y no solo las partidas: la pregunta que
+                uno se hace mirando la tira es "¿con cuál me va bien?", y con
+                el número de partidas sola había que entrar a cada uno para
+                contestarla. Apagado cuando son pocas, como en todos lados. */}
+            <span className="pc-chip-pie">
+              <b className={c.games < POCAS ? "poca" : tonoDeWinrate(c.wins, c.games)}>
+                {winrateTexto(c.wins, c.games)}
+              </b>
+              <i>{c.games} PJ</i>
+            </span>
           </button>
         ))}
       </div>
@@ -106,15 +123,33 @@ export function ProfileCampeones({
           <ChampIcon champ={champ.champ} version={ddragonVersion} className="pc-arte" />
           <div className="pc-id">
             <h3 className="pc-nombre">{championLabel(champ.champ)}</h3>
-            <p className="pc-cifras">
-              <span className={tonoDeWinrate(champ.wins, champ.games)}>{winrateTexto(champ.wins, champ.games)}</span>
-              <span className="pc-sep">·</span>
-              {champ.wins}V · {champ.losses}D
-              <span className="pc-sep">·</span>
-              {champ.avgKda} KDA
-              <span className="pc-sep">·</span>
-              {champ.avgCsPerMin} CS/min
-            </p>
+            {/* Cuatro datos con la MISMA anatomía que los récords y que "Sus
+                líneas": cifra grande arriba, rótulo chico abajo. Antes era
+                una sola frase —"50.0% · 14V · 14D · 2 KDA · 7.7 CS/min"— y
+                con los números metidos adentro del texto no se podían
+                comparar de un vistazo entre un campeón y el siguiente. */}
+            <div className="pc-datos">
+              <span className="dato">
+                <b className={champ.games < POCAS ? "poca" : tonoDeWinrate(champ.wins, champ.games)}>
+                  {winrateTexto(champ.wins, champ.games)}
+                </b>
+                <i>winrate</i>
+              </span>
+              <span className="dato">
+                <b>{champ.games}</b>
+                <i>
+                  partidas · {champ.wins}V-{champ.losses}D
+                </i>
+              </span>
+              <span className="dato">
+                <b>{champ.avgKda}</b>
+                <i>KDA</i>
+              </span>
+              <span className="dato">
+                <b>{champ.avgCsPerMin}</b>
+                <i>CS por minuto</i>
+              </span>
+            </div>
             {/* La maestría acá adentro y no en su propia lista: es un dato DE
                 este campeón. Solo si Riot tiene algo para este — no todos los
                 del pool están en el top de maestría. */}
@@ -155,7 +190,7 @@ export function ProfileCampeones({
                       )}
                     </span>
                     <span className="matchup-record">
-                      <span className={`matchup-wr ${tonoDeWinrate(m.wins, m.games)}`}>
+                      <span className={`matchup-wr ${m.games < POCAS ? "poca" : tonoDeWinrate(m.wins, m.games)}`}>
                         {winrateTexto(m.wins, m.games)}
                       </span>
                       <span className="matchup-games">
@@ -197,7 +232,7 @@ export function ProfileCampeones({
                           <span className="build-start-d" />
                         </span>
                       </span>
-                      <span className={`build-start-wr ${tonoDeWinrate(a.wins, a.games)}`}>
+                      <span className={`build-start-wr ${a.games < POCAS ? "poca" : tonoDeWinrate(a.wins, a.games)}`}>
                         {winrateTexto(a.wins, a.games)}
                       </span>
                       <span className="build-start-rec">

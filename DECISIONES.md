@@ -3875,3 +3875,89 @@ De paso, dos cosas del mismo origen en la cabecera del perfil:
 - **El rango del perfil quedaba sin emblema** en los tiers sin arte (hierro,
   plata y maestro): el ladder caía a la chapa de letra y el perfil no dibujaba
   nada. Ahora cae a la misma chapa.
+
+## Campeones: la misma anatomía que el resto, y el selector que ahora dice algo
+
+Dos arreglos, los dos "lo mismo que ya hicimos en el Resumen".
+
+**El chip ahora lleva el winrate.** La tira decía ícono + nombre + partidas, y
+la pregunta que uno se hace mirándola es "¿con cuál me va bien?". Con las
+partidas sola había que entrar a cada campeón para contestarla. Ahora el chip
+dice `60,0% · 15 PJ`, con el tono de siempre, y se elige de un vistazo.
+
+**La cabecera dejó de ser una frase.** Era `50.0% · 14V · 14D · 2 KDA · 7.7
+CS/min` —todos los números metidos adentro de una oración— y así no se podían
+comparar entre un campeón y el siguiente. Ahora son cuatro datos con la misma
+anatomía que los récords y que "Sus líneas": cifra grande arriba, rótulo chico
+abajo.
+
+Y lo de las muestras chicas se extendió a los tres lugares que faltaban: el
+chip, los cruces y los arranques. Un 100% de dos cruces se muestra, pero
+apagado y con **la barra al 30% de opacidad** — una barra verde entera sobre
+dos partidas es la misma mentira por tamaño que sacamos de "Sus líneas", con
+otra forma.
+
+## La capa de movimiento
+
+La app se sentía estática. Lo que había eran transiciones sueltas escritas a
+mano (`.15s ease`, `.12s ease`, `.16s ease`) y cinco `@keyframes` sin relación
+entre sí. Ahora hay un sistema chico, y lo que lo define son seis tokens:
+
+| | | |
+|---|---|---|
+| `--t-toque` | 120ms | hover y respuesta al click |
+| `--t-chico` | 200ms | un elemento |
+| `--t-panel` | 320ms | un panel entero |
+| `--e-entra` | `cubic-bezier(0,0,.2,1)` | lo que aparece y toda respuesta a un click |
+| `--e-sale` | `cubic-bezier(.4,0,1,1)` | lo que se va |
+| `--e-ambos` | `cubic-bezier(.4,0,.2,1)` | lo que va y vuelve |
+
+Los números no son a ojo: abajo de 80ms un cambio no se percibe, un hover va
+entre 100 y 150, un elemento chico entre 150 y 250, un panel entre 300 y 400, y
+arriba de 500 se siente lento. Las curvas también tienen regla: ease-out para
+lo que entra —arranca rápido y frena, que es lo que se siente "atento"— y
+ease-in para lo que se va. Y se animan `transform` y `opacity`, que son las dos
+que el navegador resuelve sin recalcular el layout.
+
+### Transiciones de vista
+
+Cambiar de pestaña adentro del perfil, o de campeón adentro de Campeones, pasa
+por `document.startViewTransition` (ver lib/transicion.ts): el navegador saca
+una foto del antes, aplica el cambio y cruza las dos. Es un cross-fade con 5px
+de subida, no un carrusel.
+
+Tres cosas que esa función resuelve una vez en vez de en cada llamada:
+degrada sola donde el navegador no la tiene (está en Chrome 111+, Safari 18+ y
+Firefox 144+ para transiciones adentro de la misma página, que es lo único que
+usamos acá); respeta `prefers-reduced-motion`, que el interruptor global de
+globals.css NO alcanza a apagar porque una transición de vista no es ni
+`animation` ni `transition`; y llama a `flushSync`, sin el cual React aplicaría
+el `setState` DESPUÉS de que el navegador saque la foto del después, y el cruce
+sería entre dos imágenes iguales.
+
+Va al `<html>` entero a propósito. Cuando se cambia de pestaña, todo lo que
+está arriba —la cabecera, el rango, los chips— es idéntico antes y después, así
+que esa parte del cruce no se ve; nombrar cada pedazo con
+`view-transition-name` habría sido más código para el mismo resultado.
+
+### El gráfico se dibuja
+
+El único movimiento "de presentación" de toda la app, y está en el único lugar
+donde se justifica: la línea de la progresión se traza de izquierda a derecha
+en 520ms y los puntos entran detrás, escalonados 16ms. No es decoración — es
+el orden en que se jugaron, que es lo que la curva significa.
+
+El truco para no medir nada en JS es `pathLength="1"` en el `<path>`: normaliza
+el largo del trazo a 1 sin importar la geometría, así que alcanza con
+`stroke-dasharray:1` y animar el `dashoffset` de 1 a 0 en CSS.
+
+### Lo que NO se hizo
+
+- **Números que cuentan hacia arriba.** Es el efecto más pedido y el menos
+  honesto: hace que un dato parezca que está pasando ahora cuando es el
+  promedio de cuatro meses.
+- **Animaciones al scrollear.** El `animation-timeline` ya tiene soporte real
+  (Safari 26, Chrome 115), pero esta app es densa y de lectura: que las cosas
+  aparezcan al pasar por ellas agrega espera, no información.
+- **Una librería.** Todo esto son seis tokens, tres `@keyframes` y una función
+  de diez líneas. Framer Motion para esto es 40kB para no escribir CSS.

@@ -255,7 +255,10 @@ export function ProgresionLP({
               vectorEffect="non-scaling-stroke"
             />
           ))}
-          <path d={linea} className="prog-linea" vectorEffect="non-scaling-stroke" />
+          {/* pathLength="1" normaliza el largo del trazo a 1 sin importar la
+              geometría, que es lo que deja dibujar la línea con un
+              stroke-dasharray de 1 en CSS y sin medir nada en JS. */}
+          <path d={linea} className="prog-linea" pathLength={1} vectorEffect="non-scaling-stroke" />
           {/* Un punto por partida, del color de su resultado. Es lo que
               convierte la línea en una historia: se ve la racha de tres
               verdes y el bajón de dos rojas sin tocar nada.
@@ -276,6 +279,10 @@ export function ProgresionLP({
               y2={y}
               vectorEffect="non-scaling-stroke"
               className={`prog-punto ${p.puntos[i].win ? "v" : "d"}${hover === i ? " activo" : ""}`}
+              /* El índice va al CSS para escalonar la entrada: los puntos
+                 aparecen detrás de la línea que se está dibujando, en el
+                 mismo orden en que se jugaron. */
+              style={{ "--i": i } as React.CSSProperties}
             />
           ))}
           {/* El escudo de Aegis, arriba del punto. Un <path> chico y no un

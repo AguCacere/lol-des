@@ -65,6 +65,10 @@ Sobre leer:
 Sobre verificar:
 
 - Fixtures de prueba en `app/vt/page.tsx`. **Se borran antes de commitear.**
+- **El movimiento sale de los tokens, no a ojo.** `--t-toque` / `--t-chico` /
+  `--t-panel` y `--e-entra` / `--e-sale` / `--e-ambos` en `globals.css`. Se
+  animan `transform` y `opacity`. Para cambiar de vista, `conTransicion`
+  (`lib/transicion.ts`), nunca `startViewTransition` a mano.
 - **Los colores de un gráfico no se eligen a ojo: se validan.** Si hay que distinguir
   varias series, se usa `PALETA_SERIES` (`lib/chart.ts`) en su orden, y si hay que
   tocarla se corre el validador de la skill `dataviz` contra el fondo real (`#050504`),

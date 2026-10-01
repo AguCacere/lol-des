@@ -124,6 +124,10 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
 - `matchups.ts` — enfrentamientos de línea, desde `matches.opponent_champion`.
 - `radar.ts` — las siete dimensiones, contra el resto del grupo en ese mismo rol.
   Ya no se dibuja como radar: `lectura.ts` lee sus ejes y decide cuáles mostrar.
+- `transicion.ts` — `conTransicion(cambio)`: envuelve un `setState` en una
+  transición de vista del navegador, degradando sola donde no existe y
+  respetando `prefers-reduced-motion`. La usan el cambio de pestaña del perfil
+  y el de campeón.
 - `lectura.ts` — **la interpretación del perfil**: de las siete del radar, las que
   se despegan de verdad (8% o más, tres como mucho) y UN foco. Un "+6% de CS por
   minuto" no es una fortaleza y acá es donde se decide que no entre.

@@ -24,6 +24,7 @@ import { MatchDetail } from "./MatchDetail";
 import { CoachPanel } from "./CoachPanel";
 import { LineHistory } from "./LineHistory";
 import { leerElPerfil } from "@/lib/lectura";
+import { conTransicion } from "@/lib/transicion";
 import { PersonalRecords } from "./PersonalRecords";
 import { RecentForm } from "./RecentForm";
 import { ProgresionLP } from "./ProgresionLP";
@@ -370,7 +371,7 @@ export function PlayerProfile({
               className={`profile-tab${tab === t.key ? " is-active" : ""}`}
               role="tab"
               aria-selected={tab === t.key}
-              onClick={() => setTab(t.key)}
+              onClick={() => conTransicion(() => setTab(t.key))}
             >
               {t.label}
             </button>

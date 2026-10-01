@@ -63,6 +63,25 @@
   --accent-rgb:212,175,55;
   --warn:#FF9F45;
   --warn-wash:rgba(255,159,69,0.12);
+  /* ── La capa de movimiento ───────────────────────────────────────────
+     Tres duraciones y tres curvas, y nada más. Los números no son a ojo:
+     abajo de 80ms un cambio no se percibe, un hover va entre 100 y 150, un
+     elemento chico entre 150 y 250, un panel entero entre 300 y 400, y
+     arriba de 500 se siente lento.
+
+     Las curvas: la de ENTRADA arranca rápido y frena (ease-out) — es la que
+     se siente "atenta" y va en todo lo que aparece y en toda respuesta a un
+     click; la de SALIDA hace lo contrario, para lo que se va; y la
+     simétrica solo para lo que va y vuelve, como un toggle.
+
+     Y se animan transform y opacity, que son las dos que el navegador
+     resuelve sin volver a calcular el layout. */
+  --t-toque:120ms;
+  --t-chico:200ms;
+  --t-panel:320ms;
+  --e-entra:cubic-bezier(0, 0, 0.2, 1);
+  --e-sale:cubic-bezier(0.4, 0, 1, 1);
+  --e-ambos:cubic-bezier(0.4, 0, 0.2, 1);
   --radius-sm:6px;
   --radius-md:10px;
   --radius-lg:16px;
@@ -93,7 +112,26 @@ body{
 }
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  /* Y las transiciones de vista, que no son ni animation ni transition y por
+     lo tanto el interruptor de arriba no las toca. La otra mitad del
+     apagado está en lib/transicion.ts, que directamente no las arranca. */
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*){animation:none !important;}
 }
+
+/* ── Transiciones de vista ────────────────────────────────────────────────
+   Cambiar de pestaña adentro del perfil, o de campeón adentro de Campeones,
+   deja de ser un parpadeo: el navegador cruza la foto de antes con la de
+   después. Es un cross-fade con 5px de subida, no un carrusel — lo que se
+   busca es que el ojo entienda que cambió ALGO, no que mire la animación.
+
+   Va al <html> entero a propósito: cuando se cambia de pestaña, todo lo que
+   está arriba (la cabecera, el rango, los chips) es idéntico antes y
+   después, así que esa parte del cruce no se ve. Nombrar cada pedazo habría
+   sido más código para el mismo resultado. */
+::view-transition-old(root){animation:vt-sale var(--t-chico) var(--e-sale) both;}
+::view-transition-new(root){animation:vt-entra var(--t-panel) var(--e-entra) both;}
+@keyframes vt-sale{to{opacity:0; transform:translateY(-4px);}}
+@keyframes vt-entra{from{opacity:0; transform:translateY(5px);}}
 
 ::selection{background:var(--accent-wash); color:var(--accent);}
 
@@ -944,10 +982,13 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .profile-tab{
   padding:7px 15px; border-radius:999px; border:none; background:transparent;
   font-family:var(--font-body); font-size:12.5px; font-weight:600; color:var(--text-muted);
-  cursor:pointer; white-space:nowrap; transition:background .15s ease, color .15s ease;
+  cursor:pointer; white-space:nowrap;
+  transition:background var(--t-chico) var(--e-entra), color var(--t-chico) var(--e-entra),
+             transform var(--t-toque) var(--e-entra);
 }
 .profile-tab:hover{color:var(--text-primary);}
 .profile-tab.is-active{background:var(--accent); color:var(--accent-ink); font-weight:700;}
+.profile-tab:active{transform:scale(0.97);}
 .profile-tab:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
 @media (max-width:520px){
   /* Que las tres entren sin scroll horizontal en un teléfono angosto. */
@@ -1111,7 +1152,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* min-width:0 para que el nombre largo trunque en vez de empujar al récord
    fuera de la fila — un flex item arranca en min-width:auto y no achica. */
 .matchup-names{display:flex; flex-direction:column; gap:1px; min-width:0;}
-.matchup-bar{min-width:0;}
+.matchup-bar{min-width:0; transition:opacity var(--t-chico) var(--e-entra);}
+/* Con pocas partidas la barra se apaga junto con el número: una verde
+   entera sobre dos cruces es la misma mentira por tamaño que ya habíamos
+   sacado de "Sus líneas". */
+.matchup-row:has(.matchup-wr.poca) .matchup-bar{opacity:0.3;}
 .matchup-name{
   font-size:12.5px; font-weight:700; color:var(--text-primary);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
@@ -1122,6 +1167,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .matchup-wr.good{color:var(--good);}
 .matchup-wr.bad{color:var(--critical);}
 .matchup-wr.neutral{color:var(--text-secondary);}
+/* Pocas partidas: el número se muestra pero no se tiñe. Un 100% de dos
+   cruces en verde fuerte es la misma mentira que la barra vieja de "Sus
+   líneas", con otra forma. */
+.matchup-wr.poca{color:var(--text-muted); font-weight:700;}
 /* El récord crudo al lado del porcentaje y en gris: es el que dice cuánto
    confiar en ese porcentaje, así que tiene que estar, pero no compite.
    5ch y no 6: el récord más largo que existe acá es "12-10" (5 caracteres) y
@@ -1524,14 +1573,20 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   display:grid; grid-template-columns:3px 42px 1fr auto 16px; align-items:center; gap:12px;
   background:transparent; border-radius:var(--radius-sm);
   padding:11px 8px 11px 0; overflow:hidden;
-  width:100%; text-align:left; cursor:pointer; transition:background .12s ease;
+  width:100%; text-align:left; cursor:pointer;
+  transition:background var(--t-toque) var(--e-entra);
 }
 .match-row:hover{background:var(--surface);}
 .match-row:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
 .match-row.is-expanded{background:var(--surface);}
 /* La franja sigue entera de arriba abajo, pero más finita: sin la tarjeta
    detrás es el único color de la fila y a 4px pesaba demasiado. */
-.match-stripe{align-self:stretch; border-radius:2px;}
+.match-stripe{align-self:stretch; border-radius:2px; transition:transform var(--t-toque) var(--e-entra);}
+/* Lo único que se mueve en la fila: la franja se ensancha un toque. El
+   fondo ya dice que estás encima; esto dice cuál fila sin correr nada de
+   lugar (scaleX desde la izquierda no empuja el contenido). */
+.match-row:hover .match-stripe, .match-row.is-expanded .match-stripe{transform:scaleX(1.9);}
+.match-stripe{transform-origin:left center;}
 .match-stripe.w{background:var(--good);}
 .match-stripe.l{background:var(--critical);}
 .match-champ{
@@ -2430,6 +2485,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .build-start-wr.good{color:var(--good);}
 .build-start-wr.bad{color:var(--critical);}
 .build-start-wr.neutral{color:var(--text-secondary);}
+.build-start-wr.poca{color:var(--text-muted); font-weight:600;}
 .build-start-rec{font-size:11px; color:var(--text-muted); text-align:right; font-variant-numeric:tabular-nums;}
 @media (max-width:560px){
   /* La barra es lo primero que sobra: el % y el crudo al lado ya dicen todo,
@@ -6253,14 +6309,35 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* El dorado, un punto más apagado que el de identidad: los puntos verdes y
    rojos, los cortes y los carteles ya llevan toda la información
    competitiva, así que la línea es lo que los une, no un dato más. */
-.prog-linea{fill:none; stroke:var(--accent-dim); opacity:0.72; stroke-width:1.6px; stroke-linejoin:round; stroke-linecap:round;}
+/* La línea se dibuja sola la primera vez. Es el único movimiento "de
+   presentación" de toda la app y está acá por algo: el gráfico es el
+   protagonista del Resumen, y trazarse de izquierda a derecha es además lo
+   que la curva significa —el orden en que se jugaron—. Medio segundo: lo
+   suficiente para verlo, no tanto como para esperarlo. */
+.prog-linea{
+  fill:none; stroke:var(--accent-dim); opacity:0.72; stroke-width:1.6px;
+  stroke-linejoin:round; stroke-linecap:round;
+  stroke-dasharray:1; stroke-dashoffset:1;
+  animation:prog-traza 520ms var(--e-ambos) forwards;
+}
+@keyframes prog-traza{to{stroke-dashoffset:0;}}
 /* Los puntos son líneas de largo cero con la punta redonda (ver el
    componente): con el SVG estirado, un <circle> sale ovalado y una punta
    redonda de stroke que no escala, no. */
-.prog-punto{stroke-linecap:round; stroke-width:5.5px;}
+/* Y los puntos entran detrás, escalonados, en el mismo orden. 16ms entre
+   uno y otro: con veinte puntos son 320ms de cola, que termina junto con el
+   trazo. El `both` deja el estado final puesto, así que el cambio de grosor
+   del hover sigue siendo suyo. */
+.prog-punto{
+  stroke-linecap:round; stroke-width:5.5px;
+  transition:stroke-width var(--t-toque) var(--e-entra);
+  animation:prog-punto-entra 160ms var(--e-entra) both;
+  animation-delay:calc(200ms + var(--i, 0) * 16ms);
+}
+@keyframes prog-punto-entra{from{opacity:0;}}
 .prog-punto.v{stroke:var(--good);}
 .prog-punto.d{stroke:var(--critical); opacity:0.8;}
-.prog-punto.activo{stroke-width:9px; opacity:1;}
+.prog-punto.activo{stroke-width:9px; opacity:1; animation:none;}
 /* Un cambio de rango parte la progresión en dos, y eso se ve mejor con un
    corte de punta a punta que con una marca chiquita al lado del punto. Dos
    pesos: el cambio de TIER es la noticia y el de división un movimiento. */
@@ -6310,7 +6387,11 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   background:var(--surface-raised);
   border:1px solid var(--border-firm); border-radius:10px;
   box-shadow:var(--shadow); padding:8px 10px; pointer-events:none;
+  animation:prog-panel-entra var(--t-toque) var(--e-entra) both;
 }
+/* Solo la opacidad: la posición la escribe el componente en el `transform`
+   del nodo, así que animar transform acá la pisaría. */
+@keyframes prog-panel-entra{from{opacity:0;}}
 .prog-panel-res{
   display:flex; align-items:baseline; justify-content:space-between; gap:10px;
   font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;
@@ -6621,7 +6702,16 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   padding:9px 10px 8px; border-radius:var(--radius-md); cursor:pointer; min-width:84px;
   transition:background .14s ease;
 }
-.pc-chip:hover{background:var(--surface);}
+.pc-chip{
+  transition:background var(--t-toque) var(--e-entra), transform var(--t-toque) var(--e-entra);
+}
+.pc-chip:hover{background:var(--surface); transform:translateY(-2px);}
+/* El hundido al tocar es lo único de toda la capa que existe para el
+   teléfono: sin hover, es la única forma de que el dedo reciba una
+   respuesta antes de que el contenido cambie. */
+.pc-chip:active{transform:translateY(0) scale(0.97);}
+.pc-chip-art{transition:border-color var(--t-toque) var(--e-entra), transform var(--t-chico) var(--e-entra);}
+.pc-chip:hover .pc-chip-art{transform:scale(1.06);}
 .pc-chip:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
 .pc-chip-art{
   width:46px; height:46px; border-radius:13px; overflow:hidden; flex:none;
@@ -6632,14 +6722,20 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .pc-chip-art img{width:100%; height:100%; object-fit:cover; display:block;}
 .pc-chip.activo .pc-chip-art{border-color:var(--accent);}
 .pc-chip-nombre{
-  /* 100 y no 80: 80 le comía la cola al nombre más largo que hay
-     ("Nunu y Willump") en TODOS los anchos, y en un selector el nombre es
-     justo lo que hay que poder leer. El chip crece con él. */
-  font-size:11px; color:var(--text-muted); max-width:100px; text-align:center;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  font-size:11.5px; color:var(--text-secondary); max-width:84px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center;
 }
 .pc-chip.activo .pc-chip-nombre{color:var(--text-primary); font-weight:600;}
-.pc-chip-partidas{font-family:var(--font-mono); font-size:10px; color:var(--text-muted);}
+/* El winrate adentro del chip: es lo que contesta "¿con cuál me va bien?"
+   sin tener que entrar a cada campeón. Apagado cuando son pocas partidas,
+   igual que en "Sus líneas" y que en los cruces de abajo. */
+.pc-chip-pie{display:flex; align-items:baseline; gap:5px; white-space:nowrap;}
+.pc-chip-pie b{font-family:var(--font-stat); font-size:12px; font-weight:800; font-variant-numeric:tabular-nums;}
+.pc-chip-pie b.good{color:var(--good);}
+.pc-chip-pie b.bad{color:var(--critical);}
+.pc-chip-pie b.neutral{color:var(--text-secondary);}
+.pc-chip-pie b.poca{color:var(--text-muted); font-weight:700;}
+.pc-chip-pie i{font-style:normal; font-family:var(--font-mono); font-size:9.5px; color:var(--text-muted);}
 
 .pc-detalle{display:flex; flex-direction:column; gap:20px;}
 .pc-cab{display:flex; align-items:flex-start; gap:16px;}
@@ -6654,14 +6750,20 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .pc-arte img{width:100%; height:100%; object-fit:cover; display:block;}
 .pc-id{display:flex; flex-direction:column; gap:2px; min-width:0;}
 .pc-nombre{font-family:var(--font-display); font-size:22px; font-weight:800; margin:0; letter-spacing:-0.015em;}
-.pc-cifras{
-  margin:0; font-size:13px; color:var(--text-secondary); font-variant-numeric:tabular-nums;
-  display:flex; align-items:baseline; gap:5px; flex-wrap:wrap;
+/* Cuatro datos con la misma anatomía que los récords del Resumen: cifra
+   grande, rótulo chico. Era una frase con todo adentro y así no se podía
+   comparar un campeón contra el siguiente de un vistazo. */
+.pc-datos{display:flex; flex-wrap:wrap; gap:10px 24px; margin:6px 0 2px;}
+.pc-datos .dato{display:flex; flex-direction:column; gap:1px; min-width:0;}
+.pc-datos .dato b{
+  font-family:var(--font-stat); font-size:19px; font-weight:800; line-height:1.1;
+  font-variant-numeric:tabular-nums; letter-spacing:-0.02em;
 }
-.pc-cifras .good{color:var(--good); font-weight:700;}
-.pc-cifras .bad{color:var(--critical); font-weight:700;}
-.pc-cifras .neutral{color:var(--text-secondary); font-weight:700;}
-.pc-sep{color:var(--text-muted); opacity:0.5;}
+.pc-datos .dato b.good{color:var(--good);}
+.pc-datos .dato b.bad{color:var(--critical);}
+.pc-datos .dato b.neutral{color:var(--text-secondary);}
+.pc-datos .dato b.poca{color:var(--text-muted);}
+.pc-datos .dato i{font-style:normal; font-size:10.5px; color:var(--text-muted); white-space:nowrap;}
 .pc-maestria{
   margin:3px 0 0; font-size:11.5px; color:var(--text-muted);
   display:flex; align-items:center; gap:5px;
@@ -6708,7 +6810,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 @media (max-width:720px){
   .pc-arte{width:60px; height:60px; border-radius:15px;}
   .pc-nombre{font-size:19px;}
-  .pc-cifras{font-size:12.5px;}
+  .pc-datos{gap:9px 18px;}
+  .pc-datos .dato b{font-size:17px;}
   /* La tira se sale hasta el borde de la tarjeta: el chip cortado dice
      "esto sigue". El sangrado sale de --card-pad y no de un 20 escrito a
      mano, que es lo que estaba y no coincidía con los 24 reales: la tira se
@@ -6723,7 +6826,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
     scrollbar-width:none; -ms-overflow-style:none;
   }
   .pc-tira::-webkit-scrollbar{display:none;}
-  .pc-chip{min-width:76px;}
+  .pc-chip{min-width:92px;}
 }
 
 /* ── Equipo · "Cómo jugamos juntos" (ver components/ComoJugamosJuntos.tsx) ──
