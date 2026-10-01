@@ -50,7 +50,7 @@ export interface Movimiento {
   tipo: TipoMovimiento;
   /**
    * QUÉ cambió, en una sola línea y ya en castellano: "Esmeralda 2 →
-   * Esmeralda 1", "+73 LP", "4 ganadas al hilo".
+   * Esmeralda 1", "+73 LP", "4 victorias seguidas".
    *
    * Va en un solo campo y no partido en "verbo" + "destino" porque en la
    * pantalla es UNA unidad: el nombre arriba y esto abajo, juntos. Antes eran
@@ -160,7 +160,11 @@ export function movimientosRecientes(players: Player[], ahora = Date.now()): Mov
         elegido = {
           ...base,
           tipo: "racha",
-          cambio: `${racha.count}${racha.capped ? "+" : ""} ${gana ? "ganadas" : "perdidas"} al hilo`,
+          // "victorias/derrotas seguidas" y no "ganadas/perdidas al hilo": es
+          // como lo dice el resto de la app desde que el hero del perfil y el
+          // bloque de la liga se pusieron de acuerdo. Tres formas distintas de
+          // nombrar una racha en tres pantallas no es variedad, es ruido.
+          cambio: `${racha.count}${racha.capped ? "+" : ""} ${gana ? "victorias" : "derrotas"} seguidas`,
           // El rango y, si se puede afirmar, lo que movió HOY. Una racha sin
           // el LP al lado no dice si le alcanzó para subir: se puede ganar
           // cuatro al hilo y seguir abajo de donde arrancó el día.

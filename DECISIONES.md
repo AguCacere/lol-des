@@ -4501,3 +4501,39 @@ ciclo y en una barra fija eso termina molestando. Y con
 perfil: el interruptor global deja la animación en 0.001ms, que la congela en
 un fotograma cualquiera —puede ser el del .62— y el punto quedaría apagado para
 siempre. Acá es verde fijo.
+
+## "Qué se movió": el ícono pasa a ser lo primero que se ve
+
+El feed tenía un carácter suelto de quince píxeles al costado del nombre —"↑",
+"↓", "≡", "+"— y a ese tamaño no decía nada: había que leer el texto igual. El
+"≡" de las rachas era el peor, porque además no significa nada.
+
+Ahora cada movimiento lleva una chapa de 38px con el fondo lavado de su tono y
+el ícono adentro. El fondo es el wash y no el color pleno: pleno serían tres
+cuadrados de color gritando en una columna de tres filas.
+
+**En SVG y no en emoji**, aunque un 🔥 sea lo obvio para una racha. Es la misma
+decisión que ya estaba escrita en StreakIcon.tsx: los emoji de color caen a un
+bitmap escalado en Windows y Android, y encima traen su propio rojo/naranja
+fijo en vez de tomar el color de la fila.
+
+**La llama va para las DOS rachas**, ganando o perdiendo, y el color dice cuál
+es. `StreakIcon` con `"L"` devuelve un triángulo hacia abajo que es
+prácticamente el mismo dibujo que `TrendDownIcon`, así que una caída de LP y
+una racha de derrotas quedaban con el mismo ícono para dos cosas distintas —se
+veía en la captura, dos filas rojas seguidas con la misma flecha—. La llama
+significa "racha"; el rojo, que es mala.
+
+### Sin caja en hover
+
+Era `background:var(--surface-hover)` sobre la fila. Con la chapa al lado dejó
+de leerse como "esto se toca" y pasó a leerse como una card: un rectángulo gris
+alrededor de una fila, en una columna donde las otras no lo tienen. El afordance
+queda en el nombre, que toma el dorado, y en la flecha, que aparece — dos
+señales que no dibujan una caja.
+
+### Y las rachas se dicen igual en toda la app
+
+"3 perdidas al hilo" pasa a "3 derrotas seguidas", que es como ya lo decían el
+hero del perfil y el bloque de la liga. Tres formas distintas de nombrar una
+racha en tres pantallas no es variedad, es ruido.

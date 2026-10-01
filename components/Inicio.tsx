@@ -4,6 +4,8 @@ import { useMemo } from "react";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { TierEmblem } from "./TierEmblem";
 import { ChampIcon } from "./ChampIcon";
+import { StreakIcon } from "./StreakIcon";
+import { TrendDownIcon, TrendUpIcon } from "./StatIcons";
 import { useLiga, type Fila } from "./useLiga";
 import { championLabel } from "@/lib/champion-names";
 import { liveGameTimeLabel, rangoTexto, tierFor } from "@/lib/ladder";
@@ -64,11 +66,28 @@ function cuantoFalta(hasta: string): { valor: string; unidad: string; cerrada: b
 const sinSigno = (n: number) => puntajeTexto(Math.abs(n)).replace("+", "");
 
 /** La flecha de un movimiento. Es el único lugar donde el tipo se vuelve un glifo. */
-function signoDe(m: Movimiento): string {
-  if (m.tipo === "ascenso") return "↑";
-  if (m.tipo === "descenso") return "↓";
-  if (m.tipo === "racha") return "≡";
-  return m.tono === "bueno" ? "+" : "−";
+/**
+ * El ícono de un movimiento, en una chapa del color de lo que pasó.
+ *
+ * Eran caracteres sueltos —"↑", "↓", "≡", "+"— de quince píxeles al costado
+ * del nombre, y a ese tamaño no decían nada: había que leer el texto igual.
+ * El "≡" de las rachas era el peor, porque no significa nada.
+ *
+ * Van en SVG y NO en emoji aunque un 🔥 sea lo obvio: es la misma decisión
+ * que ya está escrita en StreakIcon.tsx — los emoji de color caen a un bitmap
+ * escalado en Windows y Android, y encima traen su propio rojo/naranja fijo
+ * en vez de tomar el color de la fila. Estos son los mismos íconos que usa el
+ * resto de la app.
+ */
+function IconoDeMovida({ m }: { m: Movimiento }) {
+  // La LLAMA para las dos rachas, ganando o perdiendo, y el color dice cuál
+  // es. StreakIcon con "L" devuelve un triángulo hacia abajo, que es
+  // prácticamente el mismo dibujo que TrendDownIcon: en esta columna, una
+  // caída de LP y una racha de derrotas quedaban con el mismo ícono para dos
+  // cosas distintas. La llama significa "racha"; el rojo, que es mala.
+  if (m.tipo === "racha") return <StreakIcon result="W" />;
+  if (m.tipo === "ascenso" || (m.tipo === "lp" && m.tono === "bueno")) return <TrendUpIcon />;
+  return <TrendDownIcon />;
 }
 
 /**
@@ -343,7 +362,9 @@ export function Inicio({ players, duos, loading, ddragonVersion, onPlayer, onRan
                       "Esmeralda 2 → Esmeralda 1" ya no necesita el
                       "Ascendió". */}
                   <button type="button" className={`inicio-movida ${m.tono}`} onClick={() => onPlayer(m.key)}>
-                    <span className="inicio-movida-signo" aria-hidden>{signoDe(m)}</span>
+                    <span className="inicio-movida-chapa" aria-hidden>
+                      <IconoDeMovida m={m} />
+                    </span>
                     <span className="inicio-movida-txt">
                       <span className="inicio-movida-nombre">{m.name}</span>
                       <span className="inicio-movida-cambio">{m.cambio}</span>
