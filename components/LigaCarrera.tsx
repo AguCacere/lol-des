@@ -248,7 +248,15 @@ export function LigaCarrera({
     while (serie.length < largo) serie.push(serie[serie.length - 1]);
     // El ancho que se le pasa es PLOT + EJE con padX = EJE: así los puntos
     // caen entre EJE y PLOT, y de PLOT a W queda el pasillo de los nombres.
-    const g = lineAreaGeometry(serie, PLOT + EJE, H, EJE, MIN_RECORRIDO, PAD_Y, "curva", escala);
+    // RECTAS y no curva suave, y es una corrección de honestidad, no de
+    // estética. Lo que hay son puntos: el acumulado al CIERRE de cada día. Una
+    // curva entre el martes y el miércoles dibuja un recorrido orgánico que
+    // sugiere que sabemos qué pasó entre los dos cierres, y no lo sabemos —
+    // sabemos que el martes cerró en +12 y el miércoles en +9. Es exactamente
+    // la misma trampa que ya está anotada para el gráfico de LP del perfil.
+    //
+    // Y de paso se parece más a lo que es: una carrera, no una función.
+    const g = lineAreaGeometry(serie, PLOT + EJE, H, EJE, MIN_RECORRIDO, PAD_Y, "recta", escala);
     return { ...c, color: colores.get(c.puuid) ?? "", line: g.line, area: g.area, last: g.last, points: g.points, yOf: g.yOf };
   });
   const enFocoTrazo = trazos.find((t) => t.puuid === foco.puuid) ?? trazos[0];
@@ -385,21 +393,7 @@ export function LigaCarrera({
               <stop offset="45%" stopColor={colorFoco} stopOpacity={0.04} />
               <stop offset="100%" stopColor={colorFoco} stopOpacity={0} />
             </linearGradient>
-            {/* El brillo contenido que usa SparkChart: sin él la línea se lee
-                como un pelo plano sobre el fondo.
-                Bajó de 2.4 a 1.5 al bajar las demás líneas a 0.24: el brillo
-                estaba ahí para separar la línea en foco de un fondo que
-                competía, y ese fondo ya no compite. Dejarlo en 2.4 era pedirle
-                dos veces el mismo trabajo a la jerarquía, y de cerca se veía
-                como un halo. */}
-            <filter id={`${gid}-glow`} filterUnits="userSpaceOnUse" x={-12} y={-12} width={W + 24} height={H + 24}>
-              <feGaussianBlur stdDeviation="1.5" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
+                      </defs>
 
           {/* Las columnas de cada día. Son lo que convierte seis líneas
               flotando en una grilla: sin ellas no había con qué relacionar una
@@ -502,7 +496,6 @@ export function LigaCarrera({
             className="carrera-linea en-foco"
             stroke={colorFoco}
             vectorEffect="non-scaling-stroke"
-            filter={`url(#${gid}-glow)`}
           />
           {points.map(([x, y], i) => (
             <circle key={i} cx={x} cy={y} r={i === points.length - 1 ? 4 : 2.4} className="carrera-punto" stroke={colorFoco} />

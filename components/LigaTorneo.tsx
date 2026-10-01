@@ -120,6 +120,13 @@ export function LigaTorneo({
   // clasificación; esto es lo otro. Ver lib/momentos.ts.
   const momentos = datos ? momentosDeLaSemana(datos.tabla, datos.dias) : null;
   const hitos = hitosDeMomentos(momentos);
+  /**
+   * La vuelta, solo cuando es del CAMPEÓN. `momentos.vuelta` marca a cualquiera
+   * que haya cambiado de puesto el último día —puede ser el que pasó del 5º al
+   * 4º—, y meter eso en la frase del campeón le atribuiría algo que no hizo.
+   */
+  const vueltaDelCampeon =
+    momentos?.vuelta && campeon && momentos.vuelta.puuid === campeon.puuid ? momentos.vuelta : null;
   // El podio y el resto. Es la misma tabla ordenada, partida en dos: los tres
   // de arriba con jerarquía y los demás como lista compacta.
   const podio = datos ? datos.tabla.slice(0, 3) : [];
@@ -237,11 +244,23 @@ export function LigaTorneo({
             {/* El margen, en un renglón. Y cuando el que terminó arriba no es
                 el que cobró, esa es LA historia de la edición y va acá mismo
                 en vez de abajo como nota. */}
+            {/* El renglón que cuenta la semana ENTERA. Decía solo "Ganó por
+                0,75 sobre compren bitcoin", y la otra mitad de la historia
+                —que llegó segundo al último día y la dio vuelta— había que
+                reconstruirla mirando el gráfico, el momento "la dio vuelta" y
+                la clasificación. Las dos cosas son el mismo hecho y van en la
+                misma frase.
+
+                La vuelta se agrega SOLO si es del campeón: `momentos.vuelta`
+                puede ser de cualquiera —el que pasó del 5º al 4º el último
+                día también dio vuelta algo— y pegarla acá diría que el
+                campeón hizo algo que no hizo. */}
             {duelo && (
               <p className="torneo-remate">
+                {vueltaDelCampeon && `Llegó ${vueltaDelCampeon.desde}º al último día y `}
                 {duelo.margen === 0
-                  ? `Terminó empatado con ${duelo.segundo}.`
-                  : `Ganó por ${puntajeTexto(Math.abs(duelo.margen)).replace("+", "")} ${Math.abs(duelo.margen) === 1 ? "punto" : "puntos"} sobre ${duelo.segundo}.`}
+                  ? `${vueltaDelCampeon ? "terminó empatado" : "Terminó empatado"} con ${duelo.segundo}.`
+                  : `${vueltaDelCampeon ? "terminó campeón" : "Ganó"} por ${puntajeTexto(Math.abs(duelo.margen)).replace("+", "")} ${Math.abs(duelo.margen) === 1 ? "punto" : "puntos"} sobre ${duelo.segundo}.`}
               </p>
             )}
             {puntero && campeon && puntero.puuid !== campeon.puuid && (
@@ -313,7 +332,10 @@ export function LigaTorneo({
                     </div>
                   )}
                   {momentos.vuelta ? (
-                    <div className="torneo-momento">
+                    /* La vuelta se marca aparte: es el DESENLACE de la
+                       semana, no un dato más de la tira. Es el único de los
+                       cuatro momentos que cambia quién ganó. */
+                    <div className="torneo-momento vuelta">
                       <span className="torneo-momento-et">
                         <i aria-hidden>⟲</i> La dio vuelta
                       </span>

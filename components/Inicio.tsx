@@ -5,7 +5,7 @@ import { PlayerAvatar } from "./PlayerAvatar";
 import { TierEmblem } from "./TierEmblem";
 import { ChampIcon } from "./ChampIcon";
 import { StreakIcon } from "./StreakIcon";
-import { ArrowDownIcon, ArrowUpIcon, TrendDownIcon, TrendUpIcon } from "./StatIcons";
+import { ArrowDownIcon, ArrowUpIcon, TrendDownIcon, TrendUpIcon, TrophyIcon } from "./StatIcons";
 import { useLiga, type Fila } from "./useLiga";
 import { championLabel } from "@/lib/champion-names";
 import { liveGameTimeLabel, rangoTexto, tierFor } from "@/lib/ladder";
@@ -69,6 +69,7 @@ const sinSigno = (n: number) => puntajeTexto(Math.abs(n)).replace("+", "");
 /**
  * El ícono de un movimiento. Cada tipo tiene el suyo y ninguno se repite:
  *
+ *   nuevo máximo     🏆 el trofeo — pasa una vez por temporada
  *   caída de LP      ↘  tendencia hacia abajo
  *   subida de LP     ↗  tendencia hacia arriba
  *   ascenso          ↑  flecha recta — cruzaste un escalón, no es una tendencia
@@ -86,6 +87,7 @@ const sinSigno = (n: number) => puntajeTexto(Math.abs(n)).replace("+", "");
  * archivo de veinte líneas por un paquete en el bundle.
  */
 function IconoDeMovida({ m }: { m: Movimiento }) {
+  if (m.tipo === "record") return <TrophyIcon />;
   if (m.tipo === "racha") return <StreakIcon result="W" />;
   if (m.tipo === "ascenso") return <ArrowUpIcon />;
   if (m.tipo === "descenso") return <ArrowDownIcon />;
@@ -363,7 +365,14 @@ export function Inicio({ players, duos, loading, ddragonVersion, onPlayer, onRan
                       flecha del costado reemplaza al verbo: con "↑" adelante,
                       "Esmeralda 2 → Esmeralda 1" ya no necesita el
                       "Ascendió". */}
-                  <button type="button" className={`inicio-movida ${m.tono}`} onClick={() => onPlayer(m.key)}>
+                  <button
+                    type="button"
+                    /* El récord lleva su propia clase: el dorado es la
+                       identidad de Grieta Central y acá señala un hito, no un
+                       "esto estuvo bien" — para eso está el verde. */
+                    className={`inicio-movida ${m.tipo === "record" ? "record" : m.tono}`}
+                    onClick={() => onPlayer(m.key)}
+                  >
                     <span className="inicio-movida-icono" aria-hidden>
                       <IconoDeMovida m={m} />
                     </span>

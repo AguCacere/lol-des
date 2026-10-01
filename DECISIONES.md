@@ -4565,3 +4565,102 @@ señales que no dibujan una caja.
 "3 perdidas al hilo" pasa a "3 derrotas seguidas", que es como ya lo decían el
 hero del perfil y el bloque de la liga. Tres formas distintas de nombrar una
 racha en tres pantallas no es variedad, es ruido.
+
+## La carrera de la liga: de gráfico financiero a crónica deportiva
+
+Siete líneas, siete colores saturados, glow violeta en la del campeón,
+etiquetas a la derecha, anotaciones y una clasificación abajo diciendo lo
+mismo. La información estaba bien y la pantalla se leía como analytics cuando
+el contenido pide una crónica.
+
+### Rectas, no curvas — y esto es honestidad, no estética
+
+Lo que hay son PUNTOS: el acumulado al cierre de cada día. Una curva suave
+entre el martes y el miércoles dibuja un recorrido orgánico que sugiere que
+sabemos qué pasó entre los dos cierres, y no lo sabemos: sabemos que el martes
+cerró en +12 y el miércoles en +9.
+
+Es exactamente la misma trampa que ya estaba anotada para el gráfico de LP del
+perfil, y acá estaba sin corregir. `lineAreaGeometry` ya soportaba las dos
+formas, así que el arreglo fue una palabra.
+
+De paso se parece más a lo que es: una carrera, no una función.
+
+### La jerarquía, más agresiva
+
+El montón pasa de 0,24 a **0,16** de opacidad y de 1,5 a 1,25 de grosor; el
+campeón sube a 3; el segundo queda en 0,5. Y **fuera el glow**: estaba para
+separar la línea en foco de un fondo que competía, y con el fondo ya bajado
+era pedirle dos veces el mismo trabajo a la jerarquía.
+
+Los nombres del costado bajan a 0,62 de opacidad y 11px, salvo el que está en
+foco. Eran siete nombres con su puntaje, todos del mismo tamaño, pegados a una
+clasificación que dice lo mismo treinta centímetros más abajo: dos
+clasificaciones en la misma pantalla. La etiqueta directa evita una leyenda,
+que es su gracia, pero tiene que leerse como la punta de cada línea.
+
+### Lo que NO se hizo: pintar al campeón de dorado
+
+La propuesta era campeón dorado/blanco, segundo gris, resto apagados. **El
+color sigue saliendo del PUUID.**
+
+La razón está escrita dos veces en este repo y una tercera en la skill de
+dataviz: el color sigue a la ENTIDAD, nunca al puesto. Si el campeón fuera
+dorado, el día que dos se pasan en la tabla intercambiarían de color y la
+pantalla diría que cambiaron de identidad; y al tocar a Simiestro para
+seguirlo, el dorado se le movería encima, que es justo lo que el modo "seguir
+a uno" viene a evitar.
+
+La jerarquía que pedía esa propuesta se consigue igual con opacidad y grosor
+—que es lo que se hizo— sin romper la única regla que hace que el gráfico se
+pueda leer dos semanas seguidas.
+
+### Los momentos, en crónica
+
+Eran cuatro columnas de `auto-fit minmax(160px)`, o sea cuatro KPIs. Los cuatro
+momentos NO valen lo mismo: "la dio vuelta" es el desenlace de la semana y "más
+peleado" es una nota al pie, y una grilla pareja dice que sí valen lo mismo.
+
+Ahora es una tira que fluye, separada por filetes, y la vuelta lleva el nombre
+en dorado y un escalón más de tipografía: es el único de los cuatro que cambia
+quién ganó. En el teléfono se apilan, porque cuatro con separadores verticales
+no entran en 390px.
+
+### El podio, sin tres cajas iguales
+
+Tres tarjetas del mismo tamaño, el mismo fondo y el mismo padding. El problema
+no era que fueran cards: era que en una competencia el primero y el tercero no
+pesan lo mismo, y tres rectángulos idénticos dicen que sí. El filete dorado no
+alcanzaba para desmentir al tamaño.
+
+Ahora el campeón se lleva un renglón propio a 24px de nombre y 32 de puntaje,
+una línea lo separa, y el 2.º y el 3.º van abajo a 13,5 en dos columnas. Sin
+fondo: lo que agrupa es la posición y el aire. Medido: el campeón ocupa 924px
+de ancho contra 450 de cada escolta.
+
+### Y el renglón que faltaba
+
+El remate decía "Ganó por 0,75 sobre compren bitcoin". La otra mitad de la
+historia —que llegó segundo al último día y la dio vuelta— había que
+reconstruirla mirando el gráfico, el momento "la dio vuelta" y la
+clasificación. Son el mismo hecho y ahora van en la misma frase.
+
+La vuelta se agrega **solo si es del campeón**: `momentos.vuelta` marca a
+cualquiera que haya cambiado de puesto el último día —puede ser el que pasó
+del 5.º al 4.º— y pegarla ahí le atribuiría al campeón algo que no hizo.
+
+## El trofeo entra al feed: nuevo máximo de la temporada
+
+`movimientosRecientes` tenía cuatro tipos y ninguno era un récord. Ahora hay un
+quinto, `record`, y pesa 20.000 — **por arriba de un ascenso**. Ascender a
+Esmeralda 1 pasa cuando te toca; llegar al punto más alto en el que estuviste
+pasa una vez por temporada.
+
+Pide que el pico sea de HOY: `ahora >= pico && antes < pico`. Estar en el pico
+sin haberse movido es el estado normal del que va primero, no una noticia — sin
+esa condición le saldría todos los días durante un mes. Y la comparación es
+`>=` y no `>` porque `peakLp` ya incluye el valor actual: cuando se bate el
+récord, el actual ES el pico.
+
+Va en dorado y no en verde. El verde dice "esto estuvo bien"; esto es otra
+cosa, un hito.

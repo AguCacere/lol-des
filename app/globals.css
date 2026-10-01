@@ -3781,19 +3781,19 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    de una persona sola, y lo que hace que esto sea una carrera es ver CONTRA
    QUIÉN iba y cuándo lo pasaron. Quedan de contexto, no de competencia. */
 .carrera-linea{
-  fill:none; stroke-width:1.5; stroke-opacity:0.24;
+  fill:none; stroke-width:1.25; stroke-opacity:0.16;
   stroke-linecap:round; stroke-linejoin:round;
   transition:stroke-opacity .16s ease, stroke-width .16s ease;
 }
-.carrera-linea.en-foco{stroke-width:2.6; stroke-opacity:1;}
+.carrera-linea.en-foco{stroke-width:3; stroke-opacity:1;}
 /* El segundo protagonista: a mitad de camino entre el campeón y el montón.
    Existe porque con siete líneas al 24% y una al 100% el gráfico contaba una
    sola cosa —"hay uno arriba"— que es lo que ya decía la tabla. El que se
    pelea el título con el campeón es la otra línea que importa, y a 0,55 se la
    puede seguir sin que compita con la del que ganó. Desaparece en cuanto
    alguien elige otra línea: ver `segundo` en LigaCarrera.tsx. */
-.carrera-linea.segunda{stroke-width:2; stroke-opacity:0.55;}
-.carrera-punta.segunda{stroke-opacity:0.75;}
+.carrera-linea.segunda{stroke-width:1.9; stroke-opacity:0.5;}
+.carrera-punta.segunda{stroke-opacity:0.7;}
 /* El resaltado del mouse. Va por clase y no por `:hover +` porque ahora entra
    por tres lados —la línea, el nombre y el chip— y desde cualquiera tiene que
    aclarar la misma línea. */
@@ -3919,7 +3919,7 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 /* La guía del final de la línea al nombre. Más apagada que la línea a
    propósito: es la que ata, no la que se lee. */
 .carrera-guia{
-  fill:none; stroke-width:1; stroke-opacity:0.22;
+  fill:none; stroke-width:1; stroke-opacity:0.14;
   transition:stroke-opacity .16s ease;
 }
 .carrera-guia.resaltada,.carrera-guia.en-foco{stroke-opacity:0.9;}
@@ -3939,16 +3939,25 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
      El pasillo pasó de 152 a 176 justamente por ese nombre: con 152 no entraba
      junto a su puntaje y salía recortado en todos los anchos. */
   max-width:calc(16.4% - 8px);
-  font-size:11.5px; color:var(--text-muted); cursor:pointer;
-  transition:color .16s ease;
+  font-size:11px; color:var(--text-muted); cursor:pointer;
+  opacity:0.62;
+  transition:color .16s ease, opacity .16s ease;
 }
 .carrera-nombre-txt{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.carrera-nombre-pts{font-size:10.5px; font-variant-numeric:tabular-nums; opacity:0.7; flex:none;}
-.carrera-nombre.resaltada{color:var(--text-primary);}
+.carrera-nombre-pts{font-size:10px; font-variant-numeric:tabular-nums; opacity:0.75; flex:none;}
+.carrera-nombre.resaltada{color:var(--text-primary); opacity:1;}
 /* El nombre en foco NO se pinta del color de su línea: el texto va siempre con
    tinta de texto y la identidad la lleva la marca de al lado —acá, la guía—.
    Un nombre de color sobre negro además se lee peor que uno blanco. */
-.carrera-nombre.en-foco{color:var(--text-primary); font-weight:700;}
+/* ── Los nombres del costado, bajados un escalón ──
+   Era una columna de siete nombres con su puntaje, todos del mismo tamaño, y
+   pegada a una tabla de clasificación que dice lo mismo treinta centímetros
+   más abajo: dos clasificaciones en la misma pantalla. La idea de la etiqueta
+   directa es buena —evita una leyenda— pero tiene que leerse como la punta de
+   cada línea, no como un ranking. Al 62% de opacidad y 11px son eso; el que
+   está en foco sube a tinta plena y es el único que se lee de una. */
+.carrera-nombre.en-foco{color:var(--text-primary); font-weight:700; opacity:1; font-size:12px;}
+.carrera-nombre.segunda{opacity:0.82;}
 .carrera-nombre.en-foco .carrera-nombre-pts{opacity:1;}
 
 .carrera-dias{
@@ -4914,11 +4923,30 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    son cuatro datos sobre LA MISMA cosa —cómo se dio esta semana— y meter cada
    uno en su rectángulo los convierte en cuatro objetos sueltos. */
 .torneo-momentos{padding:16px 18px 0; border-top:1px solid var(--border-soft); margin-top:14px;}
+/* ── Los momentos, en crónica ──
+   Eran cuatro columnas idénticas de `auto-fit minmax(160px)`, o sea cuatro
+   KPIs, y eso es exactamente lo que esta pantalla no quiere ser: los cuatro
+   momentos no valen lo mismo —"la dio vuelta" es el desenlace de la semana y
+   "más peleado" es una nota al pie— y una grilla pareja dice que sí.
+
+   Ahora es una tira que fluye: cada momento ocupa lo que mide, separados por
+   un punto, y el de la vuelta se lleva su propio peso. Si una semana no tuvo
+   vuelta, los otros tres se acomodan solos en vez de dejar una columna
+   vacía. */
 .torneo-momentos-tira{
-  display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
-  gap:14px 24px; padding:10px 0 4px;
+  display:flex; flex-wrap:wrap; align-items:flex-start;
+  gap:14px 0; padding:10px 0 4px;
 }
-.torneo-momento{display:flex; flex-direction:column; gap:2px; min-width:0;}
+.torneo-momento{display:flex; flex-direction:column; gap:2px; min-width:0; max-width:230px;}
+/* El separador entre momentos, que es lo que hace que se lean como una
+   crónica corrida y no como celdas. */
+.torneo-momento + .torneo-momento{
+  padding-left:20px; margin-left:20px; border-left:1px solid var(--border-soft);
+}
+/* La vuelta es el desenlace, no un dato más: nombre en dorado y un escalón
+   más de tipografía. Es el único momento que cambia quién ganó. */
+.torneo-momento.vuelta .torneo-momento-quien{color:var(--accent); font-size:15px;}
+.torneo-momento.vuelta .torneo-momento-et{color:var(--accent-dim);}
 .torneo-momento-et{
   display:flex; align-items:center; gap:5px;
   font-size:9.5px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase;
@@ -4941,35 +4969,42 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    franja dorada, el 2º y el 3º a media escala y con la distancia al primero
    escrita, que es el número que dice si la semana estuvo cerrada. Del cuarto
    para abajo vuelve la lista compacta — ahí el puesto sí es una fila más. */
+/* ── El podio, SIN tres cajas iguales ──
+   Eran tres tarjetas del mismo tamaño, con el mismo fondo y el mismo padding,
+   y el problema no era que fueran cards: era que en una competencia el primero
+   y el tercero NO pesan lo mismo, y tres rectángulos idénticos dicen que sí.
+   El filete dorado del campeón no alcanzaba para desmentir al tamaño.
+
+   Ahora el campeón se lleva su propio renglón a tipografía grande y el 2.º y
+   el 3.º van abajo, a la mitad, separados por una línea. Sin fondo: lo que
+   agrupa es la posición y el aire. */
 .torneo-podio{
-  /* auto-fit y no `repeat(3,...)`: una edición de dos participantes tiene
-     podio de dos, y con tres columnas fijas la tercera quedaba como un hueco
-     del ancho de una tarjeta. */
-  display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));
-  gap:10px; padding:12px 0 4px; align-items:stretch;
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:0 24px; padding:12px 0 4px;
+}
+/* El campeón ocupa las dos columnas y la línea lo separa de los otros dos. */
+.torneo-podio-puesto.p1{
+  grid-column:1 / -1;
+  padding-bottom:14px; margin-bottom:14px;
+  border-bottom:1px solid var(--border-soft);
 }
 .torneo-podio-puesto{
   position:relative; display:flex; flex-direction:column; gap:2px; min-width:0;
-  padding:11px 12px 10px 14px; border-radius:var(--radius-md);
-  background:var(--surface-raised); overflow:hidden;
 }
-.torneo-podio-puesto::before{
-  content:""; position:absolute; left:0; top:0; bottom:0; width:2px;
-  background:var(--border-firm);
-}
-.torneo-podio-puesto.campeon{background:var(--accent-wash-soft);}
-.torneo-podio-puesto.campeon::before{background:var(--accent); width:3px;}
-.torneo-podio-medalla{font-size:13px; line-height:1;}
+.torneo-podio-medalla{font-size:13px; line-height:1; margin-bottom:2px;}
+.torneo-podio-puesto.p1 .torneo-podio-medalla{font-size:20px; margin-bottom:4px;}
 .torneo-podio-nombre{
   font-family:var(--font-display); font-size:13.5px; font-weight:700; color:var(--text-primary);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.torneo-podio-puesto.p1 .torneo-podio-nombre{font-size:15.5px; font-weight:800; letter-spacing:-0.015em;}
+/* El salto de escala es lo que hace el podio. 13,5 contra 24 no es "un poco
+   más grande": es la diferencia entre ganar y salir segundo. */
+.torneo-podio-puesto.p1 .torneo-podio-nombre{font-size:24px; font-weight:800; letter-spacing:-0.02em;}
 .torneo-podio-pts{
   font-family:var(--font-stat); font-size:17px; font-weight:800;
   font-variant-numeric:tabular-nums; letter-spacing:-0.02em; color:var(--text-secondary);
 }
-.torneo-podio-puesto.p1 .torneo-podio-pts{font-size:21px; color:var(--accent);}
+.torneo-podio-puesto.p1 .torneo-podio-pts{font-size:32px; color:var(--accent); line-height:1.05;}
 .torneo-podio-meta{
   display:flex; align-items:baseline; gap:6px; flex-wrap:wrap;
   font-size:10.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;
@@ -4980,11 +5015,19 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 }
 .torneo-podio-brecha{font-size:10.5px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
 @media (max-width:620px){
-  /* Tres columnas de 100px no son un podio, son tres cajitas. Apilado, el
-     campeón arriba y los otros dos abajo sigue leyéndose como podio. */
-  .torneo-podio{grid-template-columns:1fr; gap:8px;}
-  .torneo-podio-puesto.p1 .torneo-podio-nombre{font-size:16px;}
-  .torneo-momentos-tira{grid-template-columns:repeat(auto-fit, minmax(135px, 1fr)); gap:12px 16px;}
+  /* El 2.º y el 3.º uno abajo del otro: a 160px de columna, "compren bitcoin"
+     con su puntaje y su brecha no entra. */
+  .torneo-podio{grid-template-columns:1fr; gap:12px;}
+  .torneo-podio-puesto.p1{margin-bottom:2px;}
+  .torneo-podio-puesto.p1 .torneo-podio-nombre{font-size:20px;}
+  .torneo-podio-puesto.p1 .torneo-podio-pts{font-size:26px;}
+  /* En el teléfono vuelven a apilarse: cuatro momentos en fila con
+     separadores verticales no entran en 390px. */
+  .torneo-momento + .torneo-momento{
+    padding-left:0; margin-left:0; border-left:none;
+    padding-top:10px; margin-top:10px; border-top:1px solid var(--border-soft);
+  }
+  .torneo-momento{max-width:none; width:100%;}
 }
 .torneo-tabla{padding:8px 0 14px;}
 .torneo-fila{
@@ -5799,6 +5842,10 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .inicio-movida.bueno .inicio-movida-icono{color:var(--good);}
 .inicio-movida.malo .inicio-movida-icono{color:var(--critical);}
 .inicio-movida.neutro .inicio-movida-icono{color:var(--text-muted);}
+/* El récord en dorado y no en verde: el verde dice "esto estuvo bien" y esto
+   es otra cosa — un hito que pasa una vez por temporada. */
+.inicio-movida.record .inicio-movida-icono{color:var(--accent);}
+.inicio-movida.record .inicio-movida-cambio{color:var(--accent);}
 /* TRES renglones y no dos: nombre, qué pasó y el contexto. Estaban el cambio
    y el contexto apretados en la misma línea de 11px —"3 ganadas al hilo
    Esmeralda 4"— y con la columna entera para ellos eso es un renglón chiquito

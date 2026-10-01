@@ -39,7 +39,7 @@ export const LP_MINIMO = 25;
 /** Desde cuántas seguidas una racha es noticia. Con tres ya se habla de eso en el chat. */
 export const RACHA_MINIMA = 3;
 
-export type TipoMovimiento = "ascenso" | "descenso" | "lp" | "racha";
+export type TipoMovimiento = "ascenso" | "descenso" | "lp" | "racha" | "record";
 
 export interface Movimiento {
   /** La clave del jugador, `Nombre#TAG`: con esto se abre su perfil. */
@@ -146,6 +146,34 @@ export function movimientosRecientes(players: Player[], ahora = Date.now()): Mov
           peso: Math.abs(delta),
         };
       }
+    }
+
+    // ── El máximo de la temporada ──
+    // Por ARRIBA de todo, incluso de un ascenso: ascender a Esmeralda 1 pasa
+    // cuando te toca, llegar al punto más alto en el que estuviste pasa una
+    // vez por temporada. Y pide que el pico sea de HOY: estar en el pico sin
+    // haberse movido es el estado normal del que va primero, no una noticia
+    // — ahí sale todos los días durante un mes.
+    const picoHoy = (() => {
+      if (!previa || !ultima) return false;
+      const ahoraScore = rankScore(ultima.tier, ultima.division, ultima.lp);
+      const antesScore = rankScore(previa.tier, previa.division, previa.lp);
+      const pico = rankScore(p.peakLp.tier, p.peakLp.division, p.peakLp.lp);
+      // Igual y no mayor: `peakLp` ya incluye el valor de ahora, así que
+      // cuando se bate el récord el actual ES el pico, no lo supera.
+      return ahoraScore >= pico && antesScore < pico;
+    })();
+    if (picoHoy) {
+      elegido = {
+        ...base,
+        tipo: "record",
+        cambio: `Nuevo máximo · ${rangoTexto(ultima!.tier, ultima!.division)} · ${ultima!.lp} LP`,
+        contexto: lpTexto(lpDeHoy(p, hoy)),
+        tono: "bueno",
+        // Arriba del ascenso (10.000) por lo de recién. Sin sumarle el delta:
+        // un récord es un récord, no se ordena por cuánto lo batiste.
+        peso: 20000,
+      };
     }
 
     if (!elegido) {
