@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import { linePath } from "@/lib/chart";
 import { divisionCorta, rangoTexto, tierFor } from "@/lib/ladder";
 import { championLabel } from "@/lib/champion-names";
@@ -90,6 +90,11 @@ export function ProgresionLP({
   ddragonVersion: string | null;
 }) {
   const [hover, setHover] = useState<number | null>(null);
+  // Sin los dos puntos que mete React: `url(#:r0:)` no es una referencia CSS
+  // válida. El id tiene que ser único por si algún día se dibujan dos
+  // gráficos en la misma página — dos clipPath con el mismo id y el segundo
+  // se queda con la cortina del primero.
+  const cortinaId = `prog-cortina-${useId().replace(/:/g, "")}`;
   // El ancho real del dibujo. Hace falta para ubicar los rótulos de los
   // hitos: el SVG se estira, pero un rótulo de HTML mide siempre lo mismo en
   // píxeles, así que cuántos entran sin pisarse depende del ancho de verdad y
@@ -255,10 +260,19 @@ export function ProgresionLP({
               vectorEffect="non-scaling-stroke"
             />
           ))}
-          {/* pathLength="1" normaliza el largo del trazo a 1 sin importar la
-              geometría, que es lo que deja dibujar la línea con un
-              stroke-dasharray de 1 en CSS y sin medir nada en JS. */}
-          <path d={linea} className="prog-linea" pathLength={1} vectorEffect="non-scaling-stroke" />
+          {/* La línea se traza con una CORTINA y no con stroke-dasharray.
+              El truco del dasharray estaba roto en pantallas anchas:
+              `pathLength` normaliza en unidades del viewBox y
+              `non-scaling-stroke` hace que el guión se calcule en píxeles de
+              pantalla, así que con el SVG estirado 1,9× se dibujaba el 44% de
+              la curva y el resto quedaban puntos sin línea. Ver el bloque de
+              .prog-cortina en globals.css. */}
+          <defs>
+            <clipPath id={cortinaId} clipPathUnits="userSpaceOnUse">
+              <rect className="prog-cortina" x={0} y={0} width={W} height={H} />
+            </clipPath>
+          </defs>
+          <path d={linea} className="prog-linea" clipPath={`url(#${cortinaId})`} vectorEffect="non-scaling-stroke" />
           {/* Un punto por partida, del color de su resultado. Es lo que
               convierte la línea en una historia: se ve la racha de tres
               verdes y el bajón de dos rojas sin tocar nada.

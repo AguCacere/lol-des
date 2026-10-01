@@ -6468,10 +6468,37 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .prog-linea{
   fill:none; stroke:var(--accent-dim); opacity:0.72; stroke-width:1.6px;
   stroke-linejoin:round; stroke-linecap:round;
-  stroke-dasharray:1; stroke-dashoffset:1;
-  animation:prog-traza 520ms var(--e-ambos) forwards;
 }
-@keyframes prog-traza{to{stroke-dashoffset:0;}}
+/* ── Cómo se dibuja la línea, y por qué NO con stroke-dasharray ──
+   Esto era `pathLength="1"` + `stroke-dasharray:1` animando el dashoffset:
+   el truco clásico para trazar una línea sin medirla en JS. **Y estaba roto
+   en pantallas anchas.**
+
+   El SVG va con `preserveAspectRatio="none"`, así que el viewBox de 620
+   unidades se estira a lo que mida la caja —en 1440px son 1166, o sea 1,9×—
+   y la línea lleva `vector-effect:non-scaling-stroke` para que el grosor no
+   se deforme con esa escala. Ahí está el choque: `pathLength` normaliza el
+   largo en unidades del VIEWBOX, pero con non-scaling-stroke el navegador
+   calcula el guión en PÍXELES DE PANTALLA. Los dos números no son el mismo y
+   el guión termina cubriendo 1/escala del trazo: a 1440px se dibujaba el 44%
+   de la curva y el resto quedaban puntos sueltos sin línea. Reproducido en
+   Chromium con las tres variantes al lado.
+
+   Por eso ahora el trazado es una CORTINA: un rectángulo adentro de un
+   clipPath que va de scaleX(0) a scaleX(1). Se ve igual, es transform puro
+   —o sea GPU— y, al vivir en coordenadas del viewBox, le da exactamente lo
+   mismo cuánto se estire el SVG. */
+.prog-cortina{
+  transform-box:fill-box; transform-origin:left center;
+  animation:prog-traza 520ms var(--e-ambos) both;
+}
+@keyframes prog-traza{from{transform:scaleX(0);} to{transform:scaleX(1);}}
+@media (prefers-reduced-motion:reduce){
+  /* Explícito: el interruptor global deja la animación en 0.001ms, que acá
+     da bien de casualidad. Si alguien invierte el keyframe algún día, sin
+     esto la línea desaparecería entera. */
+  .prog-cortina{animation:none; transform:none;}
+}
 /* Los puntos son líneas de largo cero con la punta redonda (ver el
    componente): con el SVG estirado, un <circle> sale ovalado y una punta
    redonda de stroke que no escala, no. */

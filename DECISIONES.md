@@ -4210,3 +4210,92 @@ Lo que no cambió, porque ya estaba bien: se cuenta **por puuid** y no por
 nombre. El Riot ID se puede cambiar cuando uno quiera, y por nombre el
 palmarés de alguien que se renombró se partiría en dos personas con un título
 cada una.
+
+## Supabase devuelve mil filas y no avisa
+
+El bug más caro hasta ahora, y el que menos se veía.
+
+**PostgREST corta en 1000 filas** cualquier consulta que no pida un rango. No
+tira error: contesta `error: null` con mil filas y el código sigue como si eso
+fuera todo lo que hay.
+
+`/api/ladder` leía `lp_snapshots` así:
+
+```ts
+.select("...").in("puuid", puuids).order("captured_at", { ascending: true })
+```
+
+El día que la tabla cruzó las mil filas —1124 el 1/10— las mil que llegaban
+eran **las más viejas**. La app dejó de ver cualquier foto posterior al **22 de
+septiembre**. Para todos.
+
+Y de ahí para abajo cae todo lo que depende de las fotos: sin la foto que
+cierra un tramo no se puede atribuir el LP de una partida, así que el gráfico
+de progresión de varios se quedó mostrando partidas de hace una semana con un
+"17 sin LP atribuido" al lado. El de swampii dibujaba tres puntos del 21 de
+septiembre teniendo veinte partidas, la última de anteayer. Verificado contra
+la base: la segunda página trae 124 filas y **17 son exactamente las fotos de
+soloq de swampii que faltaban**.
+
+La consulta de `matches` de la misma ruta tenía el mismo agujero al revés:
+1373 filas de soloq, ordenadas descendente, así que se perdían las 373 más
+VIEJAS. Menos visible —lo reciente estaba bien— pero el pico histórico, los
+récords personales, los matchups y los promedios por rol se calculan sobre
+"todo el historial" y les faltaba un cuarto.
+
+### Por qué no es un `.limit()` más grande
+
+Un tope más grande es el mismo bug con otro número, y la próxima vez tampoco
+avisa. `lib/paginado.ts` pagina hasta que la base deja de dar filas, y si
+alguna vez pasa el tope de seguridad lo **grita en el log**. Prefiero un error
+en el log a una pantalla que muestra un número viejo con total naturalidad.
+
+Dos detalles que no son opcionales:
+
+- **El orden tiene que ser TOTAL.** Paginar sobre un orden con empates deja que
+  la base devuelva la misma fila en dos páginas y se saltee otra. Por eso las
+  dos consultas desempatan por algo único: `id` en `lp_snapshots`, `match_id` +
+  `puuid` en `matches`.
+- **Una página corta es el final**, y es la única señal confiable. Pedir el
+  total con `count` cuesta otra consulta y puede mentir si entran filas nuevas
+  en el medio.
+
+### Lo que queda vigilado
+
+Las consultas de la liga (`/api/liga` y `lib/liga-cierre.ts`) están acotadas a
+una ventana de ~15 días y hoy dan ~400 filas cada una, medido. No se tocaron,
+pero son las que deciden quién cobra: si el grupo crece o juega mucho más,
+son las siguientes en cruzar el umbral. Anotado en PENDIENTES.
+
+## El gráfico de LP se dibujaba hasta la mitad en pantallas anchas
+
+Síntoma: la curva de la progresión se cortaba a media pantalla y de ahí para la
+derecha quedaban los puntos sueltos, sin línea. En monitores anchos.
+
+No era un problema de datos: los puntos y la línea salen del MISMO array de
+coordenadas. Era el truco con el que se trazaba la línea.
+
+La línea se dibujaba con el clásico `pathLength="1"` + `stroke-dasharray:1`
+animando el `stroke-dashoffset` — normaliza el largo del trazo sin medir nada
+en JS. Pero el SVG va con `preserveAspectRatio="none"` (el viewBox de 620
+unidades se estira a lo que mida la caja) y la línea lleva
+`vector-effect:non-scaling-stroke` para que el grosor no se deforme con esa
+escala.
+
+**Ahí está el choque**: `pathLength` normaliza el largo en unidades del
+viewBox, y con `non-scaling-stroke` el navegador calcula el guión en PÍXELES DE
+PANTALLA. Los dos números no son el mismo, y el guión termina cubriendo
+**1/escala** del trazo. A 1440px la escala es 2,2× y se dibujaba el 44% de la
+curva.
+
+Por eso nunca se vio en desarrollo: a 700px de ancho la escala es 1,08 y la
+línea sale entera.
+
+Reproducido en Chromium con las tres variantes una al lado de la otra —con
+non-scaling-stroke, sin él, y sin pathLength— y solo la primera se corta.
+
+**La solución es una cortina**: un `<rect>` adentro de un `clipPath` que va de
+`scaleX(0)` a `scaleX(1)`. Se ve igual que antes, sigue siendo `transform`
+puro —o sea GPU, sin recalcular layout— y, al vivir en coordenadas del viewBox,
+le da exactamente lo mismo cuánto se estire el SVG. Verificado a 390, 1024,
+1440 y 1920: la línea llega al último punto en los cuatro.

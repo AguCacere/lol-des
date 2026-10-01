@@ -180,6 +180,10 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   hoy). `mensajeDelDia` devuelve **null** cuando no hay nada que mandar: los
   domingos —ese día sale el cierre y dos mensajes se pisan— y los días en que no
   jugó nadie.
+- `paginado.ts` — `todasLasFilas`, para leer una tabla entera de Supabase sin que
+  PostgREST la corte en 1000 filas sin avisar. Lo usan las dos consultas grandes
+  de `/api/ladder`. El orden que se le pase tiene que ser TOTAL (desempatado por
+  algo único) o la paginación repite filas y se saltea otras. Ver DECISIONES.
 - `palmares.ts` — el historial de la liga: `dueloDeLaEdicion` (por cuánto ganó y
   contra quién, null si el campeón no terminó primero), `palmares` y `titulosDe`
   (cuántas copas tiene cada uno, contadas por PUUID para que un renombre no

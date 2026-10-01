@@ -3,6 +3,7 @@ import { detectTilt } from "@/lib/tilt";
 import { itemMap } from "@/lib/ddragon";
 import { agruparCompra, computeBuildStats, recorridoCore, type BuildSample } from "@/lib/builds";
 import { getSupabaseServerClient } from "@/lib/supabase";
+import { todasLasFilas } from "@/lib/paginado";
 import { peakFromHistory, ROLES, tierScore } from "@/lib/ladder";
 import { divisionFromRiot, normalizeRole, roleFromTeamPosition, tierKeyFromRiot } from "@/lib/mapping";
 import { historialDeLineas, type PartidaConLinea } from "@/lib/lineas";
@@ -216,11 +217,24 @@ export async function GET() {
   }
 
   const dbQueries = Promise.all([
-    supabase
-      .from("lp_snapshots")
-      .select("puuid, lp, captured_at, tier, division, wins, losses, queue_type")
-      .in("puuid", puuids)
-      .order("captured_at", { ascending: true }),
+    // Paginadas las dos, y no por prolijidad: las dos ya habían cruzado las
+    // mil filas y PostgREST las estaba cortando SIN AVISAR. En `lp_snapshots`
+    // —ordenada ascendente— las mil que llegaban eran las más viejas, así que
+    // la app no veía ninguna foto posterior al 22 de septiembre y las
+    // partidas nuevas se quedaban sin LP atribuido. Ver lib/paginado.ts.
+    //
+    // El `.order` secundario no es decorativo: paginar sobre un orden con
+    // empates puede repetir una fila en dos páginas y saltearse otra.
+    todasLasFilas("ladder/lp_snapshots", (desde, hasta) =>
+      supabase
+        .from("lp_snapshots")
+        .select("puuid, lp, captured_at, tier, division, wins, losses, queue_type")
+        .in("puuid", puuids)
+        .order("captured_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(desde, hasta),
+    ),
+    todasLasFilas("ladder/matches", (desde, hasta) =>
     supabase
       .from("matches")
       // Solo las columnas que necesita el AGREGADO, no las 58. Las otras 37
@@ -245,7 +259,11 @@ export async function GET() {
       // DURACION_MINIMA_S.
       .gte("game_duration_s", DURACION_MINIMA_S)
       .order("played_at", { ascending: false })
+      .order("match_id", { ascending: true })
+      .order("puuid", { ascending: true })
+      .range(desde, hasta)
       .returns<MatchLite[]>(),
+    ),
     supabase
       .from("champion_mastery")
       .select("puuid, champion, level, points")
