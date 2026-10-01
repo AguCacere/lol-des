@@ -196,9 +196,16 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   entra por parámetro, así que es determinístico en los tests y el único que
   llama a `Math.random` es el que escribe el resultado.
 - `shell-db.ts` — lo que aquel no puede hacer: que el sorteo pase UNA vez y
-  quede escrito. `lanzarShell` es la única puerta. La atomicidad sale del ORDEN
-  y de un índice único sobre `interaccion_id`, no de una transacción: el evento
-  se escribe primero y es el candado contra el reintento de Discord.
+  quede escrito. `lanzarShell` es la única puerta. El sorteo, el campeón y los
+  mains se resuelven acá, pero las tres escrituras (evento, −1 de inventario y
+  efecto) entran a Postgres como UNA sola operación: la función
+  `lanzar_blue_shell` (`supabase/schema.sql`). Adentro de ella, un
+  `pg_advisory_xact_lock` por (edición, jugador) serializa el lee-inventario-
+  y-después-descontá, y el índice único sobre `interaccion_id` sigue siendo el
+  candado contra el reintento de Discord —que ahora devuelve el resultado de
+  la primera vez, marcado `repetida`, en vez de un error—. Y un trigger en
+  `liga_shells` impide que el saldo quede negativo venga el descuento de
+  donde venga.
 - `shell-cron.ts` — cierra los efectos que esperan partidas, colgado del final
   de `refreshOne`. No abre un segundo polling. La idempotencia es la lista de
   `match_id` ya consumidos, no un contador.

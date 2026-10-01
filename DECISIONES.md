@@ -4664,3 +4664,83 @@ récord, el actual ES el pico.
 
 Va en dorado y no en verde. El verde dice "esto estuvo bien"; esto es otra
 cosa, un hito.
+
+## El lanzamiento de una Blue Shell es una transacción, no un orden prolijo
+
+La primera versión de `lanzarShell` hacía tres escrituras sueltas desde
+TypeScript: evento, `−1` de inventario y efecto, en ese orden. El comentario
+del archivo incluso admitía que la atomicidad "sale del orden". **Un orden
+cuidadoso no es una transacción.** PostgREST manda cada `insert` como su
+propia request, así que cualquier corte entre la primera y la tercera —un
+timeout de la función de Vercel, un error de red, un constraint— dejaba el
+lanzamiento a medias:
+
+- evento escrito y shell NO descontada → una shell infinita;
+- evento y shell escritos y efecto NO → un mensaje que anuncia un MAIN BAN
+  que no existe en `liga_efectos` y que el cron nunca va a cerrar.
+
+Ninguno de los dos se arregla solo, y los dos corrompen el puntaje de una
+edición con premio.
+
+Ahora las tres entran como UNA: la función `lanzar_blue_shell` (PL/pgSQL, en
+`supabase/schema.sql`). Una función de Postgres corre dentro de una
+transacción implícita, así que la excepción de cualquiera de los tres
+`insert` deshace los anteriores sin que haya que escribir un rollback. No se
+simuló la transacción desde TypeScript: hacerlo habría significado
+compensaciones manuales —borrar el evento si falla el efecto— que fallan
+exactamente en los mismos escenarios que intentan cubrir.
+
+Lo que **no** se movió a la base es el azar: el sorteo, el rebote, el campeón
+y los mains congelados siguen resolviéndose en TypeScript y entran a la
+función como parámetros. Así los tests siguen siendo determinísticos y
+`CONFIG_SHELL` sigue siendo el único lugar donde está el balance.
+
+### Por qué una shell no se puede gastar dos veces
+
+El inventario no es una fila con un número: es la SUMA de un ledger
+(`liga_shells.delta`). No hay UNIQUE que pueda atajar un saldo negativo,
+porque lo que estaría mal no es ninguna fila sino el total. Y el patrón
+"leo el saldo, después inserto −1" es el clásico check-then-act: con una sola
+shell, dos requests concurrentes leen 1 las dos y las dos insertan.
+
+Lo resuelve un `pg_advisory_xact_lock(hashtext(semana || '|' || actor))`
+tomado adentro de la función **antes** de leer el inventario. El lock es por
+edición y jugador, así que dos personas distintas no se estorban; el segundo
+lanzamiento del mismo jugador espera, y cuando entra lee el saldo ya
+descontado y se va con `sin_shells`. Se libera al terminar la transacción, con
+commit o con rollback, así que no hay lock colgado que limpiar.
+
+Se eligió el advisory lock antes que una fila de estado bloqueable con
+`select … for update` porque no obliga a inventar una tabla de saldos
+paralela al ledger —que habría que mantener en sincronía y sería una segunda
+fuente de verdad del inventario—.
+
+Y como el lock solo protege a quien lo toma, hay además un trigger
+`before insert` en `liga_shells` (`liga_shells_no_negativo`) que, cuando el
+delta es negativo, toma el mismo lock y rechaza el insert si el saldo
+quedaría abajo de cero. Así que el inventario no puede quedar negativo
+aunque el descuento venga de un arreglo a mano en el SQL editor o de un
+script futuro que no sepa de la función. Los advisory locks son reentrantes
+dentro de una transacción, así que cuando el que inserta es
+`lanzar_blue_shell` —que ya lo tiene— el trigger no agrega espera. Probado
+contra la base: un `delta = -1` con saldo 0 levanta `check_violation`.
+
+### El reintento de Discord ahora contesta, no falla
+
+Discord reintenta una interacción cuando no le llega la respuesta a tiempo.
+Antes el segundo intento chocaba contra el índice único de `interaccion_id` y
+devolvía un error — al que de verdad había tirado bien. Ahora la función
+reconoce la interacción ya procesada y devuelve **lo mismo que la primera
+vez**: mismo evento, mismo efecto, mismo rebote, mismos mains congelados
+(salen del evento guardado, no de un `mainsDe` nuevo que podría haber
+cambiado). El bot lo marca con un renglón, para que nadie lea dos impactos
+donde hubo uno.
+
+### Y nunca contra uno mismo
+
+Está prohibido en tres capas, y las tres dicen lo mismo a propósito: una
+request armada a mano no pasa por la primera. El corte de `lanzarShell` es
+**antes** de sortear —no se gasta el RNG ni se consulta nada—, la función lo
+repite por si alguien llama al RPC directo, y `liga_eventos` tiene un CHECK
+(`liga_eventos_no_self`) como última línea. El motor puro (`lib/shell.ts`) no
+lo chequea: es matemática y no sabe de reglas.

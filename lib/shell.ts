@@ -130,9 +130,10 @@ export interface Lanzamiento {
  * recién después si vuelve. Un rebote no cambia el efecto, cambia a quién le
  * pega.
  *
- * Tirarse una shell a uno mismo es legal y no se trata distinto: ahí el
- * rebote no cambia nada y el robo da cero, que es exactamente lo que
- * corresponde.
+ * Acá no se chequea que el objetivo sea otro: esto es matemática pura y no
+ * sabe de reglas. Tirarse una shell a uno mismo está PROHIBIDO, y el corte
+ * está donde se puede hacer cumplir de verdad —`lanzarShell`, la función
+ * `lanzar_blue_shell` y un CHECK en `liga_eventos`—, no acá.
  */
 export function resolverLanzamiento(actor: string, objetivo: string, rnd: () => number): Lanzamiento {
   const efecto = sortearEfecto(rnd);

@@ -472,6 +472,168 @@ create index if not exists liga_efectos_pend_idx
   on liga_efectos (puuid, estado) where estado = 'PENDIENTE';
 alter table liga_efectos enable row level security;
 
+-- Tercera capa contra el self-target: ni una request armada a mano puede
+-- guardar un evento donde el actor y el objetivo sean el mismo. Con los
+-- `is null` para no romper los eventos que no tienen las dos puntas.
+alter table liga_eventos drop constraint if exists liga_eventos_no_self;
+alter table liga_eventos add constraint liga_eventos_no_self
+  check (actor_puuid is null or objetivo_puuid is null or actor_puuid <> objetivo_puuid);
+
+-- ── El inventario NUNCA puede quedar negativo ────────────────────────────
+-- El advisory lock de `lanzar_blue_shell` alcanza mientras todos los
+-- descuentos pasen por esa función. Esto es la red por si alguno no pasa: un
+-- arreglo a mano desde el SQL editor, un script futuro, cualquier cosa.
+-- Que el saldo no pueda ser negativo deja de depender de que el que escribe
+-- se acuerde de tomar el lock.
+create or replace function liga_shells_no_negativo() returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  v_saldo int;
+begin
+  -- Sumar shells nunca es problema; el chequeo solo le cuesta a los gastos.
+  if new.delta >= 0 then
+    return new;
+  end if;
+  -- El MISMO lock que toma la función. Los advisory locks son reentrantes
+  -- dentro de una transacción, así que cuando el que inserta es
+  -- `lanzar_blue_shell` —que ya lo tiene— esto no traba nada.
+  perform pg_advisory_xact_lock(hashtext(new.semana || '|' || new.puuid));
+  select coalesce(sum(delta), 0) into v_saldo
+    from liga_shells
+    where semana = new.semana and puuid = new.puuid;
+  if v_saldo + new.delta < 0 then
+    raise exception 'inventario insuficiente: % tiene % en % y se le quieren descontar %',
+      new.puuid, v_saldo, new.semana, -new.delta
+      using errcode = 'check_violation';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists liga_shells_no_negativo on liga_shells;
+create trigger liga_shells_no_negativo
+  before insert on liga_shells
+  for each row execute function liga_shells_no_negativo();
+
+-- ── El lanzamiento de una Blue Shell, ATÓMICO ────────────────────────────
+-- Antes esto eran tres INSERT independientes desde TypeScript en un orden
+-- elegido con cuidado, y eso NO es una transacción: entre el evento y el
+-- descuento de la shell puede caerse la red, y queda un lanzamiento a medias
+-- —un evento que dice "MAIN BAN aplicado" sin ningún MAIN_BAN pendiente, o
+-- una shell gastada sin nada que la justifique—.
+--
+-- Una función PL/pgSQL corre dentro de una transacción implícita: si
+-- cualquier cosa falla, se deshace TODO. El sorteo sigue pasando en el
+-- servidor de Node (para poder fijarlo en los tests) y entra acá ya resuelto;
+-- lo único que hace esta función es escribirlo, entero o nada.
+--
+-- ## Por qué no se puede gastar la misma shell dos veces
+--
+-- `pg_advisory_xact_lock` sobre (edición, jugador) serializa a ese jugador.
+-- El lock se toma ANTES de leer el inventario y se libera solo al terminar la
+-- transacción, así que la secuencia peligrosa —A lee 1, B lee 1, los dos
+-- insertan— no puede pasar: B se queda esperando en el lock hasta que A
+-- commitea, y recién entonces lee el inventario ya en 0.
+--
+-- Leer y después insertar sin el lock es exactamente el bug clásico de
+-- "check-then-act", y con un ledger no hay un UNIQUE que lo ataje: el saldo
+-- es una suma, no una fila.
+--
+-- El lock va antes del chequeo de idempotencia a propósito. Si dos reintentos
+-- de Discord llegan juntos, el segundo espera y, cuando entra, YA ve el
+-- evento commiteado del primero y devuelve ese mismo resultado en vez de
+-- chocar contra el índice único.
+create or replace function lanzar_blue_shell(
+  p_semana      text,
+  p_actor       text,
+  p_objetivo    text,
+  p_final       text,
+  p_efecto      text,
+  p_rebotado    boolean,
+  p_monto       numeric,
+  p_interaccion text,
+  p_campeon     text,
+  p_prohibidos  text[],
+  p_faltan      int
+) returns jsonb
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_evento       uuid;
+  v_disponibles  int;
+  v_ya           jsonb;
+begin
+  -- 1. Nunca contra uno mismo. Es la última línea de defensa: TypeScript ya
+  --    lo rechaza antes de sortear, y liga_eventos tiene además un CHECK.
+  --    Las tres capas dicen lo mismo porque una request armada a mano no
+  --    pasa por la primera.
+  if p_actor is null or p_objetivo is null or p_actor = p_objetivo then
+    return jsonb_build_object('ok', false, 'error', 'self');
+  end if;
+
+  -- 2. El lock de este jugador en esta edición. Ver el header.
+  perform pg_advisory_xact_lock(hashtext(p_semana || '|' || p_actor));
+
+  -- 3. ¿Esta interacción ya se procesó? Devolver lo MISMO que la primera vez,
+  --    sin sortear de nuevo ni descontar otra shell.
+  if p_interaccion is not null then
+    select jsonb_build_object(
+             'ok', true, 'repetida', true, 'evento_id', e.id,
+             'efecto', e.efecto, 'rebotado', e.rebotado, 'final', e.final_puuid,
+             'campeon', e.meta->>'campeon',
+             -- Los mains quedaron CONGELADOS al lanzar. Un reintento tiene que
+             -- contestar esos, no los que más juegue hoy.
+             'prohibidos', e.meta->'prohibidos'
+           )
+      into v_ya
+      from liga_eventos e
+      where e.interaccion_id = p_interaccion;
+    if v_ya is not null then
+      return v_ya;
+    end if;
+  end if;
+
+  -- 4. El inventario, ya bajo el lock.
+  select coalesce(sum(delta), 0) into v_disponibles
+    from liga_shells
+    where semana = p_semana and puuid = p_actor;
+  if v_disponibles < 1 then
+    return jsonb_build_object('ok', false, 'error', 'sin_shells');
+  end if;
+
+  -- 5. Y las tres escrituras, en la misma transacción. Si cualquiera falla,
+  --    la excepción deshace las anteriores.
+  insert into liga_eventos (
+    semana, tipo, efecto, actor_puuid, objetivo_puuid, final_puuid,
+    rebotado, monto, interaccion_id, meta
+  ) values (
+    p_semana, 'SHELL_LANZADA', p_efecto, p_actor, p_objetivo, p_final,
+    p_rebotado, p_monto, p_interaccion,
+    jsonb_build_object('campeon', p_campeon, 'prohibidos', p_prohibidos)
+  ) returning id into v_evento;
+
+  insert into liga_shells (semana, puuid, delta, origen, evento_id)
+  values (p_semana, p_actor, -1, 'USO', v_evento);
+
+  if p_efecto <> 'STEAL_POINTS' then
+    insert into liga_efectos (
+      evento_id, semana, puuid, efecto, estado, campeon, prohibidos, faltan
+    ) values (
+      v_evento, p_semana, p_final, p_efecto, 'PENDIENTE',
+      p_campeon,
+      case when p_efecto = 'MAIN_BAN' then p_prohibidos else null end,
+      p_faltan
+    );
+  end if;
+
+  return jsonb_build_object('ok', true, 'repetida', false, 'evento_id', v_evento);
+end;
+$$;
+
 alter table lp_snapshots enable row level security;
 alter table matches enable row level security;
 alter table champion_mastery enable row level security;

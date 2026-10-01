@@ -5,22 +5,33 @@
  * ocupa de lo único que aquel no puede hacer: que el sorteo pase UNA sola vez
  * y quede escrito.
  *
- * ## Cómo se evita el doble uso
+ * ## La escritura es ATÓMICA, y eso no es negociable
  *
- * No hay transacciones multi-tabla desde PostgREST, así que la atomicidad sale
- * del ORDEN y de un índice único, no de un BEGIN:
+ * Antes esto eran tres INSERT independientes desde acá en un orden elegido con
+ * cuidado, y un orden cuidadoso **no es una transacción**: entre el evento y el
+ * descuento de la shell puede caerse la red, y queda un lanzamiento a medias —
+ * un evento que dice "MAIN BAN aplicado" sin ningún MAIN_BAN pendiente, o una
+ * shell gastada sin nada que la justifique.
  *
- *   1. Se inserta el evento con el `interaccion_id` de Discord. Ese id es
- *      único por interacción y la tabla tiene un índice único parcial sobre
- *      él: **si Discord reintenta, el segundo insert falla**. Es el candado, y
- *      va primero a propósito — antes de tocar el inventario.
- *   2. Recién con el evento escrito se descuenta la shell y se aplica el
- *      efecto.
+ * Ahora las tres escrituras entran a Postgres como UNA operación: la función
+ * `lanzar_blue_shell` (ver supabase/schema.sql), que corre en su transacción
+ * implícita. Si cualquiera de las tres falla, se deshacen todas.
  *
- * El modo de falla que queda es el opuesto —evento escrito y descuento que no
- * llega— y es el que conviene: se puede reconciliar mirando los eventos, que
- * es la fuente auditable. Al revés, una shell descontada sin evento se pierde
- * sin rastro.
+ * El sorteo sigue pasando acá, en el servidor de Node, y entra a la función ya
+ * resuelto. Es a propósito: así los tests pueden fijar el azar, y la función
+ * SQL se ocupa solo de escribir.
+ *
+ * ## Y por qué no se puede gastar la misma shell dos veces
+ *
+ * El saldo de un ledger es una SUMA, no una fila, así que no hay UNIQUE que
+ * ataje un saldo negativo. Leer el inventario y después insertar es el bug
+ * clásico de check-then-act: dos pedidos simultáneos leen 1 los dos y los dos
+ * descuentan.
+ *
+ * Lo resuelve un `pg_advisory_xact_lock` sobre (edición, jugador) adentro de
+ * la función, tomado ANTES de leer el inventario. El segundo pedido se queda
+ * esperando hasta que el primero commitea, y recién ahí lee el saldo — ya en
+ * cero.
  *
  * ## Y de dónde sale el actor
  *
@@ -47,6 +58,11 @@ export interface LanzamientoHecho extends Lanzamiento {
   campeon: string | null;
   /** Los mains congelados, en MAIN_BAN. */
   prohibidos: string[];
+  /**
+   * Si esto fue un REINTENTO de Discord y lo que se devuelve es el resultado
+   * de la primera vez. Nada se volvió a sortear ni a descontar.
+   */
+  repetida: boolean;
 }
 
 /** Un error de negocio, ya escrito para contestarle a quien lo tipeó. */
@@ -129,7 +145,22 @@ export async function lanzarShell(
 ): Promise<ResultadoLanzamiento> {
   const { semana, actor, objetivo, interaccionId, rnd = Math.random } = opciones;
 
-  // 1. Inventario. Se mira ANTES de sortear: sin shell no hay sorteo que valga.
+  // 1. Nunca contra uno mismo, y se corta ACÁ — antes de sortear el efecto,
+  //    antes del rebote y antes de tocar la base. Quien lo intentó se queda
+  //    con su shell.
+  //
+  //    No alcanza con esconderlo del autocompletado: una interacción armada a
+  //    mano llega igual. Por eso esto se repite en la función SQL y además hay
+  //    un CHECK en la tabla — tres capas diciendo lo mismo, porque una request
+  //    a mano no pasa por las primeras.
+  if (actor === objetivo) {
+    return { error: "No podés tirarte una Blue Shell a vos mismo." };
+  }
+
+  // 2. El inventario, a modo de atajo amable: si no tiene, se le dice sin
+  //    gastar un viaje a la función. La garantía REAL no está acá —esta
+  //    lectura puede quedar vieja en un milisegundo— sino adentro de
+  //    `lanzar_blue_shell`, bajo el lock.
   const inventario = await inventarioDeLaEdicion(supabase, semana);
   if ((inventario.get(actor) ?? 0) < 1) {
     return { error: "No tenés ninguna Blue Shell." };
@@ -137,61 +168,69 @@ export async function lanzarShell(
 
   const resuelto = resolverLanzamiento(actor, objetivo, rnd);
 
-  // 2. Lo que el efecto necesita saber, resuelto ANTES de escribir nada: una
-  //    vez escrito el evento, el campeón y los mains ya no se pueden volver a
+  // 3. Lo que el efecto necesita saber, resuelto ANTES de escribir: una vez
+  //    escrito el evento, el campeón y los mains ya no se pueden volver a
   //    sortear sin contradecir lo que la pantalla muestra.
   const campeon = resuelto.efecto === "RANDOM_CHAMPION" ? await opciones.campeonPara(resuelto.final) : null;
   const prohibidos = resuelto.efecto === "MAIN_BAN" ? await opciones.mainsDe(resuelto.final) : [];
   const robo = movimientoDeRobo(resuelto);
 
-  // 3. El evento primero, con el candado. Ver el header.
-  const { data: evento, error: eError } = await supabase
-    .from("liga_eventos")
-    .insert({
-      semana,
-      tipo: "SHELL_LANZADA",
-      efecto: resuelto.efecto,
-      actor_puuid: actor,
-      objetivo_puuid: objetivo,
-      final_puuid: resuelto.final,
-      rebotado: resuelto.rebotado,
-      monto: robo ? robo.monto : null,
-      interaccion_id: interaccionId,
-      meta: { campeon, prohibidos },
-    })
-    .select("id")
-    .single<{ id: string }>();
-  if (eError || !evento) {
-    // 23505 = choque de único: es el reintento de Discord haciendo su trabajo.
-    if ((eError as { code?: string } | null)?.code === "23505") {
-      return { error: "Esa Blue Shell ya se lanzó." };
-    }
-    return { error: errorDeTablas(eError?.message ?? "no se pudo registrar el lanzamiento") };
-  }
-
-  // 4. Y recién ahora se descuenta y se arma el efecto.
-  await supabase.from("liga_shells").insert({
-    semana,
-    puuid: actor,
-    delta: -1,
-    origen: "USO",
-    evento_id: evento.id,
+  // 4. Y todo lo demás en UNA operación. Ver el header.
+  const { data, error } = await supabase.rpc("lanzar_blue_shell", {
+    p_semana: semana,
+    p_actor: actor,
+    p_objetivo: objetivo,
+    p_final: resuelto.final,
+    p_efecto: resuelto.efecto,
+    p_rebotado: resuelto.rebotado,
+    p_monto: robo ? robo.monto : null,
+    p_interaccion: interaccionId,
+    p_campeon: campeon,
+    p_prohibidos: resuelto.efecto === "MAIN_BAN" ? prohibidos : null,
+    p_faltan: resuelto.efecto === "MAIN_BAN" ? CONFIG_SHELL.partidasDeBan : 1,
   });
+  if (error) return { error: errorDeTablas(error.message) };
 
-  if (resuelto.efecto !== "STEAL_POINTS") {
-    await supabase.from("liga_efectos").insert({
-      evento_id: evento.id,
-      semana,
-      puuid: resuelto.final,
-      efecto: resuelto.efecto,
-      estado: "PENDIENTE",
-      campeon,
-      prohibidos: resuelto.efecto === "MAIN_BAN" ? prohibidos : null,
-      faltan: resuelto.efecto === "MAIN_BAN" ? CONFIG_SHELL.partidasDeBan : 1,
-    });
+  const r = data as RespuestaRpc | null;
+  if (!r) return { error: errorDeTablas("la función de lanzamiento no contestó") };
+  if (!r.ok) {
+    return { error: r.error === "self" ? "No podés tirarte una Blue Shell a vos mismo." : "No tenés ninguna Blue Shell." };
   }
 
-  return { ...resuelto, eventoId: evento.id, campeon, prohibidos };
+  // 5. Un reintento de Discord devuelve el resultado de la PRIMERA vez, no uno
+  //    nuevo: ni se vuelve a sortear ni se descuenta otra shell. Lo que se
+  //    contesta es lo que de verdad pasó, que puede no ser lo que sorteó ESTA
+  //    corrida — por eso se lee del evento guardado y no de `resuelto`.
+  if (r.repetida) {
+    return {
+      efecto: (r.efecto as Lanzamiento["efecto"]) ?? resuelto.efecto,
+      actor,
+      objetivo,
+      final: r.final ?? resuelto.final,
+      rebotado: r.rebotado ?? resuelto.rebotado,
+      eventoId: r.evento_id,
+      campeon: r.campeon ?? null,
+      // Los mains que quedaron congelados en el evento, no los que más juegue
+      // hoy: entre el primer intento y el reintento pueden haber cambiado.
+      prohibidos: r.prohibidos ?? prohibidos,
+      repetida: true,
+    };
+  }
+
+  return { ...resuelto, eventoId: r.evento_id, campeon, prohibidos, repetida: false };
+}
+
+/** Lo que devuelve la función `lanzar_blue_shell`. */
+interface RespuestaRpc {
+  ok: boolean;
+  error?: string;
+  repetida?: boolean;
+  evento_id: string;
+  efecto?: string;
+  rebotado?: boolean;
+  final?: string;
+  campeon?: string | null;
+  prohibidos?: string[] | null;
 }
 
 /** Otorga una shell. `periodo` no nulo la hace idempotente contra el índice único. */

@@ -593,7 +593,15 @@ async function comandoShell(
   });
   if (fallo(res)) return `🐢 ${res.error}`;
 
-  return mensajeDeShell(res, yo.game_name, victima.game_name);
+  const mensaje = mensajeDeShell(res, yo.game_name, victima.game_name);
+  // Discord reintenta la misma interacción cuando no le llegó la respuesta a
+  // tiempo. Contestamos lo mismo que la primera vez —no se volvió a sortear
+  // ni se gastó otra shell—, pero avisando, para que nadie lea dos impactos
+  // donde hubo uno solo.
+  if (res.repetida) {
+    return `${mensaje}\n\n_(Es el mismo lanzamiento: Discord lo reintentó. No se gastó otra shell.)_`;
+  }
+  return mensaje;
 }
 
 /**

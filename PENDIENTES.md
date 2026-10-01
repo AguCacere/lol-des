@@ -139,8 +139,21 @@ ocho índices —incluidos los dos únicos parciales de los que depende toda la
 idempotencia—.
 
 El candado de Discord se probó CONTRA LA BASE, no solo con tests: insertar dos
-veces el mismo `interaccion_id` devuelve `23505`, que es exactamente el código
-que `lanzarShell` interpreta como reintento.
+veces el mismo `interaccion_id` devuelve `23505`.
+
+También está aplicada y verificada la pasada de atomicidad del 1/10: la
+función `lanzar_blue_shell`, el CHECK `liga_eventos_no_self` y el trigger
+`liga_shells_no_negativo`. Se comprobó leyendo `pg_proc`, `pg_constraint` y
+`pg_trigger`, y además ejercitando los tres caminos que NO escriben:
+objetivo = actor devuelve `{"ok":false,"error":"self"}`, sin inventario
+devuelve `{"ok":false,"error":"sin_shells"}`, y un `delta = -1` con saldo 0
+levanta `check_violation` (se probó dentro de un bloque que aborta solo, así
+que no quedó ninguna fila de sonda). **No hay nada que correr a mano**: el
+texto completo está en `supabase/schema.sql` por si hay que rehacer la base
+desde cero.
+
+Queda una fila de prueba en `liga_eventos` con `semana = '__test__'`, de
+cuando se probó el candado. No la borré: la limpiás vos desde Supabase.
 
 ### Lo que SÍ sigue bloqueando a `/shell` y a `/apostar`
 
