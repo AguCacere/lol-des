@@ -1973,6 +1973,18 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .match-review-banner svg{width:14px; height:14px; flex:none;}
 .match-review-banner strong{font-weight:700;}
 .match-review-reasons{color:var(--text-secondary); font-weight:500;}
+/* El valor y el habitual, no el porcentaje. El número de la partida pesa; el
+   de referencia va al lado, apagado y chico, que es la jerarquía con la que
+   se los lee: "cuánto hice" primero, "contra qué" después. */
+.match-review-razon{
+  display:inline-flex; align-items:baseline; gap:4px 7px; flex-wrap:wrap;
+  margin-left:7px; color:var(--text-secondary); font-weight:500;
+}
+.match-review-razon b{
+  color:var(--text-primary); font-weight:700;
+  font-variant-numeric:tabular-nums; letter-spacing:-0.01em;
+}
+.match-review-base{color:var(--text-muted); font-size:11.5px;}
 /* La build del detalle de partida: una tira compacta (runas + hechizos en
    chips, el recorrido de ítems, y la compra completa plegada) en lugar de las
    cuatro filas apiladas con etiqueta propia que tenía antes — en el celular
@@ -2276,60 +2288,108 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    altura real en px, así que el eje vertical es 1:1 y los textos y puntos
    (que son HTML, no SVG) se posicionan con el mismo número que usa el
    gráfico. Los colores salen de los tokens para que siga al tema. */
-.match-timeline{margin:2px 0 14px;}
-.mt-plot{position:relative;}
-.mt-plot svg{display:block; width:100%; height:100%;}
-.mt-area.good{fill:var(--good); opacity:0.18;}
-.mt-area.bad{fill:var(--critical); opacity:0.18;}
-.mt-linea{fill:none; stroke:var(--text-secondary); stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
-/* La línea del cero es la referencia que da sentido a todo el gráfico (arriba
-   ibas ganando la línea, abajo perdiéndola), por eso es punteada y visible en
-   vez de un gris apenas insinuado. */
-.mt-cero{stroke:var(--text-muted); stroke-width:1; stroke-dasharray:3 4; opacity:0.7;}
-.mt-eje{stroke:var(--border-soft); stroke-width:1;}
-.mt-hito-linea{stroke:var(--border-soft); stroke-width:1; stroke-dasharray:2 3;}
-.mt-hito{
-  position:absolute; transform:translateX(-50%); white-space:nowrap; pointer-events:none;
-  font-size:12px; font-weight:600; letter-spacing:-0.01em; line-height:1;
+/* ── TU LÍNEA y LA PARTIDA (components/MatchTimeline.tsx) ─────────────────
+   Dos bloques separados por aire y una regla, no por cajas. El pedido era
+   explícito: jerarquía con tipografía y espacio antes que con bordes y
+   fondos, y nada de cinco tarjetas adentro de otra tarjeta. */
+.linea-bloque{margin:2px 0 0;}
+.linea-cab{
+  display:flex; align-items:baseline; justify-content:space-between;
+  gap:6px 12px; flex-wrap:wrap; margin-bottom:9px;
 }
-.mt-hito.start{transform:none;}
-.mt-hito.end{transform:translateX(-100%);}
-.mt-hito.good{color:var(--good);}
-.mt-hito.bad{color:var(--critical);}
-.mt-hito.muted{color:var(--text-muted);}
-.mt-punto{
-  position:absolute; width:9px; height:9px; border-radius:50%;
-  transform:translate(-50%,-50%); border:2px solid var(--surface); box-sizing:border-box;
+.linea-titulo{
+  margin:0; font-family:var(--font-display); font-size:11px; font-weight:700;
+  letter-spacing:0.07em; text-transform:uppercase; color:var(--text-muted);
 }
-.mt-punto.good{background:var(--good);}
-.mt-punto.bad{background:var(--critical);}
-.mt-min{position:absolute; font-size:11px; color:var(--text-muted); line-height:1;}
-.mt-min.start{left:0;}
-.mt-min.end{right:0;}
-.match-timeline-pie{
-  display:flex; align-items:baseline; justify-content:space-between; gap:8px 14px; flex-wrap:wrap;
-  margin:6px 2px 0; font-size:12px; color:var(--text-muted); line-height:1.4;
+.linea-vs{
+  display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap;
+  font-size:12.5px; font-weight:600; color:var(--text-secondary);
 }
-.match-timeline-golds{display:flex; gap:12px; font-weight:700; font-variant-numeric:tabular-nums;}
-/* El rival de línea, con cara y nombre, adentro de la misma frase. Va en
-   `baseline` para que el texto siga alineado con el resto del pie, y el ícono
-   chiquito para que acompañe sin convertirse en el protagonista del renglón. */
-.match-timeline-vs{display:inline-flex; align-items:center; gap:5px; flex-wrap:wrap;}
-.match-timeline-rival{
-  display:inline-flex; align-items:center; gap:5px;
-  color:var(--text-secondary); font-weight:600;
+.linea-vs-sep{color:var(--text-muted); font-weight:500;}
+.linea-rival{display:inline-flex; align-items:center; gap:5px; color:var(--text-primary);}
+
+/* El pico: rótulo chico arriba, número grande abajo. Es el dato que contesta
+   "¿cuánto y cuándo?" y por eso es lo único grande del bloque. El color va en
+   el NÚMERO y no en un fondo: una superficie roja hacía que −500 pareciera
+   una catástrofe. */
+.linea-pico{display:flex; align-items:baseline; gap:4px 10px; flex-wrap:wrap; margin:0 0 6px;}
+.linea-pico-k{
+  display:inline-flex; align-items:center; gap:3px;
+  font-size:11.5px; color:var(--text-muted); letter-spacing:0.01em;
 }
+.linea-pico-v{
+  font-family:var(--font-display); font-size:19px; font-weight:700;
+  letter-spacing:-0.015em; font-variant-numeric:tabular-nums; line-height:1.1;
+  color:var(--text-primary);
+}
+.linea-pico.good .linea-pico-v{color:var(--good);}
+.linea-pico.bad .linea-pico-v{color:var(--critical);}
+.linea-pico-u{font-size:12px; font-weight:600; color:var(--text-muted);}
+.linea-pico-min{font-size:12px; font-weight:600; color:var(--text-muted); margin-left:2px;}
+
+/* El contexto histórico, si lo hay: una línea apagada debajo del número. No
+   es un badge ni una etiqueta de color — no clasifica la brecha, dice dónde
+   cae entre las propias. */
+.linea-contexto{margin:-2px 0 7px; font-size:11.5px; color:var(--text-muted); line-height:1.4;}
+.linea-plot{position:relative;}
+.linea-plot svg{display:block; width:100%; height:100%;}
+.ln-area.good{fill:var(--good); opacity:0.13;}
+.ln-area.bad{fill:var(--critical); opacity:0.13;}
+/* Rectas, no curva: una curva suave dibuja un recorrido entre el 10′ y el 15′
+   que nadie midió. La recta solo une dos cosas que sí sabemos. Misma regla
+   que LigaCarrera. */
+.ln-trazo{fill:none; stroke:var(--text-secondary); stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
+.ln-cero{stroke:var(--text-muted); stroke-width:1; stroke-dasharray:3 4; opacity:0.75;}
+.ln-cero-k{
+  position:absolute; right:0; transform:translateY(-50%);
+  font-size:10px; color:var(--text-muted); line-height:1; pointer-events:none;
+  background:var(--surface); padding:0 0 0 4px;
+}
+/* Un solo punto destacado, el pico. Los demás son marcas chicas: con cinco
+   puntos del mismo tamaño el que mira tiene que decidir cuál importa. */
+.ln-punto{
+  position:absolute; width:6px; height:6px; border-radius:50%;
+  transform:translate(-50%,-50%); background:var(--text-muted);
+  border:1.5px solid var(--surface); box-sizing:content-box;
+}
+.ln-punto.pico{width:9px; height:9px; border-width:2px;}
+.ln-punto.pico.good{background:var(--good);}
+.ln-punto.pico.bad{background:var(--critical);}
+.ln-min{position:absolute; font-size:10.5px; color:var(--text-muted); line-height:1;}
+.ln-min.start{left:0;}
+.ln-min.end{right:0;}
+/* La frase va como texto, no como cartel. Sin fondo, sin borde de color: es
+   una observación sobre lo que se midió, no un veredicto. */
+.linea-frase{
+  margin:7px 2px 0; font-size:12.5px; line-height:1.45; color:var(--text-secondary);
+}
+
+.partida-bloque{margin:16px 0 2px; padding-top:14px; border-top:1px solid var(--border-soft);}
+.partida-hitos{
+  list-style:none; margin:9px 0 0; padding:0;
+  display:flex; flex-wrap:wrap; gap:7px 22px;
+}
+.partida-hito{display:flex; align-items:baseline; gap:7px; font-size:12.5px;}
+.partida-hito-t{
+  font-family:var(--font-mono); font-variant-numeric:tabular-nums;
+  font-weight:700; color:var(--text-primary); letter-spacing:-0.02em;
+}
+.partida-hito-k{color:var(--text-secondary);}
+/* El color dice de quién fue, nada más. No dice si estuvo bien ni qué causó. */
+.partida-hito.mio .partida-hito-t{color:var(--good);}
+.partida-hito.suyo .partida-hito-t{color:var(--critical);}
 .mtg-rival-champ{
   width:17px; height:17px; border-radius:5px; overflow:hidden; flex:none;
   display:flex; align-items:center; justify-content:center;
   background:var(--surface-hover); color:var(--text-muted);
   font-family:var(--font-mono); font-size:7px; font-weight:700;
 }
-.mtg-min{color:var(--text-muted); font-weight:600; margin-right:4px;}
 @media (max-width:560px){
-  /* Mismo alto, menos ancho: las etiquetas se achican para que tres hitos
-     seguidos sigan entrando sin pisarse. */
-  .mt-hito{font-size:10.5px;}
+  /* A 390 el matchup baja solo y el pico se queda arriba: son las dos cosas
+     que hay que poder leer sin desplazar nada. */
+  .linea-cab{gap:4px;}
+  .linea-pico-v{font-size:17.5px;}
+  .partida-hitos{gap:6px 18px;}
 }
 
 /* ── Cabecera del perfil con arte (components/PlayerProfile.tsx) ───────────
@@ -3148,18 +3208,6 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    y a 13px la conclusión entraba en tres renglones. Baja a 12 con el interlineado
    un poco más corto: la frase es la conclusión de la partida y tiene que leerse
    de un saque, no ocupar un párrafo. */
-.match-story{
-  display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 7px;
-  margin:10px 0 0; padding:9px 11px;
-  background:var(--surface-raised); border-radius:var(--radius-sm);
-  border-left:3px solid var(--text-muted);
-  font-size:12px; line-height:1.45; color:var(--text-secondary);
-}
-.match-story.good{border-left-color:var(--good);}
-.match-story.bad{border-left-color:var(--critical);}
-.match-story-linea{color:var(--text-primary); font-weight:600; letter-spacing:-0.005em;}
-.match-story-contexto{color:var(--text-muted);}
-
 /* Navegador de semanas del resumen. Las flechas van a los costados del rango
    y no debajo: es el mismo gesto que pasar de página, y el rango es la
    etiqueta de dónde estás parado. */

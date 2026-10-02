@@ -4744,3 +4744,91 @@ request armada a mano no pasa por la primera. El corte de `lanzarShell` es
 repite por si alguien llama al RPC directo, y `liga_eventos` tiene un CHECK
 (`liga_eventos_no_self`) como última línea. El motor puro (`lib/shell.ts`) no
 lo chequea: es matemática y no sabe de reglas.
+
+## El detalle de una partida describe; no concluye
+
+La tarjeta decía, sobre 10′ −204, 15′ −717, 20′ −521:
+
+> Te comieron la línea y la diferencia no paró de crecer: −521 a los 20′.
+
+Tres cosas mal, y la del medio es la peor.
+
+**"Te comieron la línea" es un juicio.** Una diferencia de oro negativa no
+demuestra que el rival te haya dominado, ni que hayas jugado mal, ni que eso
+decidiera la partida. Lo mismo valía para "aplastaste", "la diste vuelta" y
+"se te dio vuelta".
+
+**"No paró de crecer" era directamente falso.** Entre el 15′ y el 20′ la brecha
+se achicó 196. Pasaba porque la frase se armaba comparando solo la PRIMERA
+medición con la ÚLTIMA: el medio —que es donde está lo interesante— no se
+miraba nunca. Un texto generado que contradice los números que tiene al lado
+es peor que no tener texto.
+
+**Y el remate explicaba lo inexplicable:** "Igual la ganaron: se definió en
+otra parte del mapa". Con una diferencia de oro y cuatro tiempos de objetivo no
+se puede afirmar dónde se definió nada.
+
+### Lo que hace ahora
+
+`leerLinea` lee la trayectoria entera y devuelve hechos: el **pico** (el punto
+más lejos del cero, con su minuto), **qué pasó después del pico**, y si
+**cambió de signo**. De ahí sale una sola frase, descriptiva:
+
+| Mediciones | Antes | Ahora |
+|---|---|---|
+| −204 / −717 / −521 | "no paró de crecer" | "Entre el 15′ y el 20′ recuperaste 196 de oro relativo." |
+| −200 / −700 / −1400 | "no paró de crecer" | "La brecha siguió creciendo hasta los 20′." |
+| +400 / +900 / +300 | "ganaste la línea y no la soltaste más" | "A los 20′ la ventaja se había reducido a +300." |
+| −800 / −100 / +500 | "la diste vuelta" | "Pasaste de −800 a los 10′ a +500 a los 20′." |
+
+"Siguió creciendo" ahora exige que CADA tramo se haya alejado del cero, no que
+el último esté más lejos que el primero. Es exactamente el chequeo que faltaba.
+
+Con una sola medición no hay frase: el número ya está arriba y repetirlo no
+agrega nada.
+
+### Sin escalones inventados
+
+No hay leve / moderada / grave. El único contexto sobre el tamaño de la brecha
+sale del propio historial del jugador: si esa diferencia a los 15′ cae en el
+décimo más extremo de las suyas, dice "Pocas veces estuviste tan abajo a los
+15′"; si no, el número va pelado. Hace falta un mínimo de 40 partidas guardadas
+—hay entre 120 y 209 por jugador, así que da— y se compara 15′ contra 15′,
+porque es el único minuto guardado en todas.
+
+### Tu línea y la partida son dos cosas
+
+Estaban en un solo bloque que mezclaba la diferencia contra tu rival con la
+primera sangre, el dragón, la torre y el barón. Juntas invitan a leer una causa
+donde solo hay dos hechos. Ahora son dos secciones separadas por una regla, y
+los hitos son una lista con su minuto: cuándo pasó y de quién fue. Punto.
+
+### El 569%
+
+El cartel de "Para repasar" decía "KDA 569% por encima de tu promedio". El
+cálculo está bien —0,45 a 3,0 es eso— y comunica pésimo: con un baseline chico
+el porcentaje explota y la chapa parece un informe financiero. Ahora muestra el
+par de valores, "KDA 3 · habitual 0,45", y UNA sola razón: la que más se
+apartó. Tres razones separadas por puntos medios no contestaban "¿por qué miro
+esta partida?", la repartían.
+
+El redondeo es por tamaño y no fijo por métrica: debajo de 1 van dos decimales.
+Con uno solo, el 0,45 se mostraba como 0,5 y se perdía justo la diferencia que
+el cartel existe para mostrar.
+
+### Rectas, no curva
+
+Los puntos del gráfico se unen con segmentos rectos. Antes era una curva suave
+por puntos medios, con el argumento de que entre el 10′ y el 15′ no sabemos qué
+pasó y la curva lo decía mejor. Es al revés: una curva dibuja un recorrido —con
+su aceleración y su inflexión— que nadie midió. Misma regla que LigaCarrera.
+
+Se destaca UN punto, el pico, y los otros quedan chicos. Y el color del número
+grande sale del pico, no de dónde terminó la línea: con −800 / −100 / +500 el
+tono general es "terminó arriba" y el número es −800, así que pintarlo de verde
+decía lo contrario del signo. Lo encontré mirando la captura, no leyendo el
+código.
+
+El bloque rojo con la conclusión se fue: una superficie de color hacía que −500
+pareciera una catástrofe. El rojo y el verde quedan en el número y en el área
+del gráfico, que es donde significan "abajo" y "arriba" de la igualdad.

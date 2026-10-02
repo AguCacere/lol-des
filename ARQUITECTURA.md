@@ -153,7 +153,9 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   ni se interpola: se cuenta aparte.
 - `form.ts` — forma reciente: sus últimas N contra todo lo anterior de él mismo.
 - `tilt.ts` — "estás jugando peor Y no estás parando".
-- `matchflags.ts` — marca partidas atípicas contra la forma propia.
+- `matchflags.ts` — marca partidas atípicas contra la forma propia. Devuelve UNA
+  razón (`principal`), con el valor y el habitual: "KDA 3 · habitual 0,45" en vez
+  de "KDA 569% por encima de tu promedio", que con un baseline chico explota.
 - `builds.ts` — el orden de compra cruzado con el resultado.
 - `champion-insights.ts` — maestría de Riot contra el pool real de ranked.
 - `atribucion.ts` — **cuánto LP movió una partida**. La pieza única: el par de
@@ -167,7 +169,12 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   victoria de esa misma persona; nunca contra otras.
 - `clash.ts` — agrupa las partidas de Clash (queue 700) en torneos.
 - `timeline.ts` — extrae de los frames de Match-V5 los números de `MatchDetail`.
-- `match-story.ts` — "dónde se dio vuelta la partida", en castellano.
+- `match-story.ts` — **TU LÍNEA leída como trayectoria**: el pico de la diferencia
+  de oro con su minuto, qué pasó después, si cambió de signo, y una frase
+  DESCRIPTIVA. No afirma causas. `rarezaDeBrecha` es el único contexto sobre el
+  tamaño, y sale del propio historial del jugador (décimo más extremo, mínimo 40
+  partidas), nunca de escalones inventados. También arma la lista de hitos de
+  LA PARTIDA, que es una lista y no un relato.
 - `torneo.ts` — **la ventana de cada torneo**: cuándo arranca, cuándo cierra,
   cuánto dura y qué mínimos pide. Es la capa de CALENDARIO y `liga.ts` la de
   puntaje: liga importa de acá, nunca al revés. Antes la ventana se DEDUCÍA (el

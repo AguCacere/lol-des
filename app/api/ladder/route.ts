@@ -18,6 +18,7 @@ import { comoJugamosJuntos, type Juntos } from "@/lib/juntos";
 import { progresionPorPartida, VENTANA_PARTIDAS, type PartidaParaProgresion } from "@/lib/progresion";
 import { computeChampionInsights } from "@/lib/champion-insights";
 import { computeMatchFlag, STATS_WINDOW_SIZE, type StatSample } from "@/lib/matchflags";
+import { rarezaDeBrecha } from "@/lib/match-story";
 import type { Aegis, ChampionLeaderboardEntry, ChampionPoolEntry, DuoPair, DuoSharedMatch, FlexRank, LpHistoryPoint, MasteryEntry, Match, PersonalRecords, Player, RoleAverages, RoleKey } from "@/lib/types";
 import { winrateExacto } from "@/lib/winrate";
 import {
@@ -842,14 +843,24 @@ export async function GET() {
       // processed. Same order as statsWindowByPuuid's per-puuid array, so
       // zipping them by index after the loop lines them up correctly.
       flag: null,
+      brechaRara: null,
     });
     matchesByPuuid.set(row.puuid, arr);
   }
 
   for (const [puuid, matches] of matchesByPuuid) {
     const window = statsWindowByPuuid.get(puuid) ?? [];
+    // El historial de diferencias a los 15′ de ESE jugador, para poder decir
+    // "pocas veces estuviste tan abajo" sin inventar escalones de leve /
+    // moderada / grave. Sale de matchupSamplesByPuuid, que ya recorre TODAS
+    // las partidas guardadas: no hay consulta nueva. Y es el minuto 15 y no
+    // otro porque es el único que está guardado en todas.
+    const gd15 = (matchupSamplesByPuuid.get(puuid) ?? [])
+      .map((x) => x.goldDiff15)
+      .filter((v): v is number => v != null);
     matches.forEach((match, i) => {
       match.flag = computeMatchFlag(window, window[i]);
+      match.brechaRara = match.goldDiff15 != null ? rarezaDeBrecha(gd15, match.goldDiff15) : null;
     });
   }
 

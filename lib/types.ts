@@ -135,11 +135,36 @@ export interface Match {
   coreBuild: { id: number; nombre: string }[];
   /** "Para repasar" — this match swung hard vs. this player's OWN recent form (see lib/matchflags.ts). Null when nothing stood out, or too few recent matches to trust a baseline yet. */
   flag: MatchFlag | null;
+  /**
+   * Si la diferencia de oro a los 15′ de ESTA partida cae en el décimo más
+   * extremo del propio historial del jugador (ver `rarezaDeBrecha` en
+   * lib/match-story.ts). Es el único contexto que se muestra sobre el tamaño
+   * de la brecha, justamente para no inventar escalones de leve/moderada/grave.
+   *
+   * Opcional porque durante la ventana de caché del CDN llega el JSON de antes
+   * del deploy, que no lo trae.
+   */
+  brechaRara?: "abajo" | "arriba" | null;
 }
 
 /** Why one match got flagged as worth a group look — see lib/matchflags.ts for the thresholds. */
 export interface MatchFlag {
+  /** Todas las métricas que se apartaron, en texto con porcentaje. Queda por compatibilidad del JSON cacheado; la pantalla usa `principal`. */
   reasons: string[];
+  /**
+   * LA razón: una sola, la que más se apartó, con el valor real y el habitual.
+   *
+   * Se muestra "KDA 3,0 · habitual 0,45" en vez de "KDA 569% por encima de tu
+   * promedio": con un baseline chico el porcentaje explota y deja de
+   * comunicar. Puede venir null del JSON viejo durante la ventana de caché
+   * del CDN, así que la pantalla tiene que tolerarlo.
+   */
+  principal: {
+    metrica: string;
+    valor: number;
+    base: number;
+    direccion: "encima" | "debajo";
+  } | null;
 }
 
 interface TeamDigestPlayerRef {

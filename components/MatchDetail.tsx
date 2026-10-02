@@ -4,7 +4,7 @@ import { itemIconUrl } from "@/lib/ddragon";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
 import { ClockIcon, EyeIcon, ReviewIcon, ShieldIcon, TrendUpIcon, ZapIcon } from "./StatIcons";
-import { MatchTimeline } from "./MatchTimeline";
+import { TuLinea, LaPartida } from "./MatchTimeline";
 import type { CompraItem } from "@/lib/builds";
 
 /** Only pentakills get the celebratory banner — doubles/triples/quadras are common enough to skip. */
@@ -249,12 +249,29 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
   return (
     <div className="match-detail">
       {multikill && <div className="match-multikill">{multikill}</div>}
+      {/* "Para repasar" con UNA razón y los dos valores reales. Antes decía
+          "KDA 569% por encima de tu promedio": el cálculo estaba bien, pero
+          con un baseline chico el porcentaje explota y la chapa parecía un
+          informe financiero. `principal` puede faltar si el JSON viene de
+          antes del deploy (caché del CDN); ahí se cae al texto viejo. */}
       {m.flag && (
         <div className="match-review-banner">
           <ReviewIcon />
-          <span>
-            <strong>Para repasar</strong> — <span className="match-review-reasons">{m.flag.reasons.join(" · ")}</span>
-          </span>
+          {m.flag.principal ? (
+            <span>
+              <strong>Para repasar</strong>
+              <span className="match-review-razon">
+                {m.flag.principal.metrica} <b>{m.flag.principal.valor.toLocaleString("es-AR")}</b>
+                <span className="match-review-base">
+                  habitual {m.flag.principal.base.toLocaleString("es-AR")}
+                </span>
+              </span>
+            </span>
+          ) : (
+            <span>
+              <strong>Para repasar</strong> — <span className="match-review-reasons">{m.flag.reasons.join(" · ")}</span>
+            </span>
+          )}
         </div>
       )}
 
@@ -293,8 +310,24 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
       <div className="match-dos">
       {/* Primero de todo: es lo que cuenta la partida. Los números de abajo
           la describen, esto la narra. */}
+        {/* Dos bloques y no uno: tu línea y la partida son dimensiones
+            distintas, y juntas invitaban a leer una causa donde solo hay dos
+            hechos. Cada uno se dibuja solo si tiene con qué — sin diferencia
+            de oro no hay "Tu línea", sin hitos no hay "La partida". */}
         {hasTimeline && (
-          <Group label="Cómo se dio la partida" icon={<TrendUpIcon />} ancho={<MatchTimeline match={m} ddragonVersion={ddragonVersion} />} />
+          <Group
+            // "Cómo se dio" y no "Cómo se dio la partida": adentro hay una
+            // sección que se llama "La partida" y el título repetido a dos
+            // centímetros se lee como un error.
+            label="Cómo se dio"
+            icon={<TrendUpIcon />}
+            ancho={
+              <>
+                <TuLinea match={m} ddragonVersion={ddragonVersion} />
+                <LaPartida match={m} />
+              </>
+            }
+          />
         )}
         <Group
           label="Build"
