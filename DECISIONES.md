@@ -4832,3 +4832,54 @@ código.
 El bloque rojo con la conclusión se fue: una superficie de color hacía que −500
 pareciera una catástrofe. El rojo y el verde quedan en el número y en el área
 del gráfico, que es donde significan "abajo" y "arriba" de la igualdad.
+
+### La pasada de pulido
+
+Seis cosas más, todas de lectura:
+
+**"Mayor brecha" era ambiguo.** Con +1.200 también era "la mayor brecha" y
+había que leer el signo para saber de qué lado. Ahora dice **Mayor ventaja** o
+**Mayor desventaja**, y el signo pasa a confirmar en vez de informar.
+
+**El gráfico mentía sobre el minuto.** El eje llegaba hasta el final de la
+partida (39′) con un "Final" en el borde derecho, así que el último valor
+—−521, que es del minuto 20— parecía ser el del 39. Ahora el eje **termina en
+la última medición** y abajo de cada punto va su minuto real: 10′, 15′, 20′.
+De paso se fue el desvanecido del final, que existía solo para tapar ese
+problema, y los tres puntos dejaron de amontonarse en la mitad izquierda.
+
+**"Cómo se dio la partida" era un título de más.** Abajo ya estaban TU LÍNEA y
+LA PARTIDA, que dicen qué es cada cosa, y encima el externo se pisaba con el
+nombre del interno. Se fue entero.
+
+**Los objetivos son una línea de tiempo, no una tira.** Cuatro textos seguidos
+no dejaban ver que entre la torre y el barón pasaron once minutos. Ahora hay un
+riel con los puntos ubicados en su momento real, del primer hito al último (no
+de 0 al final: con la primera sangre a los 2:54 en una partida de 39, anclarlo
+al cero apelotonaba todo en el primer tercio).
+
+Dos bugs que aparecieron MIDIENDO y no mirando:
+
+- el riel estaba 7px por encima de los puntos, porque el 15 que parecía bien a
+  ojo no era el centro real del punto (22,5). Y era `--border-soft`, 6% de
+  blanco: a 1px sobre este fondo, invisible;
+- el primer hito se salía 38px por la izquierda porque `:first-of-type`
+  matcheaba el riel —también es un `span`— y no el primer hito. Se arregló con
+  una clase explícita desde el componente.
+
+Las etiquetas pasaron a "1ª sangre" y "1ª torre": con "Primera sangre" se
+pisaban a 390px. Medido con Playwright, no estimado.
+
+**El KDA dicho como se habla.** "KDA 20 habitual 3" es correcto y se lee como
+una fila de base de datos. Ahora es "KDA 20,0 frente a 3,0 habitual", con un
+decimal siempre — un número pelado al lado de otro se lee como un conteo. Y
+cuando el KDA sale de dividir por cero muertes, dice lo que de verdad pasó:
+**"participaste en 20 bajas sin morir"**. Ese 20 no es un promedio de nada, es
+`(3+17)/1`.
+
+**El matchup con las dos caras.** La sección se entiende como un enfrentamiento
+antes de leer una palabra. Sigue siendo una línea de texto, no una tarjeta
+nueva.
+
+Y el bloque bajó de alto: la banda del gráfico de 76 a 62 y los márgenes
+apretados. Con tres partidas abiertas, eso es media pantalla.

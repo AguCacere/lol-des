@@ -1977,14 +1977,12 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    de referencia va al lado, apagado y chico, que es la jerarquía con la que
    se los lee: "cuánto hice" primero, "contra qué" después. */
 .match-review-razon{
-  display:inline-flex; align-items:baseline; gap:4px 7px; flex-wrap:wrap;
-  margin-left:7px; color:var(--text-secondary); font-weight:500;
+  color:var(--text-secondary); font-weight:500;
+  font-variant-numeric:tabular-nums;
 }
-.match-review-razon b{
-  color:var(--text-primary); font-weight:700;
-  font-variant-numeric:tabular-nums; letter-spacing:-0.01em;
-}
-.match-review-base{color:var(--text-muted); font-size:11.5px;}
+/* El punto medio separa la chapa de la razón sin meter un guion, que a este
+   tamaño se confundía con un signo menos del número que viene después. */
+.match-review-razon::before{content:" · "; color:var(--text-muted); white-space:pre;}
 /* La build del detalle de partida: una tira compacta (runas + hechizos en
    chips, el recorrido de ítems, y la compra completa plegada) en lugar de las
    cuatro filas apiladas con etiqueta propia que tenía antes — en el celular
@@ -2294,8 +2292,8 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
    fondos, y nada de cinco tarjetas adentro de otra tarjeta. */
 .linea-bloque{margin:2px 0 0;}
 .linea-cab{
-  display:flex; align-items:baseline; justify-content:space-between;
-  gap:6px 12px; flex-wrap:wrap; margin-bottom:9px;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:5px 12px; flex-wrap:wrap; margin-bottom:7px;
 }
 .linea-titulo{
   margin:0; font-family:var(--font-display); font-size:11px; font-weight:700;
@@ -2305,8 +2303,15 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
   display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap;
   font-size:12.5px; font-weight:600; color:var(--text-secondary);
 }
-.linea-vs-sep{color:var(--text-muted); font-weight:500;}
-.linea-rival{display:inline-flex; align-items:center; gap:5px; color:var(--text-primary);}
+.linea-vs-sep{color:var(--text-muted); font-weight:500; font-size:11.5px;}
+.linea-lado{display:inline-flex; align-items:center; gap:5px; color:var(--text-secondary);}
+.linea-lado.rival{color:var(--text-primary);}
+.linea-cara{
+  width:19px; height:19px; border-radius:5px; overflow:hidden; flex:none;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--surface-hover); color:var(--text-muted);
+  font-family:var(--font-mono); font-size:7px; font-weight:700;
+}
 
 /* El pico: rótulo chico arriba, número grande abajo. Es el dato que contesta
    "¿cuánto y cuándo?" y por eso es lo único grande del bloque. El color va en
@@ -2355,29 +2360,54 @@ button{font-family:inherit; appearance:none; -webkit-appearance:none; border:non
 .ln-punto.pico{width:9px; height:9px; border-width:2px;}
 .ln-punto.pico.good{background:var(--good);}
 .ln-punto.pico.bad{background:var(--critical);}
-.ln-min{position:absolute; font-size:10.5px; color:var(--text-muted); line-height:1;}
-.ln-min.start{left:0;}
-.ln-min.end{right:0;}
+/* El minuto de cada medición, centrado abajo de su punto. Tabular para que
+   10′ y 15′ ocupen lo mismo y no bailen. */
+.ln-min{
+  position:absolute; transform:translateX(-50%);
+  font-size:10.5px; color:var(--text-muted); line-height:1;
+  font-variant-numeric:tabular-nums; pointer-events:none;
+}
 /* La frase va como texto, no como cartel. Sin fondo, sin borde de color: es
    una observación sobre lo que se midió, no un veredicto. */
 .linea-frase{
-  margin:7px 2px 0; font-size:12.5px; line-height:1.45; color:var(--text-secondary);
+  margin:6px 2px 0; font-size:12.5px; line-height:1.45; color:var(--text-secondary);
 }
 
-.partida-bloque{margin:16px 0 2px; padding-top:14px; border-top:1px solid var(--border-soft);}
-.partida-hitos{
-  list-style:none; margin:9px 0 0; padding:0;
-  display:flex; flex-wrap:wrap; gap:7px 22px;
+.partida-bloque{margin:13px 0 2px; padding-top:12px; border-top:1px solid var(--border-soft);}
+/* Una línea de tiempo de verdad: el riel, los puntos sobre él y la etiqueta
+   abajo. Cuatro textos seguidos no dejaban ver que entre la torre y el barón
+   pasaron once minutos. */
+.partida-riel{position:relative; height:46px; margin:14px 7px 0;}
+.partida-via{
+  /* 22px es el centro REAL del punto, medido en el DOM: con 15 —el valor que
+     parecía bien a ojo— el riel pasaba 7px por encima de los puntos y no se
+     leía como una línea de tiempo. Y --border-soft (6% de blanco) a 1px sobre
+     este fondo era directamente invisible. */
+  position:absolute; left:0; right:0; top:22px; height:1px;
+  background:var(--border-firm);
 }
-.partida-hito{display:flex; align-items:baseline; gap:7px; font-size:12.5px;}
+.partida-hito{
+  position:absolute; top:0; transform:translateX(-50%);
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  white-space:nowrap;
+}
 .partida-hito-t{
   font-family:var(--font-mono); font-variant-numeric:tabular-nums;
-  font-weight:700; color:var(--text-primary); letter-spacing:-0.02em;
+  font-size:11px; font-weight:700; color:var(--text-secondary); letter-spacing:-0.02em;
 }
-.partida-hito-k{color:var(--text-secondary);}
+.partida-punto{
+  width:7px; height:7px; border-radius:50%; background:var(--text-muted);
+  border:2px solid var(--surface); box-sizing:content-box;
+}
+.partida-hito-k{font-size:11px; color:var(--text-muted);}
 /* El color dice de quién fue, nada más. No dice si estuvo bien ni qué causó. */
+.partida-hito.mio .partida-punto{background:var(--good);}
+.partida-hito.suyo .partida-punto{background:var(--critical);}
 .partida-hito.mio .partida-hito-t{color:var(--good);}
 .partida-hito.suyo .partida-hito-t{color:var(--critical);}
+/* El primero y el último se alinean a su borde: centrados, se salían. */
+.partida-hito.primero{transform:none; align-items:flex-start;}
+.partida-hito.ultimo{transform:translateX(-100%); align-items:flex-end;}
 .mtg-rival-champ{
   width:17px; height:17px; border-radius:5px; overflow:hidden; flex:none;
   display:flex; align-items:center; justify-content:center;

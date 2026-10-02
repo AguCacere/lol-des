@@ -174,7 +174,7 @@ sirve; si hace falta el detalle, se lee ese header, no el archivo entero.
   DESCRIPTIVA. No afirma causas. `rarezaDeBrecha` es el único contexto sobre el
   tamaño, y sale del propio historial del jugador (décimo más extremo, mínimo 40
   partidas), nunca de escalones inventados. También arma la lista de hitos de
-  LA PARTIDA, que es una lista y no un relato.
+  LA PARTIDA, que se dibuja como una línea de tiempo y no como un relato.
 - `torneo.ts` — **la ventana de cada torneo**: cuándo arranca, cuándo cierra,
   cuánto dura y qué mínimos pide. Es la capa de CALENDARIO y `liga.ts` la de
   puntaje: liga importa de acá, nunca al revés. Antes la ventana se DEDUCÍA (el

@@ -19,7 +19,7 @@ test("A: −204 / −717 / −521 encuentra el pico en el 15′, no en el 20′"
   const l = leerLinea([M(10, -204), M(15, -717), M(20, -521)])!;
   assert.equal(l.pico.min, 15);
   assert.equal(l.pico.valor, -717);
-  assert.equal(l.picoEs, "brecha");
+  assert.equal(l.picoEs, "desventaja");
 });
 
 test("A: y cuenta la recuperación posterior, con el número exacto", () => {
@@ -120,13 +120,13 @@ test("con dos picos iguales gana el más temprano: es cuando se llegó", () => {
 
 /* ── El rótulo del pico no puede contradecir su signo ── */
 
-test("con −800 / −100 / +500 el pico es una BRECHA aunque la línea termine arriba", () => {
+test("con −800 / −100 / +500 el pico es una DESVENTAJA aunque la línea termine arriba", () => {
   const l = leerLinea([M(10, -800), M(15, -100), M(20, 500)])!;
   // El tono general mira dónde terminó; el pico, su propio signo. Pintar
   // −800 de verde porque terminó en +500 decía lo contrario del número.
   assert.equal(l.tono, "good");
   assert.equal(l.pico.valor, -800);
-  assert.equal(l.picoEs, "brecha");
+  assert.equal(l.picoEs, "desventaja");
 });
 
 /* ── El contexto histórico: solo cuando el historial lo sostiene ── */

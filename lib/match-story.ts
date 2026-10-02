@@ -59,8 +59,14 @@ export interface LecturaDeLinea {
    * el que se llegó a esa diferencia, y haberla sostenido no la mueve.
    */
   pico: Medida;
-  /** Cómo llamarlo en pantalla. Una diferencia a favor no es una "brecha". */
-  picoEs: "ventaja" | "brecha" | "diferencia";
+  /**
+   * Cómo llamarlo en pantalla.
+   *
+   * "Mayor brecha" servía para los dos lados y obligaba a leer el signo para
+   * saber de cuál: con +1.200 también era "la mayor brecha". "Ventaja" y
+   * "desventaja" se entienden sin mirar el número.
+   */
+  picoEs: "ventaja" | "desventaja" | "diferencia";
   /**
    * Lo que pasó entre el pico y la última medición. `null` si el pico ES la
    * última: ahí no hay "después" que contar.
@@ -105,7 +111,7 @@ export function leerLinea(medidas: Medida[]): LecturaDeLinea | null {
   }
 
   const picoEs: LecturaDeLinea["picoEs"] =
-    pico.valor >= PAREJA ? "ventaja" : pico.valor <= -PAREJA ? "brecha" : "diferencia";
+    pico.valor >= PAREJA ? "ventaja" : pico.valor <= -PAREJA ? "desventaja" : "diferencia";
 
   const despues =
     pico.min === ultima.min
@@ -219,9 +225,11 @@ export function mmss(totalSegundos: number): string {
  */
 export function hitosDe(m: Match): Hito[] {
   const hitos: Hito[] = [];
-  if (m.firstBloodTimeS != null) hitos.push({ s: m.firstBloodTimeS, label: "Primera sangre", mio: m.firstBlood ? true : null });
+  // "1ª sangre" y "1ª torre" y no "Primera …": en el riel las etiquetas van
+  // una al lado de la otra y a 390px las largas se pisaban. Medido.
+  if (m.firstBloodTimeS != null) hitos.push({ s: m.firstBloodTimeS, label: "1ª sangre", mio: m.firstBlood ? true : null });
   if (m.firstDragonTimeS != null) hitos.push({ s: m.firstDragonTimeS, label: "Dragón", mio: m.firstDragonMine });
-  if (m.firstTowerTimeS != null) hitos.push({ s: m.firstTowerTimeS, label: "Primera torre", mio: m.firstTowerMine });
+  if (m.firstTowerTimeS != null) hitos.push({ s: m.firstTowerTimeS, label: "1ª torre", mio: m.firstTowerMine });
   if (m.firstBaronTimeS != null) hitos.push({ s: m.firstBaronTimeS, label: "Barón", mio: m.firstBaronMine });
   return hitos.sort((a, b) => a.s - b.s);
 }

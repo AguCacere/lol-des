@@ -41,13 +41,18 @@ import { InfoTip } from "./InfoTip";
 
 /** Unidades del viewBox a lo ancho. Arbitrario: el SVG se estira al ancho real. */
 const W = 1000;
-const PAD_X = 10;
-/** Alto de la banda de la curva. */
-const PLOT_H = 76;
+/**
+ * Aire a los costados. A la derecha hay más porque ahí termina la última
+ * medición y el punto necesita lugar para no comerse el borde.
+ */
+const PAD_L = 16;
+const PAD_R = 34;
+/** Alto de la banda de la curva. Bajó de 76: con dos o tres puntos, el aire de más solo estiraba el perfil. */
+const PLOT_H = 62;
 /** Espacio arriba de la curva, para que el punto del pico no toque el borde. */
-const PLOT_TOP = 12;
-/** Espacio debajo del eje para "Inicio" y "Final". */
-const PIE_H = 20;
+const PLOT_TOP = 10;
+/** Espacio debajo del eje para los minutos. */
+const PIE_H = 18;
 /**
  * Piso de la escala vertical. Sin esto, una partida pareja (±80 de oro) se
  * dibujaría como una montaña rusa: la curva se autoescala al máximo real y
@@ -76,10 +81,17 @@ export function TuLinea({ match, ddragonVersion }: { match: Match; ddragonVersio
   // −800 / −100 / +500 el tono general es "good" (terminó arriba) y el número
   // grande es −800: pintarlo de verde decía lo contrario de lo que dice el
   // signo. Misma fuente para la etiqueta y para el color.
-  const tonoPico = picoEs === "ventaja" ? "good" : picoEs === "brecha" ? "bad" : "neutral";
+  const tonoPico = picoEs === "ventaja" ? "good" : picoEs === "desventaja" ? "bad" : "neutral";
 
-  const finMin = Math.max(m.dur, ...medidas.map((p) => p.min), 1);
-  const x = (min: number) => PAD_X + (min / finMin) * (W - PAD_X * 2);
+  // El eje termina en la ÚLTIMA MEDICIÓN, no al final de la partida.
+  //
+  // Antes llegaba hasta m.dur (39′) y los tres puntos se amontonaban en la
+  // mitad izquierda, con un "Final" al borde derecho. Eso sugería que el
+  // último valor —−521— era el del minuto 39, cuando es el del 20. Ahora el
+  // eje dice exactamente hasta dónde sabemos, y los minutos van abajo de cada
+  // punto.
+  const finMin = Math.max(...medidas.map((p) => p.min), 1);
+  const x = (min: number) => PAD_L + (min / finMin) * (W - PAD_L - PAD_R);
   const xp = (min: number) => (x(min) / W) * 100;
 
   const escala = Math.max(ESCALA_MINIMA, ...medidas.map((p) => Math.abs(p.valor)));
@@ -97,13 +109,19 @@ export function TuLinea({ match, ddragonVersion }: { match: Match; ddragonVersio
     <section className="linea-bloque">
       <header className="linea-cab">
         <h4 className="linea-titulo">Tu línea</h4>
+        {/* Con las dos caras: la sección se entiende como un matchup antes de
+            leer una palabra. Sigue siendo una línea de texto, no una tarjeta
+            nueva. */}
         <span className="linea-vs">
-          {championLabel(m.champ)}
+          <span className="linea-lado">
+            <ChampIcon champ={m.champ} version={ddragonVersion} className="linea-cara" />
+            {championLabel(m.champ)}
+          </span>
           {m.opponent && (
             <>
               <span className="linea-vs-sep">vs</span>
-              <span className="linea-rival">
-                <ChampIcon champ={m.opponent} version={ddragonVersion} className="mtg-rival-champ" />
+              <span className="linea-lado rival">
+                <ChampIcon champ={m.opponent} version={ddragonVersion} className="linea-cara" />
                 {championLabel(m.opponent)}
               </span>
             </>
@@ -115,7 +133,7 @@ export function TuLinea({ match, ddragonVersion }: { match: Match; ddragonVersio
           "Mayor brecha / −717 oro · 15′" dice qué se midió y cuándo. */}
       <p className={`linea-pico ${tonoPico}`}>
         <span className="linea-pico-k">
-          {picoEs === "ventaja" ? "Mayor ventaja" : picoEs === "brecha" ? "Mayor brecha" : "Mayor diferencia"}
+          {picoEs === "ventaja" ? "Mayor ventaja" : picoEs === "desventaja" ? "Mayor desventaja" : "Mayor diferencia"}
           <InfoTip text="El punto más lejos de la igualdad entre las mediciones guardadas (10′, 15′ y 20′). Es diferencia de oro contra tu rival de línea, no contra el equipo entero." />
         </span>
         <span className="linea-pico-v">
@@ -148,25 +166,16 @@ export function TuLinea({ match, ddragonVersion }: { match: Match; ddragonVersio
             <clipPath id="ln-abajo">
               <rect x="0" y={zeroY} width={W} height={EJE_Y - zeroY} />
             </clipPath>
-            {/* Los datos se cortan en la última medición (el 20′ de una partida
-                de 39), y cerrar el área ahí con un borde recto se leía como un
-                derrumbe que no pasó. Esto la desvanece: hasta ahí sabemos. */}
-            <linearGradient id="ln-fin" gradientUnits="userSpaceOnUse" x1={Math.max(0, finArea - 90)} x2={finArea}>
-              <stop offset="0%" stopColor="#fff" stopOpacity="1" />
-              <stop offset="100%" stopColor="#fff" stopOpacity="0" />
-            </linearGradient>
-            <mask id="ln-mask-fin">
-              <rect x="0" y="0" width={W} height={H} fill="url(#ln-fin)" />
-            </mask>
           </defs>
 
-          <g mask="url(#ln-mask-fin)">
-            <path className="ln-area good" d={area} clipPath="url(#ln-arriba)" />
-            <path className="ln-area bad" d={area} clipPath="url(#ln-abajo)" />
-            <path className="ln-trazo" d={linea} vectorEffect="non-scaling-stroke" />
-          </g>
+          {/* Ya no hace falta desvanecer el final: el eje TERMINA en la última
+              medición, así que no queda nada después que se pueda leer como
+              un derrumbe. */}
+          <path className="ln-area good" d={area} clipPath="url(#ln-arriba)" />
+          <path className="ln-area bad" d={area} clipPath="url(#ln-abajo)" />
+          <path className="ln-trazo" d={linea} vectorEffect="non-scaling-stroke" />
 
-          <line className="ln-cero" vectorEffect="non-scaling-stroke" x1={PAD_X} x2={W - PAD_X} y1={zeroY} y2={zeroY} />
+          <line className="ln-cero" vectorEffect="non-scaling-stroke" x1={PAD_L} x2={W - 4} y1={zeroY} y2={zeroY} />
         </svg>
 
         {/* La referencia del cero dicha con palabras. Una línea punteada en el
@@ -188,12 +197,14 @@ export function TuLinea({ match, ddragonVersion }: { match: Match; ddragonVersio
           );
         })}
 
-        <span className="ln-min start" style={{ top: `${EJE_Y + 4}px` }}>
-          Inicio
-        </span>
-        <span className="ln-min end" style={{ top: `${EJE_Y + 4}px` }}>
-          Final
-        </span>
+        {/* El minuto real abajo de cada punto. "Inicio" y "Final" no eran los
+            de la partida —que duró 39— sino los de los datos, y eso era
+            justamente lo que confundía. */}
+        {medidas.map((p) => (
+          <span key={`min${p.min}`} className="ln-min" style={{ left: `${xp(p.min)}%`, top: `${EJE_Y + 3}px` }}>
+            {p.min}&#8242;
+          </span>
+        ))}
       </div>
 
       {/* Una frase, descriptiva, o ninguna. Nunca un bloque de color con una
@@ -214,17 +225,47 @@ export function LaPartida({ match }: { match: Match }) {
   const hitos = hitosDe(match);
   if (hitos.length === 0) return null;
 
+  // El riel va del primer hito al último, no de 0 al final de la partida: con
+  // la primera sangre a los 2:54 y el barón a los 24:38 en una partida de 39,
+  // anclarlo al cero dejaba todo apelotonado en el primer tercio.
+  const desde = hitos[0].s;
+  const hasta = hitos[hitos.length - 1].s;
+  const span = Math.max(1, hasta - desde);
+  // Con un solo hito no hay recorrido: va al medio y sin riel.
+  const pos = (s: number) => (hitos.length === 1 ? 50 : ((s - desde) / span) * 100);
+
   return (
     <section className="partida-bloque">
       <h4 className="linea-titulo">La partida</h4>
-      <ul className="partida-hitos">
-        {hitos.map((h) => (
-          <li key={`${h.label}-${h.s}`} className={`partida-hito${h.mio === true ? " mio" : h.mio === false ? " suyo" : ""}`}>
+      {/* Una línea de tiempo y no una tira de números: los objetivos pasaron
+          en un orden y a una distancia, y eso es justo lo que una lista de
+          cuatro textos seguidos no deja ver. El color dice de qué equipo fue
+          cada uno. Nada más: estos datos no explican el resultado. */}
+      <div className={`partida-riel${hitos.length === 1 ? " solo" : ""}`}>
+        {hitos.length > 1 && <span className="partida-via" />}
+        {hitos.map((h, i) => (
+          <span
+            key={`${h.label}-${h.s}`}
+            // El primero y el último se anclan a su borde con una clase propia
+            // y no con :first-of-type, que matcheaba el riel —también es un
+            // span— y dejaba al primer hito centrado, saliéndose 38px por la
+            // izquierda. Medido, no supuesto.
+            className={[
+              "partida-hito",
+              h.mio === true ? "mio" : h.mio === false ? "suyo" : "",
+              hitos.length > 1 && i === 0 ? "primero" : "",
+              hitos.length > 1 && i === hitos.length - 1 ? "ultimo" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            style={{ left: `${pos(h.s)}%` }}
+          >
             <span className="partida-hito-t">{mmss(h.s)}</span>
+            <span className="partida-punto" />
             <span className="partida-hito-k">{h.label}</span>
-          </li>
+          </span>
         ))}
-      </ul>
+      </div>
     </section>
   );
 }

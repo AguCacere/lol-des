@@ -3,7 +3,7 @@ import { formatRelativeDate } from "@/lib/ladder";
 import { itemIconUrl } from "@/lib/ddragon";
 import { InfoTip } from "./InfoTip";
 import { METRIC_INFO } from "@/lib/metric-info";
-import { ClockIcon, EyeIcon, ReviewIcon, ShieldIcon, TrendUpIcon, ZapIcon } from "./StatIcons";
+import { ClockIcon, EyeIcon, ReviewIcon, ShieldIcon, ZapIcon } from "./StatIcons";
 import { TuLinea, LaPartida } from "./MatchTimeline";
 import type { CompraItem } from "@/lib/builds";
 
@@ -230,6 +230,32 @@ function Group({
  * arquitectura (LP se trackea por snapshot periódico, no por partida) que
  * necesita un trigger o mecanismo nuevo — se vuelve a agregar cuando exista.
  */
+/** Un decimal, siempre, y con coma: "3,0" y no "3". Un número pelado al lado de otro se lee como un conteo. */
+function conDecimal(n: number): string {
+  return n.toLocaleString("es-AR", { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+}
+
+/**
+ * Por qué vale la pena mirar esta partida, en castellano.
+ *
+ * "KDA 20 habitual 3" es correcto y se lee como una fila de base de datos. Con
+ * los dos números puestos en una frase —"KDA 20,0 frente a 3,0 habitual"— se
+ * entiende sin descifrar la sintaxis.
+ *
+ * Y el caso particular que vale la pena decir distinto: un KDA de 20 con 3/0/17
+ * sale de dividir por 1 porque no hubo muertes (`Math.max(1, deaths)` en la
+ * ruta). Ahí el número no es un promedio de nada — es "participaste en 20
+ * bajas sin morir", que es lo que de verdad pasó.
+ */
+function razonDeRepaso(m: Match, p: NonNullable<Match["flag"]>["principal"]): string {
+  if (!p) return "";
+  if (p.metrica === "KDA" && m.d === 0) {
+    const bajas = m.k + m.a;
+    return `participaste en ${bajas} ${bajas === 1 ? "baja" : "bajas"} sin morir`;
+  }
+  return `${p.metrica} ${conDecimal(p.valor)} frente a ${conDecimal(p.base)} habitual`;
+}
+
 export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVersion: string | null }) {
   const m = match;
   const multikill = multikillLabel(m);
@@ -260,12 +286,7 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
           {m.flag.principal ? (
             <span>
               <strong>Para repasar</strong>
-              <span className="match-review-razon">
-                {m.flag.principal.metrica} <b>{m.flag.principal.valor.toLocaleString("es-AR")}</b>
-                <span className="match-review-base">
-                  habitual {m.flag.principal.base.toLocaleString("es-AR")}
-                </span>
-              </span>
+              <span className="match-review-razon">{razonDeRepaso(m, m.flag.principal)}</span>
             </span>
           ) : (
             <span>
@@ -314,20 +335,14 @@ export function MatchDetail({ match, ddragonVersion }: { match: Match; ddragonVe
             distintas, y juntas invitaban a leer una causa donde solo hay dos
             hechos. Cada uno se dibuja solo si tiene con qué — sin diferencia
             de oro no hay "Tu línea", sin hitos no hay "La partida". */}
+        {/* Sin encabezado propio. "Cómo se dio la partida" era una tercera
+            capa de título arriba de TU LÍNEA y LA PARTIDA, que ya dicen qué
+            es cada cosa — y encima se pisaba con el nombre de la segunda. */}
         {hasTimeline && (
-          <Group
-            // "Cómo se dio" y no "Cómo se dio la partida": adentro hay una
-            // sección que se llama "La partida" y el título repetido a dos
-            // centímetros se lee como un error.
-            label="Cómo se dio"
-            icon={<TrendUpIcon />}
-            ancho={
-              <>
-                <TuLinea match={m} ddragonVersion={ddragonVersion} />
-                <LaPartida match={m} />
-              </>
-            }
-          />
+          <div className="match-detail-group">
+            <TuLinea match={m} ddragonVersion={ddragonVersion} />
+            <LaPartida match={m} />
+          </div>
         )}
         <Group
           label="Build"
